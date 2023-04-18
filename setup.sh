@@ -75,7 +75,7 @@ fi
 
 # setup /opt for oracle/microsoft etc..
 if [   -d /opt ] ; then sudo rm -rf /opt ; fi 
-if [ ! -d /opt ] ; then sudo mkdir -p /opt ; chmod 755 /opt ; fi 
+if [ ! -d /opt ] ; then sudo mkdir -p /opt ; sudo chmod 755 /opt ; fi 
 sudo chmod 755 /opt
 
 # Add Microsoft Repos and Applications
@@ -128,7 +128,7 @@ if [ -f /usr/bin/apt ] ; then
     # as file extension.
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
     
-    repo="deb [arch=amd64 ] https://download.docker.com/linux/$(lsb_release -is) $(lsb_release -cs) stable" 
+    repo="deb [arch=amd64 ] https://download.docker.com/linux/$(lsb_release -is)/$(lsb_release -cs)/stable" 
     # convert to lowercase
     repo=${repo,,}
     echo $repo
