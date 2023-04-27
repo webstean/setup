@@ -209,13 +209,13 @@ sudo sh -c 'echo "# Append to the history file, dont overwrite it."    >>  /etc/
 sudo sh -c 'echo shopt -s histappend                                   >>  /etc/profile.d/bash.sh'
 
 sudo sh -c 'echo "# Enable bash completion."                           >>  /etc/profile.d/bash.sh'
-sudo sh -c "echo [ -f /etc/bash_completion ] && . /etc/bash_completion >>  /etc/profile.d/bash.sh"
+sudo sh -c "echo [ -f /etc/bash_completion ] \&\& . /etc/bash_completion >>  /etc/profile.d/bash.sh"
 
 sudo sh -c 'echo "# Improve output of less for binary files."          >> /etc/profile.d/bash.sh'
-sudo sh -c 'echo [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"   >>  /etc/profile.d/bash.sh'
+sudo sh -c 'echo [ -x /usr/bin/lesspipe ] \&\& eval "$(SHELL=/bin/sh lesspipe)"   >>  /etc/profile.d/bash.sh'
 
 sudo sh -c 'echo "# Alias to provide distribution name"                 >> /etc/profile.d/bash.sh'
-sudo sh -c 'alias distribution=$(. /etc/os-release;echo $ID$VERSION_ID) >> /etc/profile.d/bash.sh'
+sudo sh -c 'alias distribution=\$(. /etc/os-release;echo \$ID\$VERSION_ID) >> /etc/profile.d/bash.sh'
 
 # if java is installed, install maven
 if (which java) ; then
