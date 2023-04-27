@@ -38,31 +38,40 @@ DNF_CMD=$(which dnf) > /dev/null 2>&1
 YUM_CMD=$(which yum) > /dev/null 2>&1
 APT_CMD=$(which apt-get) > /dev/null 2>&1
 APK_CMD=$(which apk) > /dev/null 2>&1
-# ${INSTALL_CMD} package
+# ${CMD_INSTALL} package
 if [[ ! -z $DNF_CMD ]] ; then
-    INSTALL_CMD="sudo dnf install -y"
-    UPDATE_CMD="sudo dnf upgrade -y"
+    CMD_INSTALL="sudo dnf install -y"
+    CMD_UPGRADE="sudo dnf upgrade -y"
+    CMD_UPDATE="sudo dnf upgrade"
+    CMD_CLEAN="sudo dnf clean all && rm -rf /tmp/* /var/tmp/*"
 elif [[ ! -z $YUM_CMD ]] ; then
-    INSTALL_CMD="sudo yum install -y"
-    UPDATE_CMD="sudo yum update"
+    CMD_INSTALL="sudo yum install -y"
+    CMD_UPGRADE="sudo yum upgrade -y"
+    CMD_UPDATE="sudo yum update"
+    CMD_CLEAN="sudo yum clean all && rm -rf /tmp/* /var/tmp/*"
 elif [[ ! -z $APT_CMD ]] ; then
-    INSTALL_CMD="sudo apt-get install -y"
-    UPDATE_CMD="sudo apt-get update -y"
+    CMD_INSTALL="sudo apt-get install -y"
+    CMD_UPGRADE="sudo apt-get upgrade -y"
+    CMD_UPDATE="sudo apt-get update"
+    CMD_CLEAN="sudo apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*"
 elif [[ ! -z $APK_CMD ]] ; then
-    INSTALL_CMD="sudo apk add -y"
-    UPDATE_CMD="sudo apk apk update"
+    CMD_INSTALL="sudo apk add -y"
+    CMD_UPGRADE="sudo apt-get upgrade -y"
+    CMD_UPDATE="sudo apk update"
+    CMD_CLEAN="sudo apk clean && rm -rf /tmp/* /var/tmp/*"
 else
   echo "error: can't find a package manager"
   exit 1;
 fi
-echo "Package Manager (Install): ${INSTALL_CMD}"
-echo "Package Manager (Update) : ${UPDATE_CMD}"
+echo "Package Manager (Install) : ${CMD_INSTALL}"
+echo "Package Manager (Update)  : ${CMD_UPDATE}"
+echo "Package Manager (Upgrade) : ${CMD_UPGRADE}"
 
 # Any specifics packages for specific distributions
 # Alpine apt - sudo won't be there by default on Alpine
 if [ -f /sbin/apk ] ; then  
-    ${INSTALL_CMD} sudo
-    ${INSTALL_CMD} musl-dev libaio-dev libnsl-dev
+    ${CMD_INSTALL} sudo
+    ${CMD_INSTALL} musl-dev libaio-dev libnsl-dev
 fi
 
 # Alpine Libraries for Oracle client
@@ -70,7 +79,7 @@ if [ -f /sbin/apk ] ; then
     # enable Edge repositories - hopefully this will go away eventually
     echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
     apk update
-    ${INSTALL_CMD} libnsl libaio musl-dev autconfig
+    ${CMD_INSTALL} libnsl libaio musl-dev autconfig
 fi
 
 # setup /opt for oracle/microsoft etc..
@@ -81,7 +90,7 @@ sudo chmod 755 /opt
 # Add Microsoft Repos and Applications
 if [ -f /usr/bin/apt ] ; then
     # make sure prereqs are installs
-    ${INSTALL_CMD} apt-transport-https ca-certificates curl software-properties-common
+    ${CMD_INSTALL} apt-transport-https ca-certificates curl software-properties-common
     
     # Import the public repository GPG keys (depreciated)
     # Note: Instead of using this command a keyring should be placed directly in the 
@@ -97,30 +106,56 @@ if [ -f /usr/bin/apt ] ; then
     sudo apt-add-repository --yes $repo
     
     # Update the list of products
-    sudo apt-get update
+    $INSTALL_UPDATE
     
     # Skip ELA prompt - I hope
     echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
 
     # Install Microsoft tools
-    sudo apt-get install -y azure-functions-core-tools
-    sudo apt-get install -y mssql-tools sqlcmd
-    sudo apt-get install -y powershell
-    sudo apt-get install -y msopenjdk-17
+    ${INSTALL_CMD} azure-functions-core-tools
+    ${INSTALL_CMD} mssql-tools sqlcmd
+    ${INSTALL_CMD} powershell
+    ${INSTALL_CMD} msopenjdk-17
         
     if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
     if (which pwsh) ; then 
         sudo sh -c 'echo   echo \"Powershell \(pwsh\) found!\"     >>  /etc/profile.d/microsoft-powershell.sh'
     fi
-    # cleanup
-    sudo apt autoremove
+fi
+
+## Check if WSL2, if so install minimal X11 and set some WSL specific settings
+if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
+    ${CMD_INSTALL} xscreensaver
+    ${CMD_INSTALL} x11-apps
+    echo $DISPLAY
+    # Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
+    xeyes &
+    # Install browser for sqlite
+    ${CMD_INSTALL} sqlitebrowser
+    sqlitebrowser &
+    ## Since this WSL set some settings
+    if [ -f /etc/wsl.conf ] ; then sudo rm -f /etc/wsl.conf ; fi
+    sudo sh -c 'echo [boot]                     >>  /etc/wsl.conf'
+    sudo sh -c 'echo systemd=true               >>  /etc/wsl.conf'
+    
+    sudo sh -c 'echo [automount]                >>  /etc/wsl.conf'
+    sudo sh -c 'echo root = \/mnt               >>  /etc/wsl.conf'
+    sudo sh -c 'echo options = "metadata"       >>  /etc/wsl.conf'
+
+    sudo sh -c 'echo [interop]                  >>  /etc/wsl.conf'
+    sudo sh -c 'echo enabled = true             >>  /etc/wsl.conf'
+    sudo sh -c 'echo appendWindowsPath = true   >>  /etc/wsl.conf'
+
+    sudo sh -c 'echo [network]                  >>  /etc/wsl.conf'
+    sudo sh -c 'echo generateResolvConf = true  >>  /etc/wsl.conf'
+    sudo sh -c 'echo generateHosts = true       >>  /etc/wsl.conf'
 fi
 
 # Add Docker repo
 if [ -f /usr/bin/apt ] ; then
 
     # make sure prereqs are installs
-    ${INSTALL_CMD} apt-transport-https ca-certificates curl software-properties-common
+    ${CMD_INSTALL} apt-transport-https ca-certificates curl software-properties-common
     
     # Import the public repository GPG keys (depreciated)
     # Note: Instead of using this command a keyring should be placed directly in the 
@@ -138,10 +173,10 @@ if [ -f /usr/bin/apt ] ; then
     sudo apt-cache policy docker-ce
     
     # Update the list of products
-    sudo apt-get update 
+    ${INSTALL_UPDATE} 
     
     # install docker
-    sudo apt install docker-ce -y
+    ${INSTALL_CMD} install docker-ce
     sudo systemctl status docker
     
     # Turn on Docker Build kit
@@ -167,10 +202,9 @@ if [ -f /usr/bin/apt ] ; then
     sudo curl -L https://raw.githubusercontent.com/docker/compose/1.29.2/contrib/completion/bash/docker-compose -o /etc/bash_completion.d/docker-compose
 
     # run Azure CLI as a container
-    sudo git clone https://github.com/gtrifonov/raspberry-pi-alpine-azure-cli.git
-    cd .\raspberry-pi-alpine-azure-cli
-    sudo docker build . -t azure-cli
-    sudo docker run -d -it --rm --name azure-cli azure-cli
+    #sudo git clone https://github.com/gtrifonov/raspberry-pi-alpine-azure-cli.git
+    #sudo docker build . -t azure-cli
+    #sudo docker run -d -it --rm --name azure-cli azure-cli
 fi
 
 ## Global environmment variables (editable)
@@ -211,7 +245,7 @@ timedatectl status
 ##sudo update-locale LANG=C.UTF-8 LANGUAGE=C.UTF-8 LC_MESSAGES=C.UTF-8 LC_COLLATE= LC_CTYPE= LC_ALL=C
 
 # Ensure git is install and then configure it 
-${INSTALL_CMD} git
+${CMD_INSTALL} git
 if [ -x /usr/bin/git ]; then
     git config --global color.ui true
     git config --global user.name "Andrew Webster"
@@ -225,9 +259,9 @@ fi
 # Install Oracle Database Instant Client via permanent OTN link
 oracleinstantclientinstall() {
     # Dependencies for Oracle Client
-    ${INSTALL_CMD} libaio 
-    ${INSTALL_CMD} libaio2 
-    ${INSTALL_CMD} unzip
+    ${CMD_INSTALL} libaio 
+    ${CMD_INSTALL} libaio2 
+    ${CMD_INSTALL} unzip
     # Permanent Link (latest version) - Instant Client - Basic (x86 64 bit) - you need this for anything else to work
     # Note: there is no Instant Client for the ARM processor, Intel/AMD x86 only
     tmpdir=$(mktemp -d)
@@ -270,9 +304,9 @@ fi
 # build/development dependencies
 if [ -d /usr/local/src ] ; then sudo rm -rf /usr/local/src ; fi
 sudo mkdir -p /usr/local/src && sudo chown ${USER} /usr/local/src && chmod 744 /usr/local/src 
-${INSTALL_CMD} build-essential pkg-config intltool libtool autoconf
+${CMD_INSTALL} build-essential pkg-config intltool libtool autoconf
 # sqllite
-${INSTALL_CMD} sqlite3 libsqlite3-dev
+${CMD_INSTALL} sqlite3 libsqlite3-dev
 # create database
 # sqlite test.db
 
@@ -336,37 +370,9 @@ sudo sh -c 'echo [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"   
 sudo sh -c 'echo "# Alias to provide distribution name"                 >> /etc/profile.d/bash.sh'
 sudi sh -c 'alias distribution=$(. /etc/os-release;echo $ID$VERSION_ID) >> /etc/profile.d/bash.sh'
 
-## If WSL2, install minimal X11 and set some WSL specific settings
-if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
-    ${INSTALL_CMD} xscreensaver
-    ${INSTALL_CMD} x11-apps
-    echo $DISPLAY
-    # Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
-    xeyes &
-    # Install browser for sqlite
-    ${INSTALL_CMD} sqlitebrowser
-    sqlitebrowser &
-    ## Since this WSL set some settings
-    if [ -f /etc/wsl.conf ] ; then sudo rm -f /etc/wsl.conf ; fi
-    sudo sh -c 'echo [boot]                     >>  /etc/wsl.conf'
-    sudo sh -c 'echo systemd=true               >>  /etc/wsl.conf'
-    
-    sudo sh -c 'echo [automount]                >>  /etc/wsl.conf'
-    sudo sh -c 'echo root = \/mnt               >>  /etc/wsl.conf'
-    sudo sh -c 'echo options = "metadata"       >>  /etc/wsl.conf'
-
-    sudo sh -c 'echo [interop]                  >>  /etc/wsl.conf'
-    sudo sh -c 'echo enabled = true             >>  /etc/wsl.conf'
-    sudo sh -c 'echo appendWindowsPath = true   >>  /etc/wsl.conf'
-
-    sudo sh -c 'echo [network]                  >>  /etc/wsl.conf'
-    sudo sh -c 'echo generateResolvConf = true  >>  /etc/wsl.conf'
-    sudo sh -c 'echo generateHosts = true       >>  /etc/wsl.conf'
-fi
-
 # if java is installed, install maven
 if (which java) ; then
-    ${INSTALL_CMD} maven
+    ${CMD_INSTALL} maven
 fi
 
 # Run Oracle XE config if found
@@ -404,12 +410,12 @@ fi
 
 sudo ldconfig
 
-# Install AWS CLI (Linux)
-cd ~
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ~/./aws/install
-rm awscliv2.zip
+## Install AWS CLI (Linux)
+#cd ~
+#curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+#unzip awscliv2.zip
+#sudo ~/./aws/install
+#rm awscliv2.zip
 
 # Install Azure CLI (global)
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash && az version
@@ -442,7 +448,7 @@ sudo sh -c 'echo fi                                >>  /etc/profile.d/golang.sh'
 # az login
 
 # install and config sysstat
-$INSTALL_CMD sysstat
+$CMD_INSTALL sysstat
 sudo sh -c 'echo ENABLED="true" >  /etc/default/sysstat'
 sudo systemctl stop sysstat
 sudo systemctl enable sysstat
@@ -497,12 +503,3 @@ sudo sh -c 'echo if [ -f  \~/.logo ] \; then >>  /etc/profile.d/zlogo.sh'
 sudo sh -c 'echo    cat \~/.logo >>  /etc/profile.d/zlogo.sh'
 sudo sh -c 'echo fi >>  /etc/profile.d/zlogo.sh'
                                        
-# apt clean  up
-if [ -f /usr/bin/apt ] ; then
-    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-fi
-
-# yum clean  up
-if [ -f /usr/bin/yum ] ; then
-    yum clean all && rm -rf /tmp/* /var/tmp/*
-fi
