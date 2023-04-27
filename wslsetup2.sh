@@ -120,6 +120,7 @@ oracleinstantclientinstall() {
 
     if [   -d /opt/oracle ] ; then sudo rm -rf /opt/oracle ; fi 
     if [ ! -d /opt/oracle ] ; then sudo mkdir -p /opt/oracle ; sudo chmod 755 /opt/oracle ; fi 
+    echo "Extracting Oracle Instant client..."
     sudo unzip -qo ${tmpdir}/instantclient-basic*.zip -d /opt/oracle
     sudo unzip -qo ${tmpdir}/instantclient-sqlplus*.zip -d /opt/oracle
     sudo unzip -qo ${tmpdir}/instantclient-tools*.zip -d /opt/oracle
