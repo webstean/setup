@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash
 
 # Debug this script if in debug mode
 [ "$DEBUG" == 'true' ] && set -x

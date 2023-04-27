@@ -1,4 +1,6 @@
-# Add Docker repo
+#!/usr/bin/bash
+
+
 if [ -f /usr/bin/apt ] ; then
 
     # make sure prereqs are installs
@@ -257,7 +259,7 @@ fi
 
 sudo ldconfig
 
-## Install AWS CLI (Linux)
+## Install AWS CLI (global)
 #cd ~
 #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 #unzip awscliv2.zip
