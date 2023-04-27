@@ -73,5 +73,13 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
     sudo sh -c 'echo generateHosts = true       >>  /etc/wsl.conf'
 fi
 
+# install and config sysstat
+$CMD_INSTALL sysstat
+sudo sh -c 'echo ENABLED="true" >  /etc/default/sysstat'
+sudo systemctl stop sysstat
+sudo systemctl enable sysstat
+sudo systemctl start sysstat
+sudo systemctl status sysstat
+# sar -u
 
                                        

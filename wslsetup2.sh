@@ -215,7 +215,7 @@ sudo sh -c 'echo "# Improve output of less for binary files."          >> /etc/p
 sudo sh -c 'echo [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"   >>  /etc/profile.d/bash.sh'
 
 sudo sh -c 'echo "# Alias to provide distribution name"                 >> /etc/profile.d/bash.sh'
-sudi sh -c 'alias distribution=$(. /etc/os-release;echo $ID$VERSION_ID) >> /etc/profile.d/bash.sh'
+sudo sh -c 'alias distribution=$(. /etc/os-release;echo $ID$VERSION_ID) >> /etc/profile.d/bash.sh'
 
 # if java is installed, install maven
 if (which java) ; then
@@ -293,15 +293,6 @@ sudo sh -c 'echo fi                                >>  /etc/profile.d/golang.sh'
 ## need to AAD logon working with
 ## interactively via browser
 # az login
-
-# install and config sysstat
-$CMD_INSTALL sysstat
-sudo sh -c 'echo ENABLED="true" >  /etc/default/sysstat'
-sudo systemctl stop sysstat
-sudo systemctl enable sysstat
-sudo systemctl start sysstat
-sudo systemctl status sysstat
-sar -u
 
 # openssl req -x509 \
 #     -newkey rsa:2048 \
