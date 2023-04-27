@@ -22,11 +22,11 @@ if [ -f /usr/bin/apt ] ; then
     sudo apt-cache policy docker-ce
     
     # Update the list of products
-    ${INSTALL_UPDATE} 
+    ${CMD_UPDATE} 
     
     # install docker
-    ${INSTALL_CMD} install docker-ce
-    # sudo systemctl status docker
+    ${CMD_INSTALL} install docker-ce
+    # sudo systemctl status docker --no-pager
     
     # Turn on Docker Build kit
     sudo sh -c 'echo export DOCKER_BUILDKIT="1" >> /etc/profile.d/docker.sh'

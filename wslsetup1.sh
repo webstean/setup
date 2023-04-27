@@ -28,16 +28,16 @@ if [ -f /usr/bin/apt ] ; then
     sudo apt-add-repository --yes $repo
     
     # Update the list of products
-    $INSTALL_UPDATE
+    ${CMD_UPDATE}
     
     # Skip ELA prompt - I hope
     echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
 
     # Install Microsoft tools
-    ${INSTALL_CMD} azure-functions-core-tools
-    ${INSTALL_CMD} mssql-tools sqlcmd
-    ${INSTALL_CMD} powershell
-    ${INSTALL_CMD} msopenjdk-17
+    ${CMD_INSTALL} azure-functions-core-tools
+    ${CMD_INSTALL} mssql-tools sqlcmd
+    ${CMD_INSTALL} powershell
+    ${CMD_INSTALL} msopenjdk-17
         
     if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
     if (which pwsh) ; then 
@@ -76,10 +76,10 @@ fi
 # install and config sysstat
 $CMD_INSTALL sysstat
 sudo sh -c 'echo ENABLED="true" >  /etc/default/sysstat'
-sudo systemctl stop sysstat
-sudo systemctl enable sysstat
-sudo systemctl start sysstat
-sudo systemctl status sysstat
+sudo systemctl stop sysstat --no-pager
+sudo systemctl enable sysstat --no-pager
+sudo systemctl start sysstat --no-pager
+sudo systemctl status sysstat --no-pager
 # sar -u
 
                                        
