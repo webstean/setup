@@ -120,9 +120,9 @@ oracleinstantclientinstall() {
 
     if [   -d /opt/oracle ] ; then sudo rm -rf /opt/oracle ; fi 
     if [ ! -d /opt/oracle ] ; then sudo mkdir -p /opt/oracle ; sudo chmod 755 /opt/oracle ; fi 
-    sudo unzip ${tmpdir}/instantclient-basic*.zip -d /opt/oracle
-    sudo unzip ${tmpdir}/instantclient-sqlplus*.zip -d /opt/oracle
-    sudo unzip ${tmpdir}/instantclient-tools*.zip -d /opt/oracle
+    sudo unzip -qo ${tmpdir}/instantclient-basic*.zip -d /opt/oracle
+    sudo unzip -qo ${tmpdir}/instantclient-sqlplus*.zip -d /opt/oracle
+    sudo unzip -qo ${tmpdir}/instantclient-tools*.zip -d /opt/oracle
 
     # rm instantclient-basic*.zip
     set -- /opt/oracle/instantclient*
@@ -254,7 +254,7 @@ fi
     
 # Install Terraform.
 # curl "https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_linux_amd64.zip" -o "terraform.zip" \
-#  && unzip terraform.zip && chmod +x terraform \
+#  && unzip -qo terraform.zip && chmod +x terraform \
 #  && sudo mv terraform ~/.local/bin && rm terraform.zip
 
 sudo ldconfig
@@ -262,7 +262,7 @@ sudo ldconfig
 ## Install AWS CLI (global)
 #cd ~
 #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-#unzip awscliv2.zip
+#unzip -qo awscliv2.zip
 #sudo ~/./aws/install
 #rm awscliv2.zip
 
@@ -309,7 +309,7 @@ sudo wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/
 sudo chmod +x /usr/local/bin/oh-my-posh
 mkdir ~/.poshthemes
 wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/themes.zip -O ~/.poshthemes/themes.zip
-unzip ~/.poshthemes/themes.zip -d ~/.poshthemes
+unzip -qo ~/.poshthemes/themes.zip -d ~/.poshthemes
 chmod u+rw ~/.poshthemes/*.omp.*
 rm ~/.poshthemes/themes.zip
 # oh-my-posh font install "Meslo LGM NF"
