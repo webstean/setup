@@ -151,6 +151,57 @@ if [ ${MACHINE_TYPE} == 'x86_64' ]; then
     oracleinstantclientinstall
 fi
 
+# Join Active Directory 
+joinactivedirectory() {
+    # Environment variables
+    
+    # Dependencies for AD Join
+    ${CMD_INSTALL} sudo yum install realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
+    # Info on Domain
+    sudo realm discover AADDSCONTOSO.COM
+    # Generatoe Kerberos ticket
+    sudo kinit contosoadmin@AADDSCONTOSO.COM
+    # Join the Domain
+    sudo realm join --verbose AADDSCONTOSO.COM -U 'contosoadmin@AADDSCONTOSO.COM'
+
+    Oracle Client
+    libaio 
+    ${CMD_INSTALL} libaio2 
+    ${CMD_INSTALL} unzip
+    # Permanent Link (latest version) - Instant Client - Basic (x86 64 bit) - you need this for anything else to work
+    # Note: there is no Instant Client for the ARM processor, Intel/AMD x86 only
+    tmpdir=$(mktemp -d)
+    wget https://download.oracle.com/otn_software/linux/instantclient/instantclient-basic-linuxx64.zip -nc --directory-prefix=${tmpdir}
+    wget https://download.oracle.com/otn_software/linux/instantclient/instantclient-sqlplus-linuxx64.zip -nc --directory-prefix=${tmpdir}
+    wget https://download.oracle.com/otn_software/linux/instantclient/instantclient-tools-linuxx64.zip -nc --directory-prefix=${tmpdir}
+
+    if [   -d /opt/oracle ] ; then sudo rm -rf /opt/oracle ; fi 
+    if [ ! -d /opt/oracle ] ; then sudo mkdir -p /opt/oracle ; sudo chmod 755 /opt/oracle ; fi 
+    echo "Extracting Oracle Instant client..."
+    sudo unzip -qo ${tmpdir}/instantclient-basic*.zip -d /opt/oracle
+    sudo unzip -qo ${tmpdir}/instantclient-sqlplus*.zip -d /opt/oracle
+    sudo unzip -qo ${tmpdir}/instantclient-tools*.zip -d /opt/oracle
+
+    # rm instantclient-basic*.zip
+    set -- /opt/oracle/instantclient*
+    export LD_LIBRARY_PATH=$1
+    if [ -f /etc/profile.d/instant-oracle.sh ] ; then
+        sudo rm /etc/profile.d/instant-oracle.sh 
+    fi
+    sudo sh -c "echo # Oracle Instant Client Setup >  /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo oracle-instantclient\(\) {        >>  /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo export LD_LIBRARY_PATH=$1  >> /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo export PATH=$1:'\$PATH'    >> /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo }                          >> /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo if [ -d /opt/oracle/instantclient\* ] \; then >> /etc/profile.d/instant-oracle.sh"
+    sudo sh -c 'echo   echo \"Oracle Database Instant Client \(sqlplus\) found!\"     >>  /etc/profile.d/instant-oracle.sh'
+    sudo sh -c "echo   oracle-instantclient              >>  /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo fi                                  >>  /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo # example: sqlplus scott/tiger@//myhost.example.com:1521/myservice >>  /etc/profile.d/instant-oracle.sh"
+ 
+    return 0
+}
+
 # build/development dependencies
 if [ -d /usr/local/src ] ; then sudo rm -rf /usr/local/src ; fi
 sudo mkdir -p /usr/local/src && sudo chown ${USER} /usr/local/src && chmod 744 /usr/local/src 
