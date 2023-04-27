@@ -40,25 +40,25 @@ APT_CMD=$(which apt-get) > /dev/null 2>&1
 APK_CMD=$(which apk) > /dev/null 2>&1
 # ${CMD_INSTALL} package
 if [[ ! -z $DNF_CMD ]] ; then
-    CMD_INSTALL="sudo dnf install -y"
-    CMD_UPGRADE="sudo dnf upgrade -y"
-    CMD_UPDATE="sudo dnf upgrade"
-    CMD_CLEAN="sudo dnf clean all && rm -rf /tmp/* /var/tmp/*"
+    export CMD_INSTALL="sudo dnf install -y"
+    export CMD_UPGRADE="sudo dnf upgrade -y"
+    export CMD_UPDATE="sudo dnf upgrade"
+    export CMD_CLEAN="sudo dnf clean all && rm -rf /tmp/* /var/tmp/*"
 elif [[ ! -z $YUM_CMD ]] ; then
-    CMD_INSTALL="sudo yum install -y"
-    CMD_UPGRADE="sudo yum upgrade -y"
-    CMD_UPDATE="sudo yum update"
-    CMD_CLEAN="sudo yum clean all && rm -rf /tmp/* /var/tmp/*"
+    export CMD_INSTALL="sudo yum install -y"
+    export CMD_UPGRADE="sudo yum upgrade -y"
+    export CMD_UPDATE="sudo yum update"
+    export CMD_CLEAN="sudo yum clean all && rm -rf /tmp/* /var/tmp/*"
 elif [[ ! -z $APT_CMD ]] ; then
-    CMD_INSTALL="sudo apt-get install -y"
-    CMD_UPGRADE="sudo apt-get upgrade -y"
-    CMD_UPDATE="sudo apt-get update"
-    CMD_CLEAN="sudo apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*"
+    export CMD_INSTALL="sudo apt-get install -y"
+    export CMD_UPGRADE="sudo apt-get upgrade -y"
+    export CMD_UPDATE="sudo apt-get update"
+    export CMD_CLEAN="sudo apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*"
 elif [[ ! -z $APK_CMD ]] ; then
-    CMD_INSTALL="sudo apk add -y"
-    CMD_UPGRADE="sudo apt-get upgrade -y"
-    CMD_UPDATE="sudo apk update"
-    CMD_CLEAN="sudo apk clean && rm -rf /tmp/* /var/tmp/*"
+    export CMD_INSTALL="sudo apk add -y"
+    export CMD_UPGRADE="sudo apt-get upgrade -y"
+    export CMD_UPDATE="sudo apk update"
+    export CMD_CLEAN="sudo apk clean && rm -rf /tmp/* /var/tmp/*"
 else
   echo "error: can't find a package manager"
   exit 1;
@@ -502,4 +502,14 @@ if [ -f  /etc/profile.d/zlogo.sh  ] ; then sudo rm -f /etc/profile.d/zlogo.sh ; 
 sudo sh -c 'echo if [ -f  \~/.logo ] \; then >>  /etc/profile.d/zlogo.sh'
 sudo sh -c 'echo    cat \~/.logo >>  /etc/profile.d/zlogo.sh'
 sudo sh -c 'echo fi >>  /etc/profile.d/zlogo.sh'
+
+${CMD_CLEAN}
+
+touch $HOME/.hushlogin
+
+export CMD_INSTALL=
+export CMD_UPGRADE=
+export CMD_UPDATE=
+export CMD_CLEAN=
+
                                        
