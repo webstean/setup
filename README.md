@@ -8,14 +8,14 @@ Install Microsooft Repo, mssql-tools, azure-functions core, msopenjdk, powershel
 
 ```log
 $DistroName = 'Ubuntu'
-Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/setup.sh | Select-Object -ExpandProperty content | wsl --distribution $DistroName --
+Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wslsetup1.sh | Select-Object -ExpandProperty content | wsl --distribution $DistroName --
 ```
 
 ## Setup for Raspberry Pi
 
 ```log
-curl -fsSL https://raw.githubusercontent.com/webstean/setup/main/setup.sh | bash -
-wget https://raw.githubusercontent.com/webstean/setup/main/setup.sh | bash -
+curl -fsSL https://raw.githubusercontent.com/webstean/setup/main/pisetup.sh | bash -
+wget https://raw.githubusercontent.com/webstean/setup/main/pisetup.sh | bash -
 ```
 
 Setup an example development project (baresip)
