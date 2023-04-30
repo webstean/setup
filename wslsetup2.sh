@@ -80,7 +80,7 @@ sudo sh -c 'echo "  @ME=Password"                                               
 sudo sh -c 'echo "  export {http,https,ftp}_proxy=http://\${USERN}:\${@ME}\${webproxy}:\${port}/"  >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "}"                                                                   >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "# web-proxy()"                                                       >> /etc/profile.d/web-proxy.sh'
-sudo sh -c 'echo $"# (wget -q -O - checkip.dyndns.org | sed -e 's/.*Current IP Address: //' -e 's/<.*$//')"  >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo $("# (wget -q -O - checkip.dyndns.org | sed -e 's/.*Current IP Address: //' -e 's/<.*$//'")  >> /etc/profile.d/web-proxy.sh'
 
 # Set Timezone - includes keeping the machine to the right time but not sure how?
 # WSL Error: System has not been booted with systemd as init system (PID 1). Can't operate.
