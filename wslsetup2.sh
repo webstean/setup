@@ -150,14 +150,19 @@ if [ ${MACHINE_TYPE} == 'x86_64' ]; then
     oracleinstantclientinstall
 fi
 
-# Join Active Directory 
+# Join Active Directory (either on-premise or AD DS) 
 joinactivedirectory() {
     # Environment variables
-    # USERDNSDOMAIN : DNS Name of domain
+    # USERDNSDOMAIN : DNS Name of Active Directory domain
     # JOINACC       : Name of Join Account
+    if [[ -z "${USERDNSDOMAIN}" ]]; then 
+        echo "Variable: USERNDNSDOMAIN is not assigned"
+        return 1
+    fi
     # Dependencies for AD Join
     ${CMD_INSTALL} realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
     # Info on Domain
+    echo "Join AD domain: ${USERNSDOMAIN}"
     sudo realm discover ${USERDNSDOMAIN}
     # Generatoe Kerberos ticket
     sudo kinit contosoadmin@${USERDNSDOMAIN}
