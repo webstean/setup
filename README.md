@@ -1,6 +1,6 @@
 # setup
 
-Various setup scripts
+**Various setup scripts**
 
 Windows Subsystem for Linux (WSL) setup - for development, DevOps etc....
 
