@@ -31,14 +31,15 @@ if [ -f /usr/bin/apt ] ; then
     ${CMD_UPDATE}
     
     # Skip ELA prompt - I hope
-    echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
+    echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
 
     # Install Microsoft tools
+    ${CMD_INSTALL} ttf-mscorefonts-installer
     ${CMD_INSTALL} azure-functions-core-tools
     ${CMD_INSTALL} mssql-tools sqlcmd
     ${CMD_INSTALL} powershell
     ${CMD_INSTALL} msopenjdk-17
-        
+    
     if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
     if (which pwsh) ; then 
         sudo sh -c 'echo   echo \"Powershell \(pwsh\) found!\"     >>  /etc/profile.d/microsoft-powershell.sh'
