@@ -41,7 +41,8 @@ if [ -f /usr/bin/apt ] ; then
     # ${CMD_INSTALL} sqlcmd
     ${CMD_INSTALL} powershell
     ${CMD_INSTALL} msopenjdk-17
-    
+    ${CMD_INSTALL} default-jre
+       
     if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
     if (which pwsh) ; then 
         sudo sh -c 'echo   echo \"Powershell \(pwsh\) found!\"     >>  /etc/profile.d/microsoft-powershell.sh'
