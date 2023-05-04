@@ -33,6 +33,8 @@ if [ -f /usr/bin/apt ] ; then
     # Skip ELA prompt - I hope
     echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
 
+echo msodbcsql18 msodbcsql/ACCEPT_EULA boolean true | sudo debconf-set-selections
+
     export ACCEPT_EULA=Y
     # Install Microsoft tools
     ${CMD_INSTALL} ttf-mscorefonts-installer
