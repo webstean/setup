@@ -38,7 +38,7 @@ if [ -f /usr/bin/apt ] ; then
     ${CMD_INSTALL} ttf-mscorefonts-installer
     ${CMD_INSTALL} azure-functions-core-tools
     # ${CMD_INSTALL} mssql-tools 
-    ${CMD_INSTALL} sqlcmd
+    # ${CMD_INSTALL} sqlcmd
     ${CMD_INSTALL} powershell
     ${CMD_INSTALL} msopenjdk-17
     
