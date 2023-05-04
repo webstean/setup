@@ -150,7 +150,12 @@ if [ ${MACHINE_TYPE} == 'x86_64' ]; then
     oracleinstantclientinstall
 fi
 
+<<<<<<< HEAD
+# Join Active Directory 
+# https://learn.microsoft.com/en-us/azure/storage/files/storage-how-to-use-files-linux?tabs=Ubuntu%2Csmb311
+=======
 # Join Active Directory (either on-premise or AD DS) 
+>>>>>>> 5006f01c01cdf6c63802b4a7dbcc4a869d604759
 joinactivedirectory() {
     # Environment variables
     # USERDNSDOMAIN : DNS Name of Active Directory domain
@@ -161,6 +166,7 @@ joinactivedirectory() {
     fi
     # Dependencies for AD Join
     ${CMD_INSTALL} realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
+    ${CMD_INSTALL} cifs-utils
     # Info on Domain
     echo "Join AD domain: ${USERNSDOMAIN}"
     sudo realm discover ${USERDNSDOMAIN}
