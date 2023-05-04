@@ -30,24 +30,28 @@ if [ -f /usr/bin/apt ] ; then
     # Update the list of products
     ${CMD_UPDATE}
     
-    # Skip ELA prompt - I hope
+    # Skip EULA prompt
     echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
-
-echo msodbcsql18 msodbcsql/ACCEPT_EULA boolean true | sudo debconf-set-selections
-
+    echo msodbcsql18 msodbcsql/ACCEPT_EULA boolean true | sudo debconf-set-selections
     export ACCEPT_EULA=Y
+
     # Install Microsoft tools
     ${CMD_INSTALL} ttf-mscorefonts-installer
     ${CMD_INSTALL} azure-functions-core-tools
-    # ${CMD_INSTALL} mssql-tools 
-    # ${CMD_INSTALL} sqlcmd
+    ${CMD_INSTALL} mssql-tools 
+    ${CMD_INSTALL} sqlcmd
     ${CMD_INSTALL} powershell
+    # Install Java
     ${CMD_INSTALL} msopenjdk-17
     ${CMD_INSTALL} default-jre
        
     if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
     if (which pwsh) ; then 
         sudo sh -c 'echo   echo \"Powershell \(pwsh\) found!\"     >>  /etc/profile.d/microsoft-powershell.sh'
+    fi
+    if [ -f /etc/profile.d/microsoft-java.sh ] ; then sudo rm -f /etc/profile.d/microsoft-java.sh ; fi
+    if (which pwsh) ; then 
+        sudo sh -c 'echo   echo \"Microsoft Java \(java\) found!\"     >>  /etc/profile.d/microsoft-java.sh'
     fi
 fi
 
