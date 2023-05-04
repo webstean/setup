@@ -1,6 +1,7 @@
 #!/usr/bin/bash
 
 
+# Docker
 if [ -f /usr/bin/apt ] ; then
 
     # make sure prereqs are installs
@@ -97,7 +98,9 @@ ${CMD_INSTALL} git
 if [ -x /usr/bin/git ]; then
     git config --global color.ui true
     git config --global user.name "Andrew Webster"
-    git config --global user.email "webstean@gmail.com"
+    if [[ -z "${UPN}" ]]; then 
+        git config --global user.email "${UPN}"
+    fi
     # cached credentials for 2 hours
     git config --global credential.helper 'cache --timeout 7200'
     git config --global advice.detachedHead false
@@ -150,12 +153,7 @@ if [ ${MACHINE_TYPE} == 'x86_64' ]; then
     oracleinstantclientinstall
 fi
 
-<<<<<<< HEAD
 # Join Active Directory 
-# https://learn.microsoft.com/en-us/azure/storage/files/storage-how-to-use-files-linux?tabs=Ubuntu%2Csmb311
-=======
-# Join Active Directory (either on-premise or AD DS) 
->>>>>>> 5006f01c01cdf6c63802b4a7dbcc4a869d604759
 joinactivedirectory() {
     # Environment variables
     # USERDNSDOMAIN : DNS Name of Active Directory domain
