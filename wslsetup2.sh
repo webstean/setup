@@ -133,15 +133,17 @@ oracleinstantclientinstall() {
     if [ -f /etc/profile.d/instant-oracle.sh ] ; then
         sudo rm /etc/profile.d/instant-oracle.sh 
     fi
-    sudo sh -c "echo # Oracle Instant Client Setup >  /etc/profile.d/instant-oracle.sh"
+    ### Enviromnet variables for Instance Client
+    ### https://docs.oracle.com/en/database/oracle/oracle-database/21/lacli/environment-variables-instant-client.html
+    sudo sh -c "echo # Oracle Instant Client Setup     >  /etc/profile.d/instant-oracle.sh"
     sudo sh -c "echo oracle-instantclient\(\) {        >>  /etc/profile.d/instant-oracle.sh"
-    sudo sh -c "echo export LD_LIBRARY_PATH=$1  >> /etc/profile.d/instant-oracle.sh"
-    sudo sh -c "echo export PATH=$1:'\$PATH'    >> /etc/profile.d/instant-oracle.sh"
-    sudo sh -c "echo }                          >> /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo export LD_LIBRARY_PATH=$1         >> /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo export PATH=$1:'\$PATH'           >> /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo }                                 >> /etc/profile.d/instant-oracle.sh"
     sudo sh -c "echo if [ -d /opt/oracle/instantclient\* ] \; then >> /etc/profile.d/instant-oracle.sh"
     sudo sh -c 'echo   echo \"Oracle Database Instant Client \(sqlplus\) found!\"     >>  /etc/profile.d/instant-oracle.sh'
-    sudo sh -c "echo   oracle-instantclient              >>  /etc/profile.d/instant-oracle.sh"
-    sudo sh -c "echo fi                                  >>  /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo   oracle-instantclient            >>  /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo fi                                >>  /etc/profile.d/instant-oracle.sh"
     sudo sh -c "echo # example: sqlplus scott/tiger@//myhost.example.com:1521/myservice >>  /etc/profile.d/instant-oracle.sh"
  
     return 0
