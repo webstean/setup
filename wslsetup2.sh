@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 
 
-# Docker
+# Docker - requires systemd
 if [ -f /usr/bin/apt ] ; then
 
     # make sure prereqs are installs
@@ -175,7 +175,30 @@ joinactivedirectory() {
     # Join the Domain
     sudo realm join --verbose ${USERDNSDOMAIN}-U 'contosoadmin@${USERDNSDOMAIN}'
 
-    return 1
+    return 0
+}
+
+# Mount SMB Azure File Share on Linux
+joinactivedirectory() {
+    # https://learn.microsoft.com/en-us/azure/storage/files/storage-how-to-use-files-linux?tabs=Ubuntu%2Csmb311
+    ${CMD_INSTALL} cifs-utils
+    ${CMD_INSTALL} autofs
+    
+    az login
+    RESOURCE_GROUP_NAME="<your-resource-group>"
+    STORAGE_ACCOUNT_NAME="<your-storage-account>"
+
+    # This command assumes you have logged in with az login
+    HTTP_ENDPOINT=$(az storage account show \
+        --resource-group $RESOURCE_GROUP_NAME \
+        --name $STORAGE_ACCOUNT_NAME \
+        --query "primaryEndpoints.file" --output tsv | tr -d '"')
+    SMBPATH=$(echo $HTTP_ENDPOINT | cut -c7-${#HTTP_ENDPOINT})
+    FILE_HOST=$(echo $-- | tr -d "/")
+
+    nc -zvw3 $FILE_HOST 445
+        
+    return 0
 }
 
 # build/development dependencies
