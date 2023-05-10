@@ -1,6 +1,5 @@
 #!/usr/bin/bash
 
-
 # Docker - requires systemd
 if [ -f /usr/bin/apt ] ; then
 
@@ -79,6 +78,7 @@ sudo sh -c 'echo "  ## Authenticated Proxy"                                     
 sudo sh -c 'echo "  USERN=UserName"                                                    >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  @ME=Password"                                                      >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  export {http,https,ftp}_proxy=http://\${USERN}:\${@ME}\${webproxy}:\${port}/"  >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  return;"                                                           >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "}"                                                                   >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "# web-proxy()"                                                       >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo $("# (wget -q -O - checkip.dyndns.org | sed -e 's/.*Current IP Address: //' -e 's/<.*$//'")  >> /etc/profile.d/web-proxy.sh'
@@ -168,7 +168,7 @@ joinactivedirectory() {
     ${CMD_INSTALL} realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
     ${CMD_INSTALL} cifs-utils
     # Info on Domain
-    echo "Join AD domain: ${USERNSDOMAIN}"
+    echo "Join AD domain: ${USERDNSDOMAIN}"
     sudo realm discover ${USERDNSDOMAIN}
     # Generatoe Kerberos ticket
     sudo kinit contosoadmin@${USERDNSDOMAIN}
@@ -179,7 +179,7 @@ joinactivedirectory() {
 }
 
 # Mount SMB Azure File Share on Linux
-joinactivedirectory() {
+mountazurefiles() {
     # https://learn.microsoft.com/en-us/azure/storage/files/storage-how-to-use-files-linux?tabs=Ubuntu%2Csmb311
     ${CMD_INSTALL} cifs-utils
     ${CMD_INSTALL} autofs
@@ -274,11 +274,6 @@ sudo sh -c 'alias distribution=\$(. /etc/os-release;echo \$ID\$VERSION_ID) >> /e
 if (which java) ; then
     ${CMD_INSTALL} maven
 fi
-
-# Run Oracle XE config if found
-#if [ -f /etc/init.d/oracle-xe* ] ; then
-#    /etc/init.d/oracle-xe-18c configure
-#fi
 
 # Install Node through Node Version Manager (nvm)
 # https://github.com/nvm-sh/nvm

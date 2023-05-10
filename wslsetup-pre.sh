@@ -24,9 +24,6 @@ if ! (sudo grep NOPASSWD:ALL /etc/sudoers ) ; then
     bash -c "echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
     # AAD
     bash -c "echo '%sudo aad_admins ALL=(ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
-    # AD DS
-    # Add 'AAD DC Administrators' group members as admins.
-    bash -c "echo '%sudo AAD\ DC\ Administrators ALL=(ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
 fi
 
 # Determine package manager for installing packages
