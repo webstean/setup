@@ -7,7 +7,6 @@
 # setup /opt for oracle/microsoft etc..
 if [   -d /opt ] ; then sudo rm -rf /opt ; fi 
 if [ ! -d /opt ] ; then sudo mkdir -p /opt ; sudo chmod 755 /opt ; fi 
-sudo chmod 755 /opt
 
 # Add Microsoft Repos and Applications
 if [ -f /usr/bin/apt ] ; then
