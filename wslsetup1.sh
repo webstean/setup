@@ -31,6 +31,7 @@ if [ -f /usr/bin/apt ] ; then
     ${CMD_UPDATE}
     
     # Skip EULA prompt
+    echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
     echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
     echo msodbcsql18 msodbcsql/ACCEPT_EULA boolean true | sudo debconf-set-selections
     export ACCEPT_EULA=Y
