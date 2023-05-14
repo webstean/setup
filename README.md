@@ -4,6 +4,14 @@
 
 ## Windows Subsystem for Linux (WSL) setup - for development, DevOps etc....
 
+Install WSL
+```shell
+    $DistroName = 'Ubuntu'
+    %USERPROFILE%\AppData\Local\Microsoft\WindowsApps\$DistroName config --default-user root
+```
+
+
+
 Install Microsoft Repo, mssql-tools, azure-functions core, msopenjdk, powershell, /etc/wsl.conf, Xwindows, systat, Azure CLI, Oracle Instant Client (if x86-64), Golang, maven, node via nvm, oh-my-posh
 
 ```shell
