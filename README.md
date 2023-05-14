@@ -19,6 +19,7 @@ wsl --status
 
 #### Configure distribution
 $DistroName = 'Ubuntu'
+wsl --install $DistroName --no-launch 
 Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName.exe" --config
 ```
 
