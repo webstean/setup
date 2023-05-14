@@ -9,15 +9,17 @@ Set the WSLENV Variable, so these variables will be passed into WSL
 [Environment]::SetEnvironmentVariable('WSLENV','OneDriveCommercial:OneDriveConsumer:USERDNSDOMAIN:USERDOMAIN:USERNAME','User')
 ```
 
-Install WSL
+Install WSL (with no distribution)
 ```powershell
 #### Setup WSL
 wsl --update #to update - which will also update from the store including the kernel and would update from in-windows to the store version
 wsl --install --no-launch  #--no-distribution - no default distribution
 wsl --set-default-version 2
 wsl --status
+```
 
-#### Configure distribution
+Install a WSL distribution
+```powershell
 $DistroName = 'Ubuntu'
 wsl --install $DistroName --no-launch 
 Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName.exe" --config
