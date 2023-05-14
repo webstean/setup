@@ -4,6 +4,12 @@
 
 ## Windows Subsystem for Linux (WSL) setup - for development, DevOps etc....
 
+Set the WSLENV Variable, so these variables will be passed into WSL
+
+```powershell
+[Environment]::SetEnvironmentVariable('WSLENV','OneDriveCommercial:OneDriveConsumer:USERDNSDOMAIN:USERDOMAIN:USERNAME','User')
+```
+
 Install WSL
 ```shell
     $DistroName = 'Ubuntu'
