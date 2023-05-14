@@ -11,7 +11,7 @@ Set the WSLENV Variable, so these variables will be passed into WSL
 ```
 
 Install WSL
-```shell
+```powershell
     $DistroName = 'Ubuntu'
     Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName.exe" --config
 ```
