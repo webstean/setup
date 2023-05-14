@@ -7,7 +7,7 @@
 Install WSL
 ```shell
     $DistroName = 'Ubuntu'
-    "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName" config --default-user root
+    Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName.exe" --config
 ```
 
 
