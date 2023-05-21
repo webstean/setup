@@ -8,6 +8,10 @@
 if [   -d /opt ] ; then sudo rm -rf /opt ; fi 
 if [ ! -d /opt ] ; then sudo mkdir -p /opt ; sudo chmod 755 /opt ; fi 
 
+# get everything upto date
+${CMD_UPDATE}
+${CMD_UPGRADE}
+
 # Add Microsoft Repos and Applications
 if [ -f /usr/bin/apt ] ; then
     # make sure prereqs are installs
@@ -98,4 +102,4 @@ sudo systemctl start sysstat --no-pager
 sudo systemctl status sysstat --no-pager
 # sar -u
 
-                                       
+# system will no reboot
