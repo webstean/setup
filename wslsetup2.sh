@@ -1,55 +1,18 @@
 #!/usr/bin/bash
 
 # Docker - requires systemd
-if [ -f /usr/bin/apt ] ; then
+if [ 1 ] ; then
 
-    # make sure prereqs are installs
-    ${CMD_INSTALL} apt-transport-https ca-certificates curl software-properties-common
+    # get rid of anything old
+    sudo apt-get remove docker docker-engine docker.io containerd runc
     
-    # Import the public repository GPG keys (depreciated)
-    # Note: Instead of using this command a keyring should be placed directly in the 
-    # /etc/apt/trusted.gpg.d/ directory with a descriptive name and either "gpg" or "asc" 
-    # as file extension.
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    # install
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh get-docker.sh
     
-    repo="deb [arch=amd64 ] https://download.docker.com/linux/$(lsb_release -is)/$(lsb_release -cs)/stable" 
-    # convert to lowercase
-    repo=${repo,,}
-    echo $repo
-    sudo apt-add-repository --yes $repo
+    ## verify
+    sudo docker run hello-world
     
-    # nsure the Docker installation source is the Docker repository, not the Ubuntu repository. 
-    sudo apt-cache policy docker-ce
-    
-    # Update the list of products
-    ${CMD_UPDATE} 
-    
-    # install docker
-    ${CMD_INSTALL} install docker-ce
-    # sudo systemctl status docker --no-pager
-    
-    # Turn on Docker Build kit
-    sudo sh -c 'echo export DOCKER_BUILDKIT="1" >> /etc/profile.d/docker.sh'
-
-    # Allow $USER to run docker commands - need to logout before become effective
-    sudo usermod -aG docker $USER
-
-    # Ensure dbus is running:
-    dbus_status=$(service dbus status)
-    if [[ $dbus_status = *"is not running"* ]]; then
-        sudo service dbus --full-restart
-    fi
-    
-    # Test docker
-    sudo docker pull hello-world && sudo docker run hello-world
-
-    # Install docker-compose (btw: included with MAC desktop version)
-    sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose && sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
-
-    # Install docker-compose completion
-    sudo curl -L https://raw.githubusercontent.com/docker/compose/1.29.2/contrib/completion/bash/docker-compose -o /etc/bash_completion.d/docker-compose
-
     # run Azure CLI as a container
     #sudo git clone https://github.com/gtrifonov/raspberry-pi-alpine-azure-cli.git
     #sudo docker build . -t azure-cli
