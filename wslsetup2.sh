@@ -68,6 +68,13 @@ if [ -x /usr/bin/git ]; then
     git config --global credential.helper 'cache --timeout 7200'
     git config --global advice.detachedHead false
     git config --list
+    git config --global alias.pom 'pull origin main'
+    git config --global alias.last 'log -1 HEAD'
+    git config --global alias.ls "log --pretty=format:'%C(yellow)%h %ad%Cred%d %Creset%s%Cblue [%cn]' --decorate --date=short --graph"
+    git config --global alias.standup "log --since yesterday --author $(git config user.email) --pretty=short"
+    git config --global alias.ammend "commit -a --amend"
+    git config --global alias.everything "! git pull && git submodule update --init --recursive"
+    git config --global alias.aliases "config --get-regexp alias"
 fi
 
 # Install Oracle Database Instant Client via permanent OTN link
