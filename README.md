@@ -29,9 +29,9 @@ Install Microsoft Repo, mssql-tools, azure-functions core, msopenjdk, powershell
 
 ```powershell
 $DistroName = 'Ubuntu'
-$wslsetuppre = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wslsetup-pre.sh | Select-Object -ExpandProperty content
-$wslsetup1 = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wslsetup1.sh | Select-Object -ExpandProperty content
-$wslsetup2 = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wslsetup2.sh | Select-Object -ExpandProperty content
+$wslsetuppre = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup-pre.sh | Select-Object -ExpandProperty content
+$wslsetup1 = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh | Select-Object -ExpandProperty content
+$wslsetup2 = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh | Select-Object -ExpandProperty content
 $wslsetuppre + $wslsetup1 | wsl --distribution $DistroName --
 wsl --terminate ${DistroName}
 $wslsetuppre + $wslsetup2 | wsl --distribution $DistroName --
