@@ -46,5 +46,8 @@ wget https://raw.githubusercontent.com/webstean/setup/main/pisetup.sh | bash -
 
 Setup an example development project (baresip)
 
+## Installing Development Fonts
+
+https://raw.githubusercontent.com/webstean/setup/main/fonts/font-install.sh
 
 
