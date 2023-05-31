@@ -42,8 +42,8 @@ $wslsetuppre + $wslsetup2 | wsl --distribution $DistroName --
 Great device - quick setup
 
 ```shell
-curl -fsSL https://raw.githubusercontent.com/webstean/setup/main/pi/setup.sh | bash -
-wget https://raw.githubusercontent.com/webstean/setup/main/pi/setup.sh | bash -
+curl -fsSL https://raw.githubusercontent.com/webstean/setup/main/pi/raspi-setup.sh | bash -
+wget https://raw.githubusercontent.com/webstean/setup/main/pi/raspi-setup.sh | bash -
 ```
 
 ## Setup an example development project (baresip)
