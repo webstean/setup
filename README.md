@@ -39,15 +39,26 @@ $wslsetuppre + $wslsetup2 | wsl --distribution $DistroName --
 
 ## Setup for Raspberry Pi
 
+Great device - quick setup
+
 ```shell
-curl -fsSL https://raw.githubusercontent.com/webstean/setup/main/pisetup.sh | bash -
-wget https://raw.githubusercontent.com/webstean/setup/main/pisetup.sh | bash -
+curl -fsSL https://raw.githubusercontent.com/webstean/setup/main/pi/setup.sh | bash -
+wget https://raw.githubusercontent.com/webstean/setup/main/pi/setup.sh | bash -
 ```
 
-Setup an example development project (baresip)
+## Setup an example development project (baresip)
+
+Under Linux or WSL
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/webstean/setup/main/baresip/setup.sh | bash -
+wget https://raw.githubusercontent.com/webstean/setup/main/baresip/setup.sh | bash -
+```
 
 ## Installing Development Fonts
 
 https://raw.githubusercontent.com/webstean/setup/main/fonts/font-install.sh
+
+
 
 
