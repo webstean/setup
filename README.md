@@ -45,7 +45,14 @@ $wslsetuppre + $wslsetup2 | wsl --distribution $DistroName --
 Great device - quick setup
 
 ```shell
+## bash / zsh etc...
 curl -fsSL https://raw.githubusercontent.com/webstean/setup/main/pi/raspi-setup.sh | bash -
+```
+
+or
+
+```shell
+## bash / zsh etc...
 wget https://raw.githubusercontent.com/webstean/setup/main/pi/raspi-setup.sh | bash -
 ```
 
@@ -54,7 +61,13 @@ wget https://raw.githubusercontent.com/webstean/setup/main/pi/raspi-setup.sh | b
 Under Linux or WSL
 
 ```shell
+## bash / zsh etc...
 curl -fsSL https://raw.githubusercontent.com/webstean/setup/main/baresip/setup.sh | bash -
+```
+or
+
+```shell
+## bash / zsh etc...
 wget https://raw.githubusercontent.com/webstean/setup/main/baresip/setup.sh | bash -
 ```
 
@@ -62,6 +75,6 @@ wget https://raw.githubusercontent.com/webstean/setup/main/baresip/setup.sh | ba
 
 https://raw.githubusercontent.com/webstean/setup/main/fonts/font-install.ps1
 
-
+You'll need to download the fonts and place them into a "fonts" directory, in the same directoy you run this script.
 
 
