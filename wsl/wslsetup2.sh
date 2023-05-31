@@ -115,7 +115,11 @@ oracleinstantclientinstall() {
     # Alternatively create a subdirectory "network/admin" under the Instant Client directory for the Oracle Net files.
     # This is the default location and so no TNS_ADMIN variable is required.
     mkdir -p ${LD_LIBRARY_PATH}/network/admin
-
+    
+    sudo sh -c "echo # Oracle Instant Client Setup     >  ${LD_LIBRARY_PATH}/network/admin/tnsnames.ora
+    sudo sh -c "echo oracle-instantclient\(\) {        >> ${LD_LIBRARY_PATH}/network/admin/tnsnames.ora
+    sudo sh -c "echo export LD_LIBRARY_PATH=$1         >> ${LD_LIBRARY_PATH}/network/admin/tnsnames.ora
+    
 return 0
 }
 
