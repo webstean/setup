@@ -109,7 +109,14 @@ oracleinstantclientinstall() {
     sudo sh -c "echo fi                                >>  /etc/profile.d/instant-oracle.sh"
     sudo sh -c "echo # example: sqlplus scott/tiger@//myhost.example.com:1521/myservice >>  /etc/profile.d/instant-oracle.sh"
  
-    return 0
+    # Q: How do I ensure that my Oracle Net files like "tnsnames.ora" and "sqlnet.ora" are being used in Instant Client?
+    # A: Files like "tnsnames.ora", "sqlnet.ora" and "oraaccess.xml" will be located by Instant Client by setting the TNS_ADMIN environment variable
+    # or registry entry to the directory containing the files. Use the full directory path; do not include a file name. 
+    # Alternatively create a subdirectory "network/admin" under the Instant Client directory for the Oracle Net files.
+    # This is the default location and so no TNS_ADMIN variable is required.
+    mkdir -p ${LD_LIBRARY_PATH}/network/admin
+
+return 0
 }
 
 MACHINE_TYPE=`uname -m`
