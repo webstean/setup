@@ -71,7 +71,7 @@ or
 wget https://raw.githubusercontent.com/webstean/setup/main/baresip/setup.sh | bash -
 ```
 
-## Installing Development Fonts
+## Installing Development Fonts [Windows]
 
 https://raw.githubusercontent.com/webstean/setup/main/fonts/font-install.ps1
 
