@@ -77,4 +77,23 @@ https://raw.githubusercontent.com/webstean/setup/main/fonts/font-install.ps1
 
 You'll need to download the fonts and place them into a "fonts" directory, in the same directoy you run this script.
 
+## Create Linux User Accounts
 
+```shell
+## bash / zsh etc...
+USER=vscode
+PASS=vscode
+# quietly add a user without password
+sudo adduser --quiet --force-badname --disabled-password --shell /bin/bash --ingroup docker $USER
+
+# set password
+echo -e '$PASS\n$PASS\n' | sudo passwd $USER
+```
+
+## Remove Linux User Account
+
+```shell
+## bash / zsh etc...
+USER=vscode
+sudo deluser --remove-home $USER
+```
