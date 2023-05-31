@@ -11,7 +11,8 @@ Set the WSLENV Variable, so these variables will be passed into WSL
 
 Install WSL (with no distribution)
 ```powershell
-#### Setup WSL
+### Powershell
+### Setup WSL
 wsl --update #to update - which will also update from the store including the kernel and would update from in-windows to the store version
 wsl --install --no-launch  #--no-distribution - no default distribution
 wsl --set-default-version 2
@@ -20,6 +21,7 @@ wsl --status
 
 Install a WSL distribution
 ```powershell
+## Powershell
 $DistroName = 'Ubuntu'
 wsl --install $DistroName --no-launch 
 Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName.exe" --config --default-user ${env:USERNAME}
@@ -28,6 +30,7 @@ Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\
 Install Microsoft Repo, mssql-tools, azure-functions core, msopenjdk, powershell, /etc/wsl.conf, Xwindows, systat, Azure CLI, Oracle Instant Client (if x86-64), Golang, maven, node via nvm, oh-my-posh
 
 ```powershell
+## Powershell
 $DistroName = 'Ubuntu'
 $wslsetuppre = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup-pre.sh | Select-Object -ExpandProperty content
 $wslsetup1 = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh | Select-Object -ExpandProperty content
