@@ -109,5 +109,5 @@ echo -e '${NPASS}\n${NPASS}\n' | sudo passwd $NUSER
 ```shell
 ## bash / zsh etc...
 NUSER=vscode
-sudo deluser --remove-home $USER
+sudo deluser --remove-home $NUSER
 ```
