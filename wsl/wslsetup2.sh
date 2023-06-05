@@ -143,8 +143,8 @@ oracleinstantclientinstall() {
     ### https://docs.oracle.com/en/database/oracle/oracle-database/21/lacli/environment-variables-instant-client.html
     sudo sh -c "echo # Oracle Instant Client Setup     >  /etc/profile.d/instant-oracle.sh"
     sudo sh -c "echo oracle-instantclient\(\) {        >>  /etc/profile.d/instant-oracle.sh"
-    sudo sh -c "echo   export LD_LIBRARY_PATH=$1         >> /etc/profile.d/instant-oracle.sh"
-    sudo sh -c "echo   export PATH=$1:'\$PATH'           >> /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo   export LD_LIBRARY_PATH=$1       >> /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo   export PATH=$1:'\$PATH'         >> /etc/profile.d/instant-oracle.sh"
     sudo sh -c "echo }                                 >> /etc/profile.d/instant-oracle.sh"
     sudo sh -c "echo if [ -d /opt/oracle/instantclient\* ] \; then >> /etc/profile.d/instant-oracle.sh"
     sudo sh -c 'echo   echo \"Oracle Database Instant Client \(sqlplus\) found!\"     >>  /etc/profile.d/instant-oracle.sh'
@@ -159,13 +159,10 @@ oracleinstantclientinstall() {
     # This is the default location and so no TNS_ADMIN variable is required.
     mkdir -p ${LD_LIBRARY_PATH}/network/admin
     
-    sudo sh -c "echo # Oracle Instant Client Setup     >  ${LD_LIBRARY_PATH}/network/admin/tnsnames.ora
-    sudo sh -c "echo oracle-instantclient\(\) {        >> ${LD_LIBRARY_PATH}/network/admin/tnsnames.ora
-    sudo sh -c "echo export LD_LIBRARY_PATH=$1         >> ${LD_LIBRARY_PATH}/network/admin/tnsnames.ora
-    
-return 0
+    # copy tnsnames inplace if found
+    return 0
 }
-
+    
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
     # only supported on x86 64bit
