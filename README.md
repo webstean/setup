@@ -17,6 +17,7 @@ wsl --update #to update - which will also update from the store including the ke
 wsl --install --no-launch  #--no-distribution - no default distribution
 wsl --set-default-version 2
 wsl --status
+
 ```
 
 Install a WSL distribution
@@ -25,6 +26,7 @@ Install a WSL distribution
 $DistroName = 'Ubuntu'
 wsl --install $DistroName --no-launch 
 Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName.exe" --config --default-user ${env:USERNAME}
+
 ```
 
 Install Microsoft Repo, mssql-tools, azure-functions core, msopenjdk, powershell, /etc/wsl.conf, Xwindows, systat, Azure CLI, Oracle Instant Client (if x86-64), Golang, maven, node via nvm, oh-my-posh
@@ -38,6 +40,7 @@ $wslsetup2 = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/s
 $wslsetuppre + $wslsetup1 | wsl --distribution $DistroName --
 wsl --terminate ${DistroName}
 $wslsetuppre + $wslsetup2 | wsl --distribution $DistroName --
+
 ```
 
 To delete and start again
@@ -48,6 +51,7 @@ $DistroName = 'Ubuntu'
 wsl --terminate ${DistroName}
 wsl --list
 wsl --unregister ${DistroName}
+
 ```
 
 ## Setup for Raspberry Pi
