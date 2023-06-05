@@ -357,9 +357,7 @@ curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash && az version
 az config set auto-upgrade.enable=yes --only-show-errors  # automatic upgrade enabled
 # dont prompt
 az config set auto-upgrade.prompt=no  --only-show-errors # dont prompt
-az bicep install
 az version
-az bicep version
 if [ -f  /etc/profile.d/azurecli.sh  ] ; then sudo rm -f /etc/profile.d/azurecli.sh ; fi
 sudo sh -c 'echo echo \"Azure CLI \(az\) found!\"     >>  /etc/profile.d/azurecli.sh'
 sudo sh -c 'echo # az account show --output table >>  /etc/profile.d/azurecli.sh'

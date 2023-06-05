@@ -32,14 +32,15 @@ else
 fi
 
 ## Global environmment variables (editable)
-sudo sh -c "echo # export AW1=AW1       >  /etc/profile.d/global-variables.sh"
+sudo sh -c "echo export FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT=1  >  /etc/profile.d/global-variables.sh"
+sudo sh -c "echo # export AW1=AW1       >>  /etc/profile.d/global-variables.sh"
 # Turn off Microsoft telemetry for Azure Function Tools
-sudo sh -c "echo # export FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT=1    >>  /etc/profile.d/global-variables.sh"
 
 # Environent Variables for proxy support
 # Squid default port is 3128, but many setup the proxy on port 80,8000,8080
 sudo sh -c 'echo "## Web Proxy Setup - edit as required"                               >  /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "web-proxy() {"                                                       >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  ## Set variable for proxy and port"                                >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  port=3128"                                                         >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  webproxy=webproxy.local"                                           >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  ## Proxy Exceptions"                                               >> /etc/profile.d/web-proxy.sh'
@@ -49,7 +50,7 @@ sudo sh -c 'echo "  export {http,https,ftp}_proxy=http://\${webproxy}:\${port}" 
 sudo sh -c 'echo "  export HTTPS_PROXY=http://\${webproxy}:\${port}"                   >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  export FTP_PROXY=http://\${webproxy}:\${port}"                     >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  return;"                                                           >> /etc/profile.d/web-proxy.sh'
-sudo sh -c 'echo "  ## Authenticated Proxy"                                            >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  ## Set variables for authenticated proxy"                          >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  USERN=UserName"                                                    >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  @ME=Password"                                                      >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  export {http,https,ftp}_proxy=http://\${USERN}:\${@ME}\${webproxy}:\${port}/"  >> /etc/profile.d/web-proxy.sh'
@@ -63,5 +64,3 @@ sudo sh -c 'echo $("# (wget -q -O - checkip.dyndns.org | sed -e 's/.*Current Ext
 ##sudo update-locale LANG=C.UTF-8 LANGUAGE=C.UTF-8 LC_MESSAGES=C.UTF-8 LC_COLLATE= LC_CTYPE= LC_ALL=C
 
 # the system will now reboot
-
-
