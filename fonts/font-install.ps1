@@ -1,4 +1,6 @@
 
+
+
 $FontDirectory = $PSScriptRoot
 if ($FontDirectory -eq $PSHOME.TrimEnd('\'))
 {
