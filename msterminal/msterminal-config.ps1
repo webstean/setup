@@ -1,6 +1,6 @@
 
 ## https://github.com/devblackops/Terminal-Icons
-# Install-Module -Name Terminal-Icons -Repository PSGallery -Force
+Install-Module -Name Terminal-Icons -Repository PSGallery -Force
 
 $backgroundimage = "ms-appdata:///Roaming/terminal_cat.jpg"
 $font = "MesloLGM NF"
