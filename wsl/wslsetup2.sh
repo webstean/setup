@@ -8,6 +8,7 @@ if [ 1 ] ; then
     
     # install
     curl -fsSL https://get.docker.com -o get-docker.sh
+    chmod 755 get-docker.sh
     sudo sh get-docker.sh
     
     ## verify
