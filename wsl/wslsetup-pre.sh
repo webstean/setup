@@ -14,7 +14,7 @@
 if [[ $(id -u) -eq 0 ]] ; then echo "Please DO NOT run as root" ; exit 1 ; fi
 
 # WSL only
-if [[ $(grep -i WSL /proc/sys/kernel/osrelease) ]]; then echo "Only runs on WSL" ; exit 1 ; fi
+if [[ ! $(grep -i WSL /proc/sys/kernel/osrelease) ]]; then echo "Only runs on WSL" ; exit 1 ; fi
 
 # Set SHELL varible, in case it not defined
 if [ -z "$SHELL" ] ; then
