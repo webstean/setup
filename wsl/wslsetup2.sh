@@ -190,16 +190,20 @@ joinactivedirectory() {
     return 0
 }
 
-# Mount SMB Azure File Share on Linux
+# Mount SMB Azure File Share on Linux - expects to already be logged in
 mountazurefiles() {
     # https://learn.microsoft.com/en-us/azure/storage/files/storage-how-to-use-files-linux?tabs=Ubuntu%2Csmb311
     ${CMD_INSTALL} cifs-utils
     ${CMD_INSTALL} autofs
     
     az login
-    RESOURCE_GROUP_NAME="<your-resource-group>"
-    STORAGE_ACCOUNT_NAME="<your-storage-account>"
-
+    if [ -z ${RESOURCE_GROUP_NAME} ] ; then
+        return 1;
+    fi
+    if [ -z ${STORAGE_ACCOUNT_NAME} ] ; then
+        return 1;
+    fi
+    
     # This command assumes you have logged in with az login
     HTTP_ENDPOINT=$(az storage account show \
         --resource-group $RESOURCE_GROUP_NAME \
