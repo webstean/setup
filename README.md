@@ -25,7 +25,7 @@ Install a WSL distribution
 ## Powershell
 $DistroName = 'Ubuntu'
 wsl --install $DistroName --no-launch 
-Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName.exe" --config --default-user ${env:USERNAME}
+Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName.exe" "--config --default-user ${env:USERNAME}"
 
 ```
 
