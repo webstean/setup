@@ -40,6 +40,15 @@ wsl --terminate ${DistroName}
 $wslsetuppre + $wslsetup2 | wsl --distribution $DistroName --
 ```
 
+To delete and start again
+
+```powershell
+$DistroName = 'Ubuntu'
+wsl --terminate ${DistroName}
+wsl --list
+wsl --unregister ${DistroName}
+```
+
 ## Setup for Raspberry Pi
 
 Great device - quick setup
