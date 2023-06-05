@@ -27,14 +27,14 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
         sudo sh -c 'echo default = ${USERNAME}      >>  /etc/wsl.conf'
     fi
 else
-    echo "Sorry, can only install on WSL2 (not WSL1)"
+    echo "Sorry, only support WSL2 (not WSL1)"
     exit 1
 fi
 
 ## Global environmment variables (editable)
 sudo sh -c "echo # export AW1=AW1       >  /etc/profile.d/global-variables.sh"
 # Turn off Microsoft telemetry for Azure Function Tools
-sudo sh -c "echo # export FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT=1       >>  /etc/profile.d/global-variables.sh"
+sudo sh -c "echo # export FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT=1    >>  /etc/profile.d/global-variables.sh"
 
 # Environent Variables for proxy support
 # Squid default port is 3128, but many setup the proxy on port 80,8000,8080
@@ -57,12 +57,6 @@ sudo sh -c 'echo "  return;"                                                    
 sudo sh -c 'echo "}"                                                                   >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "# web-proxy()"                                                       >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo $("# (wget -q -O - checkip.dyndns.org | sed -e 's/.*Current External IP Address: //' -e 's/<.*$//'")  >> /etc/profile.d/web-proxy.sh'
-
-# Set Timezone - includes keeping the machine to the right time but not sure how?
-# WSL Error: System has not been booted with systemd as init system (PID 1). Can't operate.
-#          : unless you edit /etc/wsl.conf to enable systemd
-sudo timedatectl set-timezone Australia/Melbourne
-timedatectl status 
 
 # leave along at C.UTF-8 for maximum compatiblity
 ##sudo locale-gen "C.UTF-8"

@@ -8,6 +8,12 @@ if [ ! -d /opt ] ; then sudo mkdir -p /opt ; sudo chmod 755 /opt ; fi
 ${CMD_UPDATE}
 ${CMD_UPGRADE}
 
+# Set Timezone - includes keeping the machine to the right time but not sure how?
+# WSL Error: System has not been booted with systemd as init system (PID 1). Can't operate.
+#          : unless you edit /etc/wsl.conf to enable systemd
+sudo timedatectl set-timezone Australia/Melbourne
+timedatectl status 
+
 # Add Microsoft Repos and Applications
 if [ -f /usr/bin/apt ] ; then
     # make sure prereqs are installs
