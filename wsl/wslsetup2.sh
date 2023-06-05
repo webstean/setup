@@ -56,8 +56,6 @@ if [ -f /usr/bin/apt ] ; then
     fi
 fi
 
-
-
 ## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
     ${CMD_INSTALL} xscreensaver
