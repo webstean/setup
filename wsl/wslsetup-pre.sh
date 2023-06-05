@@ -46,6 +46,7 @@ elif [[ ! -z $YUM_CMD ]] ; then
     export CMD_UPDATE="sudo yum update"
     export CMD_CLEAN=$"sudo yum clean all && sudo rm -rf /tmp/* /var/tmp/*"
 elif [[ ! -z $APT_CMD ]] ; then
+    export DEBIAN_FRONTEND=noninteractive
     export CMD_INSTALL="sudo apt-get install -y"
     export CMD_UPGRADE="sudo apt-get upgrade -y"
     export CMD_UPDATE="sudo apt-get update"
