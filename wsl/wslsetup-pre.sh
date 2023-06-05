@@ -10,6 +10,10 @@
 # - Raspbian (Raspberry Pi)
 # - Alpine - note, MS Code only has limited remoted support for Alpine
 
+# Debug this script if in debug mode
+[ "$DEBUG" == 'true' ] && set -x
+# set +x to disable
+
 # if [[ $(id -u) -ne 0 ]] ; then echo "Please run as root" ; exit 1 ; fi
 if [[ $(id -u) -eq 0 ]] ; then echo "Please DO NOT run as root" ; exit 1 ; fi
 

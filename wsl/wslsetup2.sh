@@ -1,5 +1,9 @@
 #!/usr/bin/bash
 
+# Debug this script if in debug mode
+[ "$DEBUG" == 'true' ] && set -x
+# set +x to disable
+
 # setup /opt for oracle/microsoft etc..
 if [   -d /opt ] ; then sudo rm -rf /opt ; fi 
 if [ ! -d /opt ] ; then sudo mkdir -p /opt ; sudo chmod 755 /opt ; fi 
@@ -61,7 +65,8 @@ if [ -f /usr/bin/apt ] ; then
         sudo sh -c 'echo   echo \"Microsoft Java \(java\) found!\"     >>  /etc/profile.d/microsoft-java.sh'
     fi
 
-    # if java is installed, install maven build system
+    ## if java is installed, install maven build system
+    ## Maven is a build automation tool used primarily for Java projects
     if (which java) ; then
         ${CMD_INSTALL} maven
     fi
