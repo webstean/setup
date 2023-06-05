@@ -43,6 +43,7 @@ $wslsetuppre + $wslsetup2 | wsl --distribution $DistroName --
 To delete and start again
 
 ```powershell
+## Powershell
 $DistroName = 'Ubuntu'
 wsl --terminate ${DistroName}
 wsl --list
