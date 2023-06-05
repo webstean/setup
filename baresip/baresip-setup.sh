@@ -88,6 +88,9 @@ git clone https://github.com/baresip/baresip /usr/src/baresip/baresip
 git clone https://github.com/baresip/re      /usr/src/baresip/re
 git clone https://github.com/openssl/openssl /usr/src/openssl
 
+# Build & Install openssl
+cd /ur/src/openssl && make && sudo make install && sudo ldconfig
+
 ## baresip: debug build
 cd /usr/src/baresip/baresip
 ## baresip static build
@@ -100,8 +103,7 @@ cmake -B build
 cmake --build build -j
 cmake --install build
 
-# Install & Build Libre
-cd ~/git/openssl && make && sudo make install && sudo ldconfig
+
 # Install & Build Libre
 cd ~/git/re && make && sudo make install && sudo ldconfig
 # Install & Build Librem
