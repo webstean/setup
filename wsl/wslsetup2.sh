@@ -60,6 +60,11 @@ if [ -f /usr/bin/apt ] ; then
     if (which pwsh) ; then 
         sudo sh -c 'echo   echo \"Microsoft Java \(java\) found!\"     >>  /etc/profile.d/microsoft-java.sh'
     fi
+
+    # if java is installed, install maven build system
+    if (which java) ; then
+        ${CMD_INSTALL} maven
+    fi
 fi
 
 ## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff
@@ -91,7 +96,7 @@ if [ 1 ] ; then
     
     # install
     curl -fsSL https://get.docker.com -o get-docker.sh
-    chmod 755 get-docker.sh
+    sudo chmod 755 get-docker.sh
     sudo sh get-docker.sh
     
     ## verify
@@ -240,13 +245,13 @@ ${CMD_INSTALL} curl
 ${CMD_INSTALL} wget
 ${CMD_INSTALL} jq
 
-# build/development dependencies
+## build/development dependencies
 if [ -d /usr/local/src ] ; then sudo rm -rf /usr/local/src ; fi
 sudo mkdir -p /usr/local/src && sudo chown ${USER} /usr/local/src && chmod 744 /usr/local/src 
 ${CMD_INSTALL} build-essential pkg-config intltool libtool autoconf
-# sqllite
+## sqllite
 ${CMD_INSTALL} sqlite3 libsqlite3-dev
-# create database
+## create database test.db
 # sqlite test.db
 
 # Handle SSH Agent - at logon
@@ -309,16 +314,11 @@ sudo sh -c 'echo [ -x /usr/bin/lesspipe ] \&\& eval "$(SHELL=/bin/sh lesspipe)" 
 sudo sh -c 'echo "# Alias to provide distribution name"                 >> /etc/profile.d/bash.sh'
 sudo sh -c 'alias distribution=\$(. /etc/os-release;echo \$ID\$VERSION_ID) >> /etc/profile.d/bash.sh'
 
-# if java is installed, install maven
-if (which java) ; then
-    ${CMD_INSTALL} maven
-fi
-
-# Install Node through Node Version Manager (nvm)
-# https://github.com/nvm-sh/nvm
+## Install Node through Node Version Manager (nvm)
+## https://github.com/nvm-sh/nvm
 wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-# The script clones the nvm repository to ~/.nvm, and attempts to add the source lines from the snippet below
-# to the correct profile file (~/.bash_profile, ~/.zshrc, ~/.profile, or ~/.bashrc).
+## The script clones the nvm repository to ~/.nvm, and attempts to add the source lines from the snippet below
+## to the correct profile file (~/.bash_profile, ~/.zshrc, ~/.profile, or ~/.bashrc).
 source ~/.bashrc
 command -v nvm
 nvm --version
