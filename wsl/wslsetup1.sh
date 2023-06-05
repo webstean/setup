@@ -4,7 +4,7 @@
 [ "$DEBUG" == 'true' ] && set -x
 # set +x to disable
 
-## Check if WSL2, if so install minimal X11 and set some WSL specific settings
+## Check if WSL2, enable systemd etc via wsl.conf
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
     if [ -f /etc/wsl.conf ] ; then sudo rm -f /etc/wsl.conf ; fi
     sudo sh -c 'echo [boot]                     >>  /etc/wsl.conf'
@@ -30,4 +30,44 @@ else
     echo "Sorry, can only install on WSL2 (not WSL1)"
     exit 1
 fi
+
+## Global environmment variables (editable)
+sudo sh -c "echo # export AW1=AW1       >  /etc/profile.d/global-variables.sh"
+# Turn off Microsoft telemetry for Azure Function Tools
+sudo sh -c "echo # export FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT=1       >>  /etc/profile.d/global-variables.sh"
+
+# Environent Variables for proxy support
+# Squid default port is 3128, but many setup the proxy on port 80,8000,8080
+sudo sh -c 'echo "## Web Proxy Setup - edit as required"                               >  /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "web-proxy() {"                                                       >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  port=3128"                                                         >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  webproxy=webproxy.local"                                           >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  ## Proxy Exceptions"                                               >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  export NO_PROXY=localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8" >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  ## Anonymous Proxy"                                                >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  export {http,https,ftp}_proxy=http://\${webproxy}:\${port}"        >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  export HTTPS_PROXY=http://\${webproxy}:\${port}"                   >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  export FTP_PROXY=http://\${webproxy}:\${port}"                     >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  return;"                                                           >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  ## Authenticated Proxy"                                            >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  USERN=UserName"                                                    >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  @ME=Password"                                                      >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  export {http,https,ftp}_proxy=http://\${USERN}:\${@ME}\${webproxy}:\${port}/"  >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  return;"                                                           >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "}"                                                                   >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "# web-proxy()"                                                       >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo $("# (wget -q -O - checkip.dyndns.org | sed -e 's/.*Current External IP Address: //' -e 's/<.*$//'")  >> /etc/profile.d/web-proxy.sh'
+
+# Set Timezone - includes keeping the machine to the right time but not sure how?
+# WSL Error: System has not been booted with systemd as init system (PID 1). Can't operate.
+#          : unless you edit /etc/wsl.conf to enable systemd
+sudo timedatectl set-timezone Australia/Melbourne
+timedatectl status 
+
+# leave along at C.UTF-8 for maximum compatiblity
+##sudo locale-gen "C.UTF-8"
+##sudo update-locale LANG=C.UTF-8 LANGUAGE=C.UTF-8 LC_MESSAGES=C.UTF-8 LC_COLLATE= LC_CTYPE= LC_ALL=C
+
+# the system will now reboot
+
 
