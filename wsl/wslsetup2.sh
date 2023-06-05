@@ -95,6 +95,12 @@ if [ 1 ] ; then
     #sudo git clone https://github.com/gtrifonov/raspberry-pi-alpine-azure-cli.git
     #sudo docker build . -t azure-cli
     #sudo docker run -d -it --rm --name azure-cli azure-cli
+
+    ## allow user to run docker commands
+    sudo -E usermod -aG docker $USER
+    
+    ## set controlable via Docker Desktop
+    sudo sh -c 'echo "export DOCKER_HOST=tcp://localhost:2375" > /etc/profile.d/docker.sh'
 fi
 
 # Ensure git is install and then configure it 
@@ -216,6 +222,17 @@ mountazurefiles() {
         
     return 0
 }
+
+# essentials
+${CMD_INSTALL} apt-transport-https
+${CMD_INSTALL} ca-certificates
+${CMD_INSTALL} software-properties-common
+${CMD_INSTALL} screenfetch
+${CMD_INSTALL} unzip
+${CMD_INSTALL} git
+${CMD_INSTALL} curl
+${CMD_INSTALL} wget
+${CMD_INSTALL} jq
 
 # build/development dependencies
 if [ -d /usr/local/src ] ; then sudo rm -rf /usr/local/src ; fi
