@@ -91,7 +91,11 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
         sudo sh -c 'echo [user]                     >>  /etc/wsl.conf'
         sudo sh -c 'echo default = ${USERNAME}      >>  /etc/wsl.conf'
     fi
+else
+    echo "Sorry, can only install on WSL2 (not WSL1)"
+    exit 1
 fi
+
 
 # install and config sysstat
 $CMD_INSTALL sysstat
