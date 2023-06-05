@@ -101,7 +101,7 @@ NPASS=vscode
 sudo adduser --quiet --force-badname --disabled-password --shell /bin/bash --ingroup docker ${NUSER}
 
 # set password
-echo -e '${NPASS}\n${NPASS}\n' | sudo passwd $USER
+echo -e '${NPASS}\n${NPASS}\n' | sudo passwd $NUSER
 ```
 
 ## Remove Linux User Account
