@@ -12,7 +12,7 @@ $fontfamily = (New-Object System.Drawing.Text.InstalledFontCollection).Families
 $fontfamily.Count
 
 ## Installing all the fonts
-Write-Output "Install all fonts from this directory $FontDirectory"
+Write-Output "Installing all fonts found in this directory [$FontDirectory]"
 
 $fontFiles = New-Object 'System.Collections.Generic.List[System.IO.FileInfo]'
 Get-ChildItem $FontDirectory -Filter "*.ttf" -Recurse | Foreach-Object {$fontFiles.Add($_)}
