@@ -26,7 +26,6 @@ Install a WSL distribution
 $DistroName = 'Ubuntu'
 wsl --install $DistroName --no-launch 
 Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName.exe" "--config --default-user ${env:USERNAME}"
-
 ```
 
 Install Microsoft Repo, mssql-tools, azure-functions core, msopenjdk, powershell, /etc/wsl.conf, Xwindows, systat, Azure CLI, Oracle Instant Client (if x86-64), Golang, maven, node via nvm, oh-my-posh
@@ -51,7 +50,11 @@ $DistroName = 'Ubuntu'
 wsl --terminate ${DistroName}
 wsl --list
 wsl --unregister ${DistroName}
-
+## Now find delete the root file
+Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\ |
+    ForEach-Object {
+         (Get-ItemProperty $_.PSPATH) | Select-Object DistributionName,BasePath
+    }
 ```
 
 ## Setup for Raspberry Pi
@@ -59,14 +62,14 @@ wsl --unregister ${DistroName}
 Great device - quick setup
 
 ```shell
-## bash / zsh etc...
+## bash / zsh with curl etc...
 curl -fsSL https://raw.githubusercontent.com/webstean/setup/main/pi/raspi-setup.sh | bash -
 ```
 
 or
 
 ```shell
-## bash / zsh etc...
+## bash / zsh with wget etc...
 wget https://raw.githubusercontent.com/webstean/setup/main/pi/raspi-setup.sh | bash -
 ```
 
