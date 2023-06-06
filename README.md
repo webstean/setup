@@ -51,11 +51,44 @@ wsl --terminate ${DistroName}
 wsl --list
 wsl --unregister ${DistroName}
 ## Now find delete the root file
+$DistroName = 'Ubuntu'
 Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\ |
     ForEach-Object {
-         (Get-ItemProperty $_.PSPATH) | Select-Object DistributionName,BasePath
+         (Get-ItemProperty $_.PSPATH) | Select-Object DistributionName,BasePath ; Where-Object { $_.DistributionName -eq ${DistroName} }
     }
-```
+
+
+Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\ |
+    ForEach-Object {
+        $RootFS = (Get-ItemProperty $_.PSPATH) | Where-Object { $_.DistributionName -eq ${DistroName} } | Select-Object BasePath
+        if (! ( $RootFS -eq $null )) {
+            $name = $_.Name 
+            $value = $_.Value   
+            $name
+            $value
+        # $RootFS | Get-Member
+        #    $aw = $_.ToString()
+        #    ## | Get-Member
+        #    Write-Host $RootFS
+        #    Write-Host $aw
+        }
+    }
+
+Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\ |
+    ForEach-Object {
+        $RootFS = (Get-ItemProperty $_) | Where-Object { $_.DistributionName -eq ${DistroName} } | Select-Object BasePath
+        if (! ( $RootFS -eq $null )) {
+            $name = Get-ItemProperty $_ 
+            $name
+        # $RootFS | Get-Member
+        #    $aw = $_.ToString()
+        #    ## | Get-Member
+        #    Write-Host $RootFS
+        #    Write-Host $aw
+        }
+    }
+
+
 
 ## Setup for Raspberry Pi
 

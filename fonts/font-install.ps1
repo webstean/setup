@@ -14,6 +14,7 @@ function Font-Install {
     ## Installing all the fonts
     Write-Output "Installing all fonts found in this directory [$FontDirectory]"
 
+    ## Create object and fill it will file name of valid font files
     $fontFiles = New-Object 'System.Collections.Generic.List[System.IO.FileInfo]'
     Get-ChildItem $FontDirectory -Filter "*.ttf" -Recurse | Foreach-Object {$fontFiles.Add($_)}
     Get-ChildItem $FontDirectory -Filter "*.otf" -Recurse | Foreach-Object {$fontFiles.Add($_)}
@@ -32,8 +33,7 @@ function Font-Install {
         ### This is problematic, post 1809 you need admin right plus it never handled overwrites
         ##$fonts.CopyHere($fontFile.FullName)
 
-        ### NEW - needs local admin rights
-        ## $dstFullName = [Environment]::GetFolderPath(“windows”) + "\Fonts\" + $name
+        ### NEW - but it needs local admin rights
         ## more compatible
         $dstFullName = "$env:SYSTEMROOT” + "\Fonts\" + $name
 
