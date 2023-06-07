@@ -27,7 +27,7 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
         sudo sh -c 'echo default = ${USERNAME}      >>  /etc/wsl.conf'
     fi
 else
-    echo "Sorry, only support WSL2 (not WSL1)"
+    echo "Sorry, only supports WSL2 (not WSL1)"
     exit 1
 fi
 
