@@ -1,5 +1,5 @@
 
-function Font-Install {
+function local:Font-Install {
     $FontDirectory = $PSScriptRoot
     if ($FontDirectory -eq $PSHOME.TrimEnd('\')) {
         $FontDirectory = $PSScriptRoot + "\fonts\"
