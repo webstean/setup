@@ -56,7 +56,7 @@ elif [[ ! -z $APT_CMD ]] ; then
     export CMD_INSTALL="sudo apt-get install -y"
     export CMD_UPGRADE="sudo apt-get upgrade -y"
     export CMD_UPDATE="sudo apt-get update"
-    export CMD_CLEAN=$"sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/\* && sudo rm -rf /tmp/\* && sudo rm -rf /var/tmp/\*"
+    # export CMD_CLEAN=$"sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* && sudo rm -rf /tmp/* && sudo rm -rf /var/tmp/*"
 elif [[ ! -z $APK_CMD ]] ; then
     export CMD_INSTALL="sudo apk add -y"
     export CMD_UPGRADE="sudo apk upgrade -y"
