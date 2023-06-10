@@ -28,9 +28,11 @@ fi
 # Enable sudo for all users - by modifying /etc/sudoers
 if ! (sudo grep NOPASSWD:ALL /etc/sudoers ) ; then 
     # Everyone
+    bash -c "echo '#Everyone - WSL' | sudo EDITOR='tee -a' visudo"
     bash -c "echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
     # AAD
-    bash -c "echo '%sudo aad_admins ALL=(ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
+    bash -c "echo '#Azure AD - WSL' | sudo EDITOR='tee -a' visudo"
+    bash -c "echo '%sudo aad_admins=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
 fi
 
 # Determine package manager for installing packages
