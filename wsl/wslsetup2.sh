@@ -249,6 +249,7 @@ ${CMD_INSTALL} git
 ${CMD_INSTALL} curl
 ${CMD_INSTALL} wget
 ${CMD_INSTALL} jq
+${CMD_INSTALL} dos2unix
 
 ## build/development dependencies
 if [ -d /usr/local/src ] ; then sudo rm -rf /usr/local/src ; fi
@@ -356,16 +357,16 @@ sudo ldconfig
 #sudo ~/./aws/install
 #rm awscliv2.zip
 
-# Install Azure CLI (global)
-curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash && az version
-# automatic upgrade enabled
-az config set auto-upgrade.enable=yes --only-show-errors  # automatic upgrade enabled
+## Install Azure CLI (global) - much better to run inside a docker container (installer/updates are very buggy)
+#curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash && az version
+## automatic upgrade enabled
+#az config set auto-upgrade.enable=yes --only-show-errors  # automatic upgrade enabled
 # dont prompt
-az config set auto-upgrade.prompt=no  --only-show-errors # dont prompt
-az version
-if [ -f  /etc/profile.d/azurecli.sh  ] ; then sudo rm -f /etc/profile.d/azurecli.sh ; fi
-sudo sh -c 'echo echo \"Azure CLI \(az\) found!\"     >>  /etc/profile.d/azurecli.sh'
-sudo sh -c 'echo # az account show --output table >>  /etc/profile.d/azurecli.sh'
+##az config set auto-upgrade.prompt=no  --only-show-errors # dont prompt
+##az version
+##if [ -f  /etc/profile.d/azurecli.sh  ] ; then sudo rm -f /etc/profile.d/azurecli.sh ; fi
+##sudo sh -c 'echo echo \"Azure CLI \(az\) found!\"     >>  /etc/profile.d/azurecli.sh'
+##sudo sh -c 'echo # az account show --output table >>  /etc/profile.d/azurecli.sh'
    
 # Install GoLang - current user
 wget -q -O - https://git.io/vQhTU | bash
