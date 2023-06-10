@@ -48,7 +48,7 @@ if [ -f /usr/bin/apt ] ; then
     # Install Microsoft tools
     ${CMD_INSTALL} ttf-mscorefonts-installer
     ${CMD_INSTALL} azure-functions-core-tools
-    ${CMD_INSTALL} mssql-tools 
+    # ${CMD_INSTALL} mssql-tools 
     ${CMD_INSTALL} sqlcmd
     ${CMD_INSTALL} powershell
        
