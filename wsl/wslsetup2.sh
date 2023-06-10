@@ -318,7 +318,7 @@ sudo sh -c 'echo "# Improve output of less for binary files."          >> /etc/p
 sudo sh -c 'echo [ -x /usr/bin/lesspipe ] \&\& eval "$(SHELL=/bin/sh lesspipe)"   >>  /etc/profile.d/bash.sh'
 
 sudo sh -c 'echo "# Alias to provide distribution name"                 >> /etc/profile.d/bash.sh'
-sudo sh -c 'alias distribution=\$(. /etc/os-release;echo \$ID\$VERSION_ID) >> /etc/profile.d/bash.sh'
+sudo sh -c 'echo "alias distribution=\$(. /etc/os-release;echo \$ID\$VERSION_ID)" >> /etc/profile.d/bash.sh'
 
 ## Install Node through Node Version Manager (nvm)
 ## https://github.com/nvm-sh/nvm
