@@ -186,7 +186,9 @@ oracleinstantclientinstall() {
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
     # only supported on x86 64bit
-    oracleinstantclientinstall
+    if [ ! -d /opt/oracle/instantclient* ] ; then
+         oracleinstantclientinstall
+    fi
 fi
 
 # Join Active Directory 
