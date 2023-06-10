@@ -398,13 +398,14 @@ sudo sh -c 'echo fi                                >>  /etc/profile.d/golang.sh'
 ## Oh-My-Posh - Colourful Commandline Prompt
 sudo wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-linux-amd64 -O /usr/local/bin/oh-my-posh
 sudo chmod +x /usr/local/bin/oh-my-posh
-if [ ! -d ~/.poshthemese ] ; then
+if [ ! -d ~/.poshthemes ] ; then
     mkdir ~/.poshthemes
     wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/themes.zip -O ~/.poshthemes/themes.zip
     unzip -qo ~/.poshthemes/themes.zip -d ~/.poshthemes
     chmod u+rw ~/.poshthemes/*.omp.*
     rm ~/.poshthemes/themes.zip
 fi
+set -x
 oh-my-posh get shell
 # eval "$(oh-my-posh init bash)"
 eval "$(oh-my-posh init `oh-my-posh get shell`)"
