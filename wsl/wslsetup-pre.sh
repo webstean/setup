@@ -48,18 +48,18 @@ elif [[ ! -z $YUM_CMD ]] ; then
     export CMD_INSTALL="sudo yum install -y"
     export CMD_UPGRADE="sudo yum upgrade -y"
     export CMD_UPDATE="sudo yum update"
-    export CMD_CLEAN=$"sudo yum clean all && sudo rm -rf /tmp/* /var/tmp/*"
+    export CMD_CLEAN=$"sudo yum clean all && sudo rm -rf /tmp/\* /var/tmp/\*"
 elif [[ ! -z $APT_CMD ]] ; then
     export DEBIAN_FRONTEND=noninteractive
     export CMD_INSTALL="sudo apt-get install -y"
     export CMD_UPGRADE="sudo apt-get upgrade -y"
     export CMD_UPDATE="sudo apt-get update"
-    export CMD_CLEAN=$"sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*"
+    export CMD_CLEAN=$"sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/\* && sudo rm -rf /tmp/\* && sudo rm -rf /var/tmp/\*"
 elif [[ ! -z $APK_CMD ]] ; then
     export CMD_INSTALL="sudo apk add -y"
     export CMD_UPGRADE="sudo apk upgrade -y"
     export CMD_UPDATE="sudo apk update"
-    export CMD_CLEAN=$"sudo apk clean && sudo rm -rf /tmp/* /var/tmp/*"
+    export CMD_CLEAN=$"sudo apk clean && sudo rm -rf /tmp/\* /var/tmp/\*"
 else
   echo "error: can't find a package manager"
   exit 1;
