@@ -45,12 +45,12 @@ if [[ ! -z $DNF_CMD ]] ; then
     export CMD_INSTALL="sudo dnf install -y"
     export CMD_UPGRADE="sudo dnf upgrade -y"
     export CMD_UPDATE="sudo dnf upgrade"
-    export CMD_CLEAN=$"sudo dnf clean all && sudo rm -rf /tmp/* /var/tmp/*"
+    export CMD_CLEAN="sudo dnf clean all && sudo rm -rf /tmp/* /var/tmp/*"
 elif [[ ! -z $YUM_CMD ]] ; then
     export CMD_INSTALL="sudo yum install -y"
     export CMD_UPGRADE="sudo yum upgrade -y"
     export CMD_UPDATE="sudo yum update"
-    export CMD_CLEAN=$"sudo yum clean all && sudo rm -rf /tmp/\* /var/tmp/\*"
+    export CMD_CLEAN="sudo yum clean all && sudo rm -rf /tmp/\* /var/tmp/\*"
 elif [[ ! -z $APT_CMD ]] ; then
     export DEBIAN_FRONTEND=noninteractive
     export CMD_INSTALL="sudo apt-get install -y"
@@ -61,7 +61,7 @@ elif [[ ! -z $APK_CMD ]] ; then
     export CMD_INSTALL="sudo apk add -y"
     export CMD_UPGRADE="sudo apk upgrade -y"
     export CMD_UPDATE="sudo apk update"
-    export CMD_CLEAN=$"sudo apk clean && sudo rm -rf /tmp/\* /var/tmp/\*"
+    export CMD_CLEAN="sudo apk clean && sudo rm -rf /tmp/\* /var/tmp/\*"
 else
   echo "error: can't find a package manager"
   exit 1;
