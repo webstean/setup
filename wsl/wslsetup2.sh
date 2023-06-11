@@ -392,7 +392,7 @@ fi
 if ! [ -x ~.go/bin/go ] ; then
     wget -q -O - https://git.io/vQhTU | bash
     if [ -f  /etc/profile.d/golang.sh  ] ; then sudo rm -f /etc/profile.d/golang.sh ; fi
-    sudo sh -c 'echo if \(which go\) \; then           >>  /etc/profile.d/golang.sh'
+    sudo sh -c 'echo if ! [ -x \~.go/bin/go ] ; then   >>  /etc/profile.d/golang.sh'
     sudo sh -c 'echo echo \"Golang \(go\) found!\"     >>  /etc/profile.d/golang.sh'
     sudo sh -c 'echo fi                                >>  /etc/profile.d/golang.sh'
 fi
