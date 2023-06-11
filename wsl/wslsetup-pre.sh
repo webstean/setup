@@ -26,7 +26,7 @@ if [ -z "$SHELL" ] ; then
 fi
 
 # Enable sudo for all users - by modifying /etc/sudoers
-if ! (sudo grep NOPASSWD:ALL /etc/sudoers ) ; then 
+if ! (sudo grep NOPASSWD:ALL /etc/sudoers  > /dev/null 2>&1 ) ; then 
     # Everyone
     bash -c "echo '#Everyone - WSL' | sudo EDITOR='tee -a' visudo"
     bash -c "echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
