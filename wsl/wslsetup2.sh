@@ -19,7 +19,7 @@ sudo timedatectl set-timezone Australia/Melbourne
 timedatectl status 
 
 # Add Microsoft Repos and Applications
-if [ -f /usr/bin/apt ] && [ ! (grep packages.microsoft.com /etc/apt/sources.list) ] ; then
+if [ -f /usr/bin/apt ] && ! (grep packages.microsoft.com /etc/apt/sources.list) ] ; then
     # make sure prereqs are installs
     ${CMD_INSTALL} apt-transport-https ca-certificates curl software-properties-common
     
