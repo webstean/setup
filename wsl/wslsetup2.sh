@@ -48,9 +48,7 @@ if [ -f /usr/bin/apt ] && [ ! (grep packages.microsoft.com /etc/apt/sources.list
     # Install Microsoft tools
     ${CMD_INSTALL} ttf-mscorefonts-installer
     ${CMD_INSTALL} azure-functions-core-tools
-    export ACCEPT_EULA=Y
     ${CMD_INSTALL} mssql-tools 
-    export ACCEPT_EULA=y
     ${CMD_INSTALL} sqlcmd
     ${CMD_INSTALL} powershell
        
