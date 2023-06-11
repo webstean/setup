@@ -215,6 +215,7 @@ joinactivedirectory() {
     # Environment variables
     # USERDNSDOMAIN : DNS Name of Active Directory domain
     # JOINACC       : Name of Join Account
+    echo "Trying to join AD Domain ${USERDNSDOMAIN} with account: ${JOINACC}" 
     if [[ -z "${USERDNSDOMAIN}" ]]; then 
         echo "Variable: USERNDNSDOMAIN is not assigned"
         return 1
