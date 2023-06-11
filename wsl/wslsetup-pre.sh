@@ -8,7 +8,7 @@
 # - Debian 
 # - Ubuntu
 # - Raspbian (Raspberry Pi)
-# - Alpine - note, MS Code only has limited remoted support for Alpine
+# - Alpine - note, MS Code only has limited remote support for Alpine
 
 # Debug this script if in debug mode
 [ "$DEBUG" == 'true' ] && set -x
