@@ -22,7 +22,8 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
     sudo sh -c 'echo generateResolvConf = true  >>  /etc/wsl.conf'
     sudo sh -c 'echo generateHosts = true       >>  /etc/wsl.conf'
 
-    if [[ -z "${USERNAME}" ]]; then 
+    if [ -z "${USERNAME}" ] ; then
+        echo "Setting default WSL user as: $USERNAME"
         sudo sh -c 'echo [user]                     >>  /etc/wsl.conf'
         sudo sh -c 'echo default = ${USERNAME}      >>  /etc/wsl.conf'
     fi
