@@ -6,7 +6,7 @@
 
 Set the WSLENV Variable, so these variables will be passed into WSL
 ```powershell
-[Environment]::SetEnvironmentVariable('WSLENV','OneDriveCommercial:OneDriveConsumer:USERDNSDOMAIN:USERDOMAIN:USERNAME','User')
+[Environment]::SetEnvironmentVariable('WSLENV','OneDriveCommercial:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN','User')
 ```
 
 Install WSL (with no distribution)
