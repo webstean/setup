@@ -99,7 +99,7 @@ sudo systemctl status sysstat --no-pager
 
 ## Docker - requires systemd
 ## Only install docker if it doesn't already exist
-if [ -x "$(command -v docker)" ] ; then
+if [ ! -x "$(command -v docker)" ] ; then
 
     # get rid of anything old
     sudo apt-get remove docker docker-engine docker.io containerd runc
@@ -129,7 +129,7 @@ ${CMD_INSTALL} git
 if [ -x /usr/bin/git ]; then
     git config --global color.ui true
     git config --global user.name "Andrew Webster"
-    if [[ -z "${UPN}" ]]; then 
+    if [ ! ${UPN} == "" ]]; then 
         git config --global user.email "${UPN}"
     fi
     # cached credentials for 2 hours
