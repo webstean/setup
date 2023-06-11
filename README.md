@@ -6,6 +6,17 @@
 
 Set the WSLENV Variable, so these variables will be passed into WSL
 ```powershell
+### Powershell
+
+#### Get UPN
+$getupn = @(whoami /upn)
+#### Permanently set UPN user variables
+if ( -not ([string]::IsNullOrWhiteSpace($getupn))) { [Environment]::SetEnvironmentVariable('UPN',"$getupn",'User') }
+
+#### Set Strong Password variable
+$StrongPassword = "settoomethingsecure"
+[Environment]::SetEnvironmentVariable('STRONGPASSWORD',$StrongPassword,'User')
+ 
 [Environment]::SetEnvironmentVariable('WSLENV','OneDriveCommercial:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN','User')
 ```
 
