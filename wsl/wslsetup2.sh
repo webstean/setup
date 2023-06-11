@@ -95,8 +95,9 @@ sudo systemctl start sysstat --no-pager
 sudo systemctl status sysstat --no-pager
 # sar -u
 
-# Docker - requires systemd
-if ! [ which docker ] ; then
+## Docker - requires systemd
+## Only install docker if it doesn't already exist
+if ! [ -x "$(command -v docker)" ] ; then
 
     # get rid of anything old
     sudo apt-get remove docker docker-engine docker.io containerd runc
