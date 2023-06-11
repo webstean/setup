@@ -4,9 +4,9 @@
 [ "$DEBUG" == 'true' ] && set -x
 # set +x to disable
 
-# setup /opt for oracle/microsoft etc..
-if [   -d /opt ] ; then sudo rm -rf /opt ; fi 
-if [ ! -d /opt ] ; then sudo mkdir -p /opt ; sudo chmod 755 /opt ; fi 
+# start from scratch - normally no!
+#if [   -d /opt ] ; then sudo rm -rf /opt ; fi 
+#if [ ! -d /opt ] ; then sudo mkdir -p /opt ; sudo chmod 755 /opt ; fi 
 
 # get everything upto date
 ${CMD_UPDATE}
