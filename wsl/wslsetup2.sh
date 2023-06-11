@@ -19,7 +19,7 @@ sudo timedatectl set-timezone Australia/Melbourne
 timedatectl status 
 
 # Add Microsoft Repos and Applications
-if [ -f /usr/bin/apt ] && [ ! grep packages.microsoft.com /etc/apt/sources.list ] ; then
+if [ -f /usr/bin/apt ] && [ ! (grep packages.microsoft.com /etc/apt/sources.list) ] ; then
     # make sure prereqs are installs
     ${CMD_INSTALL} apt-transport-https ca-certificates curl software-properties-common
     
@@ -91,6 +91,9 @@ sudo systemctl status sysstat --no-pager
 ## Only install docker if it doesn't already exist
 if [ ! -x "$(command -v docker)" ] ; then
 
+    # docker install
+    exit 1
+
     # get rid of anything old
     sudo apt-get remove docker docker-engine docker.io containerd runc
     
@@ -119,7 +122,7 @@ ${CMD_INSTALL} git
 if [ -x /usr/bin/git ]; then
     git config --global color.ui true
     git config --global user.name "Andrew Webster"
-    if [ ! ${UPN} == "" ]; then 
+    if [ ! ${UPN} == '' ]; then 
         git config --global user.email "${UPN}"
     fi
     # cached credentials for 2 hours
