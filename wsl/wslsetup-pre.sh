@@ -33,6 +33,8 @@ if ! (sudo grep NOPASSWD:ALL /etc/sudoers ) ; then
     # AAD
     bash -c "echo '#Azure AD - WSL' | sudo EDITOR='tee -a' visudo"
     bash -c "echo '%sudo aad_admins=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
+else
+    echo "/etc/sudoers edit not required!"
 fi
 
 # Determine package manager for installing packages
