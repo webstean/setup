@@ -40,7 +40,7 @@ sudo sh -c "echo # export AW1=AW1       >>  /etc/profile.d/global-variables.sh"
 # Environent Variables for proxy support
 # Squid default port is 3128, but many setup the proxy on port 80,8000,8080
 sudo sh -c 'echo "## Web Proxy Setup - edit as required"                               >  /etc/profile.d/web-proxy.sh'
-sudo sh -c 'echo "web-proxy() {"                                                       >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "anon_web-proxy() {"                                                       >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  ## Set variable for proxy and port"                                >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  port=3128"                                                         >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  webproxy=webproxy.local"                                           >> /etc/profile.d/web-proxy.sh'
@@ -51,14 +51,21 @@ sudo sh -c 'echo "  export {http,https,ftp}_proxy=http://\${webproxy}:\${port}" 
 sudo sh -c 'echo "  export HTTPS_PROXY=http://\${webproxy}:\${port}"                   >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  export FTP_PROXY=http://\${webproxy}:\${port}"                     >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  return;"                                                           >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "auth_web-proxy() {"                                                       >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  ## Set variable for proxy and port"                                >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  port=3128"                                                         >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  webproxy=webproxy.local"                                           >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  ## Set variables for authenticated proxy"                          >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  USERN=UserName"                                                    >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  @ME=Password"                                                      >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  ## Proxy Exceptions"                                               >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "  export NO_PROXY=localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8" >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  export {http,https,ftp}_proxy=http://\${USERN}:\${@ME}\${webproxy}:\${port}/"  >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  return;"                                                           >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "}"                                                                   >> /etc/profile.d/web-proxy.sh'
-sudo sh -c 'echo "# web-proxy()"                                                       >> /etc/profile.d/web-proxy.sh'
-sudo sh -c 'echo "# (wget -q -O - checkip.dyndns.org | sed -e 's/.*Current External IP Address: //' -e 's/<.*\$//'")  >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "# anon_web-proxy()"                                                  >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "# auth_web-proxy()"                                                  >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "# (wget -q -O - checkip.dyndns.org | sed -e 's/.*Current External IP Address: //' -e 's/<.*\$//'")"  >> /etc/profile.d/web-proxy.sh'
 
 # leave along at C.UTF-8 for maximum compatiblity
 ##sudo locale-gen "C.UTF-8"
