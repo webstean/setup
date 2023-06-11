@@ -66,7 +66,7 @@ sudo sh -c 'echo "  return;"                                                    
 sudo sh -c 'echo "}"                                                                   >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "# anon_web-proxy()"                                                  >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "# auth_web-proxy()"                                                  >> /etc/profile.d/web-proxy.sh'
-sudo sh -c 'echo "# (wget -q -O - checkip.dyndns.org | sed -e 's/.*Current External IP Address: //' -e 's/<.*\$//'")"  >> /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "export extaddr=$(curl -s ifconfig.me)"                               >> /etc/profile.d/web-proxy.sh'
 
 # leave along at C.UTF-8 for maximum compatiblity
 ##sudo locale-gen "C.UTF-8"
