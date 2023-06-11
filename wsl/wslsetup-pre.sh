@@ -42,18 +42,18 @@ APT_CMD=$(which apt-get) > /dev/null 2>&1
 APK_CMD=$(which apk) > /dev/null 2>&1
 # ${CMD_INSTALL} package
 if [[ ! -z $DNF_CMD ]] ; then
-    export CMD_INSTALL="sudo dnf install -y"
+    export CMD_INSTALL="sudo ACCEPT_EULA=Y dnf install -y"
     export CMD_UPGRADE="sudo dnf upgrade -y"
     export CMD_UPDATE="sudo dnf upgrade"
     export CMD_CLEAN="sudo dnf clean all && sudo rm -rf /tmp/* /var/tmp/*"
 elif [[ ! -z $YUM_CMD ]] ; then
-    export CMD_INSTALL="sudo yum install -y"
+    export CMD_INSTALL="sudo ACCEPT_EULA=Y yum install -y"
     export CMD_UPGRADE="sudo yum upgrade -y"
     export CMD_UPDATE="sudo yum update"
     export CMD_CLEAN="sudo yum clean all && sudo rm -rf /tmp/\* /var/tmp/\*"
 elif [[ ! -z $APT_CMD ]] ; then
     export DEBIAN_FRONTEND=noninteractive
-    export CMD_INSTALL="sudo apt-get install -y"
+    export CMD_INSTALL="sudo ACCEPT_EULA=Y apt-get install -y"
     export CMD_UPGRADE="sudo apt-get upgrade -y"
     export CMD_UPDATE="sudo apt-get update"
     export CMD_CLEAN="sudo apt-get clean -y && sudo rm -rf /var/lib/apt/lists/* && sudo rm -rf /tmp/* && sudo rm -rf /var/tmp/*"
