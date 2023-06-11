@@ -62,16 +62,6 @@ if [ -f /usr/bin/apt ] ; then
     # Install Java from Microsoft
     ${CMD_INSTALL} msopenjdk-17
     ${CMD_INSTALL} default-jre
-    if [ -f /etc/profile.d/microsoft-java.sh ] ; then sudo rm -f /etc/profile.d/microsoft-java.sh ; fi
-    if (which pwsh) ; then 
-        sudo sh -c 'echo   echo \"Microsoft Java \(java\) found!\"     >>  /etc/profile.d/microsoft-java.sh'
-    fi
-
-    ## if java is installed, install maven build system
-    ## Maven is a build automation tool used primarily for Java projects
-    if (which java) ; then
-        ${CMD_INSTALL} maven
-    fi
 fi
 
 ## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff
@@ -204,9 +194,9 @@ MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
     ## don't bother if already installed
     set -- /opt/oracle/instantclient*
-    if ! [ -d $1 ] ; then
+    if [ ! -d $1 ] ; then
          echo
-         # oracleinstantclientinstall
+         oracleinstantclientinstall
     fi
 fi
 
@@ -387,6 +377,13 @@ fi
 ##if [ -f  /etc/profile.d/azurecli.sh  ] ; then sudo rm -f /etc/profile.d/azurecli.sh ; fi
 ##sudo sh -c 'echo echo \"Azure CLI \(az\) found!\"     >>  /etc/profile.d/azurecli.sh'
 ##sudo sh -c 'echo # az account show --output table >>  /etc/profile.d/azurecli.sh'
+
+## Install Powershell
+
+if (which pwsh) ; then 
+        sudo sh -c 'echo   echo \"Microsoft Powershell \(pwsh\) found!\"     >>  /etc/profile.d/powershell.sh'
+fi
+
    
 # Install GoLang - current user
 if ! [ -x ~.go/bin/go ] ; then
@@ -431,7 +428,7 @@ oh-my-posh get shell
 eval "$(oh-my-posh init `oh-my-posh get shell`)"
 oh-my-posh notice
 ## themes can be found in ~/.poshthemes/ for example: dracula.omp.json
-## oh-my-posh init `oh-my-posh get shell` -c dracula.omp.json
+## oh-my-posh init `oh-my-posh get shell` -c  ~/.poshthemes/dracula.omp.json
 ## Eg:-
 ## eval "$(oh-my-posh init `oh-my-posh get shell` -c dracula.omp.json`)"
 
@@ -458,6 +455,12 @@ sudo sh -c 'echo fi >>  /etc/profile.d/zlogo.sh'
 echo ${CMD_CLEAN}
 
 touch $HOME/.hushlogin
+
+ ## if java is installed, install maven build system
+ ## Maven is a build automation tool used primarily for Java projects
+ if [ -x "$(command -v java)" ] ; then
+    ${CMD_INSTALL} maven
+ fi
 
 export CMD_INSTALL=
 export CMD_UPGRADE=
