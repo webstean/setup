@@ -76,14 +76,16 @@ fi
 
 ## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
-    ${CMD_INSTALL} xscreensaver
-    ${CMD_INSTALL} x11-apps
-    echo $DISPLAY
-    # Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
-    # xeyes &
-    # Install browser for sqlite
-    ${CMD_INSTALL} sqlitebrowser
-    # sqlitebrowser &
+    if ! [ -x /usr/bin/sqlitebrowser ] ; then
+        ${CMD_INSTALL} xscreensaver
+        ${CMD_INSTALL} x11-apps
+        echo $DISPLAY
+        # Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
+        xeyes &
+        # Install browser for sqlite
+        ${CMD_INSTALL} sqlitebrowser
+        sqlitebrowser &
+    fi
 fi
 
 # install and config sysstat
@@ -375,11 +377,13 @@ fi
 ##sudo sh -c 'echo # az account show --output table >>  /etc/profile.d/azurecli.sh'
    
 # Install GoLang - current user
-wget -q -O - https://git.io/vQhTU | bash
-if [ -f  /etc/profile.d/golang.sh  ] ; then sudo rm -f /etc/profile.d/golang.sh ; fi
-sudo sh -c 'echo if \(which go\) \; then           >>  /etc/profile.d/golang.sh'
-sudo sh -c 'echo echo \"Golang \(go\) found!\"     >>  /etc/profile.d/golang.sh'
-sudo sh -c 'echo fi                                >>  /etc/profile.d/golang.sh'
+if ! [ -x ~.go/bin/go ] ; then
+    wget -q -O - https://git.io/vQhTU | bash
+    if [ -f  /etc/profile.d/golang.sh  ] ; then sudo rm -f /etc/profile.d/golang.sh ; fi
+    sudo sh -c 'echo if \(which go\) \; then           >>  /etc/profile.d/golang.sh'
+    sudo sh -c 'echo echo \"Golang \(go\) found!\"     >>  /etc/profile.d/golang.sh'
+    sudo sh -c 'echo fi                                >>  /etc/profile.d/golang.sh'
+fi
 
 ## Install Google Cloud (GCP) CLI
 #cd ~ && curl https://sdk.cloud.google.com > install.sh
