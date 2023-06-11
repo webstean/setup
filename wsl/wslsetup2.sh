@@ -96,7 +96,7 @@ sudo systemctl status sysstat --no-pager
 # sar -u
 
 # Docker - requires systemd
-if [ 1 ] ; then
+if ! [ which docker ] ; then
 
     # get rid of anything old
     sudo apt-get remove docker docker-engine docker.io containerd runc
