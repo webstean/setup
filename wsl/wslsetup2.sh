@@ -185,10 +185,12 @@ oracleinstantclientinstall() {
     return 0
 }
     
+## only supported on x86 64bit
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-    # only supported on x86 64bit
-    if [ ! -d /opt/oracle/instantclient* ] ; then
+    ## don't bother if already installed
+    set -- /opt/oracle/instantclient*
+    if [ ! -d $1 ] ; then
          oracleinstantclientinstall
     fi
 fi
