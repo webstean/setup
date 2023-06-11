@@ -66,9 +66,9 @@ elif [[ ! -z $APK_CMD ]] ; then
     export CMD_UPDATE="sudo apk update"
     export CMD_CLEAN="sudo apk clean && sudo rm -rf /tmp/\* /var/tmp/\*"
 elif [[ ! -z $APK_CMD ]] ; then
-    export CMD_INSTALL="sudo rpm -ivh"
+    export CMD_INSTALL="sudo export ACCEPT_EULA='y' rpm -ivh"
     export CMD_UPGRADE=""
-    export CMD_UPDATE="sudo rpm -ivh"
+    export CMD_UPDATE="sudo export ACCEPT_EULA='y' rpm -ivh"
     export CMD_CLEAN=""
 else
   echo "error: can't find a package manager"
