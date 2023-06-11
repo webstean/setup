@@ -48,7 +48,9 @@ if [ -f /usr/bin/apt ] ; then
     # Install Microsoft tools
     ${CMD_INSTALL} ttf-mscorefonts-installer
     ${CMD_INSTALL} azure-functions-core-tools
-    # ${CMD_INSTALL} mssql-tools 
+    export ACCEPT_EULA=Y
+    ${CMD_INSTALL} mssql-tools 
+    export ACCEPT_EULA=y
     ${CMD_INSTALL} sqlcmd
     ${CMD_INSTALL} powershell
        
@@ -435,7 +437,7 @@ sudo sh -c 'echo if [ -f  \~/.logo ] \; then >>  /etc/profile.d/zlogo.sh'
 sudo sh -c 'echo    cat \~/.logo >>  /etc/profile.d/zlogo.sh'
 sudo sh -c 'echo fi >>  /etc/profile.d/zlogo.sh'
 
-${CMD_CLEAN}
+echo ${CMD_CLEAN}
 
 touch $HOME/.hushlogin
 
