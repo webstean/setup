@@ -410,7 +410,7 @@ fi
 #     -out cert.pem \
 #     -days 36500 \
 #     -nodes \
-#     -subj "/C=AU/ST=Victoria/L=Melbourne/O=webstean/OU=IT/CN=webstean.com"
+#     -subj "/C=AU/ST=Victoria/L=Melbourne/O=webstean/OU=IT/CN=${UPN}"
 
 ## Oh-My-Posh - Colourful Commandline Prompt
 sudo wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-linux-amd64 -O /usr/local/bin/oh-my-posh
