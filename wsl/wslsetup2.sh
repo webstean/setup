@@ -80,10 +80,10 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
     ${CMD_INSTALL} x11-apps
     echo $DISPLAY
     # Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
-    xeyes &
+    # xeyes &
     # Install browser for sqlite
     ${CMD_INSTALL} sqlitebrowser
-    sqlitebrowser &
+    # sqlitebrowser &
 fi
 
 # install and config sysstat
