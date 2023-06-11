@@ -42,6 +42,7 @@ DNF_CMD=$(which dnf) > /dev/null 2>&1
 YUM_CMD=$(which yum) > /dev/null 2>&1
 APT_CMD=$(which apt-get) > /dev/null 2>&1
 APK_CMD=$(which apk) > /dev/null 2>&1
+RPM_CMD=$(which rpm) > /dev/null 2>&1
 # ${CMD_INSTALL} package
 if [[ ! -z $DNF_CMD ]] ; then
     export CMD_INSTALL="sudo ACCEPT_EULA=Y dnf install -y"
@@ -64,6 +65,12 @@ elif [[ ! -z $APK_CMD ]] ; then
     export CMD_UPGRADE="sudo apk upgrade -y"
     export CMD_UPDATE="sudo apk update"
     export CMD_CLEAN="sudo apk clean && sudo rm -rf /tmp/\* /var/tmp/\*"
+elif [[ ! -z $APK_CMD ]] ; then
+    rpm -ivh <package_name>
+    export CMD_INSTALL="sudo rpm -ivh"
+    export CMD_UPGRADE=""
+    export CMD_UPDATE="sudo rpm -ivh"
+    export CMD_CLEAN=""
 else
   echo "error: can't find a package manager"
   exit 1;
