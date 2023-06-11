@@ -119,7 +119,7 @@ ${CMD_INSTALL} git
 if [ -x /usr/bin/git ]; then
     git config --global color.ui true
     git config --global user.name "Andrew Webster"
-    if [ ! ${UPN} == "" ]]; then 
+    if [ ! ${UPN} == "" ]; then 
         git config --global user.email "${UPN}"
     fi
     # cached credentials for 2 hours
