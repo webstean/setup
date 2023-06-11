@@ -191,7 +191,7 @@ if [ ${MACHINE_TYPE} == 'x86_64' ]; then
     ## don't bother if already installed
     set -- /opt/oracle/instantclient*
     if ! [ -d $1 ] ; then
-         oracleinstantclientinstall
+         # oracleinstantclientinstall
     fi
 fi
 
