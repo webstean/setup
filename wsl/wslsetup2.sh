@@ -59,7 +59,7 @@ if [ -f /usr/bin/apt ] ; then
         sudo sh -c 'echo   echo \"Powershell \(pwsh\) found!\"     >>  /etc/profile.d/microsoft-powershell.sh'
     fi
     
-    # Install Java
+    # Install Java from Microsoft
     ${CMD_INSTALL} msopenjdk-17
     ${CMD_INSTALL} default-jre
     if [ -f /etc/profile.d/microsoft-java.sh ] ; then sudo rm -f /etc/profile.d/microsoft-java.sh ; fi
@@ -177,13 +177,24 @@ oracleinstantclientinstall() {
     sudo sh -c "echo fi                                >>  /etc/profile.d/instant-oracle.sh"
     sudo sh -c "echo # example: sqlplus scott/tiger@//myhost.example.com:1521/myservice >>  /etc/profile.d/instant-oracle.sh"
  
-    # Q: How do I ensure that my Oracle Net files like "tnsnames.ora" and "sqlnet.ora" are being used in Instant Client?
-    # A: Files like "tnsnames.ora", "sqlnet.ora" and "oraaccess.xml" will be located by Instant Client by setting the TNS_ADMIN environment variable
-    # or registry entry to the directory containing the files. Use the full directory path; do not include a file name. 
-    # Alternatively create a subdirectory "network/admin" under the Instant Client directory for the Oracle Net files.
-    # This is the default location and so no TNS_ADMIN variable is required.
-    mkdir -p ${LD_LIBRARY_PATH}/network/admin
+    ## Q: How do I ensure that my Oracle Net files like "tnsnames.ora" and "sqlnet.ora" are being used in Instant Client?
+    ## A: Files like "tnsnames.ora", "sqlnet.ora" and "oraaccess.xml" will be located by Instant Client by setting the TNS_ADMIN environment variable
+    ## or registry entry to the directory containing the files. Use the full directory path; do not include a file name. 
+    ## Alternatively create a subdirectory "network/admin" under the Instant Client directory for the Oracle Net files.
+    ## This is the default location and so no TNS_ADMIN variable is required.
+    if [ -! d ${LD_LIBRARY_PATH}/network/admin ] ; then mkdir -p ${LD_LIBRARY_PATH}/network/admin
     
+    ## TSNNAME.ORA example
+    # 
+    # ORAHOST1 =
+    #   (DESCRIPTION =
+    #     (ADDRESS_LIST =
+    #       (ADDRESS = (PROTOCOL = TCP)(HOST = orahost1.local.ora)(PORT = 1521))
+    # )
+    # (CONNECT_DATA =
+    #  (SERVICE_NAME = orahost1.local.ora)
+    # )
+     
     # copy tnsnames inplace if found
     return 0
 }
