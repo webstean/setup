@@ -354,8 +354,6 @@ fi
 #  && unzip -qo terraform.zip && chmod +x terraform \
 #  && sudo mv terraform ~/.local/bin && rm terraform.zip
 
-sudo ldconfig
-
 ## Install AWS CLI (global)
 #cd ~
 #curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
