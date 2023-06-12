@@ -272,6 +272,7 @@ ${CMD_INSTALL} build-essential pkg-config intltool libtool autoconf
 ${CMD_INSTALL} sqlite3 libsqlite3-dev
 ## create database test.db
 # sqlite test.db
+# sqlite3 -batch test.db "create table n (id INTEGER PRIMARY KEY,f TEXT,l TEXT);"
 
 # Handle SSH Agent - at logon
 sudo sh -c 'echo "# ssh-agent.sh - start ssh agent" > /etc/profile.d/ssh-agent.sh'
