@@ -13,6 +13,7 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     sudo sh -c 'echo [automount]                >>  /etc/wsl.conf'
     sudo sh -c 'echo enabled = true             >>  /etc/wsl.conf'
     sudo sh -c 'echo root = \/mnt               >>  /etc/wsl.conf'
+    ## copy from: https://github.com/WhitewaterFoundry/Fedora-Remix-for-WSL/blob/master/linux_files/wsl.conf
     sudo sh -c 'echo options = "metadata,uid=1000,gid=1000,umask=22,fmask=11,case=off" >>  /etc/wsl.conf'
     sudo sh -c 'echo mountFsTab = true          >>  /etc/wsl.conf'
 
