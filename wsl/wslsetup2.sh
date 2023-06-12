@@ -41,6 +41,11 @@ if [ -f /usr/bin/apt ] && ! (grep packages.microsoft.com /etc/apt/sources.list) 
     # Update the list of products
     ${CMD_UPDATE}
     
+    # Install WSL Utilities
+    sudo add-apt-repository ppa:wslutilities/wslu
+    sudo apt update
+    sudo apt install wslu
+    
     # Skip EULA prompt
     echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
     echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
@@ -276,6 +281,7 @@ ${CMD_INSTALL} curl
 ${CMD_INSTALL} wget
 ${CMD_INSTALL} jq
 ${CMD_INSTALL} dos2unix
+${CMD_INSTALL} gnupg2
 
 ## build/development dependencies
 if [ -d /usr/local/src ] ; then sudo rm -rf /usr/local/src ; fi
