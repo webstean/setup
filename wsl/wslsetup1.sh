@@ -5,7 +5,7 @@
 # set +x to disable
 
 ## Check if WSL2, enable systemd etc via wsl.conf
-if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
+if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     if [ -f /etc/wsl.conf ] ; then sudo rm -f /etc/wsl.conf ; fi
     sudo sh -c 'echo [boot]                     >>  /etc/wsl.conf'
     sudo sh -c 'echo systemd=true               >>  /etc/wsl.conf'
