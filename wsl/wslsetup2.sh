@@ -335,20 +335,21 @@ sudo sh -c 'echo "alias distribution=\". /etc/os-release;echo \$ID\$VERSION_ID)\
 
 ## Install Node through Node Version Manager (nvm)
 ## https://github.com/nvm-sh/nvm
-wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
 ## The script clones the nvm repository to ~/.nvm, and attempts to add the source lines from the snippet below
 ## to the correct profile file (~/.bash_profile, ~/.zshrc, ~/.profile, or ~/.bashrc).
 source ~/.bashrc
-command -v nvm
-nvm --version
-## install late node
-# nvm install 13.10.1 # Specific minor release
-# nvm install 14 # Specify major release only
-## install latest
-nvm install node
-## install Active Long Term Support (LTS)
-# nvm install --lts
-nvm ls
+if (command -v nvm ) ; then
+    nvm --version
+    ## install late node
+    # nvm install 13.10.1 # Specific minor release
+    # nvm install 14 # Specify major release only
+    ## install latest
+    nvm install node
+    ## install Active Long Term Support (LTS)
+    # nvm install --lts
+    nvm ls
+fi
 if [ -f /etc/profile.d/nodejs.sh ] ; then sudo rm -f /etc/profile.d/nodejs.sh ; fi
 if (which node) ; then 
     sudo sh -c 'echo if \(which node\) \; then           >>  /etc/profile.d/nodejs.sh'
