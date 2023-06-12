@@ -42,8 +42,8 @@ sudo sh -c "echo # export AW1=AW1       >>  /etc/profile.d/global-variables.sh"
 # Turn off Microsoft telemetry for Azure Function Tools
 
 # Environent Variables for proxy support
-# Squid default port is 3128, but many setup the proxy on port 80,8000,8080
 sudo sh -c 'echo "## Web Proxy Setup - edit as required"                               >  /etc/profile.d/web-proxy.sh'
+sudo sh -c 'echo "## Squid default port is 3128, but many setup the proxy on port 80,8000,8080" >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "anon_web-proxy() {"                                                       >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  ## Set variable for proxy and port"                                >> /etc/profile.d/web-proxy.sh'
 sudo sh -c 'echo "  port=3128"                                                         >> /etc/profile.d/web-proxy.sh'
