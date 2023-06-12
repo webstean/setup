@@ -1,5 +1,7 @@
 #!/usr/bin/bash
 
+## assume: we have network connectivity.
+
 # Debug this script if in debug mode
 [ "$DEBUG" == 'true' ] && set -x
 # set +x to disable
