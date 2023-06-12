@@ -191,12 +191,11 @@ oracleinstantclientinstall() {
     ## use Oraclw SQL statement to create CSV files you can export and import into some else (like sqllite)
     ## https://www.dba-oracle.com/t_export%20table_to_csv.htm
     # set heading off
-    spool myfile.csv
-    select
-   col1|','||col2 from my_tables;
-   set colsep ','
-   select * from my_table;
-    spool off;
+    # spool myfile.csv
+    # select col1|','||col2 from my_tables;
+    # set colsep ','
+    # select * from my_table;
+    # spool off;
     
     return 0
 }
