@@ -238,22 +238,30 @@ joinactivedirectory() {
         echo "Error: Variable: USERNDNSDOMAIN is not defined!"
         return 1
     fi
+    if [[ "${USERDNSDOMAIN}" != *.* ]]; then
+        echo "Error: Variable: USERNDNSDOMAIN looks invalid - not a FQDN name!"
+        return 1
+    fi
     if [[ -z "${JOINACC}" ]]; then 
         echo "Error: Variable: JOINACC is not defined!"
         return 1
     fi
+    
+    # Define full account name variable
+    FULLJOINACC = '${JOINACC}@${USERDNSDOMAIN}'
         
     # Dependencies for AD Join
     echo ${CMD_INSTALL} realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
     echo ${CMD_INSTALL} cifs-utils
     # Info on Domain
     echo "Join AD domain: ${USERDNSDOMAIN}"
-    echo sudo realm discover ${USERDNSDOMAIN}
-    # Generate Kerberos ticket
-    echo sudo kinit contosoadmin@${USERDNSDOMAIN}
-    # Join the Domain
-    echo sudo realm join --verbose ${USERDNSDOMAIN}-U '${JOINACC}@${USERDNSDOMAIN}'
-
+    if (sudo realm discover ${USERDNSDOMAIN} } ; then
+        # Generate Kerberos ticket
+        echo sudo kinit ${FULLJOINACC}
+        # Join the Domain
+        echo sudo realm join --verbose ${USERDNSDOMAIN}-U '${FULLJOINACC}'
+    }
+    
     return 0
 }
 
