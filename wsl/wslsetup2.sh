@@ -195,6 +195,9 @@ oracleinstantclientinstall() {
     # )
      
     # copy tnsnames inplace if found
+    if [ -f ${OneDriveCommercial}/oracle/tnsnames.ora ] ; then
+        cp "${OneDriveCommercial}/oracle/tnsnames.ora" ${LD_LIBRARY_PATH}/network/admin
+    fi
     
     ## use Oraclw SQL statement to create CSV files you can export and import into some else (like sqllite)
     ## https://www.dba-oracle.com/t_export%20table_to_csv.htm
@@ -210,7 +213,7 @@ oracleinstantclientinstall() {
 
 # Install Oracle SQL Developer
 oraclesqldeveloperinstall() {
-    https://www.oracle.com/database/sqldeveloper/technologies/download/#license-lightbox
+    ## https://www.oracle.com/database/sqldeveloper/technologies/download/#license-lightbox
     echo 
 }
 
@@ -230,21 +233,26 @@ joinactivedirectory() {
     # Environment variables
     # USERDNSDOMAIN : DNS Name of Active Directory domain
     # JOINACC       : Name of Join Account
-    echo "Trying to join AD Domain ${USERDNSDOMAIN} with account: ${JOINACC}" 
+    echo "Trying to join AD Domain ${USERDNSDOMAIN} with the account: ${JOINACC}" 
     if [[ -z "${USERDNSDOMAIN}" ]]; then 
-        echo "Variable: USERNDNSDOMAIN is not assigned"
+        echo "Error: Variable: USERNDNSDOMAIN is not defined!"
         return 1
     fi
+    if [[ -z "${JOINACC}" ]]; then 
+        echo "Error: Variable: JOINACC is not defined!"
+        return 1
+    fi
+        
     # Dependencies for AD Join
-    ${CMD_INSTALL} realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
-    ${CMD_INSTALL} cifs-utils
+    echo ${CMD_INSTALL} realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
+    echo ${CMD_INSTALL} cifs-utils
     # Info on Domain
     echo "Join AD domain: ${USERDNSDOMAIN}"
-    sudo realm discover ${USERDNSDOMAIN}
-    # Generatoe Kerberos ticket
-    sudo kinit contosoadmin@${USERDNSDOMAIN}
+    echo sudo realm discover ${USERDNSDOMAIN}
+    # Generate Kerberos ticket
+    echo sudo kinit contosoadmin@${USERDNSDOMAIN}
     # Join the Domain
-    sudo realm join --verbose ${USERDNSDOMAIN}-U 'contosoadmin@${USERDNSDOMAIN}'
+    echo sudo realm join --verbose ${USERDNSDOMAIN}-U '${JOINACC}@${USERDNSDOMAIN}'
 
     return 0
 }
