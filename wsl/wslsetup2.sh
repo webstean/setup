@@ -127,8 +127,8 @@ if [ ! -x "$(command -v docker)" ] ; then
     if (grep docker /etc/groups) ; then 
         sudo -E usermod -aG docker $USER
     fi
-    if (grep wheels /etc/groups) ; then 
-        sudo -E usermod -aG wheels $USER
+    if (grep wheel /etc/groups) ; then 
+        sudo -E usermod -aG wheel $USER
     fi
     
     ## set controlable via Docker Desktop
