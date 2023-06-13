@@ -197,6 +197,7 @@ oracleinstantclientinstall() {
     # copy tnsnames inplace if found
     if [ -f ${OneDriveCommercial}/oracle/tnsnames.ora ] ; then
         cp "${OneDriveCommercial}/oracle/tnsnames.ora" ${LD_LIBRARY_PATH}/network/admin
+        chmod 444 ${LD_LIBRARY_PATH}/network/admin
     fi
     
     ## use Oraclw SQL statement to create CSV files you can export and import into some else (like sqllite)
