@@ -124,7 +124,12 @@ if [ ! -x "$(command -v docker)" ] ; then
     #sudo docker run -d -it --rm --name azure-cli azure-cli
 
     ## allow user to run docker commands
-    sudo -E usermod -aG docker $USER
+    if (grep docker /etc/groups) ; then 
+        sudo -E usermod -aG docker $USER
+    fi
+    if (grep wheels /etc/groups) ; then 
+        sudo -E usermod -aG wheels $USER
+    fi
     
     ## set controlable via Docker Desktop
     sudo sh -c 'echo "export DOCKER_HOST=tcp://localhost:2375" > /etc/profile.d/docker.sh'
