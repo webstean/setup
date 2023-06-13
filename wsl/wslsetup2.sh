@@ -20,6 +20,11 @@ ${CMD_UPGRADE}
 sudo timedatectl set-timezone Australia/Melbourne
 timedatectl status 
 
+## Eclipse Temurin is the open source Java SE build based upon OpenJDK.
+## Temurin is available for a wide range of platforms and Java SE versions.
+## Mulesoft only support JDK 8 or 11
+${CMD_INSTALL} temurin-11-jdk
+
 # Add Microsoft Repos and Applications
 if [ -f /usr/bin/apt ] && ! (grep packages.microsoft.com /etc/apt/sources.list) ] ; then
     # make sure prereqs are installs
@@ -65,9 +70,11 @@ if [ -f /usr/bin/apt ] && ! (grep packages.microsoft.com /etc/apt/sources.list) 
         sudo sh -c 'echo   echo \"Powershell \(pwsh\) found!\"     >>  /etc/profile.d/microsoft-powershell.sh'
     fi
     
-    # Install Java from Microsoft
-    ${CMD_INSTALL} msopenjdk-17
-    ${CMD_INSTALL} default-jre
+    # Install Java from Microsoft -  only if java not installed already
+    if (! which java) ; then
+        ${CMD_INSTALL} msopenjdk-17
+        ${CMD_INSTALL} default-jre
+    }
 fi
 
 ## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff
