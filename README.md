@@ -62,6 +62,9 @@ $wslsetuppre + $wslsetup2 | wsl --distribution $DistroName --
 
 To delete and start again
 
+> **Warning**
+> This will delete the root filesystem of the Linux distribution
+
 ```powershell
 ## Powershell
 $DistroName = 'Ubuntu'
