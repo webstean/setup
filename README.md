@@ -69,15 +69,9 @@ wsl --terminate ${DistroName}
 wsl --list
 wsl --unregister ${DistroName}
 ## Now find delete the root file
-$DistroName = 'Ubuntu'
-Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\ |
-    ForEach-Object {
-         (Get-ItemProperty $_.PSPATH) | Select-Object DistributionName,BasePath ; Where-Object { $_.DistributionName -eq ${DistroName} }
-    }
-
-$DistroName = 'Ubuntu'
-$RootPathFS = (Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | ForEach-Object {Get-ItemProperty $_.PSPath}) | Select-Object DistributionName, @{n="Path";e={$_.BasePath + "\rootfs"}} | Where-Object -FilterScript {$_.DistributionName -EQ $DistroName } | Select-Object Path
-$RootPathFS
+$RootPathFS = (Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | ForEach-Object {Get-ItemProperty $_.PSPath}) | Select-Object DistributionName, @{n="Path";e={$_.BasePath + "\rootfs"}} | Where-Object -FilterScript {$_.DistributionName -EQ $DistroName } | Select-Object -ExpandProperty Path
+Remove-Item -Force $RootPathFS
+```
 
 ## Setup for Raspberry Pi
 
