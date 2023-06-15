@@ -70,10 +70,11 @@ To delete and start again
 $DistroName = 'Ubuntu'
 wsl --terminate ${DistroName}
 wsl --list
-wsl --unregister ${DistroName}
 ## Now find delete the root filesystem
 $RootPathFS = (Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | ForEach-Object {Get-ItemProperty $_.PSPath}) | Select-Object DistributionName, @{n="Path";e={$_.BasePath + "\rootfs"}} | Where-Object -FilterScript {$_.DistributionName -EQ $DistroName } | Select-Object -ExpandProperty Path
 Remove-Item -Force $RootPathFS
+## Now unregister the distribution - which delete the registry values above
+wsl --unregister ${DistroName}
 ```
 
 ## Setup for Raspberry Pi
