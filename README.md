@@ -75,38 +75,9 @@ Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\ |
          (Get-ItemProperty $_.PSPATH) | Select-Object DistributionName,BasePath ; Where-Object { $_.DistributionName -eq ${DistroName} }
     }
 
-
-Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\ |
-    ForEach-Object {
-        $RootFS = (Get-ItemProperty $_.PSPATH) | Where-Object { $_.DistributionName -eq ${DistroName} } | Select-Object BasePath
-        if (! ( $RootFS -eq $null )) {
-            $name = $_.Name 
-            $value = $_.Value   
-            $name
-            $value
-        # $RootFS | Get-Member
-        #    $aw = $_.ToString()
-        #    ## | Get-Member
-        #    Write-Host $RootFS
-        #    Write-Host $aw
-        }
-    }
-
-Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\ |
-    ForEach-Object {
-        $RootFS = (Get-ItemProperty $_) | Where-Object { $_.DistributionName -eq ${DistroName} } | Select-Object BasePath
-        if (! ( $RootFS -eq $null )) {
-            $name = Get-ItemProperty $_ 
-            $name
-        # $RootFS | Get-Member
-        #    $aw = $_.ToString()
-        #    ## | Get-Member
-        #    Write-Host $RootFS
-        #    Write-Host $aw
-        }
-    }
-
-
+$DistroName = 'Ubuntu'
+$RootPathFS = (Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | ForEach-Object {Get-ItemProperty $_.PSPath}) | Select-Object DistributionName, @{n="Path";e={$_.BasePath + "\rootfs"}} | Where-Object -FilterScript {$_.DistributionName -EQ $DistroName } | Select-Object Path
+$RootPathFS
 
 ## Setup for Raspberry Pi
 
