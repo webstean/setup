@@ -27,7 +27,7 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
 
     sh -c 'echo [network]                  >>  /etc/wsl.conf'
     ## unlike WSL1 - let WSL manage this itself - it will be a lot more reliable
-    ## still need to be customised if using a proxy.
+    ## still need to be customised if using a proxy via /etc/profile.d/web-proxy.sh'
     sh -c 'echo generateResolvConf = true  >>  /etc/wsl.conf'
     sh -c 'echo generateHosts = true       >>  /etc/wsl.conf'
     
@@ -53,3 +53,33 @@ else
     exit 1
 fi
 
+# Environent Variables for proxy support
+sh -c 'echo "## Web Proxy Setup - edit as required"                               >  /etc/profile.d/web-proxy.sh'
+sh -c 'echo "## Squid default port is 3128, but many setup the proxy on port 80,8000,8080" >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "anon_web-proxy() {"                                                       >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  ## Set variable for proxy and port"                                >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  port=3128"                                                         >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  webproxy=webproxy.local"                                           >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  ## Proxy Exceptions"                                               >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  export NO_PROXY=localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8" >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  ## Anonymous Proxy"                                                >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  export {http,https,ftp}_proxy=http://\${webproxy}:\${port}"        >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  export HTTPS_PROXY=http://\${webproxy}:\${port}"                   >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  export FTP_PROXY=http://\${webproxy}:\${port}"                     >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  return;"                                                           >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "}"                                                                   >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "auth_web-proxy() {"                                                  >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  ## Set variable for proxy and port"                                >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  port=3128"                                                         >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  webproxy=webproxy.local"                                           >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  ## Set variables for authenticated proxy"                          >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  USERN=UserName"                                                    >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  @ME=Password"                                                      >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  ## Proxy Exceptions"                                               >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  export NO_PROXY=localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8" >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  export {http,https,ftp}_proxy=http://\${USERN}:\${@ME}\${webproxy}:\${port}/"  >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  return;"                                                           >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "}"                                                                   >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "# anon_web-proxy()"                                                  >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "# auth_web-proxy()"                                                  >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "export extaddr=$(curl -s ifconfig.me)"                               >> /etc/profile.d/web-proxy.sh'
