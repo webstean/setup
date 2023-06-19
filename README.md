@@ -4,6 +4,9 @@
 
 ## Windows Subsystem for Linux (WSL) setup - for development, DevOps etc....
 
+![F-Droid (including pre-releases)](https://img.shields.io/f-droid/v/:appId)
+
+
 Set the WSLENV Variable, so these variables will be passed into WSL
 ```powershell
 ### Powershell
