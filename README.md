@@ -6,6 +6,9 @@
 
 ![F-Droid (including pre-releases)](https://img.shields.io/f-droid/v/:appId)
 
+![Visual Studio App Center Releases](https://img.shields.io/visual-studio-app-center/releases/version/:owner/:app/:token)
+
+
 
 Set the WSLENV Variable, so these variables will be passed into WSL
 ```powershell
