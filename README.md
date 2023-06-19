@@ -44,6 +44,8 @@ $DistroName = 'Ubuntu'
 wsl --install $DistroName --no-launch 
 ## Run install with no prompt - run as root
 Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName.exe" "install --root"
+$wslinitalsetup = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh | Select-Object -ExpandProperty content
+$wslinitalsetup | wsl --distribution $DistroName --
 ```
 
 Install Microsoft Repo, mssql-tools, azure-functions core, msopenjdk, powershell, /etc/wsl.conf, Xwindows, systat, Azure CLI, Oracle Instant Client (if x86-64), Golang, maven, node via nvm, oh-my-posh
