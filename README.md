@@ -23,7 +23,7 @@ if ( -not ([string]::IsNullOrWhiteSpace($getupn))) { [Environment]::SetEnvironme
 $StrongPassword = "settoomethingsecure"
 [Environment]::SetEnvironmentVariable('STRONGPASSWORD',$StrongPassword,'User')
  
-[Environment]::SetEnvironmentVariable('WSLENV','OneDriveCommercial:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN','User')
+[Environment]::SetEnvironmentVariable('WSLENV','OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN','User')
 ```
 
 Install WSL (with no distribution)
@@ -36,13 +36,38 @@ wsl --set-default-version 2
 wsl --status
 
 ```
-
+ex
 Install a WSL distribution
 ```powershell
 ## Powershell
 $DistroName = 'Ubuntu'
 wsl --install $DistroName --no-launch 
-Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName.exe" "--config --default-user ${env:USERNAME}"
+Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName.exe" "install --root config --default-user ${env:USERNAME}"
+Launches or configures a Linux distribution.
+
+Usage:
+    <no args>
+        Launches the user's default shell in the user's home directory.
+
+    install [--root]
+        Install the distribuiton and do not launch the shell when complete.
+          --root
+              Do not create a user account and leave the default user set to root.
+
+    run <command line>
+        Run the provided command line in the current working directory. If no
+        command line is provided, the default shell is launched.
+
+    config [setting [value]]
+        Configure settings for this distribution.
+        Settings:
+          --default-user <username>
+              Sets the default user to <username>. This must be an existing user.
+
+    help
+        Print usage information.
+
+
 ```
 
 Install Microsoft Repo, mssql-tools, azure-functions core, msopenjdk, powershell, /etc/wsl.conf, Xwindows, systat, Azure CLI, Oracle Instant Client (if x86-64), Golang, maven, node via nvm, oh-my-posh
@@ -78,7 +103,7 @@ wsl --terminate ${DistroName}
 wsl --list
 ## Now find and delete the root filesystem
 $RootPathFS = (Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | ForEach-Object {Get-ItemProperty $_.PSPath}) | Select-Object DistributionName, @{n="Path";e={$_.BasePath + "\rootfs"}} | Where-Object -FilterScript {$_.DistributionName -EQ $DistroName } | Select-Object -ExpandProperty Path
-Remove-Item -Force $RootPathFS
+if ( -not ([string]::IsNullOrWhiteSpace(${RootPathFS}))) { Remove-Item -Force ${RootPathFS} }
 ## Now unregister the distribution - which delete the registry values above
 wsl --unregister ${DistroName}
 ```
