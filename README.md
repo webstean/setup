@@ -42,32 +42,8 @@ Install a WSL distribution
 ## Powershell
 $DistroName = 'Ubuntu'
 wsl --install $DistroName --no-launch 
-Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName.exe" "install --root config --default-user ${env:USERNAME}"
-Launches or configures a Linux distribution.
-
-Usage:
-    <no args>
-        Launches the user's default shell in the user's home directory.
-
-    install [--root]
-        Install the distribuiton and do not launch the shell when complete.
-          --root
-              Do not create a user account and leave the default user set to root.
-
-    run <command line>
-        Run the provided command line in the current working directory. If no
-        command line is provided, the default shell is launched.
-
-    config [setting [value]]
-        Configure settings for this distribution.
-        Settings:
-          --default-user <username>
-              Sets the default user to <username>. This must be an existing user.
-
-    help
-        Print usage information.
-
-
+## Run install with no prompt - run as root
+Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\$DistroName.exe" "install --root"
 ```
 
 Install Microsoft Repo, mssql-tools, azure-functions core, msopenjdk, powershell, /etc/wsl.conf, Xwindows, systat, Azure CLI, Oracle Instant Client (if x86-64), Golang, maven, node via nvm, oh-my-posh
