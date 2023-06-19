@@ -5,6 +5,7 @@
 # set +x to disable
 
 ## only supports running as root
+if [[ $(id -u) -ne 0 ]] ; then echo "Please run as root" ; exit 1 ; fi
 
 ## Check if WSL2, enable systemd etc via wsl.conf
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
@@ -39,9 +40,13 @@ else
 fi
 
 if [[ ! -z "${USERNAME+x}" ] && [ ! -z "${STRONGPASSWORD}" ]] ; then
-        echo "Setting up [$USERNAME]"
-        # quietly add a user without password
-        adduser --quiet --force-badname --disabled-password --shell /bin/bash --ingroup docker ${NUSER}
-        # set password
-        echo -e '${STRONGPASSWORD}\n${STRONGPASSWORD}\n' | passwd ${USERNAME}
+    echo "Setting up [$USERNAME]"
+    # quietly add a user without password
+    adduser --quiet --force-badname --disabled-password --shell /bin/bash --ingroup docker ${NUSER}
+    # set password
+    echo -e '${STRONGPASSWORD}\n${STRONGPASSWORD}\n' | passwd ${USERNAME}
+else
+    echo "Required environment variables not set"
+    exit 1
 fi
+
