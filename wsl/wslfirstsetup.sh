@@ -11,6 +11,7 @@ if [[ $(id -u) -ne 0 ]] ; then echo "Please run as root" ; exit 1 ; fi
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     if [ -f /etc/wsl.conf ] ; then rm -f /etc/wsl.conf ; fi
     sh -c 'echo [boot]                     >>  /etc/wsl.conf'
+    ## enable systemd for compatiblity
     sh -c 'echo systemd=true               >>  /etc/wsl.conf'
 
     sh -c 'echo [automount]                >>  /etc/wsl.conf'
