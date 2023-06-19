@@ -26,6 +26,8 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     sh -c 'echo appendWindowsPath = true   >>  /etc/wsl.conf'
 
     sh -c 'echo [network]                  >>  /etc/wsl.conf'
+    ## unlike WSL1 - let WSL manage this itself - it will be a lot more reliable
+    ## still need to customise if using a proxy.
     sh -c 'echo generateResolvConf = true  >>  /etc/wsl.conf'
     sh -c 'echo generateHosts = true       >>  /etc/wsl.conf'
     
