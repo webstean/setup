@@ -45,7 +45,7 @@ fi
 if [[ ! -z "${USERNAME+x}" && ! -z "${STRONGPASSWORD}" ]] ; then
     echo "Setting up [$USERNAME]"
     # quietly add a user without password
-    adduser --quiet --force-badname --disabled-password --shell /bin/bash --ingroup docker ${NUSER}
+    adduser --quiet --force-badname --disabled-password --shell /bin/bash --ingroup docker ${USERNAME}
     # set password
     echo -e '${STRONGPASSWORD}\n${STRONGPASSWORD}\n' | passwd ${USERNAME}
 else
