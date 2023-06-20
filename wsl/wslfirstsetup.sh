@@ -44,20 +44,20 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     sh -c 'echo default = ${USERNAME}      >>  /etc/wsl.conf'
     
     echo "Setting up [$USERNAME]"
-    # quietly add a user without password
+    ## quietly add a user without password
     adduser --quiet --gecos "" --force-badname --disabled-password --shell /bin/bash ${USERNAME}
-    # set password
+    ## set password
     echo -e '${STRONGPASSWORD}\n${STRONGPASSWORD}\n' | passwd ${USERNAME}
     
-    # Enable sudo for all users - by modifying /etc/sudoers
+    ## Enable sudo for all users - by modifying /etc/sudoers
     if ! (sudo grep NOPASSWD:ALL /etc/sudoers  > /dev/null 2>&1 ) ; then 
-        # Everyone
+        ## Everyone
         bash -c "echo '#Everyone - WSL' | sudo EDITOR='tee -a' visudo"
         bash -c "echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
-        # Configured user
+        ## Configured user
         bash -c "echo '#User - WSL' | sudo EDITOR='tee -a' visudo"
         bash -c "echo '%sudo ${USERNAME}=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
-        # AAD (experimental)
+        ## AAD (experimental)
         bash -c "echo '#Azure AD - WSL' | sudo EDITOR='tee -a' visudo"
         bash -c "echo '%sudo aad_admins=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
     else
@@ -78,9 +78,8 @@ sh -c 'echo "  webproxy=webproxy.local"                                         
 sh -c 'echo "  ## Proxy Exceptions"                                               >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "  export NO_PROXY=localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8" >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "  ## Anonymous Proxy"                                                >> /etc/profile.d/web-proxy.sh'
-sh -c 'echo "  export {http,https,ftp}_proxy=http://\${webproxy}:\${port}"        >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  export {http,https}_proxy=http://\${webproxy}:\${port}"        >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "  export HTTPS_PROXY=http://\${webproxy}:\${port}"                   >> /etc/profile.d/web-proxy.sh'
-sh -c 'echo "  export FTP_PROXY=http://\${webproxy}:\${port}"                     >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "  return;"                                                           >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "}"                                                                   >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "auth_web-proxy() {"                                                  >> /etc/profile.d/web-proxy.sh'
@@ -92,7 +91,7 @@ sh -c 'echo "  USERN=UserName"                                                  
 sh -c 'echo "  @ME=Password"                                                      >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "  ## Proxy Exceptions"                                               >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "  export NO_PROXY=localhost,127.0.0.1,::1,192.168.0.0/16,10.0.0.0/8" >> /etc/profile.d/web-proxy.sh'
-sh -c 'echo "  export {http,https,ftp}_proxy=http://\${USERN}:\${@ME}\${webproxy}:\${port}/"  >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "  export {http,https}_proxy=http://\${USERN}:\${@ME}\${webproxy}:\${port}/"  >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "  return;"                                                           >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "}"                                                                   >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "## uncomment for unauthenticated proxy ##"                           >> /etc/profile.d/web-proxy.sh'
