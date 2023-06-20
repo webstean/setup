@@ -57,17 +57,9 @@ $DistroName = 'Ubuntu'
 $wslsetuppre = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup-pre.sh | Select-Object -ExpandProperty content
 $wslsetup1   = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh | Select-Object -ExpandProperty content
 $wslsetup2   = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh | Select-Object -ExpandProperty content
-((Get-Content $wslsetuppre) -join "`n") + "`n" | Set-Content -NoNewline $wslsetuppre
-((Get-Content $wslsetup1) -join "`n") + "`n" | Set-Content -NoNewline $wslsetup1
-((Get-Content $wslsetup2) -join "`n") + "`n" | Set-Content -NoNewline $wslsetup2
-
-(($wslsetup2) -join "`n") + "`n" | $wslsetup2
-
-
-$wslsetuppre + $wslsetup1 | wsl --distribution $DistroName --
+$wslsetuppre + $wslsetup1 | wsl --distribution ${DistroName} --
 wsl --terminate ${DistroName}
-$wslsetuppre + $wslsetup2 | wsl --distribution $DistroName --
-
+$wslsetuppre + $wslsetup2 | wsl --distribution ${DistroName} --
 ```
 
 To delete and start again
