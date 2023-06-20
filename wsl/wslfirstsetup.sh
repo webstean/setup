@@ -98,4 +98,4 @@ sh -c 'echo "## uncomment for unauthenticated proxy ##"                         
 sh -c 'echo "# anon_web-proxy()"                                                  >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "## uncomment for authenticated proxy ##"                             >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "# auth_web-proxy()"                                                  >> /etc/profile.d/web-proxy.sh'
-sh -c 'echo "export extaddr=$(curl -s ifconfig.me)"                               >> /etc/profile.d/web-proxy.sh'
+sh -c 'echo "export extaddr=\$(curl -s ifconfig.me)"                               >> /etc/profile.d/web-proxy.sh'
