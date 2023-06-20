@@ -46,6 +46,15 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     echo "Setting up [$USERNAME]"
     ## quietly add a user without password
     adduser --quiet --gecos "" --force-badname --disabled-password --shell /bin/bash ${USERNAME}
+    ## if sudo group exists - add
+    if (grep sudo /etc/group) ; then
+        usermod -a -G sudo ${USERNAME}
+    fi
+    ## if docker group exists - add
+    if (grep docker /etc/group) ; then
+        usermod -a -G docker ${USERNAME}
+    fi
+    
     ## set password
     echo -e '${STRONGPASSWORD}\n${STRONGPASSWORD}\n' | passwd ${USERNAME}
     
