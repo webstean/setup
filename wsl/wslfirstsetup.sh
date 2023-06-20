@@ -65,7 +65,7 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
         bash -c "echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
         ## Configured user
         bash -c "echo '#User - WSL' | sudo EDITOR='tee -a' visudo"
-        bash -c "echo '%${USERNAME} ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
+        bash -c "echo '${USERNAME} ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
         ## AAD (experimental)
         bash -c "echo '#Azure AD - WSL' | sudo EDITOR='tee -a' visudo"
         bash -c "echo '%aad_admins ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
