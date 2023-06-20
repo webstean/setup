@@ -123,7 +123,7 @@ You'll need to download the fonts and place them into a "fonts" directory, in th
 NUSER=vscode
 NPASS=vscode
 # quietly add a user without password
-sudo adduser --quiet --force-badname --disabled-password --shell /bin/bash --ingroup docker ${NUSER}
+sudo adduser --quiet --gecos "" --force-badname --disabled-password --shell /bin/bash ${NUSER}
 
 # set password
 echo -e '${NPASS}\n${NPASS}\n' | sudo passwd ${NUSER}
