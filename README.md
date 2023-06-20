@@ -38,6 +38,14 @@ wsl --status
 ```
 ex
 Install a WSL distribution
+
+To get a list of what can be installed
+```powershell
+wsl --list --online
+
+```
+
+Set the DistroName variabl to the distribution you want
 ```powershell
 ## Powershell
 $DistroName = 'Ubuntu'
@@ -79,6 +87,7 @@ $RootPathFS = (Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxs
 if ( -not ([string]::IsNullOrWhiteSpace(${RootPathFS}))) { Remove-Item -Force ${RootPathFS} }
 ## Now unregister the distribution - which delete the registry values above
 wsl --unregister ${DistroName}
+
 ```
 
 ## Setup for Raspberry Pi
