@@ -46,6 +46,8 @@ wsl --install ${DistroName} --no-launch
 Start-Process -Wait -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\${DistroName}.exe" "install --root"
 $wslinitalsetup = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh | Select-Object -ExpandProperty content
 $wslinitalsetup | wsl --user root --distribution ${DistroName} --
+## restart, so systemd get enabled 
+wsl --terminate ${DistroName}
 wsl --set-default ${DistroName}
 ```
 
