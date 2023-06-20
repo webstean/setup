@@ -61,9 +61,9 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     ## Enable sudo for all users - by modifying /etc/sudoers
     if ! (sudo grep NOPASSWD:ALL /etc/sudoers  > /dev/null 2>&1 ) ; then 
         ## Member of sudo group 
-        bash -c "echo '#Everyone - WSL' | sudo EDITOR='tee -a' visudo"
+        bash -c "echo '#Member of sudo group - WSL' | sudo EDITOR='tee -a' visudo"
         bash -c "echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
-        ## Configured user
+        ## WSL configured user
         bash -c "echo '#User - WSL' | sudo EDITOR='tee -a' visudo"
         bash -c "echo '${USERNAME} ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
         ## AAD (experimental)
