@@ -32,7 +32,7 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     sh -c 'echo generateHosts = true       >>  /etc/wsl.conf'
     
     echo "USERNAME = [${USERNAME}]"
-    if [ ! -z "${USERNAME+x}" ] ; then
+    if [ ! -z "${USERNAME}" ] ; then
         echo "Setting default WSL user as: $USERNAME"
         sh -c 'echo [user]                     >>  /etc/wsl.conf'
         sh -c 'echo default = ${USERNAME}      >>  /etc/wsl.conf'
