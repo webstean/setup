@@ -7,7 +7,13 @@
 ## only supports running as root
 if [[ $(id -u) -ne 0 ]] ; then echo "Please run as root" ; exit 1 ; fi
 
-## Check if WSL2, enable systemd etc via wsl.conf
+## check required variables are defined
+if [[ -z "${USERNAME}" && -z "${STRONGPASSWORD}" ]] ; then
+    echo "Required environment variables not set"
+    exit 1
+fi
+
+## Check if WSL2, enable systemd etc via wsl.conf, sort out sudo
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     if [ -f /etc/wsl.conf ] ; then rm -f /etc/wsl.conf ; fi
     sh -c 'echo [boot]                     >>  /etc/wsl.conf'
@@ -31,17 +37,26 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     sh -c 'echo generateResolvConf = true  >>  /etc/wsl.conf'
     sh -c 'echo generateHosts = true       >>  /etc/wsl.conf'
     
+    ## tell wsl which user to use
     echo "USERNAME = [${USERNAME}]"
-    if [ ! -z "${USERNAME}" ] ; then
-        echo "Setting default WSL user as: $USERNAME"
-        sh -c 'echo [user]                     >>  /etc/wsl.conf'
-        sh -c 'echo default = ${USERNAME}      >>  /etc/wsl.conf'
-    fi
+    echo "Setting default WSL user as: $USERNAME"
+    sh -c 'echo [user]                     >>  /etc/wsl.conf'
+    sh -c 'echo default = ${USERNAME}      >>  /etc/wsl.conf'
+    
+    echo "Setting up [$USERNAME]"
+    # quietly add a user without password
+    adduser --quiet --gecos "" --force-badname --disabled-password --shell /bin/bash ${USERNAME}
+    # set password
+    echo -e '${STRONGPASSWORD}\n${STRONGPASSWORD}\n' | passwd ${USERNAME}
+    
     # Enable sudo for all users - by modifying /etc/sudoers
     if ! (sudo grep NOPASSWD:ALL /etc/sudoers  > /dev/null 2>&1 ) ; then 
         # Everyone
         bash -c "echo '#Everyone - WSL' | sudo EDITOR='tee -a' visudo"
         bash -c "echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
+        # Configured user
+        bash -c "echo '#User - WSL' | sudo EDITOR='tee -a' visudo"
+        bash -c "echo '%sudo ${USERNAME}=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
         # AAD (experimental)
         bash -c "echo '#Azure AD - WSL' | sudo EDITOR='tee -a' visudo"
         bash -c "echo '%sudo aad_admins=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
@@ -50,17 +65,6 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     fi
 else
     echo "Sorry, only supports WSL2 (not WSL1)"
-    exit 1
-fi
-
-if [[ ! -z "${USERNAME+x}" && ! -z "${STRONGPASSWORD}" ]] ; then
-    echo "Setting up [$USERNAME]"
-    # quietly add a user without password
-    adduser --quiet --gecos "" --force-badname --disabled-password --shell /bin/bash ${USERNAME}
-    # set password
-    echo -e '${STRONGPASSWORD}\n${STRONGPASSWORD}\n' | passwd ${USERNAME}
-else
-    echo "Required environment variables not set"
     exit 1
 fi
 
