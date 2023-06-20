@@ -43,7 +43,7 @@ Install a WSL distribution
 $DistroName = 'Ubuntu'
 wsl --install ${DistroName} --no-launch 
 ## Run install with no prompt - run as root
-Start-Process -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\${DistroName}.exe" "install --root"
+Start-Process -Wait -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\${DistroName}.exe" "install --root"
 $wslinitalsetup = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh | Select-Object -ExpandProperty content
 $wslinitalsetup | wsl --user root --distribution ${DistroName} --
 wsl --set-default ${DistroName}
