@@ -46,12 +46,28 @@ wsl --list --online
 ```
 To get Fedora (RHEL like), you need a separate download via:-
 https://github.com/WhitewaterFoundry/Fedora-Remix-for-WSL/releases
-This has to be sideloaded, which typically requires Developer Mode (and local administrator) with the following command:-
+This has to be sideloaded, which typically requires Developer Mode (and local administrator) with the following commands:-
 ```powershell
 ## Powershell
 $repo = "WhitewaterFoundry/Fedora-Remix-for-WSL"
-$latest = "https://github.com/" + $repo + "/releases/latest"
-$file = "Fedora-Remix-for-WSL-SL_" + $release + "_x64_arm64.msixbundle"
+$api = "https://api.github.com/repos/" + $repo + "/releases/latest"
+$Response = Invoke-RestMethod -Method Get -Uri $api
+## Find the latest release
+$tag = $Response.tag_name
+$file = "Fedora-Remix-for-WSL-SL_" + $tag + ".0_x64_arm64.msixbundle"
+$download = "https://github.com/" + $repo + "/releases/download/" + $tag + "/" +$file
+Write-Host "Trying to download $download"
+Invoke-WebRequest $download -OutFile $file
+Import-Module Appx -UseWindowsPowerShell
+Add-AppxPackage -Path $file
+$DistroName = 'fedoraremix'
+"${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\${DistroName}.exe"
+
+
+
+# --- Query the API to get the url of the zip
+$Response = Invoke-RestMethod -Method Get -Uri $URI
+$ZipUrl = $Response.zipball_url
 
 ## Latest release
 $download = $repo + $file
@@ -67,7 +83,7 @@ Expand-Archive $zip -Force
 
 # Cleaning up target dir
 Remove-Item $name -Recurse -Force -ErrorAction SilentlyContinue 
-Add-AppxPackage -Path $AppFilePath
+
 ```
 
 Set the DistroName variabl to the distribution you want
