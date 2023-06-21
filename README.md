@@ -44,6 +44,32 @@ To get a list of what can be installed
 wsl --list --online
 
 ```
+To get Fedora (RHEL like), you need a separate download via:-
+https://github.com/WhitewaterFoundry/Fedora-Remix-for-WSL/releases
+This has to be sideloaded, which typically requires Developer Mode (and local administrator) with the following command:-
+```powershell
+## Powershell
+$repo = "WhitewaterFoundry/Fedora-Remix-for-WSL"
+$latest = "https://github.com/" + $repo + "/releases/latest"
+$latest
+
+## Latest release
+$repo = "WhitewaterFoundry/Fedora-Remix-for-WSL"
+$download = $repo + $file
+$name = $file.Split(".")[0]
+$zip = "$name-$tag.zip"
+$dir = "$name-$tag"
+
+Write-Host "Downloading latest release"
+Invoke-WebRequest $download -Out $zip
+
+Write-Host "Extracting release files"
+Expand-Archive $zip -Force
+
+# Cleaning up target dir
+Remove-Item $name -Recurse -Force -ErrorAction SilentlyContinue 
+Add-AppxPackage -Path $AppFilePath
+```
 
 Set the DistroName variabl to the distribution you want
 ```powershell
