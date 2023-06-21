@@ -65,7 +65,7 @@ $DistroName = 'fedoraremix'
 
 ```
 
-Set the DistroName variabl to the distribution you want
+Set the DistroName variable to the distribution you want to install 
 ```powershell
 ## Powershell
 $DistroName = 'Ubuntu'
