@@ -63,27 +63,6 @@ Add-AppxPackage -Path $file
 $DistroName = 'fedoraremix'
 "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\${DistroName}.exe"
 
-
-
-# --- Query the API to get the url of the zip
-$Response = Invoke-RestMethod -Method Get -Uri $URI
-$ZipUrl = $Response.zipball_url
-
-## Latest release
-$download = $repo + $file
-$name = $file.Split(".")[0]
-$zip = "$name-$tag.zip"
-$dir = "$name-$tag"
-
-Write-Host "Downloading latest release"
-Invoke-WebRequest $download -Out $zip
-
-Write-Host "Extracting release files"
-Expand-Archive $zip -Force
-
-# Cleaning up target dir
-Remove-Item $name -Recurse -Force -ErrorAction SilentlyContinue 
-
 ```
 
 Set the DistroName variabl to the distribution you want
