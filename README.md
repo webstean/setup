@@ -51,10 +51,9 @@ This has to be sideloaded, which typically requires Developer Mode (and local ad
 ## Powershell
 $repo = "WhitewaterFoundry/Fedora-Remix-for-WSL"
 $latest = "https://github.com/" + $repo + "/releases/latest"
-$latest
+$file = "Fedora-Remix-for-WSL-SL_" + $release + "_x64_arm64.msixbundle"
 
 ## Latest release
-$repo = "WhitewaterFoundry/Fedora-Remix-for-WSL"
 $download = $repo + $file
 $name = $file.Split(".")[0]
 $zip = "$name-$tag.zip"
