@@ -173,6 +173,6 @@ sudo deluser --remove-home ${NUSER}
 
 ```powershell
 ## Now find and delete the root filesystem
-(Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | ForEach-Object {Get-ItemProperty $_.PSPath}) | Select-Object DistributionName, @{n="Path";e={$_.BasePath + "\rootfs"}} | Select-Object DistributionName, -ExpandProperty Path
+(Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | ForEach-Object {Get-ItemProperty $_.PSPath}) | Select-Object DistributionName, @{n="Path";e={$_.BasePath + "\rootfs"}}
 ```
 
