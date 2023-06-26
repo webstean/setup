@@ -2,21 +2,21 @@
 
 ## assume: we have network connectivity.
 
-# Debug this script if in debug mode
+## Debug this script if in debug mode
 [ "$DEBUG" == 'true' ] && set -x
 # set +x to disable
 
-# start from scratch - normally no!
+## start from scratch - normally no!
 #if [   -d /opt ] ; then sudo rm -rf /opt ; fi 
 #if [ ! -d /opt ] ; then sudo mkdir -p /opt ; sudo chmod 755 /opt ; fi 
 
-# get everything upto date
+## get everything upto date
 ${CMD_UPDATE}
 ${CMD_UPGRADE}
 
-# Set Timezone - includes keeping the machine to the right time but not sure how?
-# WSL Error: System has not been booted with systemd as init system (PID 1). Can't operate.
-#          : unless you edit /etc/wsl.conf to enable systemd
+## Set Timezone - includes keeping the machine to the right time but not sure how?
+## WSL Error: System has not been booted with systemd as init system (PID 1). Can't operate.
+##          : unless you edit /etc/wsl.conf to enable systemd
 sudo timedatectl set-timezone Australia/Melbourne
 timedatectl status 
 
@@ -25,52 +25,53 @@ timedatectl status
 ## The current release of Mulesoft only support JDK 8 or 11
 ${CMD_INSTALL} temurin-11-jdk
 
-# Add Microsoft Repos and Applications
+## Add Microsoft Repos and Applications
 if [ -f /usr/bin/apt ] && ! (grep packages.microsoft.com /etc/apt/sources.list) ] ; then
-    # make sure prereqs are installs
+    ## make sure prereqs are installs
     ${CMD_INSTALL} apt-transport-https ca-certificates curl software-properties-common
     
-    # Import the public repository GPG keys (depreciated)
-    # Note: Instead of using this command a keyring should be placed directly in the 
-    # /etc/apt/trusted.gpg.d/ directory with a descriptive name and either "gpg" or "asc" 
-    # as file extension.
+    ## Import the public repository GPG keys (depreciated)
+    ## Note: Instead of using this command a keyring should be placed directly in the 
+    ## /etc/apt/trusted.gpg.d/ directory with a descriptive name and either "gpg" or "asc" 
+    ## as file extension.
     curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
 
-    # Register the Microsoft Ubuntu repository
+    ## Register the Microsoft Ubuntu repository
     repo=https://packages.microsoft.com/$(lsb_release -s -i)/$(lsb_release -sr)/prod
-    # convert to lowercase
+    ## convert to lowercase
     repo=${repo,,}
     echo $repo
     sudo apt-add-repository --yes $repo
     
-    # Update the list of products
+    ## Update the list of products
     ${CMD_UPDATE}
     
-    # Install WSL Utilities
+    ## Install WSL Utilities
     sudo add-apt-repository ppa:wslutilities/wslu
     sudo apt update
     sudo apt install wslu
     
-    # Skip EULA prompt
+    ## Skip EULA prompt
     echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
     echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
     echo msodbcsql18 msodbcsql/ACCEPT_EULA boolean true | sudo debconf-set-selections
     echo mssql-tools mssql-tools/ACCEPT_EULA boolean true | sudo debconf-set-selections
     export ACCEPT_EULA=y
 
-    # Install Microsoft tools
+    ## Install Microsoft tools
     ${CMD_INSTALL} ttf-mscorefonts-installer
     ${CMD_INSTALL} azure-functions-core-tools
     ${CMD_INSTALL} mssql-tools 
     ${CMD_INSTALL} sqlcmd
     ${CMD_INSTALL} powershell
        
+    ## Powershell
     if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
     if (which pwsh) ; then 
         sudo sh -c 'echo   echo \"Powershell \(pwsh\) found!\"     >>  /etc/profile.d/microsoft-powershell.sh'
     fi
     
-    # Install Java from Microsoft -  only if java not installed already
+    ## Install Java from Microsoft -  only if java not installed already
     if (! which java) ; then
         ${CMD_INSTALL} msopenjdk-17
         ${CMD_INSTALL} default-jre
@@ -83,15 +84,15 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
         ${CMD_INSTALL} xscreensaver
         ${CMD_INSTALL} x11-apps
         echo $DISPLAY
-        # Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
-        # xeyes &
-        # Install browser for sqlite
+        ## Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
+        ## xeyes &
+        ## Install browser for sqlite
         ${CMD_INSTALL} sqlitebrowser
         # sqlitebrowser &
     fi
 fi
 
-# install and config sysstat
+## install and config sysstat
 $CMD_INSTALL sysstat
 sudo sh -c 'echo ENABLED="true" >  /etc/default/sysstat'
 sudo systemctl stop sysstat --no-pager
@@ -104,13 +105,10 @@ sudo systemctl status sysstat --no-pager
 ## Only install docker if it doesn't already exist
 if [ ! -x "$(command -v docker)" ] ; then
 
-    # docker install
-    exit 1
-
-    # get rid of anything old
+    ## get rid of anything old
     sudo apt-get remove docker docker-engine docker.io containerd runc
     
-    # install
+    ## install
     curl -fsSL https://get.docker.com -o get-docker.sh
     sudo chmod 755 get-docker.sh
     sudo sh get-docker.sh
@@ -118,7 +116,7 @@ if [ ! -x "$(command -v docker)" ] ; then
     ## verify
     sudo docker run hello-world
     
-    # run Azure CLI as a container
+    ## run Azure CLI as a container
     #sudo git clone https://github.com/gtrifonov/raspberry-pi-alpine-azure-cli.git
     #sudo docker build . -t azure-cli
     #sudo docker run -d -it --rm --name azure-cli azure-cli
@@ -138,9 +136,9 @@ fi
 ## install WASM
 curl https://get.wasmer.io -sSfL | sh
 ## example
-## wasmer run python/python -- -c "for x in range(5): print(f'{x} square: {x*x}')"
+## wasmer run python/python -- -c "for x in range(999): print(f'{x} square: {x*x}')"
 
-# Ensure git is install and then configure it 
+## Ensure git is install and then configure it 
 ${CMD_INSTALL} git
 if [ -x /usr/bin/git ]; then
     git config --global color.ui true
@@ -154,7 +152,7 @@ if [ -x /usr/bin/git ]; then
     git config --list
 fi
 
-# Install Oracle Database Instant Client via permanent OTN link
+## Install Oracle Database Instant Client via permanent OTN link
 oracleinstantclientinstall() {
     # Dependencies for Oracle Client
     ${CMD_INSTALL} libaio 
@@ -285,9 +283,9 @@ joinactivedirectory() {
     return 0
 }
 
-# Mount SMB Azure File Share on Linux - expects to already be logged in
+## Mount SMB Azure File Share on Linux - expects to already be logged in
 mountazurefiles() {
-    # https://learn.microsoft.com/en-us/azure/storage/files/storage-how-to-use-files-linux?tabs=Ubuntu%2Csmb311
+    ## https://learn.microsoft.com/en-us/azure/storage/files/storage-how-to-use-files-linux?tabs=Ubuntu%2Csmb311
     ${CMD_INSTALL} cifs-utils
     ${CMD_INSTALL} autofs
     
@@ -299,7 +297,7 @@ mountazurefiles() {
         return 1;
     fi
     
-    # This command assumes you have logged in with az login
+    ## This command assumes you have logged in with az login
     HTTP_ENDPOINT=$(az storage account show \
         --resource-group $RESOURCE_GROUP_NAME \
         --name $STORAGE_ACCOUNT_NAME \
@@ -312,7 +310,7 @@ mountazurefiles() {
     return 0
 }
 
-# essentials
+## essentials
 ${CMD_INSTALL} apt-transport-https
 ${CMD_INSTALL} ca-certificates
 ${CMD_INSTALL} software-properties-common
@@ -335,7 +333,7 @@ ${CMD_INSTALL} sqlite3 libsqlite3-dev
 # sqlite test.db
 # sqlite3 -batch test.db "create table n (id INTEGER PRIMARY KEY,f TEXT,l TEXT);"
 
-# Handle SSH Agent - at logon
+## Handle SSH Agent - at logon
 sudo sh -c 'echo "# ssh-agent.sh - start ssh agent" > /etc/profile.d/ssh-agent.sh'
 sudo sh -c 'echo "# The ssh-agent is a helper program that keeps track of user identity keys and their passphrases. " >> /etc/profile.d/ssh-agent.sh'
 sudo sh -c 'echo "# The agent can then use the keys to log into other servers without having the user type in a " >> /etc/profile.d/ssh-agent.sh'
@@ -419,7 +417,7 @@ if (which node) ; then
     sudo sh -c 'echo fi >>  /etc/profile.d/nodejs.sh'
 fi
     
-# Install Terraform.
+## Install Terraform.
 # curl "https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_linux_amd64.zip" -o "terraform.zip" \
 #  && unzip -qo terraform.zip && chmod +x terraform \
 #  && sudo mv terraform ~/.local/bin && rm terraform.zip
@@ -442,14 +440,7 @@ fi
 ##sudo sh -c 'echo echo \"Azure CLI \(az\) found!\"     >>  /etc/profile.d/azurecli.sh'
 ##sudo sh -c 'echo # az account show --output table >>  /etc/profile.d/azurecli.sh'
 
-## Install Powershell
-
-if (which pwsh) ; then 
-        sudo sh -c 'echo   echo \"Microsoft Powershell \(pwsh\) found!\"     >>  /etc/profile.d/powershell.sh'
-fi
-
-   
-# Install GoLang - current user
+## Install GoLang - current user
 if ! [ -x ~.go/bin/go ] ; then
     wget -q -O - https://git.io/vQhTU | bash
     if [ -f  /etc/profile.d/golang.sh  ] ; then sudo rm -f /etc/profile.d/golang.sh ; fi
@@ -463,10 +454,6 @@ fi
 #chmod +x install.sh
 #bash install.sh --disable-prompts
 #~/google-cloud-sdk/install.sh --quiet
-
-## need to AAD logon working with
-## interactively via browser
-# az login
 
 # openssl req -x509 \
 #     -newkey rsa:2048 \
