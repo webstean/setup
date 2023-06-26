@@ -84,10 +84,10 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
         ${CMD_INSTALL} x11-apps
         echo $DISPLAY
         # Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
-        xeyes &
+        # xeyes &
         # Install browser for sqlite
         ${CMD_INSTALL} sqlitebrowser
-        sqlitebrowser &
+        # sqlitebrowser &
     fi
 fi
 
@@ -134,6 +134,11 @@ if [ ! -x "$(command -v docker)" ] ; then
     ## set controlable via Docker Desktop
     sudo sh -c 'echo "export DOCKER_HOST=tcp://localhost:2375" > /etc/profile.d/docker.sh'
 fi
+
+## install WASM
+curl https://get.wasmer.io -sSfL | sh
+## example
+## wasmer run python/python -- -c "for x in range(5): print(f'{x} square: {x*x}')"
 
 # Ensure git is install and then configure it 
 ${CMD_INSTALL} git
