@@ -61,7 +61,7 @@ Invoke-WebRequest $download -OutFile $file
 Import-Module Appx -UseWindowsPowerShell
 Add-AppxPackage -Path $file
 $DistroName = 'fedoraremix'
-"${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\${DistroName}.exe"
+"${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\${DistroName}.exe" "install --root"
 
 ```
 
