@@ -62,10 +62,14 @@ Import-Module Appx -UseWindowsPowerShell
 Add-AppxPackage -Path $file
 $DistroName = 'fedoraremix'
 "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\${DistroName}.exe" "install --root"
-
+## Custom with sensible settings
+$wslinitalsetup = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh | Select-Object -ExpandProperty content
+$wslinitalsetup | wsl --user root --distribution ${DistroName} --
+wsl --terminate ${DistroName}
+wsl --set-default ${DistroName}
 ```
 
-Set the DistroName variable to the distribution you want to install 
+To use a standard, set the DistroName variable to the distribution you want to install 
 ```powershell
 ## Powershell
 $DistroName = 'Ubuntu'
@@ -102,10 +106,7 @@ To delete and start again
 $DistroName = 'Ubuntu'
 wsl --terminate ${DistroName}
 wsl --list
-## Now find and delete the root filesystem
-$RootPathFS = (Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | ForEach-Object {Get-ItemProperty $_.PSPath}) | Select-Object DistributionName, @{n="Path";e={$_.BasePath + "\rootfs"}} | Where-Object -FilterScript {$_.DistributionName -EQ $DistroName } | Select-Object -ExpandProperty Path
-if ( -not ([string]::IsNullOrWhiteSpace(${RootPathFS}))) { Remove-Item -Force ${RootPathFS} }
-## Now unregister the distribution - which delete the registry values above
+## Now unregister the distribution - which deletes the root filesystem
 wsl --unregister ${DistroName}
 
 ```
@@ -167,3 +168,11 @@ echo -e '${NPASS}\n${NPASS}\n' | sudo passwd ${NUSER}
 NUSER=vscode
 sudo deluser --remove-home ${NUSER}
 ```
+
+## List of WSL Root Filesystems
+
+```powershell
+## Now find and delete the root filesystem
+$RootPathFS = (Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | ForEach-Object {Get-ItemProperty $_.PSPath}) | Select-Object DistributionName, @{n="Path";e={$_.BasePath + "\rootfs"}} | Select-Object DistributionName, -ExpandProperty Path
+```
+
