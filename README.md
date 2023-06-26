@@ -171,7 +171,7 @@ sudo deluser --remove-home ${NUSER}
 
 ## List of WSL Root Filesystems
 
-> ** Info **
+> **Info**
 > WSL distrubtion are always installed on single user base. It is not supported for multiple users to share the WSL distribution.
 
 ```powershell
