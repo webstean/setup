@@ -172,7 +172,7 @@ sudo deluser --remove-home ${NUSER}
 ## List of WSL Root Filesystems
 
 ```powershell
-## Now find and delete the root filesystem
+## Powershell
 (Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | ForEach-Object {Get-ItemProperty $_.PSPath}) | Select-Object DistributionName, @{n="Path";e={$_.BasePath + "\rootfs"}}
 ```
 
