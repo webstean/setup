@@ -171,6 +171,9 @@ sudo deluser --remove-home ${NUSER}
 
 ## List of WSL Root Filesystems
 
+> ** Info **
+> WSL distrubtion are always installed on single user base. It is not supported for multiple users to share the WSL distribution.
+
 ```powershell
 ## Powershell
 (Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | ForEach-Object {Get-ItemProperty $_.PSPath}) | Select-Object DistributionName, @{n="Path";e={$_.BasePath + "\rootfs"}}
