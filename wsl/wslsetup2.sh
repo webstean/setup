@@ -22,8 +22,9 @@ timedatectl status
 
 ## Eclipse Temurin is the open source Java SE build based upon OpenJDK.
 ## Temurin is available for a wide range of platforms and Java SE versions.
-## The current release of Mulesoft only support JDK 8 or 11
+## FYI: The current release of Mulesoft only support JDK 8 or 11
 ${CMD_INSTALL} temurin-11-jdk
+source ~/.bashrc
 
 ## Add Microsoft Repos and Applications
 if [ -f /usr/bin/apt ] && ! (grep packages.microsoft.com /etc/apt/sources.list) ] ; then
