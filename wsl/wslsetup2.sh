@@ -393,6 +393,11 @@ sudo sh -c 'echo [ -x /usr/bin/lesspipe ] \&\& eval "$(SHELL=/bin/sh lesspipe)" 
 sudo sh -c 'echo "# Alias to provide distribution name"                 >> /etc/profile.d/bash.sh'
 sudo sh -c 'echo "alias distribution=\". /etc/os-release;echo \$ID\$VERSION_ID)\"" >> /etc/profile.d/bash.sh'
 
+sudo sh -c 'echo "# Get Azure Service Principal - if it exists"         >> /etc/profile.d/azure.sh'
+sudo sh -c 'echo "if [ -f "${OneDriveCommercial}/azure/azuresp.sh" ] ; then >> /etc/profile.d/azure.sh'
+sudo sh -c 'echo "    source "${OneDriveCommercial}/azure/azuresp.sh"   >> /etc/profile.d/azure.sh'
+sudo sh -c 'echo "fi"                                                   >> /etc/profile.d/azure.sh'
+
 ## Install Node through Node Version Manager (nvm)
 ## https://github.com/nvm-sh/nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
