@@ -179,3 +179,20 @@ sudo deluser --remove-home ${NUSER}
 (Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | ForEach-Object {Get-ItemProperty $_.PSPath}) | Select-Object DistributionName, @{n="Path";e={$_.BasePath + "\rootfs"}}
 ```
 
+## Tell Windows Docker to use WSL Docker
+
+The environment variables in the applicable WSL installation, needs to be:-
+export   xxxxx
+
+
+```powershell
+Stop-Service *docker*
+Write-Host "Setting Docker to allow TCP port 2375" -ForegroundColor Yellow -BackgroundColor DarkGreen
+$dockerpath = "$env:APPDATA\Docker\settings.json"
+$settings = Get-Content $dockerpath | ConvertFrom-Json
+$settings.exposeDockerAPIOnTCP2375 = $true
+$settings | ConvertTo-Json | Set-Content $dockerpath
+Start-Service *docker*
+```
+
+
