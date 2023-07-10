@@ -325,6 +325,8 @@ ${CMD_INSTALL} wget
 ${CMD_INSTALL} jq
 ${CMD_INSTALL} dos2unix
 ${CMD_INSTALL} gnupg2
+${CMD_INSTALL} python3
+${CMD_INSTALL} python3-pip
 
 ## build/development dependencies
 if [ -d /usr/local/src ] ; then sudo rm -rf /usr/local/src ; fi
