@@ -58,7 +58,7 @@ $file = "Fedora-Remix-for-WSL-SL_" + $tag + ".0_x64_arm64.msixbundle"
 $download = "https://github.com/" + $repo + "/releases/download/" + $tag + "/" +$file
 Write-Host "Trying to download $download"
 Invoke-WebRequest $download -OutFile $file
-Import-Module Appx -UseWindowsPowerShell
+Import-Module Appx -UseWindowsPowerShell -Force
 Add-AppxPackage -Path $file
 $DistroName = 'fedoraremix'
 "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\${DistroName}.exe" "install --root"
