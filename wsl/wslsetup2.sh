@@ -93,6 +93,7 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
         ${CMD_INSTALL} sqlitebrowser
         # sqlitebrowser &
     fi
+    # export WINHOME=$(wslpath "$(wslvar USERPROFILE)")
 fi
 
 ## install and config sysstat
