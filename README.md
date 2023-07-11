@@ -180,7 +180,7 @@ sudo deluser --remove-home ${NUSER}
 ```
 
 ## Tell Windows Docker to use WSL Docker
-aka: docker on docker 
+aka: Docker-in-Docker 
 The environment variables in the applicable WSL installation, needs to be:-
 ```shell
 export DOCKER_HOST=tcp://localhost:2375
