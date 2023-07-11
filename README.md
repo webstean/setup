@@ -180,10 +180,11 @@ sudo deluser --remove-home ${NUSER}
 ```
 
 ## Tell Windows Docker to use WSL Docker
-
+aka: docker on docker 
 The environment variables in the applicable WSL installation, needs to be:-
-export   xxxxx
-
+```shell
+export DOCKER_HOST=tcp://localhost:2375
+```
 
 ```powershell
 Stop-Service *docker*
