@@ -476,6 +476,8 @@ fi
 #     -days 36500 \
 #     -nodes \
 #     -subj "/C=AU/ST=Victoria/L=Melbourne/O=webstean/OU=IT/CN=${UPN}"
+# copy to Windows clipboard
+# cat ~/.ssh/id_rsa.pub | clip.exe
 
 ## Oh-My-Posh - Colourful Commandline Prompt
 sudo wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-linux-amd64 -O /usr/local/bin/oh-my-posh
