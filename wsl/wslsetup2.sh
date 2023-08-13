@@ -105,6 +105,10 @@ sudo systemctl start sysstat --no-pager
 sudo systemctl status sysstat --no-pager
 # sar -u
 
+## sync the time automatioally
+sudo systemctl enable systemd-timesyncd.service
+sudo systemctl status systemd-timesyncd.service
+
 ## Docker - requires systemd
 ## Only install docker if it doesn't already exist
 if [ ! -x "$(command -v docker)" ] ; then
