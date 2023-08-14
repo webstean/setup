@@ -412,6 +412,9 @@ sudo sh -c 'echo "if [ -f "${OneDriveCommercial}/gcp/gcpsp.sh" ] ; then >> /etc/
 sudo sh -c 'echo "    source "${OneDriveCommercial}/gcp/gcpsp.sh"   >> /etc/profile.d/gcp.sh'
 sudo sh -c 'echo "fi"                                                   >> /etc/profile.d/gcp.sh'
 
+## shortcut to Windows home directory
+sudo sh -c 'echo "export WINHOME=$(wslpath \"$(wslvar USERPROFILE)\")"   > /etc/profile.d/winhome.sh'
+
 ## Install Node through Node Version Manager (nvm)
 ## https://github.com/nvm-sh/nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
