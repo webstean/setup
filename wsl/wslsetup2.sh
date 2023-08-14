@@ -368,6 +368,9 @@ sudo sh -c 'start_agent; >> /etc/profile.d/ssh-agent.sh'
 sudo sh -c 'fi >> /etc/profile.d/ssh-agent.sh'
 sudo sh -c 'echo "# from host ssh-copy-id pi@raspberrypi.local - to enable promptless logon" >>/etc/profile.d/ssh-agent.sh'
 
+## Copy to clipboard
+# cat ~/.ssh/id_rsa.pub | clip.exe
+
 ## get some decent stuff working for all bash users
 sudo sh -c 'echo "# Ensure \$LINES and \$COLUMNS always get updated."   >  /etc/profile.d/bash.sh'
 sudo sh -c 'echo shopt -s checkwinsize                                 >>  /etc/profile.d/bash.sh'
