@@ -81,8 +81,27 @@ if [ -f /usr/bin/apt ] && ! (grep packages.microsoft.com /etc/apt/sources.list) 
     }
 fi
 
+## Azure IOTEdge
+if ($false) ; then
+    sudo apt-get -y update;   sudo apt-get -y install moby-engine  
+    if [ -f /etc/docker/daemon.json ] ; then
+        sudo sh -c "{                                >  /etc/profile.d/instant-oracle.sh"
+        sudo sh -c "    \"log-driver\": \"local\"    >>  /etc/profile.d/instant-oracle.sh"
+        sudo sh -c "}                                >> /etc/profile.d/instant-oracle.sh"
+    fi
+    curl -ssl https://raw.githubusercontent.com/moby/moby/master/contrib/check-config.sh -o check-config.sh
+    chmod +x check-config.sh
+    ## ./check-config.sh
+    sudo apt-get -y install aziot-edge defender-iot-micro-agent-edge
+    ## sudo iotedge config mp --connection-string 'PASTE_DEVICE_CONNECTION_STRING_HERE'
+    sudo iotedge system status
+    sudo iotedge system logs
+    sudo iotedge check
+    sudo iotedge check --verbose
+fi
+
 ## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff
-if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]]; then
+if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     if ! [ -x /usr/bin/sqlitebrowser ] ; then
         ${CMD_INSTALL} xscreensaver
         ${CMD_INSTALL} x11-apps
