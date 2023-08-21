@@ -98,6 +98,7 @@ if ($false) ; then
     sudo iotedge system logs
     sudo iotedge check
     sudo iotedge check --verbose
+    sudo iotedge list
 fi
 
 ## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff
