@@ -94,6 +94,7 @@ if ($false) ; then
     ## ./check-config.sh
     sudo apt-get -y install aziot-edge defender-iot-micro-agent-edge
     ## sudo iotedge config mp --connection-string 'PASTE_DEVICE_CONNECTION_STRING_HERE'
+    ## sudo iotedge config apply -c '/etc/aziot/config.toml'
     sudo iotedge system status
     sudo iotedge system logs
     sudo iotedge check
