@@ -23,7 +23,8 @@ if ( -not ([string]::IsNullOrWhiteSpace($getupn))) { [Environment]::SetEnvironme
 $StrongPassword = "settoomethingsecure"
 [Environment]::SetEnvironmentVariable('STRONGPASSWORD',$StrongPassword,'User')
  
-[Environment]::SetEnvironmentVariable('WSLENV','OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN','User')
+## info: https://devblogs.microsoft.com/commandline/share-environment-vars-between-wsl-and-windows/
+ [Environment]::SetEnvironmentVariable('WSLENV','OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN','User')
 ```
 
 Install WSL (with no distribution)
