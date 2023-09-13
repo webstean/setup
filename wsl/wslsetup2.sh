@@ -5,6 +5,7 @@
 ## Debug this script if in debug mode
 [ "$DEBUG" == 'true' ] && set -x
 # set +x to disable
+set -x
 
 ## start from scratch - normally no!
 #if [   -d /opt ] ; then sudo rm -rf /opt ; fi 
@@ -63,7 +64,7 @@ if [ -f /usr/bin/apt && ! grep packages.microsoft.com /etc/apt/sources.list ] ; 
     ${CMD_INSTALL} mssql-tools 
     ${CMD_INSTALL} sqlcmd
     ${CMD_INSTALL} powershell
-       
+    
     ## Powershell
     if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
     if (which pwsh) ; then 
@@ -81,9 +82,9 @@ fi
 if ($false) ; then
     sudo apt-get -y update;   sudo apt-get -y install moby-engine  
     if [ -f /etc/docker/daemon.json ] ; then
-        sudo sh -c "{                                >  /etc/profile.d/instant-oracle.sh"
-        sudo sh -c "    \"log-driver\": \"local\"    >>  /etc/profile.d/instant-oracle.sh"
-        sudo sh -c "}                                >> /etc/profile.d/instant-oracle.sh"
+        sudo sh -c "{                                >  ~/config-docker-for-iotedge.sh"
+        sudo sh -c "    \"log-driver\": \"local\"    >> ~/config-docker-for-iotedge.sh"
+        sudo sh -c "}                                >> ~/config-docker-for-iotedge.sh"
     fi
     curl -ssl https://raw.githubusercontent.com/moby/moby/master/contrib/check-config.sh -o check-config.sh
     chmod +x check-config.sh
