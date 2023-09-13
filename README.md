@@ -41,7 +41,8 @@ Install WSL (with no distribution)
 ### Powershell
 ### Setup WSL
 wsl --update #to update - which will also update from the store including the kernel and would update from in-windows to the store version
-wsl --install --no-launch  #--no-distribution - no default distribution
+wsl --install --no-launch  --no-distribution  ## - no default distribution
+Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -NoRestart
 wsl --set-default-version 2
 wsl --status
 
