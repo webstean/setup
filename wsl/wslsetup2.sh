@@ -74,7 +74,7 @@ if [ -f /usr/bin/apt && ! grep packages.microsoft.com /etc/apt/sources.list ] ; 
     if (! which java) ; then
         ${CMD_INSTALL} msopenjdk-17
         ${CMD_INSTALL} default-jre
-    }
+    fi
 fi
 
 ## Azure IOTEdge
@@ -251,7 +251,7 @@ oracleinstantclientinstall() {
     # spool off;
     
     return 0
-}
+fi
 
 # Install Oracle SQL Developer
 oraclesqldeveloperinstall() {
