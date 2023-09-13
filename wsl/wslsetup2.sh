@@ -293,12 +293,12 @@ joinactivedirectory() {
     # Define full account name variable
     FULLJOINACC = '${JOINACC}@${USERDNSDOMAIN}'
         
-    # Dependencies for AD Join
+    ## Dependencies for AD Join
     echo ${CMD_INSTALL} realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
     echo ${CMD_INSTALL} cifs-utils
-    # Info on Domain
+    ## Info on Domain
     echo "Join AD domain: ${USERDNSDOMAIN}"
-    if (sudo realm discover ${USERDNSDOMAIN} ) } ; then
+    if (sudo realm discover ${USERDNSDOMAIN} } ; then
         # Generate Kerberos ticket
         echo sudo kinit ${FULLJOINACC}
         # Join the Domain
