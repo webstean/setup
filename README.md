@@ -32,7 +32,8 @@ $StrongPassword = "settoomethingsecure"
 [Environment]::SetEnvironmentVariable('STRONGPASSWORD',$StrongPassword,'User')
  
 ## info: https://devblogs.microsoft.com/commandline/share-environment-vars-between-wsl-and-windows/
- [Environment]::SetEnvironmentVariable('WSLENV','OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN','User')
+## Corporate Environments
+[Environment]::SetEnvironmentVariable('WSLENV','OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN','User')
 ```
 
 Install WSL (with no distribution)
