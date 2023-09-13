@@ -8,7 +8,15 @@
 
 ![Visual Studio App Center Releases](https://img.shields.io/visual-studio-app-center/releases/version/:owner/:app/:token)
 
-
+Initial Setup
+```cmd
+## Recommended
+# winget install LIGHTNINGUK.ImgBurn
+# winget install Microsoft.VisualStudioCode
+# Must haves
+winget install powershell
+winget install git.git
+```
 
 Set the WSLENV Variable, so these variables will be passed into WSL
 ```powershell
