@@ -222,7 +222,7 @@ oracleinstantclientinstall() {
     ## or registry entry to the directory containing the files. Use the full directory path; do not include a file name. 
     ## Alternatively create a subdirectory "network/admin" under the Instant Client directory for the Oracle Net files.
     ## This is the default location and so no TNS_ADMIN variable is required.
-    if [ -! d ${LD_LIBRARY_PATH}/network/admin ] ; then mkdir -p ${LD_LIBRARY_PATH}/network/admin ; fi
+    if [ ! -d ${LD_LIBRARY_PATH}/network/admin ] ; then mkdir -p ${LD_LIBRARY_PATH}/network/admin ; fi
     
     ## TSNNAME.ORA example
     # 
