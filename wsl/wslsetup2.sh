@@ -165,18 +165,18 @@ curl https://get.wasmer.io -sSfL | sh
 ## wasmer run python/python -- -c "for x in range(999): print(f'{x} square: {x*x}')"
 
 ## Ensure git is install and then configure it 
-${CMD_INSTALL} git
-if [ -x /usr/bin/git ]; then
-    git config --global color.ui true
-    git config --global user.name "Andrew Webster"
-    if [ ! ${UPN} == '' ]; then 
-        git config --global user.email "${UPN}"
-    fi
-    # cached credentials for 2 hours
-    git config --global credential.helper 'cache --timeout 7200'
-    git config --global advice.detachedHead false
-    git config --list
-fi
+##${CMD_INSTALL} git
+##if [ -x /usr/bin/git ]; then
+##    git config --global color.ui true
+##    git config --global user.name "Andrew Webster"
+##    if [ ! ${UPN} == '' ]; then 
+##        git config --global user.email "${UPN}"
+##    fi
+##    # cached credentials for 2 hours
+##    git config --global credential.helper 'cache --timeout 7200'
+##    git config --global advice.detachedHead false
+##    git config --list
+## fi
 
 ## Install Oracle Database Instant Client via permanent OTN link
 oracleinstantclientinstall() {
