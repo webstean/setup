@@ -165,18 +165,18 @@ curl https://get.wasmer.io -sSfL | sh
 ## wasmer run python/python -- -c "for x in range(999): print(f'{x} square: {x*x}')"
 
 ## Ensure git is install and then configure it 
-##${CMD_INSTALL} git
-##if [ -x /usr/bin/git ]; then
-##    git config --global color.ui true
-##    git config --global user.name "Andrew Webster"
-##    if [ ! ${UPN} == '' ]; then 
-##        git config --global user.email "${UPN}"
-##    fi
-##    # cached credentials for 2 hours
-##    git config --global credential.helper 'cache --timeout 7200'
-##    git config --global advice.detachedHead false
-##    git config --list
-## fi
+${CMD_INSTALL} git
+if [ -x /usr/bin/git ]; then
+    git config --global color.ui true
+    git config --global user.name "Andrew Webster"
+    if [ ! ${UPN} == '' ]; then 
+        git config --global user.email "${UPN}"
+    fi
+    # cached credentials for 2 hours
+    git config --global credential.helper 'cache --timeout 7200'
+    git config --global advice.detachedHead false
+    git config --list
+fi
 
 ## Install Oracle Database Instant Client via permanent OTN link
 oracleinstantclientinstall() {
@@ -222,7 +222,7 @@ oracleinstantclientinstall() {
     ## or registry entry to the directory containing the files. Use the full directory path; do not include a file name. 
     ## Alternatively create a subdirectory "network/admin" under the Instant Client directory for the Oracle Net files.
     ## This is the default location and so no TNS_ADMIN variable is required.
-    if [ -! d ${LD_LIBRARY_PATH}/network/admin ] ; then mkdir -p ${LD_LIBRARY_PATH}/network/admin
+    if [ -! d ${LD_LIBRARY_PATH}/network/admin ] ; then mkdir -p ${LD_LIBRARY_PATH}/network/admin ; fi
     
     ## TSNNAME.ORA example
     # 
@@ -252,7 +252,7 @@ oracleinstantclientinstall() {
     # spool off;
     
     return 0
-fi
+}
 
 # Install Oracle SQL Developer
 oraclesqldeveloperinstall() {
