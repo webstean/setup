@@ -148,10 +148,10 @@ if [ ! -x "$(command -v docker)" ] ; then
     #sudo docker run -d -it --rm --name azure-cli azure-cli
 
     ## allow user to run docker commands
-    if (grep docker /etc/groups) ; then 
+    if (grep docker /etc/group) ; then 
         sudo -E usermod -aG docker $USER
     fi
-    if (grep wheel /etc/groups) ; then 
+    if (grep wheel /etc/group) ; then 
         sudo -E usermod -aG wheel $USER
     fi
     
