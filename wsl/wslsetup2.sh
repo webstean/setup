@@ -270,7 +270,6 @@ if [ ${MACHINE_TYPE} == 'x86_64' ]; then
          oracleinstantclientinstall
     fi
 fi
-exit 0
 
 # Join Active Directory 
 joinactivedirectory() {
