@@ -79,7 +79,7 @@ if [ -f /usr/bin/apt && ! grep packages.microsoft.com /etc/apt/sources.list ] ; 
 fi
 
 ## Azure IOTEdge
-if ($false) ; then
+if (1) ; then
     sudo apt-get -y update;   sudo apt-get -y install moby-engine  
     if [ -f /etc/docker/daemon.json ] ; then
         sudo sh -c "{                                >  ~/config-docker-for-iotedge.sh"
@@ -303,7 +303,7 @@ joinactivedirectory() {
         echo sudo kinit ${FULLJOINACC}
         # Join the Domain
         echo sudo realm join --verbose ${USERDNSDOMAIN}-U '${FULLJOINACC}'
-    } else
+    else
         return 1
     fi
     return 0
