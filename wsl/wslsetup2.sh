@@ -298,14 +298,14 @@ joinactivedirectory() {
     echo ${CMD_INSTALL} cifs-utils
     ## Info on Domain
     echo "Join AD domain: ${USERDNSDOMAIN}"
-    if (sudo realm discover ${USERDNSDOMAIN} } ; then
+    if (sudo realm discover ${USERDNSDOMAIN}) ; then
         # Generate Kerberos ticket
         echo sudo kinit ${FULLJOINACC}
         # Join the Domain
         echo sudo realm join --verbose ${USERDNSDOMAIN}-U '${FULLJOINACC}'
     } else
         return 1
-    }
+    fi
     return 0
 }
 
