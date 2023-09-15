@@ -417,21 +417,21 @@ sudo sh -c 'echo "# Alias to provide distribution name"                 >> /etc/
 sudo sh -c 'echo "alias distribution=\". /etc/os-release;echo \$ID\$VERSION_ID)\"" >> /etc/profile.d/bash.sh'
 
 ## Azure environment
-sudo sh -c 'echo "# Setup Azure environment up - if it exists"           >> /etc/profile.d/azure.sh'
+sudo sh -c 'echo "# Setup Azure environment up - if it exists"           >  /etc/profile.d/azure.sh'
 sudo sh -c 'echo "if [ -f "\${OneDriveCommercial}/azure/azuresp.sh" ] ; then >> /etc/profile.d/azure.sh'
 sudo sh -c 'echo "    source "\${OneDriveCommercial}/azure/azuresp.sh"   >> /etc/profile.d/azure.sh'
 sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/azure.sh'
 
 ## AWS environment
-sudo sh -c 'echo "# Setup AWS environment up - if it exists"             >> /etc/profile.d/aws.sh'
+sudo sh -c 'echo "# Setup AWS environment up - if it exists"             > /etc/profile.d/aws.sh'
 sudo sh -c 'echo "if [ -f "\${OneDriveCommercial}/aws/awssp.sh" ] ; then >> /etc/profile.d/aws.sh'
 sudo sh -c 'echo "    source "\${OneDriveCommercial}/aws/awsp.sh"        >> /etc/profile.d/aws.sh'
 sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/aws.sh'
 
 ## Google Cloud environment
-sudo sh -c 'echo "# Setup Google GCP environment up - if it exists"     >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "# Setup Google GCP environment up - if it exists"     > /etc/profile.d/gcp.sh'
 sudo sh -c 'echo "if [ -f "\${OneDriveCommercial}/gcp/gcpsp.sh" ] ; then >> /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "    source "\${OneDriveCommercial}/gcp/gcpsp.sh"   >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "    source "\${OneDriveCommercial}/gcp/gcpsp.sh"      >> /etc/profile.d/gcp.sh'
 sudo sh -c 'echo "fi"                                                   >> /etc/profile.d/gcp.sh'
 
 ## shortcut to Windows home directory
