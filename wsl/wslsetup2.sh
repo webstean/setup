@@ -417,13 +417,13 @@ sudo sh -c 'echo "alias distribution=\". /etc/os-release;echo \$ID\$VERSION_ID)\
 
 ## Azure environment
 sudo sh -c 'echo "# Setup Azure environment up - if it exists"           >  /etc/profile.d/azure.sh'
-sudo sh -c 'echo "if [ -f "\${OneDriveCommercial}/azure/azuresp.sh\" ] ; then >> /etc/profile.d/azure.sh'
-sudo sh -c 'echo "    source "\${OneDriveCommercial}/azure/azuresp.sh"   >> /etc/profile.d/azure.sh'
+sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/azure/azuresp.sh\" ] ; then >> /etc/profile.d/azure.sh'
+sudo sh -c 'echo "    source \"\${OneDriveCommercial}/azure/azuresp.sh\"   >> /etc/profile.d/azure.sh'
 sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/azure.sh'
 
 ## AWS environment
 sudo sh -c 'echo "# Setup AWS environment up - if it exists"             > /etc/profile.d/aws.sh'
-sudo sh -c 'echo "if [ -f "\${OneDriveCommercial}/aws/awssp.sh\" ] ; then >> /etc/profile.d/aws.sh'
+sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/aws/awssp.sh\" ] ; then >> /etc/profile.d/aws.sh'
 sudo sh -c 'echo "    source \"\${OneDriveCommercial}/aws/awsp.sh\"      >> /etc/profile.d/aws.sh'
 sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/aws.sh'
 
