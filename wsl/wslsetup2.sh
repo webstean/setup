@@ -428,10 +428,14 @@ sudo sh -c 'echo "    source "\${OneDriveCommercial}/aws/awsp.sh"        >> /etc
 sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/aws.sh'
 
 ## Google Cloud environment
-sudo sh -c 'echo "# Setup Google GCP environment up - if it exists"     > /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "# Setup Google GCP environment up - if it exists"      >  /etc/profile.d/gcp.sh'
 sudo sh -c 'echo "if [ -f "\${OneDriveCommercial}/gcp/gcpsp.sh" ] ; then >> /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "    source "\${OneDriveCommercial}/gcp/gcpsp.sh"      >> /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "fi"                                                   >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "    source "\${OneDriveCommercial}/gcp/gcpsp.sh"       >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/gcp.sh'
+
+## Google Cloud environment
+sudo sh -c 'echo "# Setup Docker on Docker                        "     >  /etc/profile.d/dockerd.sh'
+sudo sh -c 'echo "export DOCKER_HOST=tcp://localhost:2375          "    >> /etc/profile.d/dockerd.sh'
 
 ## shortcut to Windows home directory
 sudo sh -c 'echo "export WINHOME=\$(wslpath \"\$(wslvar USERPROFILE)\")"   > /etc/profile.d/winhome.sh'
