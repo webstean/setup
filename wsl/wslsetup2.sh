@@ -1,3 +1,4 @@
+
 #!/usr/bin/bash
 
 ## assume: we have network connectivity.
@@ -370,7 +371,7 @@ sudo sh -c 'echo "" >>/etc/profile.d/ssh-agent.sh'
 sudo sh -c 'echo SSH_ENV="$HOME/.ssh/agent-environment" >> /etc/profile.d/ssh-agent.sh'
 sudo sh -c 'echo function start_agent { >> /etc/profile.d/ssh-agent.sh'
 sudo sh -c 'echo echo "Initialising new SSH agent..." >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo /usr/bin/ssh-agent | sed \'s/^echo/#echo/\' > "\${SSH_ENV}" >> /etc/profile.d/ssh-agent.sh'
+sudo sh -c 'echo /usr/bin/ssh-agent | sed \'s/^echo/#echo/\' > \"\${SSH_ENV}\" >> /etc/profile.d/ssh-agent.sh'
 sudo sh -c 'echo echo succeeded >> /etc/profile.d/ssh-agent.sh'
 sudo sh -c 'echo chmod 600 \${SSH_ENV} >> /etc/profile.d/ssh-agent.sh'
 sudo sh -c 'echo . \"\${SSH_ENV}\" > /dev/null >> /etc/profile.d/ssh-agent.sh'
