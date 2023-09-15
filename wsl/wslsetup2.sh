@@ -1,4 +1,3 @@
-
 #!/usr/bin/bash
 
 ## assume: we have network connectivity.
@@ -411,7 +410,7 @@ sudo sh -c 'echo "# Enable bash completion."                           >>  /etc/
 sudo sh -c "echo [ -f /etc/bash_completion ] \&\& . /etc/bash_completion >>  /etc/profile.d/bash.sh"
 
 sudo sh -c 'echo "# Improve output of less for binary files."          >> /etc/profile.d/bash.sh'
-sudo sh -c 'echo [ -x /usr/bin/lesspipe ] \&\& eval "$(SHELL=/bin/sh lesspipe)"   >>  /etc/profile.d/bash.sh'
+sudo sh -c 'echo [ -x /usr/bin/lesspipe ] \&\& eval "\$(SHELL=/bin/sh lesspipe)"   >>  /etc/profile.d/bash.sh'
 
 sudo sh -c 'echo "# Alias to provide distribution name"                 >> /etc/profile.d/bash.sh'
 sudo sh -c 'echo "alias distribution=\". /etc/os-release;echo \$ID\$VERSION_ID)\"" >> /etc/profile.d/bash.sh'
@@ -435,7 +434,7 @@ sudo sh -c 'echo "    source "\${OneDriveCommercial}/gcp/gcpsp.sh"      >> /etc/
 sudo sh -c 'echo "fi"                                                   >> /etc/profile.d/gcp.sh'
 
 ## shortcut to Windows home directory
-sudo sh -c 'echo "export WINHOME=$(wslpath \"$(wslvar USERPROFILE)\")"   > /etc/profile.d/winhome.sh'
+sudo sh -c 'echo "export WINHOME=\$(wslpath \"\$(wslvar USERPROFILE)\")"   > /etc/profile.d/winhome.sh'
 
 ## Install Node through Node Version Manager (nvm)
 ## https://github.com/nvm-sh/nvm
