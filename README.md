@@ -34,6 +34,7 @@ $StrongPassword = "settoomethingsecure"
 ## info: https://devblogs.microsoft.com/commandline/share-environment-vars-between-wsl-and-windows/
 ## Corporate Environments
 [Environment]::SetEnvironmentVariable('WSLENV','OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN','User')
+
 ```
 
 Install WSL (with no distribution)
@@ -73,6 +74,7 @@ $wslinitalsetup = Invoke-WebRequest -uri https://raw.githubusercontent.com/webst
 $wslinitalsetup | wsl --user root --distribution ${DistroName} --
 wsl --terminate ${DistroName}
 wsl --set-default ${DistroName}
+
 ```
 
 To use a standard, set the DistroName variable to the distribution you want to install 
@@ -87,6 +89,7 @@ $wslinitalsetup | wsl --user root --distribution ${DistroName} --
 ## restart, so systemd get enabled 
 wsl --terminate ${DistroName}
 wsl --set-default ${DistroName}
+
 ```
 
 Install Microsoft Repo, mssql-tools, azure-functions core, msopenjdk, powershell, /etc/wsl.conf, Xwindows, systat, Azure CLI, Oracle Instant Client (if x86-64), Golang, maven, node via nvm, oh-my-posh
@@ -100,6 +103,7 @@ $wslsetup2   = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean
 $wslsetuppre + $wslsetup1 | wsl --distribution ${DistroName} --
 wsl --terminate ${DistroName}
 $wslsetuppre + $wslsetup2 | wsl --distribution ${DistroName} --
+
 ```
 
 To delete and start again
@@ -124,6 +128,7 @@ Great device - quick setup
 ```shell
 ## bash / zsh with curl etc...
 curl -fsSL https://raw.githubusercontent.com/webstean/setup/main/pi/raspi-setup.sh | bash -
+
 ```
 
 or
@@ -131,6 +136,7 @@ or
 ```shell
 ## bash / zsh with wget etc...
 wget https://raw.githubusercontent.com/webstean/setup/main/pi/raspi-setup.sh | bash -
+
 ```
 
 ## Setup an example development project (baresip)
@@ -140,12 +146,14 @@ Under Linux or WSL
 ```shell
 ## bash / zsh etc...
 curl -fsSL https://raw.githubusercontent.com/webstean/setup/main/baresip/setup.sh | bash -
+
 ```
 or
 
 ```shell
 ## bash / zsh etc...
 wget https://raw.githubusercontent.com/webstean/setup/main/baresip/setup.sh | bash -
+
 ```
 
 ## Installing Development Fonts [Windows]
@@ -165,6 +173,7 @@ sudo adduser --quiet --gecos "" --force-badname --disabled-password --shell /bin
 
 # set password
 echo -e '${NPASS}\n${NPASS}\n' | sudo passwd ${NUSER}
+
 ```
 
 ## Remove Linux User Account
@@ -173,6 +182,7 @@ echo -e '${NPASS}\n${NPASS}\n' | sudo passwd ${NUSER}
 ## bash / zsh etc...
 NUSER=vscode
 sudo deluser --remove-home ${NUSER}
+
 ```
 
 ## List of WSL Root Filesystems
@@ -183,6 +193,7 @@ sudo deluser --remove-home ${NUSER}
 ```powershell
 ## Powershell
 (Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | ForEach-Object {Get-ItemProperty $_.PSPath}) | Select-Object DistributionName, @{n="Path";e={$_.BasePath + "\rootfs"}}
+
 ```
 
 ## Tell Windows Docker to use WSL Docker
@@ -190,6 +201,7 @@ aka: Docker-in-Docker
 The environment variables in the applicable WSL installation, needs to be:-
 ```shell
 export DOCKER_HOST=tcp://localhost:2375
+
 ```
 
 ```powershell
@@ -200,6 +212,7 @@ $settings = Get-Content $dockerpath | ConvertFrom-Json
 $settings.exposeDockerAPIOnTCP2375 = $true
 $settings | ConvertTo-Json | Set-Content $dockerpath
 Start-Service *docker*
+
 ```
 
 
