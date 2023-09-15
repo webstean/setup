@@ -13,6 +13,19 @@ if [[ -z "${USERNAME}" && -z "${STRONGPASSWORD}" ]] ; then
     exit 1
 fi
 
+# Determine OS platform
+UNAME=$(uname | tr "[:upper:]" "[:lower:]")
+# If Linux, try to determine specific distribution
+if [ "$UNAME" == "linux" ]; then
+    # If available, use LSB to identify distribution
+    if [ -f /etc/lsb-release -o -d /etc/lsb-release.d ]; then
+        export DISTRO=$(lsb_release -i | cut -d: -f2 | sed s/'^\t'//)
+    # Otherwise, use release info file
+    else
+        export DISTRO=$(ls -d /etc/[A-Za-z]*[_-][rv]e[lr]* | grep -v "lsb" | cut -d'/' -f3 | cut -d'-' -f1 | cut -d'_' -f1)
+    fi
+fi
+
 ## Check if WSL2, enable systemd etc via wsl.conf, sort out sudo
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     if [ -f /etc/wsl.conf ] ; then rm -f /etc/wsl.conf ; fi
@@ -45,13 +58,13 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     
     echo "Setting up [$USERNAME]"
     ## quietly add a user without password
-    
-    ## RHEL
-    adduser --badname --shell /bin/bash --password ${STRONGPASSWORD} ${USERNAME}
-    
-    ## Ubuntu
-    adduser --gecos "" --force-badname --disabled-password --shell /bin/bash ${USERNAME}
-    
+    if [ ${DISTRO} == "Ubuntu" ] ; then
+        ## Ubuntu
+        adduser --gecos "" --force-badname --disabled-password --shell /bin/bash ${USERNAME}
+    else
+        ## RHEL
+        adduser --badname --shell /bin/bash --password ${STRONGPASSWORD} ${USERNAME}
+    fi
     
     ## if sudo group exists - add
     if (grep sudo /etc/group) ; then
@@ -84,7 +97,7 @@ else
     exit 1
 fi
 
-## Environent Variables for proxy support
+## Template: Environent Variables for proxy support
 sh -c 'echo "## Web Proxy Setup - edit as required"                               >  /etc/profile.d/web-proxy.sh'
 sh -c 'echo "## Squid default port is 3128, but many setup the proxy on port 80,8000,8080" >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "anon_web-proxy() {"                                                  >> /etc/profile.d/web-proxy.sh'
