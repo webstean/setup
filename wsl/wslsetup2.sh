@@ -324,7 +324,7 @@ mountazurefiles() {
         return 1;
     fi
     
-    ## This command assumes you have logged in with az login
+    ## This command assumes you have logged in with az login (azure cli needs to be installed)
     HTTP_ENDPOINT=$(az storage account show \
         --resource-group $RESOURCE_GROUP_NAME \
         --name $STORAGE_ACCOUNT_NAME \
