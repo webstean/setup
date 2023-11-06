@@ -49,6 +49,7 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     ## still need to be customised if using a proxy via /etc/profile.d/web-proxy.sh'
     sh -c 'echo generateResolvConf = true  >>  /etc/wsl.conf'
     sh -c 'echo generateHosts = true       >>  /etc/wsl.conf'
+    sh -c 'echo dnsTunneling	= true     >>  /etc/wsl.conf'
     
     ## tell wsl which user to use
     echo "USERNAME = [${USERNAME}]"
