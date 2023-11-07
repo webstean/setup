@@ -205,7 +205,7 @@ oracleinstantclientinstall() {
     if [ -f /etc/profile.d/instant-oracle.sh ] ; then
         sudo rm /etc/profile.d/instant-oracle.sh 
     fi
-    ### Enviromnet variables for Instance Client
+    ### Environment variables for Oracle Instance Client
     ### https://docs.oracle.com/en/database/oracle/oracle-database/21/lacli/environment-variables-instant-client.html
     sudo sh -c "echo # Oracle Instant Client Setup     >  /etc/profile.d/instant-oracle.sh"
     sudo sh -c "echo oracle-instantclient\(\) {        >>  /etc/profile.d/instant-oracle.sh"
@@ -243,7 +243,7 @@ oracleinstantclientinstall() {
         sudo chmod 444 ${LD_LIBRARY_PATH}/network/admin/tnsnames.ora
     fi
     
-    ## use Oraclw SQL statement to create CSV files you can export and import into some else (like sqllite)
+    ## use Oracle SQL statement to create CSV files you can export and import into some else (like sqllite)
     ## https://www.dba-oracle.com/t_export%20table_to_csv.htm
     # set heading off
     # spool myfile.csv
@@ -272,7 +272,7 @@ if [ ${MACHINE_TYPE} == 'x86_64' ]; then
     fi
 fi
 
-# Join Active Directory 
+# Join Active Directory - not really applicable for WSL (use on actual Linux installs) - but include here for completeness
 joinactivedirectory() {
     # Environment variables
     # USERDNSDOMAIN : DNS Name of Active Directory domain
@@ -310,7 +310,7 @@ joinactivedirectory() {
     return 0
 }
 
-## Mount SMB Azure File Share on Linux - expects to already be logged in
+## Mount SMB Azure File Share on Linux - expects to already be logged in with az login
 mountazurefiles() {
     ## https://learn.microsoft.com/en-us/azure/storage/files/storage-how-to-use-files-linux?tabs=Ubuntu%2Csmb311
     ${CMD_INSTALL} cifs-utils
@@ -418,19 +418,19 @@ sudo sh -c 'echo "alias distribution=\". /etc/os-release;echo \$ID\$VERSION_ID)\
 
 ## Azure environment
 sudo sh -c 'echo "# Setup Azure environment up - if it exists"            >  /etc/profile.d/azure.sh'
-sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/azure/azuresp.sh\" ] \; then " >> /etc/profile.d/azure.sh'
+sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/azure/azuresp.sh\" ] ; then " >> /etc/profile.d/azure.sh'
 sudo sh -c 'echo "    source \"\${OneDriveCommercial}/azure/azuresp.sh\""   >> /etc/profile.d/azure.sh'
 sudo sh -c 'echo "fi"                                                     >> /etc/profile.d/azure.sh'
 
 ## AWS environment
 sudo sh -c 'echo "# Setup AWS environment up - if it exists"             > /etc/profile.d/aws.sh'
-sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/aws/awssp.sh\" ] \; then " >> /etc/profile.d/aws.sh'
+sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/aws/awssp.sh\" ] ; then " >> /etc/profile.d/aws.sh'
 sudo sh -c 'echo "    source \"\${OneDriveCommercial}/aws/awsp.sh\""     >> /etc/profile.d/aws.sh'
 sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/aws.sh'
 
 ## Google Cloud environment
 sudo sh -c 'echo "# Setup Google GCP environment up - if it exists"      >  /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/gcp/gcpsp.sh\" ] \; then " >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/gcp/gcpsp.sh\" ] ; then " >> /etc/profile.d/gcp.sh'
 sudo sh -c 'echo "    source \"\${OneDriveCommercial}/gcp/gcpsp.sh\""    >> /etc/profile.d/gcp.sh'
 sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/gcp.sh'
 
@@ -457,18 +457,20 @@ if (command -v nvm ) ; then
     ## install Active Long Term Support (LTS)
     # nvm install --lts
     nvm ls
+    ## install OpenAI Node API Library - as an example
+    npm install --save openai
 fi
 if [ -f /etc/profile.d/nodejs.sh ] ; then sudo rm -f /etc/profile.d/nodejs.sh ; fi
 if (which node) ; then 
-    sudo sh -c 'echo if \(which node\) \; then           >>  /etc/profile.d/nodejs.sh'
+    sudo sh -c 'echo if \(which node\) ; then           >>  /etc/profile.d/nodejs.sh'
     sudo sh -c 'echo   echo \"Node JS \(node\) found -  use nvm to manage!\"  >>  /etc/profile.d/nodejs.sh'
     sudo sh -c 'echo fi >>  /etc/profile.d/nodejs.sh'
 fi
     
-## Install Terraform.
-# curl "https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_linux_amd64.zip" -o "terraform.zip" \
-#  && unzip -qo terraform.zip && chmod +x terraform \
-#  && sudo mv terraform ~/.local/bin && rm terraform.zip
+## Install Terraform (global)
+curl "https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_linux_amd64.zip" -o "terraform.zip" \
+   && unzip -qo terraform.zip && chmod +x terraform \
+   && sudo mv terraform ~/.local/bin && rm terraform.zip
 
 ## Install AWS CLI (global)
 #cd ~
