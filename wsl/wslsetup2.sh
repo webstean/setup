@@ -142,6 +142,18 @@ if [ ! -x "$(command -v docker)" ] ; then
     
     ## verify
     sudo docker run hello-world
+
+    #add user to the docker group so has access to the socket avoiding need for sudo on every command
+    # probabyl redunant as we edit sudoers but include it just in case
+    sudo usermod -aG docker $USER
+
+    ## other good images
+    ## Azure CLI
+    sudo docker pull mcr.microsoft.com/azure-cli:latest
+    ## Azure API Management Gateway
+    sudo docker pull mcr.microsoft.com/azure-api-management/gateway:latest
+    ## Powershell
+    sudo docker docker pull mcr.microsoft.com/azure-powershell:latest
     
     ## run Azure CLI as a container
     #sudo git clone https://github.com/gtrifonov/raspberry-pi-alpine-azure-cli.git
