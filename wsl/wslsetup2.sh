@@ -135,18 +135,23 @@ if [ ! -x "$(command -v docker)" ] ; then
     ## get rid of anything old
     sudo apt-get remove docker docker-engine docker.io containerd runc
     
-    ## install
+    ## install docker
     curl -fsSL https://get.docker.com -o get-docker.sh
-    sudo chmod 755 get-docker.sh
-    sudo sh get-docker.sh
+    sudo chmod 755 get-docker.sh  --channel test
+    sudo sh ./get-docker.sh
     
     ## verify
     sudo docker run hello-world
 
-    #add user to the docker group so has access to the socket avoiding need for sudo on every command
-    # probabyl redunant as we edit sudoers but include it just in case
-    sudo usermod -aG docker $USER
-
+    ## add user to the docker group so has access to the socket avoiding need for sudo on every command
+    ## probabyl redunant as we edit sudoers but include it just in case
+    if (grep docker /etc/group) ; then 
+        sudo -E usermod -aG docker $USER
+    fi
+    if (grep wheel /etc/group) ; then 
+        sudo -E usermod -aG wheel $USER
+    fi
+    
     ## other good images
     ## Azure CLI
     sudo docker pull mcr.microsoft.com/azure-cli:latest
@@ -154,19 +159,9 @@ if [ ! -x "$(command -v docker)" ] ; then
     sudo docker pull mcr.microsoft.com/azure-api-management/gateway:latest
     ## Powershell
     sudo docker docker pull mcr.microsoft.com/azure-powershell:latest
-    
-    ## run Azure CLI as a container
-    #sudo git clone https://github.com/gtrifonov/raspberry-pi-alpine-azure-cli.git
-    #sudo docker build . -t azure-cli
-    #sudo docker run -d -it --rm --name azure-cli azure-cli
 
-    ## allow user to run docker commands
-    if (grep docker /etc/group) ; then 
-        sudo -E usermod -aG docker $USER
-    fi
-    if (grep wheel /etc/group) ; then 
-        sudo -E usermod -aG wheel $USER
-    fi
+    ## try Spark Workbook
+    docker run -it -p 8888:8888 -e ACCEPT_EULA=yes mcr.microsoft.com/mmlspark/release
     
     ## set controlable via Docker Desktop
     sudo sh -c 'echo "export DOCKER_HOST=tcp://localhost:2375" > /etc/profile.d/docker.sh'
