@@ -53,4 +53,7 @@ function local:Font-Install {
 }
 
 Font-Install
+# Reload environment - so we can find any new variables
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","User")
+
 
