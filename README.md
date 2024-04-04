@@ -39,12 +39,12 @@ $StrongPassword = "settoomethingsecure"
 
 Install WSL (with no distribution)
 ```powershell
-### Powershell
+### Install VM Platform feature
+Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -NoRestart
 ### Setup WSL
 wsl.exe --update # to update - which will also update from the store including the kernel and would update from in-windows to the store version
 wsl.exe --list --online
 wsl.exe --install --no-launch  ## - no default distribution
-Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -NoRestart
 wsl.exe --set-default-version 2
 wsl.exe --status
 
@@ -68,7 +68,8 @@ Invoke-WebRequest $download -OutFile $file
 Import-Module Appx -UseWindowsPowerShell -Force
 Add-AppxPackage -Path $file
 $DistroName = 'fedoraremix'
-"${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\${DistroName}.exe" "install --root"
+Start-Process -Wait -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\${DistroName}.exe" "install --root"
+wsl --set-default ${DistroName}
 ## Custom with sensible settings
 $wslinitalsetup = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh | Select-Object -ExpandProperty content
 $wslinitalsetup | wsl --user root --distribution ${DistroName} --
@@ -86,9 +87,9 @@ wsl --install ${DistroName} --no-launch
 Start-Process -Wait -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\${DistroName}.exe" "install --root"
 $wslinitalsetup = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh | Select-Object -ExpandProperty content
 $wslinitalsetup | wsl --user root --distribution ${DistroName} --
+wsl --set-default ${DistroName}
 ## restart, so systemd get enabled 
 wsl --terminate ${DistroName}
-wsl --set-default ${DistroName}
 
 ```
 
