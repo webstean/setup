@@ -30,14 +30,14 @@ if ( -not ([string]::IsNullOrWhiteSpace($getupn))) { [Environment]::SetEnvironme
 #### Set Strong Password variable
 if ( [string]::IsNullOrWhiteSpace($env:STRONGPASSWORD)) {
     Write-Host "Generating Random Password..."
-    ##All uppercase and lowercase letters, all numbers and some special characters.
+    ## All uppercase and lowercase letters, all numbers and some special characters.
     $charlist = [char]94..[char]126 + [char]65..[char]90 +  [char]47..[char]57
     $randompwd = @()
-    # Use a FOR loop to pick a character from the list one time for each count of the password length
+    ## Use a FOR loop to pick a character from the list one time for each count of the password length
     For ($i = 0; $i -lt 24; $i++) {
         $randompwd += $charList | Get-Random
     }
-    # Join all the individual characters together into one string using the -JOIN operator
+    ## Join all the individual characters together into one string using the -JOIN operator
     $randompwd = -join $randompwd
     [Environment]::SetEnvironmentVariable('STRONGPASSWORD',"$randompwd",'User')
     $env:STRONGPASSWORD = [System.Environment]::GetEnvironmentVariable("STRONGPASSWORD","User")
