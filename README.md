@@ -129,6 +129,8 @@ To delete and start again
 ## Powershell
 $DistroName = 'Ubuntu'
 wsl --terminate ${DistroName}
+## size of disk
+(Get-ChildItem -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss | Where-Object { $_.GetValue("DistributionName") -eq '${DistroName}' }).GetValue("BasePath") + "\ext4.vhdx"
 wsl --list
 ## Now unregister the distribution - which deletes the root filesystem
 wsl --unregister ${DistroName}
