@@ -58,6 +58,7 @@ wsl.exe --update # to update - which will also update from the store including t
 wsl.exe --list --online
 wsl.exe --install --no-launch  ## - no default distribution
 wsl.exe --set-default-version 2
+wsl.exe --manage --set-sparse
 wsl.exe --status
 
 ```
