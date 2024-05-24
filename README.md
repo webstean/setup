@@ -58,7 +58,6 @@ wsl.exe --update # to update - which will also update from the store including t
 wsl.exe --list --online
 wsl.exe --install --no-launch  ## - no default distribution
 wsl.exe --set-default-version 2
-wsl.exe --manage --set-sparse
 wsl.exe --status
 
 ```
@@ -87,6 +86,7 @@ wsl --set-default ${DistroName}
 $wslinitalsetup = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh | Select-Object -ExpandProperty content
 $wslinitalsetup | wsl --user root --distribution ${DistroName} --
 wsl --terminate ${DistroName}
+wsl --manage ${DistroName} --set-sparse
 wsl --set-default ${DistroName}
 
 ```
@@ -103,6 +103,7 @@ $wslinitalsetup | wsl --user root --distribution ${DistroName} --
 wsl --set-default ${DistroName}
 ## restart, so systemd get enabled 
 wsl --terminate ${DistroName}
+wsl --manage ${DistroName} --set-sparse
 
 ```
 
