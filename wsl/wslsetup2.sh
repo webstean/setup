@@ -24,6 +24,7 @@ timedatectl status
 source ~/.bashrc
 
 ## Add Microsoft Repos and Applications
+## https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt
 if [ -f /usr/bin/apt && ! grep packages.microsoft.com /etc/apt/sources.list ] ; then
     ## make sure prereqs are installs
     ${CMD_INSTALL} apt-transport-https ca-certificates curl software-properties-common
