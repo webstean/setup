@@ -42,7 +42,7 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
 
     sh -c 'echo [interop]                  >>  /etc/wsl.conf'
     sh -c 'echo enabled = true             >>  /etc/wsl.conf'
-    sh -c 'echo appendWindowsPath = true   >>  /etc/wsl.conf'
+    sh -c 'echo appendWindowsPath = false  >>  /etc/wsl.conf'
 
     sh -c 'echo [network]                  >>  /etc/wsl.conf'
     ## unlike WSL1 - let WSL manage this itself - it will be a lot more reliable
