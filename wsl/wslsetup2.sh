@@ -377,23 +377,7 @@ sudo sh -c 'echo "## The agent can then use the keys to log into other servers w
 sudo sh -c 'echo "## password or passphrase again. This implements a form of single sign-on (SSO)." >> /etc/profile.d/ssh-agent.sh'
 sudo sh -c 'echo "" >>/etc/profile.d/ssh-agent.sh'
 sudo sh -c 'echo SSH_ENV="$HOME/.ssh/agent-environment" >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo function start_agent { >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo echo "Initialising new SSH agent..." >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo /usr/bin/ssh-agent | sed \'s/^echo/#echo/\' > \"\${SSH_ENV}\" >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo echo succeeded >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo chmod 600 \${SSH_ENV} >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo . \"\${SSH_ENV}\" > /dev/null >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo } >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo ## Source SSH settings, if applicable >> /etc/profile.d/ssh-agent.sh'
-## sudo sh -c 'echo if [ -f \"\${SSH_ENV}\" ] ; then >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo . "\${SSH_ENV}\" > /dev/null >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo ps -ef | grep \${SSH_AGENT_PID} | grep ssh-agent$ > /dev/null || { >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo start_agent; >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo } >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo else >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo start_agent; >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo fi >> /etc/profile.d/ssh-agent.sh'
-sudo sh -c 'echo echo "# from host ssh-copy-id pi@raspberrypi.local - to enable promptless logon" >>/etc/profile.d/ssh-agent.sh'
+## MORE HERE.. SOME DAY
 
 ## Copy to clipboard
 # cat ~/.ssh/id_rsa.pub | clip.exe
@@ -422,7 +406,7 @@ sudo sh -c 'echo "# Improve output of less for binary files."          >> /etc/p
 sudo sh -c 'echo [ -x /usr/bin/lesspipe ] \&\& eval "\$(SHELL=/bin/sh lesspipe)"   >>  /etc/profile.d/bash.sh'
 
 sudo sh -c 'echo "# Alias to provide distribution name"                 >> /etc/profile.d/bash.sh'
-sudo sh -c 'echo "alias distribution=\". /etc/os-release;echo \$ID\$VERSION_ID)\"" >> /etc/profile.d/bash.sh'
+sudo sh -c 'echo "alias distribution=\". /etc/os-release;echo \$ID\$VERSION_ID\"" >> /etc/profile.d/bash.sh'
 
 ## Azure environment
 sudo sh -c 'echo "# Setup Azure environment up - if it exists"            >  /etc/profile.d/azure.sh'
@@ -442,9 +426,9 @@ sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/gcp/gcpsp.sh\" ] ; then " >> 
 sudo sh -c 'echo "    source \"\${OneDriveCommercial}/gcp/gcpsp.sh\""    >> /etc/profile.d/gcp.sh'
 sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/gcp.sh'
 
-## Google Cloud environment
-sudo sh -c 'echo "# Setup Docker on Docker"                              >  /etc/profile.d/dockerd.sh'
-sudo sh -c 'echo "export DOCKER_HOST=tcp://localhost:2375"               >> /etc/profile.d/dockerd.sh'
+## Docker on Docker
+#sudo sh -c 'echo "# Setup Docker on Docker"                              >  /etc/profile.d/dockerd.sh'
+#sudo sh -c 'echo "export DOCKER_HOST=tcp://localhost:2375"               >> /etc/profile.d/dockerd.sh'
 
 ## shortcut to Windows home directory
 sudo sh -c 'echo "export WINHOME=\$(wslpath \"\$(wslvar USERPROFILE)\")"   > /etc/profile.d/winhome.sh'
@@ -501,9 +485,8 @@ curl "https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_linux_a
 ## Install GoLang - current user
 if ! [ -x ~.go/bin/go ] ; then
     wget -q -O - https://git.io/vQhTU | bash
-    if [ -f  /etc/profile.d/golang.sh  ] ; then sudo rm -f /etc/profile.d/golang.sh ; fi
-    sudo sh -c 'echo if ! [ -x \~.go/bin/go ] ; then   >>  /etc/profile.d/golang.sh'
-    sudo sh -c 'echo echo \"Golang \(go\) found!\"     >>  /etc/profile.d/golang.sh'
+    sudo sh -c 'echo "if ! [ -x \~.go/bin/go ] ; then"  >   /etc/profile.d/golang.sh'
+    sudo sh -c 'echo echo    \"Golang \(go\) found!\"     >>  /etc/profile.d/golang.sh'
     sudo sh -c 'echo fi                                >>  /etc/profile.d/golang.sh'
 fi
 
@@ -546,8 +529,8 @@ oh-my-posh notice
 ## Generate
 ## https://textkool.com/en/ascii-art-generator
 ## note: any ` needs to be escaped with \
-if [ -f  ~/.logo  ] ; then rm -f ~/.logo ; fi
-cat >> ~/.logo <<EOF
+if [ -f  /etc/logo  ] ; then rm -f /etc/logo ; fi
+cat >> /etc/logo <<EOF
                      _                   
      /\             | |                  
     /  \   _ __   __| |_ __ _____      __
@@ -558,9 +541,8 @@ cat >> ~/.logo <<EOF
  WSL Development Environment
  
 EOF
-if [ -f  /etc/profile.d/zlogo.sh  ] ; then sudo rm -f /etc/profile.d/zlogo.sh ; fi
-sudo sh -c 'echo if [ -f  \~/.logo ] \; then >>  /etc/profile.d/zlogo.sh'
-sudo sh -c 'echo    cat \~/.logo >>  /etc/profile.d/zlogo.sh'
+sudo sh -c 'echo if [ -f  /etc/logo ] \; then >  /etc/profile.d/zlogo.sh'
+sudo sh -c 'echo    cat /etc/logo >>  /etc/profile.d/zlogo.sh'
 sudo sh -c 'echo fi >>  /etc/profile.d/zlogo.sh'
 
 echo ${CMD_CLEAN}
