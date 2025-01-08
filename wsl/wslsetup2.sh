@@ -89,7 +89,8 @@ if (1) ; then
     fi
     curl -ssl https://raw.githubusercontent.com/moby/moby/master/contrib/check-config.sh -o check-config.sh
     chmod +x check-config.sh
-    ## ./check-config.sh
+    ./check-config.sh
+    sudo apt-get -y install aziot-edge defender-iot-micro-agent-edge
     sudo apt-get -y install aziot-edge defender-iot-micro-agent-edge
     ## sudo iotedge config mp --connection-string 'PASTE_DEVICE_CONNECTION_STRING_HERE'
     ## sudo iotedge config apply -c '/etc/aziot/config.toml'
@@ -164,7 +165,7 @@ if [ ! -x "$(command -v docker)" ] ; then
     ## try Spark Workbook
     docker run -it -p 8888:8888 -e ACCEPT_EULA=yes mcr.microsoft.com/mmlspark/release
     
-    ## set controlable via Docker Desktop
+    ## set controlable via Docker Desktop (docker on docker)
     sudo sh -c 'echo "export DOCKER_HOST=tcp://localhost:2375" > /etc/profile.d/docker.sh'
 fi
 
@@ -460,9 +461,10 @@ if (which node) ; then
 fi
     
 ## Install Terraform (global)
-curl "https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_linux_amd64.zip" -o "terraform.zip" \
-   && unzip -qo terraform.zip && chmod +x terraform \
-   && sudo mv terraform ~/.local/bin && rm terraform.zip
+sudo snap install terraform --classic
+#curl "https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_linux_amd64.zip" -o "terraform.zip" \
+#   && unzip -qo terraform.zip && chmod +x terraform \
+#   && sudo mv terraform /usr/local/bin && rm terraform.zip
 
 ## Install AWS CLI (global)
 #cd ~
@@ -483,12 +485,13 @@ curl "https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_linux_a
 ##sudo sh -c 'echo # az account show --output table >>  /etc/profile.d/azurecli.sh'
 
 ## Install GoLang - current user
-if ! [ -x ~.go/bin/go ] ; then
-    wget -q -O - https://git.io/vQhTU | bash
+sudo snap install go --classic
+#if ! [ -x ~.go/bin/go ] ; then
+#    wget -q -O - https://git.io/vQhTU | bash
     sudo sh -c 'echo "if ! [ -x \~.go/bin/go ] ; then"  >   /etc/profile.d/golang.sh'
     sudo sh -c 'echo echo    \"Golang \(go\) found!\"     >>  /etc/profile.d/golang.sh'
     sudo sh -c 'echo fi                                >>  /etc/profile.d/golang.sh'
-fi
+#fi
 
 ## Install Google Cloud (GCP) CLI
 #cd ~ && curl https://sdk.cloud.google.com > install.sh

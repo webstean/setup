@@ -13,7 +13,7 @@ if [[ -z "${USERNAME}" && -z "${STRONGPASSWORD}" ]] ; then
     exit 1
 fi
 
-# Determine OS platform
+## Determine OS platform
 UNAME=$(uname | tr "[:upper:]" "[:lower:]")
 # If Linux, try to determine specific distribution
 if [ "$UNAME" == "linux" ]; then
@@ -25,35 +25,32 @@ if [ "$UNAME" == "linux" ]; then
         export DISTRO=$(ls -d /etc/[A-Za-z]*[_-][rv]e[lr]* | grep -v "lsb" | cut -d'/' -f3 | cut -d'-' -f1 | cut -d'_' -f1)
     fi
 fi
+echo $DISTRO
 
 ## Check if WSL2, enable systemd etc via wsl.conf, sort out sudo
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
-    if [ -f /etc/wsl.conf ] ; then rm -f /etc/wsl.conf ; fi
-    sh -c 'echo [user]                     >>  /etc/wsl.conf'
-    sh -c 'echo #default=root              >>  /etc/wsl.conf'
- 
-
-    sh -c 'echo [boot]                     >>  /etc/wsl.conf'
+    if [ -f /etc/wsl.conf ] ; then sudo rm -f /etc/wsl.conf ; fi
+    sudo sh -c 'echo [boot]                     >>  /etc/wsl.conf'
     ## enable systemd for compatiblity
-    sh -c 'echo systemd=true               >>  /etc/wsl.conf'
+    sudo sh -c 'echo systemd=true               >>  /etc/wsl.conf'
 
-    sh -c 'echo [automount]                >>  /etc/wsl.conf'
-    sh -c 'echo enabled = true             >>  /etc/wsl.conf'
-    sh -c 'echo root = \/mnt               >>  /etc/wsl.conf'
+    sudo sh -c 'echo [automount]                >>  /etc/wsl.conf'
+    sudo sh -c 'echo enabled = true             >>  /etc/wsl.conf'
+    sudo sh -c 'echo root = \/mnt               >>  /etc/wsl.conf'
     ## copy from: https://github.com/WhitewaterFoundry/Fedora-Remix-for-WSL/blob/master/linux_files/wsl.conf
-    sh -c 'echo options = "metadata,uid=1000,gid=1000,umask=22,fmask=11,case=off" >>  /etc/wsl.conf'
-    sh -c 'echo mountFsTab = true          >>  /etc/wsl.conf'
+    sudo sh -c 'echo options = "metadata,uid=1000,gid=1000,umask=22,fmask=11,case=off" >>  /etc/wsl.conf'
+    sudo sh -c 'echo mountFsTab = true          >>  /etc/wsl.conf'
 
-    sh -c 'echo [interop]                  >>  /etc/wsl.conf'
-    sh -c 'echo enabled = true             >>  /etc/wsl.conf'
-    sh -c 'echo appendWindowsPath = false  >>  /etc/wsl.conf'
+    sudo sh -c 'echo [interop]                  >>  /etc/wsl.conf'
+    sudo sh -c 'echo enabled = true             >>  /etc/wsl.conf'
+    sudo sh -c 'echo appendWindowsPath = false  >>  /etc/wsl.conf'
 
-    sh -c 'echo [network]                  >>  /etc/wsl.conf'
+    sudo sh -c 'echo [network]                  >>  /etc/wsl.conf'
     ## unlike WSL1 - let WSL manage this itself - it will be a lot more reliable
     ## still need to be customised if using a proxy via /etc/profile.d/web-proxy.sh'
-    sh -c 'echo generateResolvConf = true  >>  /etc/wsl.conf'
-    sh -c 'echo generateHosts = true       >>  /etc/wsl.conf'
-    sh -c 'echo dnsTunneling	= true     >>  /etc/wsl.conf'
+    sudo sh -c 'echo generateResolvConf = true  >>  /etc/wsl.conf'
+    sudo sh -c 'echo generateHosts = true       >>  /etc/wsl.conf'
+    sudo sh -c 'echo dnsTunneling	= true     >>  /etc/wsl.conf'
     
     ## tell wsl which user to use
     echo "USERNAME = [${USERNAME}]"
@@ -82,21 +79,6 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     
     ## set password
     echo -e '${STRONGPASSWORD}\n${STRONGPASSWORD}\n' | passwd ${USERNAME}
-    
-    ## Enable sudo for all users - by modifying /etc/sudoers
-    if ! (sudo grep NOPASSWD:ALL /etc/sudoers  > /dev/null 2>&1 ) ; then 
-        ## Member of sudo group 
-        bash -c "echo '#Member of sudo group - WSL' | sudo EDITOR='tee -a' visudo"
-        bash -c "echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
-        ## WSL configured user
-        bash -c "echo '#User - WSL' | sudo EDITOR='tee -a' visudo"
-        bash -c "echo '${USERNAME} ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
-        ## AAD (experimental)
-        bash -c "echo '#Azure AD - WSL' | sudo EDITOR='tee -a' visudo"
-        bash -c "echo '%aad_admins ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
-    else
-        echo "/etc/sudoers edit not required!"
-    fi
 else
     echo "Sorry, only supports WSL2 (not WSL1)"
     exit 1

@@ -8,7 +8,6 @@
 ## Turn off telemetry options
 sudo sh -c "echo export FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT=1  >  /etc/profile.d/global-variables.sh"
 sudo sh -c "echo export POWERSHELL_TELEMETRY_OPTOUT=1            >> /etc/profile.d/global-variables.sh"
-sudo sh -c "echo # export AW1=AW1       >>  /etc/profile.d/global-variables.sh"
 # Turn off Microsoft telemetry for Azure Function Tools
 
 # leave along at C.UTF-8 for maximum compatiblity
