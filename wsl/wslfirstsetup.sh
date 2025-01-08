@@ -29,6 +29,10 @@ fi
 ## Check if WSL2, enable systemd etc via wsl.conf, sort out sudo
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     if [ -f /etc/wsl.conf ] ; then rm -f /etc/wsl.conf ; fi
+    sh -c 'echo [user]                     >>  /etc/wsl.conf'
+    sh -c 'echo #default=root              >>  /etc/wsl.conf'
+ 
+
     sh -c 'echo [boot]                     >>  /etc/wsl.conf'
     ## enable systemd for compatiblity
     sh -c 'echo systemd=true               >>  /etc/wsl.conf'

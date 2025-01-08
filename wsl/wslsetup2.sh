@@ -555,7 +555,7 @@ cat >> ~/.logo <<EOF
   / ____ \| | | | (_| | | |  __/\ V  V / 
  /_/    \_\_| |_|\__,_|_|  \___| \_/\_/  
                                          
- Development Environment
+ WSL Development Environment
  
 EOF
 if [ -f  /etc/profile.d/zlogo.sh  ] ; then sudo rm -f /etc/profile.d/zlogo.sh ; fi
