@@ -115,9 +115,9 @@ $DistroName = 'Ubuntu'
 $wslsetuppre = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup-pre.sh | Select-Object -ExpandProperty content
 $wslsetup1   = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh | Select-Object -ExpandProperty content
 $wslsetup2   = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh | Select-Object -ExpandProperty content
-$wslsetuppre + $wslsetup1 | wsl --distribution ${DistroName} --
+$wslsetuppre + $wslsetup1 | wsl --user root --distribution ${DistroName} --
 wsl --terminate ${DistroName}
-$wslsetuppre + $wslsetup2 | wsl --distribution ${DistroName} --
+$wslsetuppre + $wslsetup2 | wsl --user root --distribution ${DistroName} --
 
 ```
 

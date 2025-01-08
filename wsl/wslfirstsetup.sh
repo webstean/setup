@@ -102,7 +102,7 @@ else
     exit 1
 fi
 
-## Template: Environent Variables for proxy support
+## Template: EnvironMent Variables for proxy support
 sh -c 'echo "## Web Proxy Setup - edit as required"                               >  /etc/profile.d/web-proxy.sh'
 sh -c 'echo "## Squid default port is 3128, but many setup the proxy on port 80,8000,8080" >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "anon_web-proxy() {"                                                  >> /etc/profile.d/web-proxy.sh'

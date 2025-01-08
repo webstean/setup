@@ -19,7 +19,7 @@ ${CMD_UPGRADE}
 ## WSL Error: System has not been booted with systemd as init system (PID 1). Can't operate.
 ##          : unless you edit /etc/wsl.conf to enable systemd
 sudo timedatectl set-timezone Australia/Melbourne
-timedatectl status 
+timedatectl --no-pager status 
 
 source ~/.bashrc
 
