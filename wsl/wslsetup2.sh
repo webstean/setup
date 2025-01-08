@@ -119,15 +119,15 @@ fi
 ## install and config sysstat
 $CMD_INSTALL sysstat
 sudo sh -c 'echo ENABLED="true" >  /etc/default/sysstat'
-sudo systemctl stop sysstat --no-pager
-sudo systemctl enable sysstat --no-pager
-sudo systemctl start sysstat --no-pager
-sudo systemctl status sysstat --no-pager
+sudo systemctl --no-pager stop sysstat 
+sudo systemctl --no-pager enable sysstat 
+sudo systemctl --no-pager start sysstat 
+sudo systemctl --no-pager status sysstat 
 # sar -u
 
 ## sync the time automatioally
-sudo systemctl enable systemd-timesyncd.service
-sudo systemctl status systemd-timesyncd.service
+sudo systemctl --no-pager enable systemd-timesyncd.service
+sudo systemctl --no-pager status systemd-timesyncd.service
 
 ## Docker - requires systemd
 ## Only install docker if it doesn't already exist
