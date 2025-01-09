@@ -77,14 +77,12 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
         usermod -a -G docker ${USERNAME}
     fi
     
-    ## set password
-    echo -e '${STRONGPASSWORD}\n${STRONGPASSWORD}\n' | passwd ${USERNAME}
 else
     echo "Sorry, only supports WSL2 (not WSL1)"
     exit 1
 fi
 
-## Template: EnvironMent Variables for proxy support
+## Template: Environment Variables for proxy support
 sh -c 'echo "## Web Proxy Setup - edit as required"                               >  /etc/profile.d/web-proxy.sh'
 sh -c 'echo "## Squid default port is 3128, but many setup the proxy on port 80,8000,8080" >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "anon_web-proxy() {"                                                  >> /etc/profile.d/web-proxy.sh'

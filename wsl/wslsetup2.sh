@@ -139,8 +139,8 @@ if [ ! -x "$(command -v docker)" ] ; then
     
     ## install docker
     curl -fsSL https://get.docker.com -o get-docker.sh
-    sudo chmod 755 get-docker.sh  --channel test
-    sudo sh ./get-docker.sh
+    sudo chmod 755 get-docker.sh  
+    sudo sh ./get-docker.sh --channel test
     
     ## verify
     sudo docker run hello-world
@@ -166,7 +166,7 @@ if [ ! -x "$(command -v docker)" ] ; then
     docker run -it -p 8888:8888 -e ACCEPT_EULA=yes mcr.microsoft.com/mmlspark/release
     
     ## set controlable via Docker Desktop (docker on docker)
-    sudo sh -c 'echo "export DOCKER_HOST=tcp://localhost:2375" > /etc/profile.d/docker.sh'
+    #sudo sh -c 'echo "export DOCKER_HOST=tcp://localhost:2375" > /etc/profile.d/docker.sh'
 fi
 
 ## install WASM
@@ -217,7 +217,7 @@ oracleinstantclientinstall() {
     ### Environment variables for Oracle Instance Client
     ### https://docs.oracle.com/en/database/oracle/oracle-database/21/lacli/environment-variables-instant-client.html
     sudo sh -c "echo # Oracle Instant Client Setup     >  /etc/profile.d/instant-oracle.sh"
-    sudo sh -c "echo oracle-instantclient\(\) {        >>  /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo oracle-instantclient\(\) {        >> /etc/profile.d/instant-oracle.sh"
     sudo sh -c "echo   export LD_LIBRARY_PATH=$1       >> /etc/profile.d/instant-oracle.sh"
     sudo sh -c "echo   export PATH=$1:'\$PATH'         >> /etc/profile.d/instant-oracle.sh"
     sudo sh -c "echo }                                 >> /etc/profile.d/instant-oracle.sh"

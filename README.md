@@ -103,7 +103,7 @@ $wslinitalsetup | wsl --user root --distribution ${DistroName} --
 wsl --set-default ${DistroName}
 ## restart, so systemd get enabled 
 wsl --terminate ${DistroName}
-wsl --manage ${DistroName} --set-sparse
+wsl --manage ${DistroName} --set-sparse true
 
 ```
 
