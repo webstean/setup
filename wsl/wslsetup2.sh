@@ -194,6 +194,9 @@ oracleinstantclientinstall() {
     ${CMD_INSTALL} libaio 
     ${CMD_INSTALL} libaio2 
     ${CMD_INSTALL} unzip
+    if [ ! -f /usr/lib/x86_64-linux-gnu/libaio.so.1 ] ; then
+        sudo ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
+    fi
     # Permanent Link (latest version) - Instant Client - Basic (x86 64 bit) - you need this for anything else to work
     # Note: there is no Instant Client for the ARM processor, Intel/AMD x86 only
     tmpdir=$(mktemp -d)
@@ -211,25 +214,27 @@ oracleinstantclientinstall() {
     # rm instantclient-basic*.zip
     set -- /opt/oracle/instantclient*
     export LD_LIBRARY_PATH=$1
-    if [ -f /etc/profile.d/instant-oracle.sh ] ; then
-        sudo rm /etc/profile.d/instant-oracle.sh 
+    if [ -f /etc/profile.d/oracle-instantclient.sh ] ; then
+        sudo rm /etc/profile.d/oracle-instantclient.sh 
     fi
     ### Environment variables for Oracle Instance Client
     ### https://docs.oracle.com/en/database/oracle/oracle-database/21/lacli/environment-variables-instant-client.html
-    sudo sh -c "echo # Oracle Instant Client Setup     >  /etc/profile.d/instant-oracle.sh"
-    sudo sh -c "echo oracle-instantclient\(\) {        >> /etc/profile.d/instant-oracle.sh"
-    sudo sh -c "echo   export LD_LIBRARY_PATH=$1       >> /etc/profile.d/instant-oracle.sh"
-    sudo sh -c "echo   export PATH=$1:'\$PATH'         >> /etc/profile.d/instant-oracle.sh"
-    sudo sh -c "echo }                                 >> /etc/profile.d/instant-oracle.sh"
-    sudo sh -c "echo if [ -d /opt/oracle/instantclient\* ] \; then >> /etc/profile.d/instant-oracle.sh"
-    sudo sh -c 'echo   echo \"Oracle Database Instant Client \(sqlplus\) found!\"     >>  /etc/profile.d/instant-oracle.sh'
-    sudo sh -c "echo   oracle-instantclient            >>  /etc/profile.d/instant-oracle.sh"
-    sudo sh -c "echo fi                                >>  /etc/profile.d/instant-oracle.sh"
-    sudo sh -c "echo # example: sqlplus scott/tiger@//myhost.example.com:1521/myservice >>  /etc/profile.d/instant-oracle.sh"
+    sudo sh -c "echo ##Oracle Instant Client Setup     >  /etc/profile.d/oracle-instantclient.sh"
+    sudo sh -c "echo oracle-instantclient\(\) {        >  /etc/profile.d/oracle-instantclient.sh"
+    sudo sh -c "echo   export LD_LIBRARY_PATH=$1       >> /etc/profile.d/oracle-instantclient.sh"
+    sudo sh -c "echo   export PATH=$1:'\$PATH'         >> /etc/profile.d/oracle-instantclient.sh"
+    sudo sh -c "echo }                                 >> /etc/profile.d/oracle-instantclient.sh"
+    sudo sh -c "echo if [ -d /opt/oracle/instantclient\* ] \; then >> /etc/profile.d/oracle-instantclient.sh"
+    sudo sh -c 'echo   oracle-instantclient            >>  /etc/profile.d/oracle-instantclient.sh'
+    sudo sh -c 'echo   echo \"Oracle Database Instant Client \(sqlplus\) found!\"     >>  /etc/profile.d/oracle-instantclient.sh'
+    sudo sh -c "echo fi                                >>  /etc/profile.d/oracle-instantclient.sh"
+    sudo sh -c "echo # example: sqlplus scott/tiger@//myhost.example.com:1521/myservice >>  /etc/profile.d/oracle-instantclient.sh"
+    sudo sh -c "echo # use lld sqlplus to help resolve any dependencies >>  /etc/profile.d/oracle-instantclient.sh"
  
     ## Q: How do I ensure that my Oracle Net files like "tnsnames.ora" and "sqlnet.ora" are being used in Instant Client?
     ## A: Files like "tnsnames.ora", "sqlnet.ora" and "oraaccess.xml" will be located by Instant Client by setting the TNS_ADMIN environment variable
-    ## or registry entry to the directory containing the files. Use the full directory path; do not include a file name. 
+    ## or registry entry to the directory containing the files.
+    ## Use the full directory path; do not include a file name. 
     ## Alternatively create a subdirectory "network/admin" under the Instant Client directory for the Oracle Net files.
     ## This is the default location and so no TNS_ADMIN variable is required.
     if [ ! -d ${LD_LIBRARY_PATH}/network/admin ] ; then mkdir -p ${LD_LIBRARY_PATH}/network/admin ; fi
@@ -250,6 +255,11 @@ oracleinstantclientinstall() {
         echo "Found oracle tnsnames.ora, putting it inplace..."
         sudo cp   "${OneDriveCommercial}/oracle/tnsnames.ora" "${LD_LIBRARY_PATH}/network/admin"
         sudo chmod 444 ${LD_LIBRARY_PATH}/network/admin/tnsnames.ora
+    fi
+    if [[ -f "${OneDriveCommercial}/oracle/sqlnet.ora" ]] ; then
+        echo "Found oracle tnsnames.ora, putting it inplace..."
+        sudo cp   "${OneDriveCommercial}/oracle/sqlnet.ora" "${LD_LIBRARY_PATH}/network/admin"
+        sudo chmod 444 ${LD_LIBRARY_PATH}/network/admin/sqlnet.ora
     fi
     
     ## use Oracle SQL statement to create CSV files you can export and import into some else (like sqllite)
