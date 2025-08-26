@@ -1,7 +1,7 @@
 #Requires -RunAsAdministrator
 
 ## Base URL for raw GitHub content (public`)
-$baseUrl = "https://raw.githubusercontent.com/webstean/your-scripts-repo/main/intune"
+$baseUrl = "https://raw.githubusercontent.com/webstean/setup//main/intune"
 
 ## List of script files to download and run
 $scripts = @(
@@ -19,7 +19,9 @@ $scripts = @(
 ## List of files to download but NOT execute
 $filesToDownloadOnly = @(
     # Example files:
-    "developer.winget"
+    "developer.winget",
+    "wallpaper.jpg",
+    "wallpaper.mp4"
     # Add more filenames as needed
 )
 

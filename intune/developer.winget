@@ -12,6 +12,55 @@ properties:
   configurationVersion: 0.2.0
   resources:
 
+  - resource: Microsoft.Windows.Developer/DeveloperMode
+    directives:
+      description: Enable Developer Mode
+      # Requires elevation only for the set operation
+      securityContext: elevated
+      allowPrerelease: true
+    settings:
+      Ensure: Present
+
+  ### Install Windows VirtualMachinePlatform
+#  - resource: xPSDesiredStateConfiguration/xWindowsFeature
+#    directives:
+#      description: Install VirtualMachinePlatform
+#      securityContext: elevated
+#    settings:
+#      name: VirtualMachinePlatform
+#      ensure: Present
+
+  ### Install WSL
+#  - resource: xPSDesiredStateConfiguration/xWindowsFeature
+#    directives:
+#      description: Install WSL
+#      securityContext: elevated
+#    settings:
+#      name: Microsoft-Windows-Subsystem-Linux
+#      ensure: Present
+    
+  ### Configure Install Ubuntu
+  - resource: xPSDesiredStateConfiguration/xScript
+    id: variable.Developer
+    directives:
+      description: Install Ubuntu for WSL
+    settings:
+      SetScript: |
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        wsl --install -d Ubuntu
+      GetScript: return $false
+      TestScript: return $false
+
+  - resource: xPSDesiredStateConfiguration/xScript
+    id: ubuntuwsl
+    directives:
+      description: Set a system-wide environment variable
+    settings:
+      SetScript: |
+        [System.Environment]::SetEnvironmentVariable("DEVELOPER","Yes","Machine")
+      GetScript: return $false
+      TestScript: return $false
+
   - resource: Microsoft.WinGet.DSC/WinGetPackage
     id: Microsoft.VisualStudioCode
     directives:
@@ -63,7 +112,7 @@ properties:
   - resource: Microsoft.WinGet.DSC/WinGetPackage
     id: Docker.DockerDesktop
     directives:
-      description: Installing Docker.DockerDesktop
+      description: Installing Docker.DockerDesktop %APPDATA%\Docker\settings.json
       allowPrerelease: false
       securityContext: current
     settings:
@@ -529,9 +578,11 @@ properties:
         return $false   # Always run
       SetScript: |
         $regPath = "HKCU:\Control Panel\Desktop"
-        $wallpaper = "$env:ALLUSERSPROFILE\wallpaper.jpg"
-        Copy-Item wallpaper.jpg -Destination $wallpaper
-        Set-ItemProperty -Path $regPath -Name wallpaper -Value $wallpaper
+        $location = "$env:ALLUSERSPROFILE"
+        $wallpaper = "wallpaper.mp4"
+        $wallpaperlocation = "${location}\${wallpaper}"
+        Copy-Item wallpaper.mp4 -Destination $wallpaperlocation -Force
+        Set-ItemProperty -Path $regPath -Name wallpaper -Value $wallpaperlocation
         rundll32.exe user32.dll, UpdatePerUserSystemParameters
         Add-Type @"
           using System.Runtime.InteropServices;
@@ -541,3 +592,4 @@ properties:
         }
         "@
         [Wallpaper]::SystemParametersInfo(0x0014, 0, $wallPaper, 3)
+
