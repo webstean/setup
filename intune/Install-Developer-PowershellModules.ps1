@@ -97,12 +97,12 @@ if (!(Get-Module -Name MicrosoftTeams -ListAvailable)) {
 Get-InstalledModule -Name MicrosoftTeams
 
 ## Install Vmware PowerCLI
-if (!(Get-Module -Name VMware.PowerCLI -ListAvailable)) {
-    Install-Module -Name VMware.PowerCLI  -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-} else {
-    Update-Module VMware.PowerCLI -Force -Scope $installscope -ErrorAction SilentlyContinue
-} 
-Get-InstalledModule -Name VMware.PowerCLI
+#if (!(Get-Module -Name VMware.PowerCLI -ListAvailable)) {
+#    Install-Module -Name VMware.PowerCLI  -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
+#} else {
+#    Update-Module VMware.PowerCLI -Force -Scope $installscope -ErrorAction SilentlyContinue
+#} 
+#Get-InstalledModule -Name VMware.PowerCLI
 
 ## Install AZ Predictor
 if (!(Get-Module -Name PSReadline -ListAvailable)) {
