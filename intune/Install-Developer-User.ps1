@@ -695,35 +695,35 @@ function Set-DockerDesktop {
 
     # Default Docker Desktop configuration
     $defaultConfig = @{
-        "cpuCount"            = 4
-        "memoryMiB"           = 8192
-        "swapMiB"             = 1024
-        "diskSizeMiB"         = 64000
-        "useProxy"            = $false
-        "httpProxy"           = ""
-        "httpsProxy"          = ""
-        "noProxy"             = ""
-        "showTrayIcon"        = $true
-        "autoStart"           = $true
-        "hideDesktopIcon"     = $false
-        "wslIntegration"      = @{"docker-desktop" = $true}  # Adjust for installed WSL distros
-        "kubernetesEnabled"   = $false
-        "kubernetesVersion"   = ""
-        "telemetryEnabled"    = $true
-        "experimentalFeatures"= $false
-        "gpuSupport"          = $false
-        "resources"           = @{
-            "cpuCount" = 4
-            "memoryMiB" = 8192
-            "swapMiB" = 1024
+        "cpuCount"             = 4
+        "memoryMiB"            = 8192
+        "swapMiB"              = 1024
+        "diskSizeMiB"          = 64000
+        "useProxy"             = $false
+        "httpProxy"            = ""
+        "httpsProxy"           = ""
+        "noProxy"              = ""
+        "showTrayIcon"         = $true
+        "autoStart"            = $true
+        "hideDesktopIcon"      = $false
+        "wslIntegration"       = @{"docker-desktop" = $true }  # Adjust for installed WSL distros
+        "kubernetesEnabled"    = $false
+        "kubernetesVersion"    = ""
+        "telemetryEnabled"     = $true
+        "experimentalFeatures" = $false
+        "gpuSupport"           = $false
+        "resources"            = @{
+            "cpuCount"    = 4
+            "memoryMiB"   = 8192
+            "swapMiB"     = 1024
             "diskSizeMiB" = 64000
         }
     }
 
     # Merge user-provided config if any
-    if ($DockerConfig) {
-        foreach ($key in $DockerConfig.Keys) {
-            $defaultConfig[$key] = $DockerConfig[$key]
+    if ($currentConfig) {
+        foreach ($key in $currentConfig.Keys) {
+            $defaultConfig[$key] = $currentConfig[$key]
         }
     }
 
@@ -738,7 +738,9 @@ function Set-DockerDesktop {
         
     if (Test-Path $dockerExe) {
         Write-Host "Starting Docker Desktop..."
-        Start-Process $dockerExe
+        # Start-Process $dockerExe
+        Set-Service -Name com.docker.service -StartupType Automatic
+        Start-Service com.docker.service
     }
     else {
         Write-Warning "Docker Desktop executable not found at $dockerExe"
@@ -752,7 +754,6 @@ function New-CodeSigningCertificateAndSignScript {
         [string]$ScriptPath,
 
         [string]$CertName = "MyCodeSigningCert",
-        [int]$YearsValid = 2,
         [Parameter()]
         [System.Security.SecureString]$PfxPassword = (ConvertTo-SecureString -String $env:STRONGPASSWORD -AsPlainText -Force),
         [string]$OutputPath = "$env:USERPROFILE\Desktop"
@@ -769,15 +770,16 @@ function New-CodeSigningCertificateAndSignScript {
         $securePass = ConvertTo-SecureString -String $PfxPassword -Force -AsPlainText
 
         Write-Host "==> Creating self-signed code signing certificate..."
-        $cert = New-SelfSignedCertificate `
-            -Subject "CN=$CertName" `
-            -Type CodeSigningCert `
-            -CertStoreLocation "Cert:\CurrentUser\My" `
+        $cert = New-SelfSignedCertificate -Type CodeSigningCert `
+            -Subject "CN=MyCodeSigningCert" `
             -KeyExportPolicy Exportable `
+            -CertStoreLocation "Cert:\LocalMachine\My" `
+            -KeyLength 2048 `
+            -NotAfter (Get-Date).AddYears(2) `
+            -Type CodeSigningCert `
             -KeySpec Signature `
             -KeyLength 2048 `
             -HashAlgorithm SHA256 `
-            -NotAfter (Get-Date).AddYears($YearsValid)
 
         Write-Host "Created certificate with Thumbprint:" $cert.Thumbprint
 
@@ -796,6 +798,9 @@ function New-CodeSigningCertificateAndSignScript {
 
         $signature = Get-AuthenticodeSignature -FilePath $ScriptPath
         Write-Host "Signature status: $($signature.Status)"
+
+        ## Uncomment the following line to sign a script file
+        ## Set-AuthenticodeSignature -FilePath <FilePath> -Certificate $env:CodeSigningCertificate
     }
     catch {
         Write-Output "An exception occurred: $_" 
@@ -822,8 +827,6 @@ function Set-CodeSigningCertificate {
         $env:CodeSigningCertificate = [System.Environment]::GetEnvironmentVariable("CodeSigningCertificate", "User")
 
         Write-Output "env:CodeSigningCertificate = $env:CodeSigningCertificate"
-        ## Uncomment the following line to sign a script file
-        ## Set-AuthenticodeSignature -FilePath <FilePath> -Certificate $env:CodeSigningCertificate
     }
 }
 # Set-CodeSigningCertificate
