@@ -133,6 +133,9 @@ if (-not (Get-Help -Name Get-Command -ErrorAction SilentlyContinue | Where-Objec
 ## $resourceCount = (Get-AzResource -ErrorAction SilentlyContinue).Count
 ## Write-Output "Number of Azure resources: $resourceCount"
 
+## Clear-AzConfig
+Export-AzConfig -Path $HOME\AzConfig.json
+
 Update-AzConfig -DisplayBreakingChangeWarning $false | Out-Null
 Update-AzConfig -DisplaySurveyMessage $false | Out-Null
 Update-AzConfig -EnableLoginByWam $true | Out-Null
