@@ -40,7 +40,7 @@ properties:
     
   ### Configure Install Ubuntu
   - resource: xPSDesiredStateConfiguration/xScript
-    id: variable.Developer
+    id: Install.WSL
     directives:
       description: Install Ubuntu for WSL
     settings:
@@ -60,7 +60,7 @@ properties:
         wsl --manage ${DistroName} --set-sparse true
 
   - resource: xPSDesiredStateConfiguration/xScript
-    id: ubuntuwsl
+    id: variable.developer
     directives:
       description: Set a system-wide environment variable
     settings:
