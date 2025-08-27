@@ -21,13 +21,13 @@ properties:
     settings:
       Ensure: Present
 
-  - resource: PSDscResources/WindowsOptionalFeature
-    directives:
-      description: Install VirtualMachinePlatform
-      securityContext: elevated
-    settings:
-      name: VirtualMachinePlatform
-      ensure: Present
+#  - resource: PSDscResources/WindowsOptionalFeature
+#    directives:
+#      description: Install VirtualMachinePlatform
+#      securityContext: elevated
+#    settings:
+#      name: VirtualMachinePlatform
+#      ensure: Present
 
   ### Install WSL
 #  - resource: xPSDesiredStateConfiguration/xWindowsFeature
@@ -48,7 +48,16 @@ properties:
       TestScript: return $false
       SetScript: |
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-        wsl --install -d Ubuntu
+        $DistroName = 'Ubuntu'
+        wsl --install ${DistroName} --no-launch 
+        ## Run install with no prompt - run as root
+        Start-Process -Wait -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\${DistroName}.exe" "install --root"
+        #$wslinitalsetup = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh | Select-Object -ExpandProperty content
+        #$wslinitalsetup | wsl --user root --distribution ${DistroName} --
+        wsl --set-default ${DistroName}
+        ## restart, so systemd get enabled 
+        wsl --terminate ${DistroName}
+        wsl --manage ${DistroName} --set-sparse true
 
   - resource: xPSDesiredStateConfiguration/xScript
     id: ubuntuwsl
