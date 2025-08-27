@@ -658,6 +658,94 @@ function Remove-MicrosoftStore-Taskbar-Icon {
 }
 Remove-MicrosoftStore-Taskbar-Icon
 
+function Set-DockerDesktop {
+
+    $dockerExe = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+
+    # Add current user to docker-users group
+    Write-Host "Adding user $env:USERNAME to 'docker-users' group..."
+    # Check if 'docker-users' group exists before adding user
+    if (Get-LocalGroup -Name "docker-users" -ErrorAction SilentlyContinue) {
+        Add-LocalGroupMember -Group "docker-users" -Member $env:USERNAME -ErrorAction SilentlyContinue
+    }
+    else {
+        Write-Warning "'docker-users' group does not exist. Please install Docker Desktop first."
+    }
+
+    # Optionally enable WSL 2
+    $wslFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+    if ($wslFeature.State -ne "Enabled") {
+        Write-Host "Enabling WSL 2..."
+        wsl --install
+    }
+    else {
+        Write-Host "WSL 2 is already enabled."
+    }
+
+    $configPath = "$env:APPDATA\Docker\settings.json"
+    if (-Not (Test-Path $configPath)) {
+        Write-Host "Creating new Docker Desktop settings file..."
+        New-Item -Path $configPath -ItemType File -Force | Out-Null
+        $currentConfig = @{}
+    }
+    else {
+        Write-Host "Loading existing Docker Desktop settings..."
+        $currentConfig = Get-Content $configPath | ConvertFrom-Json
+    }
+
+    # Default Docker Desktop configuration
+    $defaultConfig = @{
+        "cpuCount"            = 4
+        "memoryMiB"           = 8192
+        "swapMiB"             = 1024
+        "diskSizeMiB"         = 64000
+        "useProxy"            = $false
+        "httpProxy"           = ""
+        "httpsProxy"          = ""
+        "noProxy"             = ""
+        "showTrayIcon"        = $true
+        "autoStart"           = $true
+        "hideDesktopIcon"     = $false
+        "wslIntegration"      = @{"docker-desktop" = $true}  # Adjust for installed WSL distros
+        "kubernetesEnabled"   = $false
+        "kubernetesVersion"   = ""
+        "telemetryEnabled"    = $true
+        "experimentalFeatures"= $false
+        "gpuSupport"          = $false
+        "resources"           = @{
+            "cpuCount" = 4
+            "memoryMiB" = 8192
+            "swapMiB" = 1024
+            "diskSizeMiB" = 64000
+        }
+    }
+
+    # Merge user-provided config if any
+    if ($DockerConfig) {
+        foreach ($key in $DockerConfig.Keys) {
+            $defaultConfig[$key] = $DockerConfig[$key]
+        }
+    }
+
+    # Save configuration to settings.json
+    $configPath = "$env:APPDATA\Docker\settings.json"
+    if (-Not (Test-Path $configPath)) {
+        New-Item -Path $configPath -ItemType File -Force | Out-Null
+    }
+
+    $defaultConfig | ConvertTo-Json -Depth 10 | Set-Content $configPath -Force
+    Write-Host "Docker Desktop configuration applied at $configPath"
+        
+    if (Test-Path $dockerExe) {
+        Write-Host "Starting Docker Desktop..."
+        Start-Process $dockerExe
+    }
+    else {
+        Write-Warning "Docker Desktop executable not found at $dockerExe"
+    }
+}
+# Set-DockerDesktop
+
 function New-CodeSigningCertificateAndSignScript {
     param (
         [Parameter(Mandatory = $true)]
