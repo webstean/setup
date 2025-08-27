@@ -1,5 +1,7 @@
 ﻿#Requires -RunAsAdministrator
 
+## Installing developer orientated PowerShell modules
+
 $installscope = "CurrentUser"
 
 winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.9
@@ -27,8 +29,14 @@ Get-PackageProvider
 ## Setup PSReadline
 Write-Output "Setting up PSReadline..."
 Import-Module PowerShellGet
-Install-Module -Name Terminal-Icons -Repository PSGallery -scope CurrentUser
-Install-Module -Name PSReadline -Force -scope CurrentUser
+if ( -not (Get-Module -Name Terminal-Icons -ListAvailable)) {
+    Install-Module Terminal-Icons -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
+} else {
+    Update-Module Terminal-Icons -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
+}
+if ( -not (Get-Module -Name PSReadline -ListAvailable)) {
+    Install-Module PSReadline -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
+}
 Set-PSReadLineOption -Colors @{
     Command            = 'White'
     Number             = 'DarkGray'
@@ -51,10 +59,8 @@ if (!(Get-Module -Name Az -ListAvailable)) {
     Write-Output ("Installing AZ (Azure) Powershell module...")
     Install-Module Az -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
-    # Display AZ Modules
-    Get-InstalledModule -Name Az
     Write-Output ("Updating AZ (Azure) Powershell module...")
-    Update-Module Az -Force -Scope $installscope -ErrorAction SilentlyContinue
+    Update-Module Az -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue 
 }
 
 ## Get rid of depreciated modules
@@ -65,53 +71,49 @@ if (Get-Module -Name AzureAD.Standard.Preview -ListAvailable -ErrorAction Silent
     Uninstall-Module AzureAD.Standard.Preview -Force -ErrorAction SilentlyContinue
 }
 
+## Install Winget Configuration
 if (-not (Get-Module -Name Microsoft.WinGet.Configuration -ListAvailable -ErrorAction SilentlyContinue)) {
-    Install-Module -Name Microsoft.WinGet.Configuration -AllowPrerelease -AcceptLicense -Force
+    Install-Module -Name Microsoft.WinGet.Configuration -AllowPrerelease -AcceptLicense -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
+} else {
+    Update-Module -Name Microsoft.WinGet.Configuration -AllowPrerelease -Force -ErrorAction SilentlyContinue
 }
 ## $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 ## get-WinGetConfiguration -file .\.configurations\vside.dsc.yaml | Invoke-WinGetConfiguration -AcceptConfigurationAgreements
-
-
 
 ## Example
 ## 'Az.ImageBuilder', 'Az.ManagedServiceIdentity' | ForEach-Object {Install-Module -Name $_ -AllowPrerelease}
 
 ## Microsoft Graph Modules
-if (!(Get-Module -Name Microsoft.Graph -ListAvailable)) {
+if ( -not (Get-Module -Name Microsoft.Graph -ListAvailable)) {
     Write-Output ("Installing Microsoft Graph Powershell modules...")
     Install-Module Microsoft.Graph -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
-    Write-Output ("Updateing Microsoft Graph Powershell modules...")
-    Update-Module Microsoft.Graph -Force -Scope $installscope -ErrorAction SilentlyContinue
+    Write-Output ("Updating Microsoft Graph Powershell modules...")
+    Update-Module Microsoft.Graph -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
 } 
-Get-InstalledModule -Name Microsoft.Graph
 
 ## Install Teams Modules
-if (!(Get-Module -Name MicrosoftTeams -ListAvailable)) {
+if ( -not (Get-Module -Name MicrosoftTeams -ListAvailable)) {
     Write-Output ("Installing Microsoft Teams Powershell modules...")
     Install-Module MicrosoftTeams -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
-    Write-Output ("Upgrading Microsoft Teams Powershell modules...")
-    Update-Module MicrosoftTeams -Force -Scope $installscope -ErrorAction SilentlyContinue
+    Write-Output ("Updating Microsoft Teams Powershell modules...")
+    Update-Module MicrosoftTeams -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
 } 
-Get-InstalledModule -Name MicrosoftTeams
 
-## Install Vmware PowerCLI
+## Install Vmware PowerCLI (its too big)
 #if (!(Get-Module -Name VMware.PowerCLI -ListAvailable)) {
 #    Install-Module -Name VMware.PowerCLI  -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 #} else {
-#    Update-Module VMware.PowerCLI -Force -Scope $installscope -ErrorAction SilentlyContinue
+#    Update-Module VMware.PowerCLI -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
 #} 
 #Get-InstalledModule -Name VMware.PowerCLI
 
-## Install AZ Predictor
-if (!(Get-Module -Name PSReadline -ListAvailable)) {
-    Install-Module PSReadline -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-}
-if (!(Get-Module -Name Az.Accounts -ListAvailable)) {
+## Install Azure Tools Predictor
+if ( -not (Get-Module -Name Az.Accounts -ListAvailable)) {
     Install-Module Az.Accounts -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 }
-if (!(Get-Module -Name Az.Tools.Predictor -ListAvailable)) {
+if ( -not (Get-Module -Name Az.Tools.Predictor -ListAvailable)) {
     Install-Module Az.Tools.Predictor -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 }
 Import-Module Az.Tools.Predictor
