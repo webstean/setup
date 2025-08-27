@@ -78,18 +78,18 @@ function Set-MSTerminalSetting {
         #Set-JsonValue -JsonObject $json -Path "centerOnLaunch" -Value $false
         Set-JsonValue -JsonObject $json -Path "copyOnSelect" -Value $true
 
-#       if (-NOT $json.PSObject.Properties["centerOnLaunch"]) {
-#            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "centerOnLaunch" -Value $true
-#        }
-#        else {
-#            $json.centerOnLaunch = $true
-#        }
-#        if (-NOT $json.PSObject.Properties["copyOnSelect"]) {
-#            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "copyOnSelect" -Value $true
-#        }
-#        else {
-#            $json.copyOnSelect = $true
-#        }
+        #       if (-NOT $json.PSObject.Properties["centerOnLaunch"]) {
+        #            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "centerOnLaunch" -Value $true
+        #        }
+        #        else {
+        #            $json.centerOnLaunch = $true
+        #        }
+        #        if (-NOT $json.PSObject.Properties["copyOnSelect"]) {
+        #            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "copyOnSelect" -Value $true
+        #        }
+        #        else {
+        #            $json.copyOnSelect = $true
+        #        }
 
         if (-NOT $json.PSObject.Properties["showMarksOnPaste"]) {
             $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "showMarksOnPaste" -Value $false
@@ -451,17 +451,19 @@ if ( -not ([string]::IsNullOrWhiteSpace($getupn))) {
 ## https://devblogs.microsoft.com/commandline/share-environment-vars-between-wsl-and-windows/
 [Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN', 'User')
 
-## Azure Functions: Dont send telemetry to Microsoft
+## Dont send telemetry to Microsoft
 [Environment]::SetEnvironmentVariable('FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT', '1', 'User')
+[Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', '1', 'User')
+[Environment]::SetEnvironmentVariable('DOTNET_UPGRADEASSISTANT_TELEMETRY_OPTOUT', '1', 'User') ## opt-out of the telemetry being send to Microsoft
+[Environment]::SetEnvironmentVariable('DOTNET_CLI_TELEMETRY_OPTOUT', '1', 'User') ## opt-out of the telemetry being send to Microsoft
 
 ## .Net environment variables: https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-environment-variables
 ## Note: Generally speaking a value set in the project file or runtimeconfig.json has a higher priority than the environment variable.
+[Environment]::SetEnvironmentVariable('DOTNET_GENERATE_ASPNET_CERTIFICATE', 'false', 'User')
 [Environment]::SetEnvironmentVariable('DOTNET_NOLOGO', 'yes', 'User')
 [Environment]::SetEnvironmentVariable('DOTNET_EnableDiagnostics_Debugger', '1', 'User')
 [Environment]::SetEnvironmentVariable('DOTNET_EnableDiagnostics_Profiler', '1', 'User')
 [Environment]::SetEnvironmentVariable('DOTNET_ADD_GLOBAL_TOOLS_TO_PATH', '1', 'User') ## this is default
-[Environment]::SetEnvironmentVariable('DOTNET_CLI_TELEMETRY_OPTOUT', '1', 'User') ## opt-out of the telemetry being send to Microsoft
-[Environment]::SetEnvironmentVariable('DOTNET_UPGRADEASSISTANT_TELEMETRY_OPTOUT', '1', 'User') ## opt-out of the telemetry being send to Microsoft
 [Environment]::SetEnvironmentVariable('COREHOST_TRACE', '0', 'User')
 [Environment]::SetEnvironmentVariable('COREHOST_TRACEFILE', 'corehost_trace.log', 'User')
 [Environment]::SetEnvironmentVariable('DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE', 'true', 'User')
@@ -501,7 +503,6 @@ if ( -not ([string]::IsNullOrWhiteSpace($getupn))) {
 ## DOTNET_EventPipeOutputStreaming ## When set to 1, enables streaming to the output file while the app is running. By default trace information is accumulated in a circular buffer and the contents are written at app shutdown.
 ## DOTNET_CLI_PERF_LOG ## Specifies whether performance details about the current CLI session are logged. Enabled when set to 1, true, or yes. This is disabled by default.
 ## DOTNET_ADD_GLOBAL_TOOLS_TO_PATH ## Specifies whether to add global tools to the PATH environment variable. The default is true. To not add global tools to the path, set to 0, false, or no.
-## DOTNET_CLI_TELEMETRY_OPTOUT ## Specifies whether data about the .NET tools usage is collected and sent to Microsoft. Set to true to opt-out of the telemetry feature (values true, 1, or yes accepted). Otherwise, set to false to opt in to the telemetry features (values false, 0, or no accepted). If not set, the default is false and the telemetry feature is active.
 ## DOTNET_ROLL_FORWARD_TO_PRERELEASE ## If set to 1 (enabled), enables rolling forward to a pre-release version from a release version. By default (0 - disabled), when a release version of .NET runtime is requested, roll-forward will only consider installed release versions.
 ## DOTNET_ROLL_FORWARD_ON_NO_CANDIDATE_FX ## Disables minor version roll forward, if set to 0. This setting is superseded in .NET Core 3.0 by DOTNET_ROLL_FORWARD. The new settings should be used instead.
 ## DOTNET_CLI_FORCE_UTF8_ENCODING ## Forces the use of UTF-8 encoding in the console, even for older versions of Windows 10 that don't fully support UTF-8. For more information, see SDK no longer changes console encoding when finished.
@@ -624,6 +625,15 @@ try {
     # Update the Git repository’s commit-graph file to contain all reachable commits
     git commit-graph write --reachable
 
+    # Generate the dev cert (if not already present)
+    #dotnet dev-certs https --clean
+    dotnet dev-certs https --export-path "$env:TEMP\devcert.pfx" -p $env:STRONGPASSWORD
+
+    # Import into LocalMachine Root (requires Admin)
+    Import-PfxCertificate -FilePath "$env:TEMP\devcert.pfx" `
+        -Password (ConvertTo-SecureString -String $env:STRONGPASSWORD -Force -AsPlainText) `
+        -CertStoreLocation Cert:\LocalMachine\Root
+
     ## dotnet dev-certs https --trust --quiet
     dotnet nuget config paths
 }
@@ -648,46 +658,56 @@ function Remove-MicrosoftStore-Taskbar-Icon {
 }
 Remove-MicrosoftStore-Taskbar-Icon
 
-function New-CodeSigningCertificate {
+function New-CodeSigningCertificateAndSignScript {
     param (
-        [string]$CertificateName = "CodeSigningCert",
-        [string]$ExportFilePath = "$env:USERPROFILE\Desktop\CodeSigningCert.pfx",
-        [string]$SecureString = "YourStrongPassword"
+        [Parameter(Mandatory = $true)]
+        [string]$ScriptPath,
+
+        [string]$CertName = "MyCodeSigningCert",
+        [int]$YearsValid = 2,
+        [Parameter()]
+        [System.Security.SecureString]$PfxPassword = (ConvertTo-SecureString -String $env:STRONGPASSWORD -AsPlainText -Force),
+        [string]$OutputPath = "$env:USERPROFILE\Desktop"
     )
 
     try {
-        # Create the self-signed code-signing certificate
-        $certPath = "Cert:\CurrentUser\My"
-        Write-Output "Creating a new code-signing certificate: $CertificateName" 
-        $lifetime = Get-Date
-
-        # Check if the export directory exists, create it if it doesn't
-        $ExportDir = Split-Path -Path $ExportFilePath -Parent
-        if (-not (Test-Path -Path $ExportDir)) {
-            New-Item -ItemType Directory -Path $ExportDir -Force | Out-Null
+        # Ensure output path exists
+        if (-not (Test-Path $OutputPath)) {
+            New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
         }
 
-        $codeSigningCert = New-SelfSignedCertificate `
-            -Type CodeSigning `
-            -Subject "CN=$CertificateName" `
-            -NotAfter $lifetime.AddDays(1095) `   ## 3 Years
+        $pfxPath = Join-Path $OutputPath "$CertName.pfx"
+        $cerPath = Join-Path $OutputPath "$CertName.cer"
+        $securePass = ConvertTo-SecureString -String $PfxPassword -Force -AsPlainText
+
+        Write-Host "==> Creating self-signed code signing certificate..."
+        $cert = New-SelfSignedCertificate `
+            -Subject "CN=$CertName" `
+            -Type CodeSigningCert `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
             -KeyExportPolicy Exportable `
+            -KeySpec Signature `
             -KeyLength 2048 `
-            -KeyUsage DigitalSignature `
-            -KeyAlgorithm RSA `
-            -Provider "Microsoft Enhanced RSA and AES Cryptographic Provider" `
-            -CertStoreLocation $certPath
+            -HashAlgorithm SHA256 `
+            -NotAfter (Get-Date).AddYears($YearsValid)
 
-        Write-Output "Code-signing certificate created successfully." 
-        Write-Output $codeSigningCert
+        Write-Host "Created certificate with Thumbprint:" $cert.Thumbprint
 
-        # Convert password to a secure string
-        $securePassword = ConvertTo-SecureString -String $Password -Force -AsPlainText
+        Write-Host "==> Exporting certificate..."
+        Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $securePass | Out-Null
+        Export-Certificate   -Cert $cert -FilePath $cerPath | Out-Null
+        Write-Host "PFX exported to $pfxPath"
+        Write-Host "CER exported to $cerPath"
 
-        # Export the certificate as a PFX file
-        Export-PfxCertificate -Cert $codeSigningCert -FilePath $ExportFilePath -Password $securePassword
+        Write-Host "==> Importing certificate into Trusted Root..."
+        Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
 
-        Write-Output "Certificate exported to: $ExportFilePath" 
+        Write-Host "==> Signing script: $ScriptPath"
+        $signingCert = Get-ChildItem Cert:\CurrentUser\My\$($cert.Thumbprint)
+        Set-AuthenticodeSignature -FilePath $ScriptPath -Certificate $signingCert | Out-Null
+
+        $signature = Get-AuthenticodeSignature -FilePath $ScriptPath
+        Write-Host "Signature status: $($signature.Status)"
     }
     catch {
         Write-Output "An exception occurred: $_" 
@@ -696,7 +716,6 @@ function New-CodeSigningCertificate {
         Write-Output "Stack Trace: $($_.Exception.StackTrace)" 
     }
 }
-# New-CodeSigningCertificate
 function Set-CodeSigningCertificate {
     ## List of Code Signing Certificates
     $NumberCodeSigningCertificates = (Get-ChildItem -Path Cert:\* -Recurse -CodeSigningCert | Measure-Object).Count
