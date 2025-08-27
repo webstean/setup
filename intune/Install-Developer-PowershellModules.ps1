@@ -1,6 +1,6 @@
 ﻿#Requires -RunAsAdministrator
 
-$installscope = CurrentUser
+$installscope = "CurrentUser"
 
 winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.9
 ${INSTALLED_DOTNET_VERSION} = dotnet --version
