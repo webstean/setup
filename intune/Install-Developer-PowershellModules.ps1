@@ -122,16 +122,9 @@ Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction SilentlyContinue
 # Set-PSReadLineOption -PredictionViewStyle InlineView
 
 ## Install Help for all installed modules
-## Start-Process -Wait -Verb RunAs pwsh.exe -ArgumentList "-Command {Update-Help -UICulture en-AU -Force}" -RedirectStandardOutput "aw.txt"
-## Start-Process -Wait pwsh.exe -ArgumentList "-Command {Update-Help -UICulture en-AU -Force}"
 if (-not (Get-Help -Name Get-Command -ErrorAction SilentlyContinue | Where-Object { $_.Category -eq "HelpFile" })) {
     Update-Help -UICulture en-AU -Force -ErrorAction SilentlyContinue | Out-Null
 }
-
-## Connect-AzAccount -Identity -AccountId <user-assigned-identity-clientId-or-resourceId>
-## Connect-AzAccount
-## $resourceCount = (Get-AzResource -ErrorAction SilentlyContinue).Count
-## Write-Output "Number of Azure resources: $resourceCount"
 
 ## Clear-AzConfig
 Export-AzConfig -Path $HOME\AzConfig.json
@@ -144,3 +137,10 @@ Update-AzConfig -CheckForUpgrade $false | Out-Null
 Update-AzConfig -DisplayRegionIdentified $true | Out-Null
 Update-AzConfig -DisplaySecretsWarning $false | Out-Null
 Update-AzConfig -EnableDataCollection $false | Out-Null
+
+## Connect-AzAccount -Identity -AccountId <user-assigned-identity-clientId-or-resourceId>
+## Connect-AzAccount
+## $resourceCount = (Get-AzResource -ErrorAction SilentlyContinue).Count
+## Write-Output "Number of Azure are resources in subscription ($env:AZURE_SUBSCRIPTION_ID) : $resourceCount"
+
+
