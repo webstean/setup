@@ -573,8 +573,8 @@ function Set-DockerDesktopBestPractices {
     $json.exposeDockerAPIOnTCP2375 = $false      # Don’t expose insecure API
     $json.hosts = @("npipe:////./pipe/docker_engine") # Local access only
 
-    # File sharing (example)
-    $json.sharedDirs = @("C:\Users", "D:\Projects")
+    # File sharing
+    $json.sharedDirs = @("$env:HOME", "C:\Workspaces")
 
     # Save modified config
     $json | ConvertTo-Json -Depth 5 | Set-Content $settingsPath -Encoding utf8
