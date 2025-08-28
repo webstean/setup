@@ -92,6 +92,13 @@ properties:
         "@
         [Wallpaper]::SystemParametersInfo(0x0014, 0, $wallPaper, 3)
 
+  - resource: xPSDesiredStateConfiguration/xScript
+    id: Script.Set.Timezone
+    description: Set Timezone
+    settings:
+      GetScript: (Get-TimeZone).Id
+      TestScript: (Get-TimeZone).Id -eq "AUS Eastern Standard Time"
+      SetScript: Set-TimeZone -Id "AUS Eastern Standard Time"
 
   - resource: Microsoft.WinGet.DSC/WinGetPackage
     id: Microsoft.VisualStudioCode
