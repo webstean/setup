@@ -110,14 +110,14 @@ if ( -not (Get-Module -Name MicrosoftTeams -ListAvailable)) {
 #Get-InstalledModule -Name VMware.PowerCLI
 
 ## Install Azure Tools Predictor
-if ( -not (Get-Module -Name Az.Accounts -ListAvailable)) {
-    Install-Module Az.Accounts -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-}
 if ( -not (Get-Module -Name Az.Tools.Predictor -ListAvailable)) {
     Install-Module Az.Tools.Predictor -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-}
+} else
+    Update-Module Az.Tools.Predictor -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
+}    
 Import-Module Az.Tools.Predictor
-Enable-AzPredictor -AllSession
+Enable-AzPredictor -AllSession ## should update $profile
+(Get-PSReadLineOption).PredictionSource
 Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction SilentlyContinue
 # Set-PSReadLineOption -PredictionViewStyle InlineView
 
@@ -140,6 +140,8 @@ Update-AzConfig -EnableDataCollection $false | Out-Null
 
 ## Connect-AzAccount -Identity -AccountId <user-assigned-identity-clientId-or-resourceId>
 ## Connect-AzAccount
+## Get-AzSubscription -SubscriptionId "<your-subscription-id>" | Format-List
+
 ## $resourceCount = (Get-AzResource -ErrorAction SilentlyContinue).Count
 ## Write-Output "Number of Azure are resources in subscription ($env:AZURE_SUBSCRIPTION_ID) : $resourceCount"
 
