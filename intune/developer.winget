@@ -378,6 +378,10 @@ properties:
         DeveloperModePropertyName: AllowDevelopmentWithoutDevLicense
         TaskbarAlignment: Center
         RestartExplorer: true
+        AdminConsentPromptBehavior: RequireConsentForNonWindowsBinaries
+}
+## AdvancedNetworkSharingSettingName: NetworkDiscovery
+## AdminConsentPromptBehavior: RequireConsentForNonWindowsBinaries
 
   - resource: Microsoft.Windows.Developer/WindowsExplorer
     id: WindowsExplorerSettings1
