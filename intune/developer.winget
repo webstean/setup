@@ -9,14 +9,15 @@ properties:
       settings:
         MinVersion: '10.0.22000'
 
-  resources:
-    - resource: Microsoft.Windows.Settings/WindowsSettings
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: DesiredStateConfiguration
       directives:
-        description: Enable Developer Mode
-        allowPrerelease: true
+        description: "Install DesiredStateConfiguration"
+        allowPrerelease: false
         securityContext: elevated
       settings:
-        DeveloperMode: true
+        id: 9NVTPZWRC6KQ
+        source: msstore
 
 #   - resource: PSDscResources/WindowsOptionalFeature
 #    directives:
@@ -34,27 +35,28 @@ properties:
 #    settings:
 #      name: Microsoft-Windows-Subsystem-Linux
 #      ensure: Present
-    
-  ### Configure Install Ubuntu
-    - resource: xPSDesiredStateConfiguration/xScript
-      id: Install.WSL
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: installWSL
       directives:
-        description: Install Ubuntu for WSL
+        description: "Ensure WSL is installed"
+        allowPrerelease: false
+        securityContext: elevated
       settings:
-        GetScript: return $false
-        TestScript: return $false
-        SetScript: |
-          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-          $DistroName = 'Ubuntu'
-          wsl --install ${DistroName} --no-launch 
-          ## Run install with no prompt - run as root
-          Start-Process -Wait -FilePath "${env:USERPROFILE}\AppData\Local\Microsoft\WindowsApps\${DistroName}.exe" "install --root"
-          #$wslinitalsetup = Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh | Select-Object -ExpandProperty content
-          #$wslinitalsetup | wsl --user root --distribution ${DistroName} --
-          wsl --set-default ${DistroName}
-          ## restart, so systemd get enabled 
-          wsl --terminate ${DistroName}
-          wsl --manage ${DistroName} --set-sparse true
+        id: Microsoft.WSL
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Install.Ubuntu
+      dependsOn:
+        - installWSL
+      directives:
+        description: "Install Ubuntu for WSL"
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        id:   Canonical.Ubuntu    
+        source: winget
 
     - resource: xPSDesiredStateConfiguration/xScript
       id: variable.developer
