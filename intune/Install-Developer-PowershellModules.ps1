@@ -109,7 +109,21 @@ if ( -not (Get-Module -Name Microsoft.PowerApps.Administration.PowerShell -ListA
     Write-Output ("Updating Microsoft Power Apps modules...")
     Update-Module Microsoft.PowerApps.Administration.PowerShell -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
 } 
-
+## Add-PowerAppsAccount -Endpoint prod
+$jsonObject= @" 
+{ 
+ "PostProvisioningPackages": 
+ [ 
+ { 
+ "applicationUniqueName": "msdyn_FinanceAndOperationsProvisioningAppAnchor", 
+"parameters": "DevToolsEnabled=true|DemoDataEnabled=true" 
+ } 
+ ] 
+} 
+"@ | ConvertFrom-Json
+# To kick off new environment Provisionment
+# IMPORTANT - This has to be a single line, after the copy & paste the command
+# New-AdminPowerAppEnvironment -DisplayName "MyUniqueNameHere" -EnvironmentSku Sandbox -Templates "D365_FinOps_Finance" -TemplateMetadata $jsonObject -LocationName "Australia" -ProvisionDatabase
 
 ## Install Vmware PowerCLI (its too big)
 #if (!(Get-Module -Name VMware.PowerCLI -ListAvailable)) {
