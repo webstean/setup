@@ -101,6 +101,16 @@ if ( -not (Get-Module -Name MicrosoftTeams -ListAvailable)) {
     Update-Module MicrosoftTeams -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
 } 
 
+## Install PowerApps Modules
+if ( -not (Get-Module -Name Microsoft.PowerApps.Administration.PowerShell -ListAvailable)) {
+    Write-Output ("Installing Microsoft Power Apps modules...")
+    Install-Module Microsoft.PowerApps.Administration.PowerShell -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
+} else {
+    Write-Output ("Updating Microsoft Power Apps modules...")
+    Update-Module Microsoft.PowerApps.Administration.PowerShell -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
+} 
+
+
 ## Install Vmware PowerCLI (its too big)
 #if (!(Get-Module -Name VMware.PowerCLI -ListAvailable)) {
 #    Install-Module -Name VMware.PowerCLI  -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
