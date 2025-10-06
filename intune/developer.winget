@@ -371,6 +371,8 @@ properties:
 
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-esbenp.prettier-vscode
+      dependsOn:
+        -Microsoft.VisualStudioCode
       directives:
         description: Install Prettier for code formatting
         allowPrerelease: true
@@ -481,6 +483,8 @@ properties:
   # .NET Development Extensions
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-dotnettools.csharp
+      dependsOn:
+        -Microsoft.VisualStudioCode
       directives:
         description: Install C# extension
         allowPrerelease: true
@@ -490,6 +494,8 @@ properties:
     
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-dotnettools.vscode-dotnet-runtime
+      dependsOn:
+        -Microsoft.VisualStudioCode
       directives:
         description: Install .NET RunTime Vscode Extension
         allowPrerelease: true
@@ -500,6 +506,8 @@ properties:
   # PowerShell Development
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-powershell
+      dependsOn:
+        -Microsoft.VisualStudioCode
       directives:
         description: Install PowerShell extension
         allowPrerelease: true
@@ -510,6 +518,8 @@ properties:
   # Docker and Containerization
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-azuretools.vscode-docker
+      dependsOn:
+        -Microsoft.VisualStudioCode
       directives:
         description: Install Docker extension
         allowPrerelease: true
@@ -519,6 +529,8 @@ properties:
 
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-hashicorp.terraform
+      dependsOn:
+        -Microsoft.VisualStudioCode
       directives:
         description: Install HashiCorp Terraform extension
         allowPrerelease: true
@@ -528,6 +540,8 @@ properties:
 
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-azuretools.vscode-azureterraform
+      dependsOn:
+        -Microsoft.VisualStudioCode
       directives:
         description: Install Microsoft Terraform extension
         allowPrerelease: true
@@ -537,6 +551,8 @@ properties:
 
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: redhat.vscode-yaml
+      dependsOn:
+        -Microsoft.VisualStudioCode
       directives:
         description: Install Red Hat YAML extension
         allowPrerelease: true
@@ -546,6 +562,8 @@ properties:
 
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: GitHub.copilot
+      dependsOn:
+        -Microsoft.VisualStudioCode
       directives:
         description: Install GitHub Copilot extension
         allowPrerelease: true
@@ -555,6 +573,8 @@ properties:
 
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: GitHub.copilot-chat
+      dependsOn:
+        -Microsoft.VisualStudioCode
       directives:
         description: Install GitHub Copilot Chat extension
         allowPrerelease: true
@@ -564,6 +584,8 @@ properties:
 
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: ms-azuretools.vscode-azure-github-copilot
+      dependsOn:
+        -Microsoft.VisualStudioCode
       directives:
         description: Install GitHub Copilot Chat extension
         allowPrerelease: true
