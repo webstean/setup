@@ -12,7 +12,7 @@ properties:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: DesiredStateConfiguration
       directives:
-        description: "Install DesiredStateConfiguration"
+        description: Install DesiredStateConfiguration
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -39,7 +39,7 @@ properties:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: installWSL
       directives:
-        description: "Ensure WSL is installed"
+        description: Ensure WSL is installed
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -51,7 +51,7 @@ properties:
       dependsOn:
         - installWSL
       directives:
-        description: "Install Ubuntu for WSL"
+        description: Install Ubuntu for WSL
         allowPrerelease: true
         securityContext: elevated
       settings:
@@ -151,6 +151,7 @@ properties:
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Docker.DockerDesktop
+
       directives:
         description: Installing Docker.DockerDesktop %APPDATA%\Docker\settings.json
         allowPrerelease: false
@@ -372,7 +373,7 @@ properties:
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-esbenp.prettier-vscode
       dependsOn:
-        -Microsoft.VisualStudioCode
+        - Microsoft.VisualStudioCode
       directives:
         description: Install Prettier for code formatting
         allowPrerelease: true
@@ -484,7 +485,7 @@ properties:
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-dotnettools.csharp
       dependsOn:
-        -Microsoft.VisualStudioCode
+        - Microsoft.VisualStudioCode
       directives:
         description: Install C# extension
         allowPrerelease: true
@@ -495,7 +496,7 @@ properties:
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-dotnettools.vscode-dotnet-runtime
       dependsOn:
-        -Microsoft.VisualStudioCode
+        - Microsoft.VisualStudioCode
       directives:
         description: Install .NET RunTime Vscode Extension
         allowPrerelease: true
@@ -507,7 +508,7 @@ properties:
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-powershell
       dependsOn:
-        -Microsoft.VisualStudioCode
+        - Microsoft.VisualStudioCode
       directives:
         description: Install PowerShell extension
         allowPrerelease: true
@@ -519,7 +520,7 @@ properties:
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-azuretools.vscode-docker
       dependsOn:
-        -Microsoft.VisualStudioCode
+        - Microsoft.VisualStudioCode
       directives:
         description: Install Docker extension
         allowPrerelease: true
@@ -530,7 +531,7 @@ properties:
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-hashicorp.terraform
       dependsOn:
-        -Microsoft.VisualStudioCode
+        - Microsoft.VisualStudioCode
       directives:
         description: Install HashiCorp Terraform extension
         allowPrerelease: true
@@ -541,7 +542,7 @@ properties:
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-azuretools.vscode-azureterraform
       dependsOn:
-        -Microsoft.VisualStudioCode
+        - Microsoft.VisualStudioCode
       directives:
         description: Install Microsoft Terraform extension
         allowPrerelease: true
@@ -552,7 +553,7 @@ properties:
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: redhat.vscode-yaml
       dependsOn:
-        -Microsoft.VisualStudioCode
+        - Microsoft.VisualStudioCode
       directives:
         description: Install Red Hat YAML extension
         allowPrerelease: true
@@ -563,7 +564,7 @@ properties:
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: GitHub.copilot
       dependsOn:
-        -Microsoft.VisualStudioCode
+        - Microsoft.VisualStudioCode
       directives:
         description: Install GitHub Copilot extension
         allowPrerelease: true
@@ -574,7 +575,7 @@ properties:
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: GitHub.copilot-chat
       dependsOn:
-        -Microsoft.VisualStudioCode
+        - Microsoft.VisualStudioCode
       directives:
         description: Install GitHub Copilot Chat extension
         allowPrerelease: true
@@ -585,7 +586,7 @@ properties:
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: ms-azuretools.vscode-azure-github-copilot
       dependsOn:
-        -Microsoft.VisualStudioCode
+        - Microsoft.VisualStudioCode
       directives:
         description: Install GitHub Copilot Chat extension
         allowPrerelease: true
