@@ -852,8 +852,8 @@ If (-not(Test-Path -Path "$env:POSH_THEMES_PATH\jandedobbeleer.omp.json" -PathTy
     if (!(Test-Path -Path $PROFILE.AllUsersAllHosts)) {
         New-Item -ItemType File -Path $PROFILE.AllUsersAllHosts -Force -ErrorAction Ignore
     }
-    New-Item -Path $PROFILE -Type File -Force
-    "& ([ScriptBlock]::Create((oh-my-posh init pwsh --config `"$env:POSH_THEMES_PATH\cloud-native.omp.json`" --print) -join `"`n`"))" | Out-File $PROFILE
+    #New-Item -Path $PROFILE -Type File -Force
+    #"& ([ScriptBlock]::Create((oh-my-posh init pwsh --config `"$env:POSH_THEMES_PATH\cloud-native.omp.json`" --print) -join `"`n`"))" | Out-File $PROFILE
 }
 else {
     Write-Output("Skipping... Oh-My-Posh is already installed")
