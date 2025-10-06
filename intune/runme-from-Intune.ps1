@@ -133,15 +133,15 @@ if ($winget) {
     }
 }
 try {
-    & "Config-Normal-Machine.ps1",
-    & "Install-Global-Secure-Access-Client.ps1",
-    & "Install-Windows-Admin-Centre.ps1",
-    & "Install-Developer-Fonts.ps1",
-    & "Install-Developer-System.ps1", ## installs dotnet, that we need later
+    & ".\Config-Normal-Machine.ps1",
+    & ".\Install-Global-Secure-Access-Client.ps1",
+    & ".\Install-Windows-Admin-Centre.ps1",
+    & ".\Install-Developer-Fonts.ps1",
+    & ".\Install-Developer-System.ps1", ## installs dotnet, that we need later
 
-    & "Install-Developer-PowerShellModules.ps1",
-    & "Install-Developer-User.ps1",
-    & "Winget-Config-Developer.ps1"
+#    & ".\Install-Developer-PowerShellModules.ps1",
+#    & ".\Install-Developer-User.ps1",
+#    & ".\Winget-Config-Developer.ps1"
 
 catch {
     Write-Error "Error executing ${script}: $_"
