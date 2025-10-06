@@ -12,7 +12,6 @@ $scripts = @(
     "Install-Developer-User.ps1",
     "Install-Developer-Fonts.ps1",
     "Config-Normal-Machine.ps1",
-    "Config-Developer-System.ps1",
     "Winget-Config-Developer.ps1"
 )
 
@@ -29,12 +28,21 @@ $filesToDownloadOnly = @(
 $scriptFolder = $TranscriptDir
 
 # Download files that should NOT be executed
+foreach ($file in $scripts) {
+    $url = "$baseUrl/$file"
+    $destination = Join-Path -Path $scriptFolder -ChildPath $file
+    Write-Host "Downloading (no execute): $file from $url ..."
+    Invoke-WebRequest -Uri $url -OutFile $destination -UseBasicParsing
+}
+# Download files that need to be executed
 foreach ($file in $filesToDownloadOnly) {
     $url = "$baseUrl/$file"
     $destination = Join-Path -Path $scriptFolder -ChildPath $file
     Write-Host "Downloading (no execute): $file from $url ..."
     Invoke-WebRequest -Uri $url -OutFile $destination -UseBasicParsing
 }
+
+
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
 if ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
     Write-Output "PowerShell is NOT running in FullLanguage mode. Current mode: $($ExecutionContext.SessionState.LanguageMode)"  
@@ -125,25 +133,23 @@ if ($winget) {
     }
 }
 try {
-    foreach (${script} in $scripts) {
-        $url = "$baseUrl/$script"
-        $destination = Join-Path -Path $scriptFolder -ChildPath ${script}
-        Write-Host "Downloading ${script} from $url ..."
-        Invoke-WebRequest -Uri $url -OutFile $destination -UseBasicParsing
+    # & $destination
+    & "Config-Normal-Machine.ps1",
+    & "Install-Global-Secure-Access-Client.ps1",
+    & "Install-Windows-Admin-Centre.ps1",
+    & "Install-Developer-Fonts.ps1",
 
-        try {
-            Write-Host "Running $script ..."
-            # & $destination
-        }
-        catch {
-            Write-Error "Error executing ${script}: $_"
-        }
-    }
+    & "Install-Developer-System.ps1",
+    & "Install-Developer-PowerShellModules.ps1",
+    & "Install-Developer-User.ps1",
+    & "Winget-Config-Developer.ps1"
+
+catch {
+    Write-Error "Error executing ${script}: $_"
 }
 finally {
     # Stop transcript no matter what
     Stop-Transcript
     Write-Host "Transcript stopped."
 }
-
 Write-Host "All scripts executed."
