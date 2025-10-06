@@ -408,7 +408,7 @@ function Install-NuGetCredentialProviderforAzureArtefacts {
     }
 }
 ## Install Azure Arctefacts Credential Provider
-Install-NuGetCredentialProviderforAzureArtefacts
+#Install-NuGetCredentialProviderforAzureArtefacts
 
 ## Generate StrongPassword for developers, used in scripts such as SQL Server installations
 if ( [string]::IsNullOrWhiteSpace($env:STRONGPASSWORD)) {
