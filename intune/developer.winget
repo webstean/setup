@@ -151,7 +151,6 @@ properties:
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Docker.DockerDesktop
-
       directives:
         description: Installing Docker.DockerDesktop %APPDATA%\Docker\settings.json
         allowPrerelease: false
