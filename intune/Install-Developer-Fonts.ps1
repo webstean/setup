@@ -21,7 +21,7 @@ function Install-Fonts {
     $latestRelease = $response.assets | Where-Object { $_.name -like "*$FontName*.zip" } | Select-Object -First 1
     $fontUrl = $latestRelease.browser_download_url
     Write-Output ("Installing Font:$FontName from https://github.com/$Owner/$Repo...") 
-    Write-Output ("Downloard URL  :$fontUrl") 
+    Write-Output ("Download URL   :$fontUrl") 
 
     ## Define the extraction paths
     $fontZipPath = "$env:TEMP\$FontName.zip"
