@@ -55,7 +55,7 @@ Set-PSReadLineOption -PredictionViewStyle ListView
 
 # Active Directory (AD) Modules
 # Install AZ Modules - Az PowerShell module is the recommended PowerShell module for managing Azure resources on all platforms.
-if (!(Get-Module -Name Az -ListAvailable)) {
+if ( -not (Get-Module -Name Az -ListAvailable)) {
     Write-Output ("Installing AZ (Azure) Powershell module...")
     Install-Module Az -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
@@ -115,18 +115,18 @@ $jsonObject= @"
  "PostProvisioningPackages": 
  [ 
  { 
- "applicationUniqueName": "msdyn_FinanceAndOperationsProvisioningAppAnchor", 
-"parameters": "DevToolsEnabled=true|DemoDataEnabled=true" 
+     "applicationUniqueName": "msdyn_FinanceAndOperationsProvisioningAppAnchor", 
+    "parameters": "DevToolsEnabled=true|DemoDataEnabled=true" 
  } 
  ] 
 } 
 "@ | ConvertFrom-Json
-# To kick off new environment Provisionment
+# To kick off new PowerApp environment
 # IMPORTANT - This has to be a single line, after the copy & paste the command
 # New-AdminPowerAppEnvironment -DisplayName "MyUniqueNameHere" -EnvironmentSku Sandbox -Templates "D365_FinOps_Finance" -TemplateMetadata $jsonObject -LocationName "Australia" -ProvisionDatabase
 
 ## Install Vmware PowerCLI (its too big)
-#if (!(Get-Module -Name VMware.PowerCLI -ListAvailable)) {
+#if ( -not (Get-Module -Name VMware.PowerCLI -ListAvailable)) {
 #    Install-Module -Name VMware.PowerCLI  -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 #} else {
 #    Update-Module VMware.PowerCLI -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
