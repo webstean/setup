@@ -33,6 +33,7 @@ function Install-WinRM {
 }
 Install-WinRM
 
+## The tools functionality is only installed via DOTNET SDKs, not Runtimes
 function Install-OrUpdate-DotNetTools {
     Write-Output ("Installing/Updating DotNet Tools...") 
     $dotnetTools = @(
