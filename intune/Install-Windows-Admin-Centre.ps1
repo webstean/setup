@@ -21,12 +21,13 @@ function Get-AzureVMTags {
         Write-Warning "⚠️ No tags found or failed to query metadata service."
     }
 }
+
 # Check if we are inside Azure, and exit if we are
 $metadataUrl = "http://169.254.169.254/metadata/instance?api-version=2021-02-01"
 $response = Invoke-RestMethod -Headers @{"Metadata" = "true" } -Method GET -Uri $metadataUrl | ConvertTo-Json -Depth 64
 if ($response | ConvertFrom-Json | Select-Object -ExpandProperty compute -ErrorAction SilentlyContinue | Get-Member -Name azEnvironment -MemberType NoteProperty -ErrorAction SilentlyContinue) {
-    Get-AzureVMTags
     Write-Warning "⚠️ This computer is running inside Azure, so skipping Windows Admin Center install (use an Azure extension insteand)"
+    Get-AzureVMTags
     return $true
 }
 
