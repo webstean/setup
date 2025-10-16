@@ -641,7 +641,7 @@ function EnableAustralianLanguagePack {
 		Set-WinSystemLocale -SystemLocale $Language
 
 		## Copy to system
-		powershell.exe -Command "Copy-UserInternationalSettingsToSystem -WelcomeScreen $true -NewUser $true"
+		Copy-UserInternationalSettingsToSystem -WelcomeScreen $true -NewUser $true
 
 		## Get-WindowsCapability -Online | Where-Object { $_.Name -like "*Speech*" }
 		$features = @(
@@ -651,7 +651,8 @@ function EnableAustralianLanguagePack {
 		)
 		foreach ($feature in $features) {
 			Write-Output "Installing feature: $feature"
-			powershell.exe -Command "Add-WindowsCapability -Online -Name $feature"
+			#powershell.exe -Command "Add-WindowsCapability -Online -Name $feature"
+			Add-WindowsCapability -Online -Name $feature
 		}
 	
 		## $voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_JamesM"
