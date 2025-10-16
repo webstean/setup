@@ -2,7 +2,16 @@
 
 ## Installing developer orientated PowerShell modules
 
-$installscope = "AllUsers" ## "CurrentUser" will write the modules to OneDrive and create a whole mess
+$IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+# Check language mode — must not be ConstrainedLanguage for method invocation
+$IsLanguagePermissive = $ExecutionContext.SessionState.LanguageMode -ne 'ConstrainedLanguage'
+
+# Set install scope variable based on elevation
+if ($IsAdmin -and $IsLanguagePermissive) {
+    $InstallScope = 'AllUsers'
+} else {
+    $InstallScope = 'CurrentUser'
+}
 
 winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.NuGet
 winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.9
