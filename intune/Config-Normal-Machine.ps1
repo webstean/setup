@@ -626,7 +626,8 @@ function EnableAustralianLanguagePack {
 		$features = @(
 			"Language.Handwriting~~~$Language~0.0.1.0",
 			"Language.Speech~~~$Language~0.0.1.0",
-			"Language.TextToSpeech~~~$Language~0.0.1.0"
+			"Language.TextToSpeech~~~$Language~0.0.1.0",
+			"Language.Speech.Enhanced~~~$Language~0.0.1.0"
 		)
 		foreach ($feature in $features) {
 			Write-Output "Installing feature: $feature"
