@@ -619,11 +619,6 @@ function EnableAustralianLanguagePack {
 	#	return
 	#}
 
-	## Make sure Modules are installed
-	if -not (Get-Module -ListAvailable -Name International ) {
-		return $false
-	}
-	
 	$DisplayName = (Get-WinSystemLocale).DisplayName
 	$Language = (Get-WinSystemLocale).Name
 	Write-Output "Installing language pack: $DisplayName"
