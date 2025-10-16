@@ -66,7 +66,7 @@ Start-Process $installerPath -Wait -ArgumentList @(
 
 ## Write-Host "`n✅ Windows Admin Center installed on https://localhost:$wacPort"
 
-if (Test-File 'C:\Program Files\WindowsAdminCenter\PowerShellModules\Microsoft.WindowsAdminCenter.Configuration') {
+if (Test-Path 'C:\Program Files\WindowsAdminCenter\PowerShellModules\Microsoft.WindowsAdminCenter.Configuration') {
     Import-Module 'C:\Program Files\WindowsAdminCenter\PowerShellModules\Microsoft.WindowsAdminCenter.Configuration'
     Set-WACWinRmTrustedHosts -TrustAll
     Set-WACHttpsPorts -WacPort $wacPort -ServicePortRangeStart 6601 -ServicePortRangeEnd 6610
