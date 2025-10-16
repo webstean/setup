@@ -57,10 +57,10 @@ Set-PSReadLineOption -PredictionViewStyle ListView
 # Install AZ Modules - Az PowerShell module is the recommended PowerShell module for managing Azure resources on all platforms.
 if ( -not (Get-Module -Name Az -ListAvailable)) {
     Write-Output ("Installing AZ (Azure) Powershell module...")
-    Install-Module Az -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
+    Install-Module -Name Az -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
     Write-Output ("Updating AZ (Azure) Powershell module...")
-    Update-Module Az -Force -Scope $installscope -Repository PSGallery -ErrorAction SilentlyContinue 
+    Update-Module -Name Az -Scope $installscope -Force -ErrorAction SilentlyContinue 
 }
 
 ## Get rid of depreciated modules
