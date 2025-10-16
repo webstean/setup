@@ -75,6 +75,7 @@ function Disable-MsnFeedsAndWidgets {
 
 	# 2. Disable Widgets for current user
 	try {
+		## Need extra permissions
 		Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarDa" -Value 0 -Force
 		Write-Host "✅ Taskbar widgets disabled for current user."
 	}
@@ -98,6 +99,7 @@ function Disable-MsnFeedsAndWidgets {
 	try {
 		$feedsKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Feeds"
 		New-Item -Path $feedsKey -Force | Out-Null
+		## Need permissions
 		New-ItemProperty -Path $feedsKey -Name "ShellFeedsTaskbarViewMode" -Value 2 -PropertyType DWord -Force | Out-Null
 		Write-Host "✅ Personalized content in feeds disabled."
 	}
