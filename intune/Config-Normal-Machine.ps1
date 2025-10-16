@@ -607,13 +607,18 @@ Install-VLC
 
 function EnableAustralianLanguagePack {
 
+	$DisplayName = "English (Australia)"
 	$Language = "en-AU" ## Language pack for Australian English
 	$ShortLanguage = "AU" ## Language pack for Australian English
 	$CodeLanguage = 12
 
+	if ( (Get-WinSystemLocale).Name == $Language } {
+		return
+	}
+	
 	Get-InstalledLanguage
 	Get-WinSystemLocale
-	Write-Output "Installing language pack: $Language"
+	Write-Output "Installing language pack: $DisplayName"
 
 	## Install-Module -Name Install-Language
 
