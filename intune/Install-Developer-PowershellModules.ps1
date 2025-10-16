@@ -30,9 +30,8 @@ Import-Module PowerShellGet
 
 ## Provider: nuget
 Write-Output "Enabling nuget..."
-Set-PackageSource -Name "nuget.org" -Trusted -ErrorAction SilentlyContinue
-Find-PackageProvider -Name NuGet | Install-PackageProvider -Force -ErrorAction SilentlyContinue | Register-PackageSource -Name nuget.org -Location https://www.nuget.org/api/v2 -ProviderName NuGet -ErrorAction SilentlyContinue
 Get-PackageProvider -ListAvailable
+Set-PackageSource -Name "nuget.org" -Trusted -ErrorAction SilentlyContinue
 
 ## Provider: PSGallery
 Write-Output "Enabling and trusting PSGallery..."
