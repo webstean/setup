@@ -438,7 +438,7 @@ function Install-SysInternalsTools {
 
     $tools = @(
 #        @{ Name = "autoruns.exe";    Friendly = "Autoruns Tool.exe" },
-        @{ Name = "Autologon64.exe"; Friendly = "Auto Logon Utility.exe" },
+#        @{ Name = "Autologon64.exe"; Friendly = "Auto Logon Utility.exe" },
         @{ Name = "ZoomIt64.exe";    Friendly = "ZoomIt Presentation Tool.exe" },
         @{ Name = "tcpview64.exe";   Friendly = "TCP View.exe" },
         @{ Name = "winobj64.exe";    Friendly = "Windows Object Viewer.exe" },
