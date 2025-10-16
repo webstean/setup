@@ -628,12 +628,12 @@ function EnableAustralianLanguagePack {
 
 	try {
 		## Install the language pack with UI, system, and input preferences
-		powershell.exe -Command "Install-Language -Language $Language -CopyToSettings"
+		Install-Language -Language $Language -CopyToSettings
 
 		## Set system locale
-		powershell.exe -Command "Set-WinSystemLocale -SystemLocale $Language"
-		powershell.exe -Command "Set-WinUILanguageOverride -Language $Language"
-		powershell.exe -Command "Set-Culture -CultureInfo $Language"
+		Set-WinSystemLocale -SystemLocale $Language
+		Set-WinUILanguageOverride -Language $Language
+		Set-Culture -CultureInfo $Language
 
 		## Set user language list
 		$LangList = New-WinUserLanguageList -Language $Language
@@ -661,9 +661,9 @@ function EnableAustralianLanguagePack {
 		Get-Item -Path "HKCU:\Software\Microsoft\Speech\Voices"
 
 		Write-Output "$Language pack has been enabled!"
-		Set-ItemProperty -Path "HKCU:\Control Panel\International\Geo" -Name "Name" -Value $ShortLanguage
-		Set-ItemProperty -Path "HKCU:\Control Panel\International\Geo" -Name "Nation" -Value $CodeLanguage
-		Set-ItemProperty -Path "HKCU:\Control Panel\International\Geo" -Name "AutoGeo" -Value 1
+		#Set-ItemProperty -Path "HKCU:\Control Panel\International\Geo" -Name "Name" -Value $ShortLanguage
+		#Set-ItemProperty -Path "HKCU:\Control Panel\International\Geo" -Name "Nation" -Value $CodeLanguage
+		#Set-ItemProperty -Path "HKCU:\Control Panel\International\Geo" -Name "AutoGeo" -Value 1
 		Write-Output "You may need to sign out and sign back in for the change to take effect."
 	}
  	catch {
