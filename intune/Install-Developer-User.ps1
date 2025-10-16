@@ -837,7 +837,10 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User")
 
 Write-Output ("Configuring Oh My Posh, if it isn't already installed...")
 ## Oh My Posh
-If (-not(Test-Path -Path "$env:POSH_THEMES_PATH\jandedobbeleer.omp.json" -PathType Leaf )) {
+If (Test-Path -Path "$env:POSH_THEMES_PATH\jandedobbeleer.omp.json" -PathType Leaf ) {
+    if (!(Test-Path -Path $PROFILE.AllUsersAllHosts)) {
+        New-Item -ItemType File -Path $PROFILE.AllUsersAllHosts -Force -ErrorAction Ignore
+    }
     ### Winget sets the POSH_THEMES_PATH variable
     ### FYI: Meslo is the default font for Windows Terminal
     ## $env:POSH_THEMES_PATH = [System.Environment]::GetEnvironmentVariable("POSH_THEMES_PATH","User")
@@ -854,16 +857,16 @@ If (-not(Test-Path -Path "$env:POSH_THEMES_PATH\jandedobbeleer.omp.json" -PathTy
     }
     #New-Item -Path $PROFILE -Type File -Force
     #"& ([ScriptBlock]::Create((oh-my-posh init pwsh --config `"$env:POSH_THEMES_PATH\cloud-native.omp.json`" --print) -join `"`n`"))" | Out-File $PROFILE
+    ## exclude from Defender AV - Oh-My-Posh
+    $exclusion = [Environment]::GetFolderPath(“localapplicationdata”) + "\Programs\oh-my-posh"
+    Add-MpPreference -ExclusionPath $exclusion
+    $exclusion = [Environment]::GetFolderPath(“UserProfile”)
+    Add-MpPreference -ExclusionPath $exclusion
+    #### wt new-tab "cmd" `; split-pane -p "Windows PowerShell" `; split-pane -H wsl.exe
 }
 else {
-    Write-Output("Skipping... Oh-My-Posh is already installed")
+    Write-Output("Skipping... Oh-My-Posh not found!")
 }
-## exclude from Defender AV - Oh-My-Posh
-$exclusion = [Environment]::GetFolderPath(“localapplicationdata”) + "\Programs\oh-my-posh"
-Add-MpPreference -ExclusionPath $exclusion
-$exclusion = [Environment]::GetFolderPath(“UserProfile”)
-Add-MpPreference -ExclusionPath $exclusion
-#### wt new-tab "cmd" `; split-pane -p "Windows PowerShell" `; split-pane -H wsl.exe
 
 Write-Output ("Upgrading anything else...") 
 ## bring everything up to date
