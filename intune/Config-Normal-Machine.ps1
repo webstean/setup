@@ -612,6 +612,10 @@ function EnableAustralianLanguagePack {
 	$ShortLanguage = "AU" ## Language pack for Australian English
 	$CodeLanguage = 12
 
+	## Set the Home Location
+	$geoId = (New-Object System.Globalization.RegionInfo $ShortLanguage).GeoId
+	Set-WinHomeLocation -GeoId $geoId
+	
 	if ( (Get-WinSystemLocale).Name == $Language ) {
 		return
 	}
@@ -650,10 +654,6 @@ function EnableAustralianLanguagePack {
 			powershell.exe -Command "Add-WindowsCapability -Online -Name $feature"
 		}
 	
-		## Set the Home Location
-		$geoId = (New-Object System.Globalization.RegionInfo $ShortLanguage).GeoId
-		Set-WinHomeLocation -GeoId $geoId
-		
 		## $voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_JamesM"
 		$voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_CatherineM"
 		Set-ItemProperty -Path "HKCU:\Software\Microsoft\Speech\Voices" -Name "DefaultTokenId" -Value $voice -Type String
