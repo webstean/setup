@@ -14,7 +14,7 @@ function Get-AzureVMTags {
     if ($response) {
         Write-Host "✅ Azure Tags assigned to this VM:`n"
         foreach ($tag in $response) {
-            Write-Host ("{0,-20}: {1}" -f $tag.name, $tag.value)
+            Write-Host ("{0,-20}: {1}" -f $tag.name, $tag.value) | Format-Table
         }
     }
     else {
