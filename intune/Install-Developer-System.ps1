@@ -18,7 +18,7 @@ function Install-WinRM {
     #New-NetFirewallRule -DisplayName "Allow WinRM HTTPS" -Direction Inbound -LocalPort 5986 -Protocol TCP -Action Allow -Profile Private | Out-Null
 
     ## For the transcript: remoting (WSMAN) configuration
-    winrm quickconfig -force
+    winrm quickconfig -Force
     Enable-PSRemoting -Force
     winrm enumerate winrm/config/listener
     ## using a certificate for WinRm?
