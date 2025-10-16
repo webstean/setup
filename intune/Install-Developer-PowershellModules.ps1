@@ -136,7 +136,7 @@ $jsonObject= @"
 ## Install Azure Tools Predictor
 if ( -not (Get-Module -Name Az.Tools.Predictor -ListAvailable)) {
     Install-Module Az.Tools.Predictor -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-} else
+} else {
     Update-Module Az.Tools.Predictor -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
 }    
 Import-Module Az.Tools.Predictor
