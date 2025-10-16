@@ -140,7 +140,7 @@ if ( -not (Get-Module -Name Az.Tools.Predictor -ListAvailable)) {
     Update-Module Az.Tools.Predictor -Force -Scope $installscope -ErrorAction SilentlyContinue
 }    
 Import-Module Az.Tools.Predictor
-Enable-AzPredictor -AllSession ## should update $profile
+Enable-AzPredictor -AllSession ## will update $profile
 (Get-PSReadLineOption).PredictionSource
 Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction SilentlyContinue
 # Set-PSReadLineOption -PredictionViewStyle InlineView
