@@ -136,12 +136,12 @@ foreach ($file in $filesToDownloadOnly) {
 ## Execute downloaded scripts
 try {
     & "$TranscriptDir\Config-Normal-Machine.ps1"
+    & "$TranscriptDir\Install-Developer-PowerShellModules.ps1"
     & "$TranscriptDir\Install-Global-Secure-Access-Client.ps1"
     & "$TranscriptDir\Install-Windows-Admin-Centre.ps1"
     & "$TranscriptDir\Install-Developer-Fonts.ps1"
     & "$TranscriptDir\Install-Developer-System.ps1" ## installs dotnet, that we need later
 
-#    & "$TranscriptDir\Install-Developer-PowerShellModules.ps1"
 #    & "$TranscriptDir\Install-Developer-User.ps1"
 #    & "$TranscriptDir\Winget-Config-Developer.ps1"
 }
