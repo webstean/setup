@@ -12,11 +12,12 @@ function CreateIfNotExists {
 	}
 }
 Write-Output ("Configuring...")
-function DisableIPv6 {
-	$setIpv6Value = 0x20
+function PreferIPv4 {
 	## Prefer IPv4 over IPv6 with 0x20, disable  IPv6 with 0xff, revert to default with 0x00.
-	Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" -Name "DisabledComponents" -Type DWord -Value $setIpv6Value
-	## Go further, by disabling IPv6 by removing binding
+	$setting = 0x20
+	Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" -Name "DisabledComponents" -Type DWord -Value $setting
+}
+function UnbindIPv6 {
 	Get-NetAdapterBinding | Where-Object ComponentID -eq 'ms_tcpip6' | ForEach-Object {
 		Disable-NetAdapterBinding -Name $_.Name -ComponentID 'ms_tcpip6'
 	}
@@ -44,7 +45,8 @@ function DisableQUIC {
 	Set-ItemProperty -Path "HKLM:\Software\Policies\Google\Chrome"  -Name "QuicAllowed" -Value $disableQUIC -Type DWord -Force
 }
 ## Configure for MAXIMUM compatibility with Microsoft Global Secure Access and other similar (Cisco Umbrella etc..)
-DisableIPv6
+PreferIPv4
+# UnbindIPv6
 DisableInbuiltDNS
 DisableQUIC
 
@@ -59,29 +61,6 @@ Function DisableNewsAndInterests {
 DisableNewsAndInterests
 
 function Disable-MsnFeedsAndWidgets {
-	<#
-    .SYNOPSIS
-        Disables MSN news feeds, widgets, and search highlights on Windows 11.
-
-    .DESCRIPTION
-        - Disables the Widgets feature (news, weather, stocks).
-        - Disables MSN content in search and feeds.
-        - Applies settings for current user and system.
-        - Requires restart or sign-out to fully apply.
-
-    .EXAMPLE
-        Disable-MsnFeedsAndWidgets
-    #>
-
-	[CmdletBinding()]
-	param()
-
-	if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
-		).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-		Write-Warning "⚠️  Please run this script as Administrator."
-		return
-	}
-
 	Write-Host "`n🔧 Disabling MSN Feeds, Widgets, and Search Highlights..."
 
 	# 1. Disable Widgets in Taskbar via system policy
@@ -90,7 +69,7 @@ function Disable-MsnFeedsAndWidgets {
 		New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Dsh" -Name "AllowNewsAndInterests" -PropertyType DWord -Value 0 -Force | Out-Null
 		Write-Host "✅ Widgets disabled via policy (HKLM)."
 	}
- catch {
+ 	catch {
 		Write-Warning "❌ Failed to set system-wide widget policy: $_"
 	}
 
@@ -99,7 +78,7 @@ function Disable-MsnFeedsAndWidgets {
 		Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarDa" -Value 0 -Force
 		Write-Host "✅ Taskbar widgets disabled for current user."
 	}
- catch {
+ 	catch {
 		Write-Warning "❌ Failed to disable taskbar widgets: $_"
 	}
 
@@ -111,7 +90,7 @@ function Disable-MsnFeedsAndWidgets {
 		New-ItemProperty -Path $searchKey -Name "IsDynamicSearchBoxEnabledOnTablet" -Value 0 -PropertyType DWord -Force | Out-Null
 		Write-Host "✅ Search highlights disabled."
 	}
- catch {
+ 	catch {
 		Write-Warning "❌ Failed to configure search highlights: $_"
 	}
 
@@ -122,16 +101,14 @@ function Disable-MsnFeedsAndWidgets {
 		New-ItemProperty -Path $feedsKey -Name "ShellFeedsTaskbarViewMode" -Value 2 -PropertyType DWord -Force | Out-Null
 		Write-Host "✅ Personalized content in feeds disabled."
 	}
- catch {
+ 	catch {
 		Write-Warning "❌ Failed to disable feeds view: $_"
 	}
-
-	Write-Host "`n🛑 Changes applied. Please sign out or restart the computer to fully apply settings."
 }
 Disable-MsnFeedsAndWidgets
 
 
-# Enable location feature and scripting for the location feature
+# Enable location feature and scripting for the location feature (This does NOT work on Windows 11)
 Function EnableLocation {
 	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors" -Name "DisableLocation" -ErrorAction SilentlyContinue
 	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors" -Name "DisableLocationScripting" -ErrorAction SilentlyContinue
@@ -714,8 +691,10 @@ function SortOutTimeManagement {
 }
 #SortOutTimeManagement
 
+Write-Host "`n🛑 Changes applied. Please sign out or restart the computer to fully apply settings."
+
 ## Cleanup
 ## winget remove Splashtop.SplashtopStreamer
 ## winrm HTTPS requires a local computer Server Authentication certificate with a CN matching the hostname to be installed. The certificate mustn't be expired, revoked, or self-signed.
 ## Test-NetConnection -Port 443 -ComputerName localhost -InformationLevel Detailed
-Exit 0
+Return $true
