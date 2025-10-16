@@ -616,7 +616,7 @@ function EnableAustralianLanguagePack {
 	$geoId = (New-Object System.Globalization.RegionInfo $ShortLanguage).GeoId
 	Set-WinHomeLocation -GeoId $geoId
 	
-	if ( (Get-WinSystemLocale).Name == $Language ) {
+	if ( (Get-WinSystemLocale).Name -eq $Language ) {
 		return
 	}
 	
