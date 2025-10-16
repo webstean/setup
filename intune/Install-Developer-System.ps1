@@ -444,7 +444,8 @@ function Install-SysInternalsTools {
         @{ Name = "winobj64.exe";    Friendly = "Windows Object Viewer.exe" },
         @{ Name = "psping64.exe";    Friendly = "PS Ping.exe" },
         @{ Name = "procexp64.exe";   Friendly = "Process Explorer.exe" },
-        @{ Name = "procmon64.exe";   Friendly = "Process Monitor.exe" }
+        @{ Name = "procmon64.exe";   Friendly = "Process Monitor.exe" },
+        @{ Name = "RDCMan.exe";      Friendly = "Remote Desktop Manager.exe" }
 #        @{ Name = "whois64.exe";     Friendly = "Whois Utility.exe" },
 #        @{ Name = "PsExec64.exe";    Friendly = "PS Exec.exe" },
 #        @{ Name = "Psfile64.exe";    Friendly = "PS File.exe" }
