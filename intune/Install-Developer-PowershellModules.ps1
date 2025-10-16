@@ -32,7 +32,7 @@ Import-Module PowerShellGet
 if ( -not (Get-Module -Name Terminal-Icons -ListAvailable)) {
     Install-Module Terminal-Icons -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
-    Update-Module Terminal-Icons -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
+    Update-Module Terminal-Icons -Force -Scope $installscope -ErrorAction SilentlyContinue
 }
 if ( -not (Get-Module -Name PSReadline -ListAvailable)) {
     Install-Module PSReadline -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
@@ -60,7 +60,7 @@ if ( -not (Get-Module -Name Az -ListAvailable)) {
     Install-Module Az -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
     Write-Output ("Updating AZ (Azure) Powershell module...")
-    Update-Module Az -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue 
+    Update-Module Az -Force -Scope $installscope -Repository PSGallery -ErrorAction SilentlyContinue 
 }
 
 ## Get rid of depreciated modules
@@ -89,7 +89,7 @@ if ( -not (Get-Module -Name Microsoft.Graph -ListAvailable)) {
     Install-Module Microsoft.Graph -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
     Write-Output ("Updating Microsoft Graph Powershell modules...")
-    Update-Module Microsoft.Graph -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
+    Update-Module Microsoft.Graph -Force -Scope $installscope -ErrorAction SilentlyContinue
 } 
 
 ## Install Teams Modules
@@ -98,7 +98,7 @@ if ( -not (Get-Module -Name MicrosoftTeams -ListAvailable)) {
     Install-Module MicrosoftTeams -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
     Write-Output ("Updating Microsoft Teams Powershell modules...")
-    Update-Module MicrosoftTeams -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
+    Update-Module MicrosoftTeams -Force -Scope $installscope -ErrorAction SilentlyContinue
 } 
 
 ## Install PowerApps Modules
@@ -107,7 +107,7 @@ if ( -not (Get-Module -Name Microsoft.PowerApps.Administration.PowerShell -ListA
     Install-Module Microsoft.PowerApps.Administration.PowerShell -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
     Write-Output ("Updating Microsoft Power Apps modules...")
-    Update-Module Microsoft.PowerApps.Administration.PowerShell -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
+    Update-Module Microsoft.PowerApps.Administration.PowerShell -Force -Scope $installscope -ErrorAction SilentlyContinue
 } 
 ## Add-PowerAppsAccount -Endpoint prod
 $jsonObject= @" 
@@ -129,7 +129,7 @@ $jsonObject= @"
 #if ( -not (Get-Module -Name VMware.PowerCLI -ListAvailable)) {
 #    Install-Module -Name VMware.PowerCLI  -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 #} else {
-#    Update-Module VMware.PowerCLI -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
+#    Update-Module VMware.PowerCLI -Force -Scope $installscope -ErrorAction SilentlyContinue
 #} 
 #Get-InstalledModule -Name VMware.PowerCLI
 
@@ -137,7 +137,7 @@ $jsonObject= @"
 if ( -not (Get-Module -Name Az.Tools.Predictor -ListAvailable)) {
     Install-Module Az.Tools.Predictor -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
-    Update-Module Az.Tools.Predictor -Force -Scope $installscope -AllowClobber -ErrorAction SilentlyContinue
+    Update-Module Az.Tools.Predictor -Force -Scope $installscope -ErrorAction SilentlyContinue
 }    
 Import-Module Az.Tools.Predictor
 Enable-AzPredictor -AllSession ## should update $profile
