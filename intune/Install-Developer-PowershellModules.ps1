@@ -30,19 +30,19 @@ Import-Module PowerShellGet
 
 ## Provider: nuget
 Write-Output "Enabling nuget..."
+if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
+  Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$true | Out-Null
+}
 Get-PackageProvider -ListAvailable
 Set-PackageSource -Name "nuget.org" -Trusted -ErrorAction SilentlyContinue
 
 ## Provider: PSGallery
 Write-Output "Enabling and trusting PSGallery..."
-if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
-  Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$true | Out-Null
-  Find-PackageProvider -ForceBootstrap
-}
 Register-PSRepository -Default -ErrorAction SilentlyContinue
 if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
             Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction SilentlyContinue
 }
+Find-PackageProvider -ForceBootstrap
 Get-PSRepository -Name PSGallery
 ## Get-PSRepository -Name PSGallery | Format-List * -Force
 
