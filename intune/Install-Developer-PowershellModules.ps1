@@ -15,34 +15,31 @@ Write-Host "Installed .NET SDK version: ${INSTALLED_DOTNET_VERSION}"
 #winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.10
 winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.Preview
 
-## Provider: PSGallery
-Write-Output "Enable PSGallery..."
 Import-Module PackageManagement
 Install-Module PowerShellGet -Force
 Import-Module PowerShellGet
+
+## Provider: nuget
+Write-Output "Enabling nuget..."
+Set-PackageSource -Name "nuget.org" -Trusted -ErrorAction SilentlyContinue
+Find-PackageProvider -Name NuGet | Install-PackageProvider -Force -ErrorAction SilentlyContinue | Register-PackageSource -Name nuget.org -Location https://www.nuget.org/api/v2 -ProviderName NuGet -ErrorAction SilentlyContinue
+Get-PackageProvider -ListAvailable
+
+## Provider: PSGallery
+Write-Output "Enabling and trusting PSGallery..."
 if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
-  Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -PackageSourceLocation $src -Force
+  Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$true | Out-Null
   Find-PackageProvider -ForceBootstrap
 }
 Register-PSRepository -Default -ErrorAction SilentlyContinue
-Get-PSRepository -Name PSGallery | Format-List * -Force
 if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
             Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction SilentlyContinue
 }
-Get-PSRepository -Verbose
-
-## Provider: nuget
-Write-Output "Enable nuget..."
-Set-PackageSource -Name "nuget.org" -Trusted -ErrorAction SilentlyContinue
-Get-PackageProvider 
-Find-PackageProvider -Name NuGet | Install-PackageProvider -Force -ErrorAction SilentlyContinue
-Register-PackageSource -Name nuget.org -Location https://www.nuget.org/api/v2 -ProviderName NuGet -ErrorAction SilentlyContinue
-
-Get-PackageProvider -ListAvailable
+Get-PSRepository -Name PSGallery
+## Get-PSRepository -Name PSGallery | Format-List * -Force
 
 ## Setup PSReadline
 Write-Output "Setting up PSReadline..."
-Import-Module PowerShellGet
 if ( -not (Get-Module -Name Terminal-Icons -ListAvailable)) {
     Install-Module Terminal-Icons -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
