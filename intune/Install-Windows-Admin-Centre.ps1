@@ -41,6 +41,8 @@ $installerPath = "$destinationFolder\WindowsAdminCenter.exe"
 $certSubject = "CN=WindowsAdminCenter"
 $wacPort = 443  # You can change this (e.g., 6516 or 6600)
 
+## Manage firewall here
+
 # 1. Download WAC installer
 Write-Host "Downloading Windows Admin Center installer to $installerPath..."
 Invoke-WebRequest -Uri $downloadUrl -OutFile $installerPath -UseBasicParsing
