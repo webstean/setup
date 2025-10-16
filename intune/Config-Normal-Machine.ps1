@@ -624,39 +624,35 @@ function EnableAustralianLanguagePack {
 		return $false
 	}
 	
-	$DisplayName = Get-WinSystemLocale.DisplayName
-	$Language = Get-WinSystemLocale.Name
+	$DisplayName = (Get-WinSystemLocale).DisplayName
+	$Language = (Get-WinSystemLocale).Name
 	Write-Output "Installing language pack: $DisplayName"
 
 	try {
 		## Install the language pack with UI, system, and input preferences
 		Install-Language -Language $Language -CopyToSettings
 
+		## Get-WindowsCapability -Online | Where-Object { $_.Name -like "*Speech*" }
+		## Get-WindowsCapability -Online | Where-Object Name -like '*Language*en-AU*'
+		$capabilities = @(
+			"Language.Handwriting~~~$Language~0.0.1.0",
+			"Language.Speech~~~$Language~0.0.1.0",
+			"Language.TextToSpeech~~~$Language~0.0.1.0",
+			"Language.OCR~~~$Language~0.0.1.0"
+		)
+		foreach ($capability in $capabilities) {
+			Write-Output "Installing feature: $capability"
+			if ((Get-WindowsCapability -Online -Name $capability).State -ne 'Installed') {
+				Add-WindowsCapability -Online -Name $capability
+			} else {
+				Write-Host "$capability already INSTALLED"
+			}
+		}
+	
 		## Set system locale
 		Set-WinSystemLocale -SystemLocale $Language
 		Set-WinUILanguageOverride -Language $Language
 		Set-Culture -CultureInfo $Language
-
-		## Get-WindowsCapability -Online | Where-Object { $_.Name -like "*Speech*" }
-		$features = @(
-			"Language.Handwriting~~~$Language~0.0.1.0",
-			"Language.Speech~~~$Language~0.0.1.0",
-			"Language.TextToSpeech~~~$Language~0.0.1.0",
-			"Language.Speech.Enhanced~~~$Language~0.0.1.0"
-		)
-		foreach ($feature in $features) {
-			Write-Output "Installing feature: $feature"
-			#powershell.exe -Command "Add-WindowsCapability -Online -Name $feature"
-			Add-WindowsCapability -Online -Name $feature
-		}
-	
-		## $voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_JamesM"
-		$voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_CatherineM"
-		if (Test-Path $voice) {
-			CreateIfNotExists "HKCU:\Software\Microsoft\Speech\Voices"
-			Set-ItemProperty -Path "HKCU:\Software\Microsoft\Speech\Voices" -Name "DefaultTokenId" -Value $voice -Type String
-			Get-Item -Path "HKCU:\Software\Microsoft\Speech\Voices"
-		}
 
 		## Set user language list
 		$LangList = New-WinUserLanguageList -Language $Language
@@ -665,6 +661,14 @@ function EnableAustralianLanguagePack {
 
 		## Copy to system
 		Copy-UserInternationalSettingsToSystem -WelcomeScreen $true -NewUser $true
+
+		## $voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_JamesM"
+		$voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_CatherineM"
+		if (Test-Path $voice) {
+			CreateIfNotExists "HKCU:\Software\Microsoft\Speech\Voices"
+			Set-ItemProperty -Path "HKCU:\Software\Microsoft\Speech\Voices" -Name "DefaultTokenId" -Value $voice -Type String
+			Get-Item -Path "HKCU:\Software\Microsoft\Speech\Voices"
+		}
 
 		Write-Output "$Language pack has been enabled!"
 		Write-Output "You may need to sign out and sign back in for the change to take effect."
