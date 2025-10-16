@@ -612,7 +612,7 @@ function EnableAustralianLanguagePack {
 	$ShortLanguage = "AU" ## Language pack for Australian English
 	$CodeLanguage = 12
 
-	if ( (Get-WinSystemLocale).Name == $Language } {
+	if ( (Get-WinSystemLocale).Name == $Language ) {
 		return
 	}
 	
