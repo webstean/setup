@@ -16,6 +16,7 @@ winget install --silent --accept-source-agreements --accept-package-agreements -
 
 ## Provider: PSGallery
 Write-Output "Enable PSGallery..."
+Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
 Register-PSRepository -Default -ErrorAction SilentlyContinue
 Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction SilentlyContinue
 Get-PSRepository -Verbose
