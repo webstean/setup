@@ -133,6 +133,8 @@ if ($winget) {
         exit 1
     }
 }
+
+## Execute downloaded scripts
 try {
     & ".\Config-Normal-Machine.ps1"
     & ".\Install-Global-Secure-Access-Client.ps1"
@@ -143,7 +145,7 @@ try {
 #    & ".\Install-Developer-PowerShellModules.ps1"
 #    & ".\Install-Developer-User.ps1"
 #    & ".\Winget-Config-Developer.ps1"
-
+}
 catch {
     Write-Error "Error executing: $_"
 }
