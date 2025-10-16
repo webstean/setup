@@ -25,13 +25,23 @@ function Install-WinRM {
     #Winrm get http://schemas.microsoft.com/wbem/wsman/1/config
     #Get-ChildItem -path WSMAN:\localhost\MaxEnvelopeSizeKb
     ## default is 500, 8192 would be better for performance
-    Set-Item -path WSMAN:\localhost\MaxEnvelopeSizeKb 8192
+    Set-Item -path WSMAN:\localhost\MaxEnvelopeSizeKb 8192 -Force
+    Set-Item  WSMan:\localhost\Client\TrustedHosts -Value * -Force  ## $env:COMPUTERNAME -Force
+    Set-Item -Path WSMan:\localhost\Client\Auth\Kerberos -Value $false
+    Set-Item -Path WSMan:\localhost\Service\Auth\Kerberos -Value $false
     Restart-Service WinRM
-    Test-WSMAN localhost
-    Test-NetConnection -Port 5985 -ComputerName localhost -InformationLevel Detailed
-    #Test-NetConnection -Port 5986 -ComputerName localhost -InformationLevel Detailed
+    winrm get winrm/config/client
+    winrm get winrm/config/service
+    if (Test-WSMAN localhost -ErrorAction Continue ) {
+        $cred = Get-Credential
+        Invoke-Command -ComputerName localhost -Authentication Negotiate -Credential $cred -ScriptBlock { hostname }
+        Invoke-Command -ComputerName $env:COMPUTERNAME -Authentication Negotiate -Credential $cred -ScriptBlock { hostname }
+        return $true
+    } else {
+        return $false
+    }
 }
-Install-WinRM
+#Install-WinRM
 
 ## The tools functionality is only installed via DOTNET SDKs, not Runtimes
 function Install-OrUpdate-DotNetTools {
