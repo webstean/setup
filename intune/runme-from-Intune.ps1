@@ -24,25 +24,6 @@ $filesToDownloadOnly = @(
     # Add more filenames as needed
 )
 
-# Local folder to save downloaded scripts
-$scriptFolder = $TranscriptDir
-
-# Download files that should NOT be executed
-foreach ($file in $scripts) {
-    $url = "$baseUrl/$file"
-    $destination = Join-Path -Path $scriptFolder -ChildPath $file
-    Write-Host "Downloading (no execute): $file from $url ..."
-    Invoke-WebRequest -Uri $url -OutFile $destination -UseBasicParsing
-}
-# Download files that need to be executed
-foreach ($file in $filesToDownloadOnly) {
-    $url = "$baseUrl/$file"
-    $destination = Join-Path -Path $scriptFolder -ChildPath $file
-    Write-Host "Downloading (no execute): $file from $url ..."
-    Invoke-WebRequest -Uri $url -OutFile $destination -UseBasicParsing
-}
-
-
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
 if ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
     Write-Output "PowerShell is NOT running in FullLanguage mode. Current mode: $($ExecutionContext.SessionState.LanguageMode)"  
@@ -134,17 +115,35 @@ if ($winget) {
     }
 }
 
+# Local folder to save downloaded scripts
+$scriptFolder = $TranscriptDir
+
+# Download files that should NOT be executed
+foreach ($file in $scripts) {
+    $url = "$baseUrl/$file"
+    $destination = Join-Path -Path $scriptFolder -ChildPath $file
+    Write-Host "Downloading (no execute): $file from $url ..."
+    Invoke-WebRequest -Uri $url -OutFile $destination -UseBasicParsing
+}
+# Download files that need to be executed
+foreach ($file in $filesToDownloadOnly) {
+    $url = "$baseUrl/$file"
+    $destination = Join-Path -Path $scriptFolder -ChildPath $file
+    Write-Host "Downloading (no execute): $file from $url ..."
+    Invoke-WebRequest -Uri $url -OutFile $destination -UseBasicParsing
+}
+
 ## Execute downloaded scripts
 try {
-    & ".\Config-Normal-Machine.ps1"
-    & ".\Install-Global-Secure-Access-Client.ps1"
-    & ".\Install-Windows-Admin-Centre.ps1"
-    & ".\Install-Developer-Fonts.ps1"
-    & ".\Install-Developer-System.ps1" ## installs dotnet, that we need later
+    & "$TranscriptDir\Config-Normal-Machine.ps1"
+    & "$TranscriptDir\Install-Global-Secure-Access-Client.ps1"
+    & "$TranscriptDir\Install-Windows-Admin-Centre.ps1"
+    & "$TranscriptDir\Install-Developer-Fonts.ps1"
+    & "$TranscriptDir\Install-Developer-System.ps1" ## installs dotnet, that we need later
 
-#    & ".\Install-Developer-PowerShellModules.ps1"
-#    & ".\Install-Developer-User.ps1"
-#    & ".\Winget-Config-Developer.ps1"
+#    & "$TranscriptDir\Install-Developer-PowerShellModules.ps1"
+#    & "$TranscriptDir\Install-Developer-User.ps1"
+#    & "$TranscriptDir\Winget-Config-Developer.ps1"
 }
 catch {
     Write-Error "Error executing: $_"
