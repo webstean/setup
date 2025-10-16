@@ -625,16 +625,15 @@ try {
     # Update the Git repository’s commit-graph file to contain all reachable commits
     git commit-graph write --reachable
 
-    # Generate the dev cert (if not already present)
-    #dotnet dev-certs https --clean
-    dotnet dev-certs https --export-path "$env:TEMP\devcert.pfx" -p $env:STRONGPASSWORD
-
     # Import into LocalMachine Root (requires Admin)
     Import-PfxCertificate -FilePath "$env:TEMP\devcert.pfx" `
         -Password (ConvertTo-SecureString -String $env:STRONGPASSWORD -Force -AsPlainText) `
         -CertStoreLocation Cert:\LocalMachine\Root
 
+    # Generate the DotNet dev certificate
+    #dotnet dev-certs https --clean
     ## dotnet dev-certs https --trust --quiet
+    dotnet dev-certs https --export-path "$HOME\dev-certificate.pfx" -p $env:STRONGPASSWORD
     dotnet nuget config paths
 }
 catch {
