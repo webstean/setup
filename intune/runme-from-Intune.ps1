@@ -145,7 +145,7 @@ try {
 #    & ".\Winget-Config-Developer.ps1"
 
 catch {
-    Write-Error "Error executing ${script}: $_"
+    Write-Error "Error executing: $_"
 }
 finally {
     # Stop transcript no matter what
