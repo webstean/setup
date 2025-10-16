@@ -62,6 +62,7 @@ function Install-Fonts {
     Remove-Item $fontExtractPath -Recurse -Force
 }
 ## Font installs
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 Install-Fonts -FontName "CascadiaCode" -Owner "microsoft" -Repo "cascadia-code" -zipfilespec "ttf\*.ttf"
 Install-Fonts -FontName "FiraCode" -Owner "ryanoasis" -Repo "nerd-fonts" -zipfilespec "*.ttf"
 Write-Host ("Setting PowerShell to UTF-8 output encoding...")
