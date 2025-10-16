@@ -26,7 +26,7 @@ $metadataUrl = "http://169.254.169.254/metadata/instance?api-version=2021-02-01"
 $response = Invoke-RestMethod -Headers @{"Metadata" = "true" } -Method GET -Uri $metadataUrl | ConvertTo-Json -Depth 64
 if ($response | ConvertFrom-Json | Select-Object -ExpandProperty compute -ErrorAction SilentlyContinue | Get-Member -Name azEnvironment -MemberType NoteProperty -ErrorAction SilentlyContinue) {
     Get-AzureVMTags
-    Write-Warning "⚠️ This computer is running inside Azure, so cannot install Windows Admin Center -- so skipping"
+    Write-Warning "⚠️ This computer is running inside Azure, so skipping Windows Admin Center install (use an Azure extension insteand)"
     return $true
 }
 
@@ -66,11 +66,13 @@ Start-Process $installerPath -Wait -ArgumentList @(
 
 ## Write-Host "`n✅ Windows Admin Center installed on https://localhost:$wacPort"
 
-Import-Module 'C:\Program Files\WindowsAdminCenter\PowerShellModules\Microsoft.WindowsAdminCenter.Configuration'
-Set-WACWinRmTrustedHosts -TrustAll
-Set-WACHttpsPorts -WacPort $wacPort -ServicePortRangeStart 6601 -ServicePortRangeEnd 6610
-Set-WACSoftwareUpdateMode -Mode "Automatic"
-# New-WACSelfSignedCertificate -Trust
-# Set-WACLoginMode -Mode "AadSso"
-Register-WACFirewallRule -Port $wacPort
-Restart-WACService
+if (Test-File 'C:\Program Files\WindowsAdminCenter\PowerShellModules\Microsoft.WindowsAdminCenter.Configuration') {
+    Import-Module 'C:\Program Files\WindowsAdminCenter\PowerShellModules\Microsoft.WindowsAdminCenter.Configuration'
+    Set-WACWinRmTrustedHosts -TrustAll
+    Set-WACHttpsPorts -WacPort $wacPort -ServicePortRangeStart 6601 -ServicePortRangeEnd 6610
+    Set-WACSoftwareUpdateMode -Mode "Automatic"
+    ## New-WACSelfSignedCertificate -Trust
+    ## Set-WACLoginMode -Mode "AadSso"
+    Register-WACFirewallRule -Port $wacPort
+    Restart-WACService
+}
