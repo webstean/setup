@@ -153,14 +153,14 @@ if (-not (Get-Help -Name Get-Command -ErrorAction SilentlyContinue | Where-Objec
 ## Clear-AzConfig
 Export-AzConfig -Force -Path $HOME\AzConfig.json
 
-Update-AzConfig -Force -DisplayBreakingChangeWarning $false | Out-Null
-Update-AzConfig -Force -DisplaySurveyMessage $false | Out-Null
-Update-AzConfig -Force -EnableLoginByWam $true | Out-Null
+Update-AzConfig -DisplayBreakingChangeWarning $false | Out-Null
+Update-AzConfig -DisplaySurveyMessage $false | Out-Null
+Update-AzConfig -EnableLoginByWam $true | Out-Null
 ## Update-AzConfig -DefaultSubscriptionForLogin $env:AZURE_SUBSCRIPTION_ID
-Update-AzConfig -Force -CheckForUpgrade $false | Out-Null
-Update-AzConfig -Force -DisplayRegionIdentified $true | Out-Null
-Update-AzConfig -Force -DisplaySecretsWarning $false | Out-Null
-Update-AzConfig -Force -EnableDataCollection $false | Out-Null
+Update-AzConfig -CheckForUpgrade $false | Out-Null
+Update-AzConfig -DisplayRegionIdentified $true | Out-Null
+Update-AzConfig -DisplaySecretsWarning $false | Out-Null
+Update-AzConfig -EnableDataCollection $false | Out-Null
 
 ## Connect-AzAccount -Identity -AccountId <user-assigned-identity-clientId-or-resourceId>
 ## Connect-AzAccount
