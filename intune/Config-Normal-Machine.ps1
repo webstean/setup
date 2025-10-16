@@ -584,26 +584,49 @@ function Install-VLC {
 }
 Install-VLC
 
+function Wait-WindowsUptime {
+
+    $Minutes = 10
+	$targetSeconds = $Minutes * 60
+    Write-Host "[INFO] Waiting for system uptime to reach $Minutes minute(s)..."
+
+    while ($true) {
+        $uptime = (Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+        $seconds = [int]$uptime.TotalSeconds
+
+        if ($seconds -ge $targetSeconds) {
+            Write-Host "[INFO] Uptime reached $([math]::Round($seconds/60,1)) minute(s)."
+            break
+        }
+
+        $remaining = $targetSeconds - $seconds
+        Write-Host "[INFO] Current uptime: $([math]::Round($seconds/60,1)) min — waiting $remaining s more..."
+        Start-Sleep -Seconds ([Math]::Min($CheckInterval, $remaining))
+    }
+	return $true
+}
+
 function EnableAustralianLanguagePack {
 
-	$DisplayName = "English (Australia)"
-	$Language = "en-AU" ## Language pack for Australian English
 	$ShortLanguage = "AU" ## Language pack for Australian English
-	$CodeLanguage = 12
 
+	Wait-WindowsUptime
 	## Set the Home Location
 	$geoId = (New-Object System.Globalization.RegionInfo $ShortLanguage).GeoId
 	Set-WinHomeLocation -GeoId $geoId
 	
-	if ( (Get-WinSystemLocale).Name -eq $Language ) {
-		return
+	#if ( (Get-WinSystemLocale).Name -eq $ShortLanguage ) {
+	#	return
+	#}
+
+	## Make sure Modules are installed
+	if -not (Get-Module -ListAvailable -Name International ) {
+		return $false
 	}
 	
-	Get-InstalledLanguage
-	Get-WinSystemLocale
+	$DisplayName = Get-WinSystemLocale.DisplayName
+	$Language = Get-WinSystemLocale.Name
 	Write-Output "Installing language pack: $DisplayName"
-
-	## Install-Module -Name Install-Language
 
 	try {
 		## Install the language pack with UI, system, and input preferences
@@ -613,14 +636,6 @@ function EnableAustralianLanguagePack {
 		Set-WinSystemLocale -SystemLocale $Language
 		Set-WinUILanguageOverride -Language $Language
 		Set-Culture -CultureInfo $Language
-
-		## Set user language list
-		$LangList = New-WinUserLanguageList -Language $Language
-		Set-WinUserLanguageList -LanguageList $LangList -Force
-		Set-WinSystemLocale -SystemLocale $Language
-
-		## Copy to system
-		Copy-UserInternationalSettingsToSystem -WelcomeScreen $true -NewUser $true
 
 		## Get-WindowsCapability -Online | Where-Object { $_.Name -like "*Speech*" }
 		$features = @(
@@ -637,13 +652,21 @@ function EnableAustralianLanguagePack {
 	
 		## $voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_JamesM"
 		$voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_CatherineM"
-		Set-ItemProperty -Path "HKCU:\Software\Microsoft\Speech\Voices" -Name "DefaultTokenId" -Value $voice -Type String
-		Get-Item -Path "HKCU:\Software\Microsoft\Speech\Voices"
+		if (Test-Path $voice) {
+			CreateIfNotExists "HKCU:\Software\Microsoft\Speech\Voices"
+			Set-ItemProperty -Path "HKCU:\Software\Microsoft\Speech\Voices" -Name "DefaultTokenId" -Value $voice -Type String
+			Get-Item -Path "HKCU:\Software\Microsoft\Speech\Voices"
+		}
+
+		## Set user language list
+		$LangList = New-WinUserLanguageList -Language $Language
+		Set-WinUserLanguageList -LanguageList $LangList -Force
+		Set-WinSystemLocale -SystemLocale $Language
+
+		## Copy to system
+		Copy-UserInternationalSettingsToSystem -WelcomeScreen $true -NewUser $true
 
 		Write-Output "$Language pack has been enabled!"
-		#Set-ItemProperty -Path "HKCU:\Control Panel\International\Geo" -Name "Name" -Value $ShortLanguage
-		#Set-ItemProperty -Path "HKCU:\Control Panel\International\Geo" -Name "Nation" -Value $CodeLanguage
-		#Set-ItemProperty -Path "HKCU:\Control Panel\International\Geo" -Name "AutoGeo" -Value 1
 		Write-Output "You may need to sign out and sign back in for the change to take effect."
 	}
  	catch {
