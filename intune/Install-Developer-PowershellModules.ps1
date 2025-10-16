@@ -16,9 +16,190 @@ winget install --silent --accept-source-agreements --accept-package-agreements -
 
 ## Provider: PSGallery
 Write-Output "Enable PSGallery..."
-Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$srcV2 = 'https://www.powershellgallery.com/api/v2'
+$srcV3 = 'https://www.powershellgallery.com/api/v3'
+Register-PSRepository -Name PSGallery -SourceLocation $srcV3 -PackageSourceLocation $srcV3 
+if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
+  Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -PackageSourceLocation $src -Force
+}
+
+
+# ------------------------------------------------------------
+# Ensure-PSGalleryTrusted.ps1
+# - Repairs repo state
+# - Registers PSGallery (PSGet v2 or v3)
+# - Sets installation policy to Trusted
+# ------------------------------------------------------------
+
+# 0) Session prep: TLS 1.2 + optional proxy (uncomment if needed)
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+# [System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultNetworkCredentials
+
+function Write-Info($msg){ Write-Host "[INFO] $msg" -ForegroundColor Cyan }
+function Write-Warn($msg){ Write-Warning $msg }
+function Write-Err ($msg){ Write-Host "[ERROR] $msg" -ForegroundColor Red }
+
+$ApiV2 = 'https://www.powershellgallery.com/api/v2'
+$ApiV3 = 'https://www.powershellgallery.com/api/v3'
+
+# 1) Make sure PackageManagement + PowerShellGet are loadable (v1/v2 path)
+try {
+    Import-Module PackageManagement -ErrorAction Stop
+} catch {
+    Write-Warn "PackageManagement module could not be imported. Continuing; v3 path may succeed."
+}
+try {
+    Import-Module PowerShellGet -ErrorAction SilentlyContinue
+} catch {
+    Write-Warn "PowerShellGet module could not be imported. We'll try v3 cmdlets or repair."
+}
+
+# 2) If PowerShellGet v1/v2 appears available, try to repair/re-register PSGallery (api v2)
+$hasV2Cmds = Get-Command -Name Register-PSRepository -ErrorAction SilentlyContinue
+$repairedV2 = $false
+
+if ($hasV2Cmds) {
+    Write-Info "PowerShellGet v1/v2 cmdlets detected."
+
+    # (a) If PSRepository definitions are corrupt/empty, remove per-user file so defaults can be restored
+    $repoFile = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\PowerShell\PowerShellGet\PSRepositories.xml'
+    try {
+        # Detect obviously broken state: Get-PSRepository throws or shows blank SourceLocation
+        $broken = $false
+        try {
+            $repos = Get-PSRepository -ErrorAction Stop
+            foreach ($r in $repos) {
+                if ([string]::IsNullOrWhiteSpace($r.SourceLocation)) { $broken = $true }
+            }
+        } catch { $broken = $true }
+
+        if ($broken -and (Test-Path $repoFile)) {
+            Write-Warn "Detected broken PSRepository state. Removing: $repoFile"
+            Remove-Item $repoFile -Force
+        }
+    } catch {
+        Write-Warn "Could not check/remove PSRepositories.xml: $_"
+    }
+
+    # (b) Recreate or repair PSGallery (api v2)
+    try {
+        $psg = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+        if (-not $psg) {
+            Write-Info "Registering PSGallery (api v2)…"
+            Register-PSRepository -Name PSGallery `
+                -SourceLocation $ApiV2 `
+                -ScriptSourceLocation $ApiV2 `
+                -PackageSourceLocation $ApiV2 `
+                -InstallationPolicy Trusted
+        } else {
+            # Fix empty URLs or untrusted policy
+            $needsReset = [string]::IsNullOrWhiteSpace($psg.SourceLocation) -or
+                          [string]::IsNullOrWhiteSpace($psg.ScriptSourceLocation) -or
+                          [string]::IsNullOrWhiteSpace($psg.PackageSourceLocation)
+            if ($needsReset) {
+                Write-Warn "PSGallery URLs are missing/invalid. Re-registering…"
+                Unregister-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+                Register-PSRepository -Name PSGallery `
+                    -SourceLocation $ApiV2 `
+                    -ScriptSourceLocation $ApiV2 `
+                    -PackageSourceLocation $ApiV2 `
+                    -InstallationPolicy Trusted
+            } else {
+                if ($psg.InstallationPolicy -ne 'Trusted') {
+                    Write-Info "Setting PSGallery to Trusted…"
+                    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+                }
+            }
+        }
+        $repairedV2 = $true
+    } catch {
+        Write-Warn "v2 Register/Set-PSRepository flow failed: $($_.Exception.Message)"
+    }
+}
+
+# 3) If v2 path failed or not present, try PowerShellGet v3 repo cmdlets (api v3)
+$hasV3Cmds = Get-Command -Name Register-PSResourceRepository -ErrorAction SilentlyContinue
+if (-not $repairedV2 -and $hasV3Cmds) {
+    Write-Info "PowerShellGet v3 cmdlets detected."
+
+    try {
+        $repo = Get-PSResourceRepository -Name PSGallery -ErrorAction SilentlyContinue
+        if (-not $repo) {
+            Write-Info "Registering PSGallery (api v3)…"
+            Register-PSResourceRepository -Name PSGallery -Url $ApiV3 -Trusted
+        } else {
+            if (-not $repo.Trusted) {
+                Write-Info "Marking PSGallery as Trusted (v3)…"
+                Set-PSResourceRepository -Name PSGallery -Trusted
+            }
+            # Ensure URL is correct
+            if ($repo.Url -ne $ApiV3) {
+                Write-Info "Updating PSGallery URL to api v3…"
+                Unregister-PSResourceRepository -Name PSGallery -ErrorAction SilentlyContinue
+                Register-PSResourceRepository -Name PSGallery -Url $ApiV3 -Trusted
+            }
+        }
+        $repairedV2 = $true
+    } catch {
+        Write-Err "v3 repository registration failed: $($_.Exception.Message)"
+    }
+}
+
+# 4) As a last resort on Windows PowerShell 5.1, try default registration
+if (-not $repairedV2 -and $hasV2Cmds) {
+    try {
+        Write-Info "Attempting Register-PSRepository -Default…"
+        Register-PSRepository -Default -ErrorAction Stop
+        # Ensure trusted
+        if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+        }
+        $repairedV2 = $true
+    } catch {
+        Write-Warn "Default registration failed: $($_.Exception.Message)"
+    }
+}
+
+# 5) Verify & show final state
+Write-Host ""
+Write-Info "Final repository state:"
+if ($hasV2Cmds) {
+    try {
+        Get-PSRepository | Format-Table Name, SourceLocation, InstallationPolicy -AutoSize
+    } catch {
+        Write-Warn "Get-PSRepository failed: $($_.Exception.Message)"
+    }
+}
+if ($hasV3Cmds) {
+    try {
+        Get-PSResourceRepository | Format-Table Name, Url, Trusted -AutoSize
+    } catch {
+        Write-Warn "Get-PSResourceRepository failed: $($_.Exception.Message)"
+    }
+}
+
+# 6) Optional: ensure NuGet provider is present for v2 clients (helps Install-Module)
+try {
+    if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
+        Write-Info "Bootstrapping NuGet provider…"
+        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction Stop | Out-Null
+    }
+} catch {
+    Write-Warn "NuGet provider bootstrap failed (may be fine on v3-only systems): $($_.Exception.Message)"
+}
+
+Write-Host ""
+Write-Info "PSGallery should now be registered and trusted."
+
+
+
+
+Install-Module PowerShellGet -Force
 Register-PSRepository -Default -ErrorAction SilentlyContinue
-Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction SilentlyContinue
+if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
+            Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction SilentlyContinue
+}
 Get-PSRepository -Verbose
 Find-PackageProvider -ForceBootstrap
 
