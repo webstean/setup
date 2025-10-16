@@ -228,19 +228,19 @@ function Enable-DeveloperDevicePortal {
         -Name "AllowDevelopmentWithoutDevLicense" -PropertyType DWord -Value 1 -Force | Out-Null
 
     Write-Host "📦 Installing required Windows capabilities..."
-    $features = @(
+    $capabilities = @(
         "DeviceDiscovery",
         "WindowsDeveloperMode",
         "DevicePortal"
     )
 
-    foreach ($feature in $features) {
-        Write-Host "→ Installing $feature..."
+    foreach ($capability in $capabilities) {
+        Write-Host "→ Installing $capability..."
         try {
-            Add-WindowsCapability -Online -Name "${feature}~~~~0.0.1.0" -ErrorAction Stop
+            Add-WindowsCapability -Online -Name "${capability}~~~~0.0.1.0" -ErrorAction Stop
         }
         catch {
-            Write-Warning "⚠️ Could not install ${feature}: $_"
+            Write-Warning "⚠️ Could not install ${capability}: $_"
         }
     }
 
@@ -318,14 +318,14 @@ if (Get-Command sudo ) {
 }
 
 ## Enable/Install Features
-if ($PSVersionTable.PSVersion.Major -eq 5) {
-    Write-Output "Running in Windows PowerShell."
-    Import-Module DISM 
-}
-else {
-    Write-Output "Not running in Windows PowerShell."
-    Import-Module DISM -UseWindowsPowerShell
-}
+#if ($PSVersionTable.PSVersion.Major -eq 5) {
+#    Write-Output "Running in Windows PowerShell."
+#    Import-Module DISM 
+#}
+#else {
+#    Write-Output "Not running in Windows PowerShell."
+#    Import-Module DISM -UseWindowsPowerShell
+#}
 $features_to_enable = @(
     "TFTP",
 #    "MSMQ-Multicast",
