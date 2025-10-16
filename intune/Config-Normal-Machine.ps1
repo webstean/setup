@@ -627,13 +627,11 @@ function EnableAustralianLanguagePack {
 		## Install the language pack with UI, system, and input preferences
 		Install-Language -Language $Language -CopyToSettings
 
-		## Get-WindowsCapability -Online | Where-Object { $_.Name -like "*Speech*" }
-		## Get-WindowsCapability -Online | Where-Object Name -like '*Language*en-AU*'
+		## Get-WindowsCapability -Online | Where-Object Name -like '*en-AU*'
 		$capabilities = @(
-			"Language.Handwriting~~~$Language~0.0.1.0",
+			"Language.Basic~~~$Language~0.0.1.0",
 			"Language.Speech~~~$Language~0.0.1.0",
 			"Language.TextToSpeech~~~$Language~0.0.1.0",
-			"Language.OCR~~~$Language~0.0.1.0"
 		)
 		foreach ($capability in $capabilities) {
 			Write-Output "Installing feature: $capability"
@@ -666,6 +664,7 @@ function EnableAustralianLanguagePack {
 		}
 
 		Write-Output "$Language pack has been enabled!"
+		Get-Language
 		Write-Output "You may need to sign out and sign back in for the change to take effect."
 	}
  	catch {
