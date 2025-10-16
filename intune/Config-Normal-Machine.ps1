@@ -649,6 +649,11 @@ function EnableAustralianLanguagePack {
 			Write-Output "Installing feature: $feature"
 			powershell.exe -Command "Add-WindowsCapability -Online -Name $feature"
 		}
+	
+		## Set the Home Location
+		$geoId = (New-Object System.Globalization.RegionInfo $ShortLanguage).GeoId
+		Set-WinHomeLocation -GeoId $geoId
+		
 		## $voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_JamesM"
 		$voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_CatherineM"
 		Set-ItemProperty -Path "HKCU:\Software\Microsoft\Speech\Voices" -Name "DefaultTokenId" -Value $voice -Type String
@@ -660,9 +665,10 @@ function EnableAustralianLanguagePack {
 		Set-ItemProperty -Path "HKCU:\Control Panel\International\Geo" -Name "AutoGeo" -Value 1
 		Write-Output "You may need to sign out and sign back in for the change to take effect."
 	}
- catch {
+ 	catch {
 		Write-Error "Failed to install language pack: $_"
 	}
+	return
 }
 EnableAustralianLanguagePack
 
@@ -671,8 +677,7 @@ function SortOutTimeManagement {
 
 	if ($vmic.Enabled -eq 1) {
 		Write-Host "✅ VMICTimeProvider is enabled -  leaving it alone."
-	}
- else {
+	} else {
 		Stop-Service -Name W32Time
 		Write-Host "❌ VMICTimeProvider is not enabled -- configuring NTP settings..."
 		$registryPath = "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters"
