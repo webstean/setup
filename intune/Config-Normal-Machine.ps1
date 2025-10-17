@@ -614,6 +614,8 @@ function EnableAustralianLanguagePack {
 	## Set the Home Location
 	$geoId = (New-Object System.Globalization.RegionInfo $ShortLanguage).GeoId
 	Set-WinHomeLocation -GeoId $geoId
+
+	return
 	
 	#if ( (Get-WinSystemLocale).Name -eq $ShortLanguage ) {
 	#	return
@@ -713,7 +715,7 @@ function SortOutTimeManagement {
 		Start-Service -Name W32Time
 	}
 }
-#SortOutTimeManagement
+SortOutTimeManagement
 
 Write-Host "`n🛑 Changes applied. Please sign out or restart the computer to fully apply settings."
 
