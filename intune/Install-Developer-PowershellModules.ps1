@@ -171,7 +171,7 @@ if (-not (Get-Help -Name Get-Command -ErrorAction SilentlyContinue | Where-Objec
 
 ## Clear-AzConfig
 if ( -not (Test-Path $HOME\AzConfig.json)) {
-    Export-AzConfig -Path $HOME\AzConfig.json
+    Export-AzConfig -Path $HOME\AzConfig.json -Force
 }
 Update-AzConfig -DisplayBreakingChangeWarning $false | Out-Null
 Update-AzConfig -DisplaySurveyMessage $false | Out-Null
