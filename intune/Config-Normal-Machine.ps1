@@ -633,7 +633,7 @@ function EnableAustralianLanguagePack {
 		$capabilities = @(
 			"Language.Basic~~~$Language~0.0.1.0",
 			"Language.Speech~~~$Language~0.0.1.0",
-			"Language.TextToSpeech~~~$Language~0.0.1.0",
+			"Language.TextToSpeech~~~$Language~0.0.1.0"
 		)
 		foreach ($capability in $capabilities) {
 			Write-Output "Installing feature: $capability"
