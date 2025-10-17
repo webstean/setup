@@ -170,12 +170,15 @@ if (-not (Get-Help -Name Get-Command -ErrorAction SilentlyContinue | Where-Objec
 }
 
 ## Clear-AzConfig
-Export-AzConfig -Force -Path $HOME\AzConfig.json
-
+if ( -not (Test-Path $HOME\AzConfig.json)) {
+    Export-AzConfig -Path $HOME\AzConfig.json
+}
 Update-AzConfig -DisplayBreakingChangeWarning $false | Out-Null
 Update-AzConfig -DisplaySurveyMessage $false | Out-Null
 Update-AzConfig -EnableLoginByWam $true | Out-Null
-## Update-AzConfig -DefaultSubscriptionForLogin $env:AZURE_SUBSCRIPTION_ID
+if (Test-Path env:AZURE_SUBSCRIPTION_ID) {
+    Update-AzConfig -DefaultSubscriptionForLogin $env:AZURE_SUBSCRIPTION_ID
+}
 Update-AzConfig -CheckForUpgrade $false | Out-Null
 Update-AzConfig -DisplayRegionIdentified $true | Out-Null
 Update-AzConfig -DisplaySecretsWarning $false | Out-Null
