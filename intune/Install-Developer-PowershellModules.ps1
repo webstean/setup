@@ -13,7 +13,7 @@ if ($IsAdmin -and $IsLanguagePermissive) {
     $InstallScope = 'CurrentUser'
 }
 
-winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.NuGet
+#winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.NuGet
 winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.9
 $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' +
             [System.Environment]::GetEnvironmentVariable('Path','User')
