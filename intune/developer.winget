@@ -9,6 +9,7 @@ properties:
       settings:
         MinVersion: '10.0.22000'
 
+  resources:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: DesiredStateConfiguration
       directives:
