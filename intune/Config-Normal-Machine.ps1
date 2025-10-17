@@ -614,8 +614,6 @@ function EnableAustralianLanguagePack {
 	## Set the Home Location
 	$geoId = (New-Object System.Globalization.RegionInfo $ShortLanguage).GeoId
 	Set-WinHomeLocation -GeoId $geoId
-
-	return
 	
 	#if ( (Get-WinSystemLocale).Name -eq $ShortLanguage ) {
 	#	return
@@ -674,7 +672,7 @@ function EnableAustralianLanguagePack {
 	}
 	return
 }
-EnableAustralianLanguagePack
+#EnableAustralianLanguagePack
 
 function SortOutTimeManagement {
 	$vmic = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\VMICTimeProvider"
