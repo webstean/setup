@@ -314,7 +314,7 @@ Function InstallNET23 {
 }
 InstallNET23
 
-# Uninstall Internet Explorer
+# Uninstall Internet Explorer (not applicable on later Windows 10/11 builds)
 Function UninstallInternetExplorer {
 	Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -like "Internet-Explorer-Optional*" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
 	Get-WindowsCapability -Online | Where-Object { $_.Name -like "Browser.InternetExplorer*" } | Remove-WindowsCapability -Online | Out-Null
@@ -383,7 +383,7 @@ Function DisableIEEnhancedSecurity {
 }
 DisableIEEnhancedSecurity
 
-Write-Output ("Uninstalling Bloat...")
+Write-Output ("Uninstalling Microsoft Software Bloat...")
 # Uninstall default Microsoft applications
 Function UninstallMsftBloat {
 	## Import-Module Appx
@@ -450,6 +450,7 @@ UninstallMsftBloat
 
 # Uninstall default third party applications
 function UninstallThirdPartyBloat {
+	Write-Output ("Uninstalling 3rd Party Software Bloat...")
 	## Import-Module Appx
 	Get-AppxPackage "2414FC7A.Viber" | Remove-AppxPackage
 	Get-AppxPackage "41038Axilesoft.ACGMediaPlayer" | Remove-AppxPackage
@@ -514,6 +515,14 @@ function EnableClipboardHistory {
 	Write-Output "Clipboard history has been enabled."
 }
 EnableClipboardHistory
+
+function DisableSearchonStartMenu {
+	# Disable Bing web search in Start Menu
+	$Path = "HKCU:\Software\Policies\Microsoft\Windows\Explorer"
+	if (-not (Test-Path $Path)) { New-Item -Path $Path -Force | Out-Null }
+	New-ItemProperty -Path $Path -Name "DisableSearchBoxSuggestions" -Value 1 -PropertyType DWord -Force | Out-Null
+}
+DisableSearchonStartMenu
 
 function HideVideoPicturesFileExplorer {
 
@@ -749,6 +758,9 @@ function SortOutTimeManagement {
 	}
 }
 SortOutTimeManagement
+
+Stop-Process -Name explorer -Force
+Start-Process explorer.exe
 
 Write-Host "`n🛑 Changes applied. Please sign out or restart the computer to fully apply settings."
 
