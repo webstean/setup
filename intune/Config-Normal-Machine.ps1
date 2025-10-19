@@ -303,12 +303,17 @@ Function DisableMediaSharing {
 DisableMediaSharing
 
 # Uninstall Windows Media Player (use VLC instead)
-Write-Output ("Configuring Media...")
-Function UninstallMediaPlayer {
-	Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WindowsMediaPlayer" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
-	Get-WindowsCapability -Online | Where-Object { $_.Name -like "Media.WindowsMediaPlayer*" } | Remove-WindowsCapability -Online | Out-Null
+Write-Output ("Installing DotNet 2, 3 and 3.5 for compatability...")
+# Install .NET Framework 2.0, 3.0 and 3.5 runtimes - Requires internet connection
+Function InstallNET23 {
+	If ((Get-CimInstance -Class "Win32_OperatingSystem").ProductType -eq 1) {
+		Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "NetFx3" } | Enable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
+	}
+ Else {
+		Install-WindowsFeature -Name "NET-Framework-Core" -WarningAction SilentlyContinue | Out-Null
+	}
 }
-UninstallMediaPlayer
+InstallNET23
 
 # Uninstall Internet Explorer
 Function UninstallInternetExplorer {
@@ -317,6 +322,7 @@ Function UninstallInternetExplorer {
 }
 UninstallInternetExplorer
 
+Write-Output ("Uninstalling Windows System bloat...")
 # Uninstall Work Folders Client - never used 
 Function UninstallWorkFolders {
 	Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WorkFolders-Client" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
@@ -329,17 +335,6 @@ Function UninstallPowerShellISE {
 	Get-WindowsCapability -Online | Where-Object { $_.Name -like "Microsoft.Windows.PowerShell.ISE*" } | Remove-WindowsCapability -Online | Out-Null
 }
 ##UninstallPowerShellISE
-
-# Install .NET Framework 2.0, 3.0 and 3.5 runtimes - Requires internet connection
-Function InstallNET23 {
-	If ((Get-CimInstance -Class "Win32_OperatingSystem").ProductType -eq 1) {
-		Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "NetFx3" } | Enable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
-	}
- Else {
-		Install-WindowsFeature -Name "NET-Framework-Core" -WarningAction SilentlyContinue | Out-Null
-	}
-}
-InstallNET23
 
 # Uninstall Microsoft XPS Document Writer
 Function UninstallXPSPrinter {
@@ -552,6 +547,13 @@ function HideVideoPicturesFileExplorer {
 }
 HideVideoPicturesFileExplorer
 
+Write-Output ("Configuring Media...")
+Function UninstallMediaPlayer {
+	Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WindowsMediaPlayer" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
+	Get-WindowsCapability -Online | Where-Object { $_.Name -like "Media.WindowsMediaPlayer*" } | Remove-WindowsCapability -Online | Out-Null
+}
+UninstallMediaPlayer
+
 function Install-VLC {
 	<#
     .SYNOPSIS
@@ -630,7 +632,7 @@ function Wait-WindowsUptime {
 	return $true
 }
 
-function EnableAustralianLanguagePack {
+function SetAustraliaLocation {
 
 	$ShortLanguage = "AU" ## Language pack for Australian English
 
@@ -638,13 +640,17 @@ function EnableAustralianLanguagePack {
 	## Set the Home Location
 	$geoId = (New-Object System.Globalization.RegionInfo $ShortLanguage).GeoId
 	Set-WinHomeLocation -GeoId $geoId
-	
-	#if ( (Get-WinSystemLocale).Name -eq $ShortLanguage ) {
-	#	return
-	#}
+}
 
-	$DisplayName = (Get-WinSystemLocale).DisplayName
-	$Language = (Get-WinSystemLocale).Name
+function EnableAustralianLanguagePack {
+
+	Wait-WindowsUptime
+	$ShortLanguage = "AU" ## Language pack for Australian English
+	$lcid = ([System.Globalization.CultureInfo]::GetCultureInfo("en-$ShortLanguage")).LCID
+	$DisplayName = ([System.Globalization.CultureInfo]::GetCultureInfo("en-$ShortLanguage")).DisplayName
+	$Language = ([System.Globalization.CultureInfo]::GetCultureInfo("en-$ShortLanguage")).Name
+	
+	Set-WinSystemLocale -SystemLocale $lcid
 	Write-Output "Installing language pack: $DisplayName"
 
 	try {
@@ -668,6 +674,9 @@ function EnableAustralianLanguagePack {
 	
 		## Set system locale
 		Set-WinSystemLocale -SystemLocale $Language
+
+		# sets a user-preferred display language to be used for the Windows user interface (UI).
+		# Log off and loging back on is required for changes to take place.
 		Set-WinUILanguageOverride -Language $Language
 		Set-Culture -CultureInfo $Language
 
@@ -676,7 +685,8 @@ function EnableAustralianLanguagePack {
 		Set-WinUserLanguageList -LanguageList $LangList -Force
 		Set-WinSystemLocale -SystemLocale $Language
 
-		## Copy to system
+		## Copy internationl settings to system - Log off and loging back on is required for changes to take place.
+		## Windows 11 only
 		Copy-UserInternationalSettingsToSystem -WelcomeScreen $true -NewUser $true
 
 		## $voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_JamesM"
@@ -696,6 +706,7 @@ function EnableAustralianLanguagePack {
 	}
 	return
 }
+SetAustraliaLocation
 EnableAustralianLanguagePack
 
 function SortOutTimeManagement {
