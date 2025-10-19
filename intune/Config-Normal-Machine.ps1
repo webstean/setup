@@ -31,9 +31,7 @@ function Ensure-RegistryValue {
     }
 }
 ## Example:
-#Ensure-RegistryValue -Hive HKLM -SubKey 'SOFTWARE\Contoso\MyApp' -Name 'ServerUrl' -Value 'https://example.local'
-
-
+#Ensure-RegistryValue -Hive HKLM -SubKey 'SOFTWARE\Contoso\MyApp' -Name 'ServerUrl' -Value 'https://example.local' -Type 'String'
 
 Write-Output ("Configuring...")
 function PreferIPv4 {
@@ -42,6 +40,7 @@ function PreferIPv4 {
 	Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" -Name "DisabledComponents" -Type DWord -Value $setting
 }
 function UnbindIPv6 {
+	# More radical - typically not neccessary
 	Get-NetAdapterBinding | Where-Object ComponentID -eq 'ms_tcpip6' | ForEach-Object {
 		Disable-NetAdapterBinding -Name $_.Name -ComponentID 'ms_tcpip6'
 	}
@@ -621,7 +620,7 @@ function Wait-WindowsUptime {
         $seconds = [int]$uptime.TotalSeconds
 
         if ($seconds -ge $targetSeconds) {
-            Write-Host "[INFO] Uptime reached $([math]::Round($seconds/60,1)) minute(s)."
+            #Write-Host "[INFO] Uptime reached $([math]::Round($seconds/60,1)) minute(s)."
             break
         }
 
@@ -639,6 +638,7 @@ function SetAustraliaLocation {
 	Wait-WindowsUptime
 	## Set the Home Location
 	$geoId = (New-Object System.Globalization.RegionInfo $ShortLanguage).GeoId
+    Write-Host "Setting Windows location to be $ShortLanguage"
 	Set-WinHomeLocation -GeoId $geoId
 }
 
