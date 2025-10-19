@@ -100,7 +100,7 @@ function Disable-MsnFeedsAndWidgets {
 	# 2. Disable Widgets for current user
 	try {
 		## Need extra permissions
-		Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarDa" -Value 0 -Force
+		Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarDa" -Value 0 -Force -ErrorAction SilentlyContinue | Out-Null
 		Write-Host "✅ Taskbar widgets disabled for current user."
 	}
  	catch {
@@ -602,7 +602,7 @@ function Install-VLC {
 		}
 
 		# Set VLC as default handler
-		Set-ItemProperty -Path $userChoicePath -Name "ProgId" -Value $progId -Force
+		Set-ItemProperty -Path $userChoicePath -Name "ProgId" -Value $progId -Force -ErrorAction SilentlyContinue | Out-Null
 		Write-Host "Associated $ext with VLC ($progId)"
 	}
 
