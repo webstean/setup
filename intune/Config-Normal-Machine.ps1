@@ -11,6 +11,30 @@ function CreateIfNotExists {
 		New-Item -Path $Path -Force | Out-Null
 	}
 }
+
+function Ensure-RegistryValue {
+    param(
+        [Parameter(Mandatory)] [ValidateSet('HKLM','HKCU')] [string] $Hive,
+        [Parameter(Mandatory)] [string] $SubKey,
+        [Parameter(Mandatory)] [string] $Name,
+        [Parameter(Mandatory)] [object] $Value,
+        [ValidateSet('String','DWord','QWord','Binary','MultiString','ExpandString')]
+        [string] $Type = 'String'
+    )
+    $path = "$Hive`:\$SubKey"
+    try {
+        if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
+        New-ItemProperty -Path $path -Name $Name -Value $Value -PropertyType $Type -Force | Out-Null
+        return [pscustomobject]@{ Path=$path; Name=$Name; Value=$Value; Type=$Type; Status='OK' }
+    } catch {
+        return [pscustomobject]@{ Path=$path; Name=$Name; Error=$_.Exception.Message; Status='FAILED' }
+    }
+}
+## Example:
+#Ensure-RegistryValue -Hive HKLM -SubKey 'SOFTWARE\Contoso\MyApp' -Name 'ServerUrl' -Value 'https://example.local'
+
+
+
 Write-Output ("Configuring...")
 function PreferIPv4 {
 	## Prefer IPv4 over IPv6 with 0x20, disable  IPv6 with 0xff, revert to default with 0x00.
@@ -95,12 +119,12 @@ function Disable-MsnFeedsAndWidgets {
 		Write-Warning "❌ Failed to configure search highlights: $_"
 	}
 
-	# 4. Disable personalized feeds content
+	# 4. Disable personalized feeds content (need more permissions)
 	try {
 		$feedsKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Feeds"
-		New-Item -Path $feedsKey -Force | Out-Null
+		New-Item -Path $feedsKey -Force -ErrorAction SilentlyContinue | Out-Null
 		## Need permissions
-		New-ItemProperty -Path $feedsKey -Name "ShellFeedsTaskbarViewMode" -Value 2 -PropertyType DWord -Force | Out-Null
+		New-ItemProperty -Path $feedsKey -Name "ShellFeedsTaskbarViewMode" -Value 2 -PropertyType DWord -Force -ErrorAction SilentlyContinue | Out-Null
 		Write-Host "✅ Personalized content in feeds disabled."
 	}
  	catch {
@@ -572,7 +596,7 @@ function Install-VLC {
 
 		# Ensure key exists
 		if (-not (Test-Path $userChoicePath)) {
-			New-Item -Path $userChoicePath -Force | Out-Null
+			New-Item -Path $userChoicePath -Force -ErrorAction SilentlyContinue | Out-Null
 		}
 
 		# Set VLC as default handler
@@ -672,7 +696,7 @@ function EnableAustralianLanguagePack {
 	}
 	return
 }
-#EnableAustralianLanguagePack
+EnableAustralianLanguagePack
 
 function SortOutTimeManagement {
 	$vmic = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\VMICTimeProvider"
