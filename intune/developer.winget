@@ -404,44 +404,44 @@ properties:
 #          Repair-WinGetPackageManager;
 #          Write-Host "Done.";  
 
-  - resource: Microsoft.WinGet.DSC/WinGetPackage
-    id: Microsoft.PowerToys
-    directives:
-      description: Install PowerToys
-      securityContext: current
-    settings:
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.PowerToys
-      source: winget
+      directives:
+        description: Install PowerToys
+        securityContext: current
+      settings:
+        id: Microsoft.PowerToys
+        source: winget
 
-  - resource: PowerToysConfigure
-    id: Microsoft.PowerToys.Configure
-    dependson:
+    - resource: PowerToysConfigure
+      id: Microsoft.PowerToys.Configure
+      dependson:
       - Microsoft.PowerToys
-    description: Configure PowerToys
-    settings:
-      GeneralSettings:
-        Startup: true
-        AutoDownloadUpdates: true
-        ShowWhatsNewAfterUpdates: false
-        EnableExperimentation: true
-        ShowNewUpdatesToastNotification: false
-      ShortcutGuide:
-        Enabled: false
-        OverlayOpacity: 1
-      FancyZones:
-        Enabled: true
-        FancyzonesEditorHotkey: "Shift+Ctrl+Alt+F"
-      Awake:
-        Enabled: false
-      ColorPicker
-        Enabled: true
-      EnvironmentVariables
-        Enabled: true
-        LaunchAdministrator: false
-      Hosts:
-        Enabled: true
-         ShowStartupWarning: false
-        
+      directives:
+        description: Configure PowerToys
+      settings:
+        GeneralSettings:
+          Startup: true
+          AutoDownloadUpdates: true
+          ShowWhatsNewAfterUpdates: false
+          EnableExperimentation: true
+          ShowNewUpdatesToastNotification: false
+        ShortcutGuide:
+          Enabled: false
+          OverlayOpacity: 1
+        FancyZones:
+          Enabled: true
+          FancyzonesEditorHotkey: "Shift+Ctrl+Alt+F"
+        Awake:
+          Enabled: false
+        ColorPicker
+          Enabled: true
+        EnvironmentVariables
+          Enabled: true
+          LaunchAdministrator: false
+        Hosts:
+          Enabled: true
+          ShowStartupWarning: false
 
 #    - resource: GitDsc/GitClone
 #      id: github.com/lscph1929/lscph-azterraform.git
