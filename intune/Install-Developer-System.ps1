@@ -1,6 +1,6 @@
 ﻿#Requires -RunAsAdministrator
 
-function Install-WinRM {
+function Set-NetworkProfilesToPrivate {
     # Make all the network connection private
     $networks = Get-NetConnectionProfile
     foreach ($net in $networks) {
@@ -9,6 +9,12 @@ function Install-WinRM {
     }
     ## Verify
     Get-NetConnectionProfile
+}
+Set-NetworkProfilesToPrivate
+
+function Install-WinRM {
+    ## Network profiles MUST be private
+    Set-NetworkProfilesToPrivate
 
     ## Open firewall rules for WinRM (HTTP:5985, HTTPS:5986)
     #Get-NetFirewallRule | Select-Object -ExpandProperty DisplayName
