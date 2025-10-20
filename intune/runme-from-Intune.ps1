@@ -109,6 +109,7 @@ if ($winget) {
         Write-Host "✅ Winget installed successfully. Version:" 
         winget --version
         winget source export
+        
     } else {
         Write-Host "❌ Winget installation failed. You may need to update Windows or install manually from Microsoft Store."
         exit 1
@@ -132,6 +133,7 @@ foreach ($file in $filesToDownloadOnly) {
     Write-Host "Downloading (no execute): $file from $url ..."
     Invoke-WebRequest -Uri $url -OutFile $destination -UseBasicParsing
 }
+return $true
 
 ## Execute downloaded scripts
 try {

@@ -9,27 +9,34 @@ function Set-JsonValue {
         [Parameter(Mandatory)]$Value
     )
 
-    # Split path into segments
-    $parts = $Path -split '\.'
+    try {
+        # Split path into segments
+        $parts = $Path -split '\.'
+        $current = $JsonObject
+        for ($i = 0; $i -lt $parts.Length; $i++) {
+            $name = $parts[$i]
 
-    $current = $JsonObject
-    for ($i = 0; $i -lt $parts.Length; $i++) {
-        $name = $parts[$i]
-
-        # Last part = set value
-        if ($i -eq $parts.Length - 1) {
-            if (-not $current.PSObject.Properties.Match($name)) {
-                $current | Add-Member -NotePropertyName $name -NotePropertyValue $Value
+            # Last part = set value
+            if ($i -eq $parts.Length - 1) {
+                if (-not $current.PSObject.Properties.Match($name)) {
+                    $current | Add-Member -NotePropertyName $name -NotePropertyValue $Value
+                }
+                $current.$name = $Value
             }
-            $current.$name = $Value
-        }
-        else {
-            # Ensure intermediate object exists
-            if (-not $current.PSObject.Properties.Match($name)) {
-                $current | Add-Member -NotePropertyName $name -NotePropertyValue ([PSCustomObject]@{})
+            else {
+                # Ensure intermediate object exists
+                if (-not $current.PSObject.Properties.Match($name)) {
+                    $current | Add-Member -NotePropertyName $name -NotePropertyValue ([PSCustomObject]@{})
+                }
+                $current = $current.$name
             }
-            $current = $current.$name
         }
+    }
+    catch {
+        Write-Output "An error occurred while updating JSON value: $_" 
+        Write-Output "Exception Type: $($_.Exception.GetType().FullName)" 
+        Write-Output "Exception Message: $($_.Exception.Message)" 
+        Write-Output "Stack Trace: $($_.Exception.StackTrace)" 
     }
 }
 
@@ -47,151 +54,47 @@ function Set-MSTerminalSetting {
         [string]$scheme = "Campbell Powershell"
     )
 
-    try {
-
-        ## Check if the settings file exists
-        if (-not (Test-Path $settingsfile  -PathType Leaf)) {
-            exit 1
-            Write-Output "Settings file not found at: $settingsfile. Creating a new one."
-            $json = @{
-                profiles = @{
-                    defaults = @{}
-                }
+    ## Check if the settings file exists
+    if (-not (Test-Path $settingsfile  -PathType Leaf)) {
+        Write-Output "Settings file not found at: $settingsfile. Creating a new one."
+        $json = @{
+            profiles = @{
+                defaults = @{}
             }
-            $json | ConvertTo-Json -Depth 10 -Compress | Set-Content -Path $settingsfile -Force
         }
+        $json | ConvertTo-Json -Depth 10 -Compress | Set-Content -Path $settingsfile -Force
+    }
 
-        ## Read the settings
-        $json = Get-Content -Path $settingsfile -Raw | ConvertFrom-Json -Depth 10
+    ## Read the settings
+    $json = Get-Content -Path $settingsfile -Raw | ConvertFrom-Json -Depth 10
 
-        ## Ensure the profiles object exists
-        if (-Not $json.profiles) {
-            $json.profiles = @{}
-        }
+    ## Ensure the profiles object exists
+    if (-Not $json.profiles) {
+        $json.profiles = @{}
+    }
 
-        ## Ensure the profiles.defaults section exists
-        if (-Not $json.profiles.defaults) {
-            $json.profiles.defaults = @{}
-        }
+    ## Ensure the profiles.defaults section exists
+    if (-Not $json.profiles.defaults) {
+        $json.profiles.defaults = @{}
+    }
 
-        ## Modify or add properties
-        #Set-JsonValue -JsonObject $json -Path "centerOnLaunch" -Value $false
-        Set-JsonValue -JsonObject $json -Path "copyOnSelect" -Value $true
-
-        #       if (-NOT $json.PSObject.Properties["centerOnLaunch"]) {
-        #            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "centerOnLaunch" -Value $true
-        #        }
-        #        else {
-        #            $json.centerOnLaunch = $true
-        #        }
-        #        if (-NOT $json.PSObject.Properties["copyOnSelect"]) {
-        #            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "copyOnSelect" -Value $true
-        #        }
-        #        else {
-        #            $json.copyOnSelect = $true
-        #        }
-
-        if (-NOT $json.PSObject.Properties["showMarksOnPaste"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "showMarksOnPaste" -Value $false
-        }
-        else {
-            $json.showMarksOnPaste = $false
-            $json.global.showMarksOnPaste = $false
-        }
-
-        ## Modify or add defaults section
-        if (-NOT $json.profiles.defaults.PSObject.Properties["bellStyle"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "bellStyle" -Value "none"
-        }
-        else {
-            $json.profiles.defaults.bellStyle = "none"
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["backgroundImageOpacity"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "backgroundImageOpacity" -Value [float]"0.25"
-        }
-        else {
-            $json.profiles.defaults.backgroundImageOpacity = [float]"0.25"
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["background"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "background" -Value $BackgroundColor
-        }
-        else {
-            $json.profiles.defaults.background = $BackgroundColor
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["foreground"]) {
-        }
-        else {
-            $json.profiles.defaults.foreground = $ForegroundColor
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["opacity"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "opacity" -Value $opacity
-        }
-        else {
-            $json.profiles.defaults.opacity = $opacity
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["backgroundImageOpacity"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "backgroundImageOpacity" -Value 0
-        }
-        else {
-            $json.profiles.defaults.backgroundImageOpacity = 0
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["backgroundImageAlignment"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "backgroundImageAlignment" -Value "bottomRight"
-        }
-        else {
-            $json.profiles.defaults.backgroundImageAlignment = "bottomRight"
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["backgroundImageStretchMode"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "backgroundImageStretchMode" -Value "none"
-        }
-        else {
-            $json.profiles.defaults.backgroundImageStretchMode = "none"
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["backgroundImage"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "backgroundImage" -Value $BackgroundImage
-        }
-        else {
-            $json.profiles.defaults.backgroundImage = $BackgroundImage
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["focusFollowMouse"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "focusFollowMouse" -Value "true"
-        }
-        else {
-            $json.profiles.defaults.focusFollowMouse = "true"
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["useAcrylic"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "useAcrylic" -Value $true
-        }
-        else {
-            $json.profiles.defaults.useAcrylic = $true
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["acrylicOpacity"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "acrylicOpacity" -Value 0.75
-        }
-        else {
-            $json.profiles.defaults.acrylicOpacity = 0.75
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["cursorColor"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "cursorColor" -Value "#FFFFFF"
-        }
-        else {
-            $json.profiles.defaults.cursorColor = "#FFFFFF"
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["scrollbarState"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "scrollbarState" -Value "always"
+    ## Modify or add properties
+    Set-JsonValue -JsonObject $json -Path "centerOnLaunch" -Value $false
+    Set-JsonValue -JsonObject $json -Path "copyOnSelect" -Value $true
+    Set-JsonValue -JsonObject $json -Path "showMarksOnPaste" -Value $false
+    Set-JsonValue -JsonObject $json -Path "bellStyle" -Value $false
+    Set-JsonValue -JsonObject $json -Path "backgroundImageOpacity" -Value [float]"0.25"
+    Set-JsonValue -JsonObject $json -Path "background" -Value $BackgroundColor
+    Set-JsonValue -JsonObject $json -Path "foreground" -Value $FouregroundColor
+    Set-JsonValue -JsonObject $json -Path "opacity" -Value $opacity
+    Set-JsonValue -JsonObject $json -Path "backgroundImageAlignment" -Value "bottomRight"
+    Set-JsonValue -JsonObject $json -Path "backgroundImageStretchMode" -Value "none"
+    Set-JsonValue -JsonObject $json -Path "backgroundImage" -Value $BackgroundImage
+    Set-JsonValue -JsonObject $json -Path "focusFollowMouse" -Value $true
+    Set-JsonValue -JsonObject $json -Path "useAcrylic" -Value $true
+    Set-JsonValue -JsonObject $json -Path "acrylicOpacity" -Value 0.75
+    Set-JsonValue -JsonObject $json -Path "cursorColor" -Value "#FFFFFF"
+    Set-JsonValue -JsonObject $json -Path "scrollbarState" -Value "always"
         }
         else {
             $json.profiles.defaults.scrollbarState = "always"
@@ -228,6 +131,14 @@ function Set-MSTerminalSetting {
             $json.compatibility.allowHeadless = $true
         }
 
+        if (-NOT $json.profiles.defaults.PSObject.Properties["font"]) {
+            $json.profiles.defaults.font | Add-Member -MemberType NoteProperty -Name "font" -Value $font
+        }
+        else {
+            $json.profiles.defaults.font.face = $font
+        }
+
+        ## bug here
         if (-NOT $json.profiles.defaults.font.PSObject.Properties["face"]) {
             $json.profiles.defaults.font | Add-Member -MemberType NoteProperty -Name "face" -Value $font
         }
@@ -256,12 +167,6 @@ function Set-MSTerminalSetting {
 
         $json | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsfile -Force
         Write-Output "Terminal settings updated successfully. Restart Microsoft Terminal to apply changes."
-    }
-    catch {
-        Write-Output "An error occurred while updating terminal settings: $_" 
-        Write-Output "Exception Type: $($_.Exception.GetType().FullName)" 
-        Write-Output "Exception Message: $($_.Exception.Message)" 
-        Write-Output "Stack Trace: $($_.Exception.StackTrace)" 
     }
 }
 ## Terminal (unpackaged: Scoop, Chocolately, etc): $env:{LOCALAPPDATA}\Microsoft\Windows Terminal\settings.json
@@ -831,8 +736,8 @@ function Set-CodeSigningCertificate {
 # Set-CodeSigningCertificate
 
 $Bin = "$env:SystemDrive\BIN"
-Add-DirectoryToPath -DirectoryToAdd "${Bin}" -Scope "User"
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User")
+#Add-DirectoryToPath -DirectoryToAdd "${Bin}" -Scope "User"
+#$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User")
 
 Write-Output ("Configuring Oh My Posh, if it isn't already installed...")
 ## Oh My Posh
