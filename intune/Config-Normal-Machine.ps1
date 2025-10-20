@@ -622,6 +622,7 @@ function Wait-WindowsUptime {
 
     $Minutes = 10
 	$targetSeconds = $Minutes * 60
+	$CheckInterval = 1
     Write-Host "[INFO] Waiting for system uptime to reach $Minutes minute(s)..."
 
     while ($true) {
@@ -670,7 +671,8 @@ function EnableAustralianLanguagePack {
 		$capabilities = @(
 			"Language.Basic~~~$Language~0.0.1.0",
 			"Language.Speech~~~$Language~0.0.1.0",
-			"Language.TextToSpeech~~~$Language~0.0.1.0"
+			"Language.TextToSpeech~~~$Language~0.0.1.0",
+			"Language.OCR~~~$Language~0.0.1.0"
 		)
 		foreach ($capability in $capabilities) {
 			Write-Output "Installing feature: $capability"
@@ -698,6 +700,11 @@ function EnableAustralianLanguagePack {
 		## Windows 11 only
 		Copy-UserInternationalSettingsToSystem -WelcomeScreen $true -NewUser $true
 
+		## Set speech language to Australian as well
+		$speechKey = 'HKCU:\Software\Microsoft\Speech_OneCore\Settings'
+        if (-not (Test-Path $speechKey)) { New-Item -Path $speechKey -Force | Out-Null }
+        New-ItemProperty -Path $speechKey -Name 'SpeechLanguage' -Value $Language -PropertyType String -Force | Out-Null
+
 		## $voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_JamesM"
 		$voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_CatherineM"
 		if (Test-Path $voice) {
@@ -706,7 +713,7 @@ function EnableAustralianLanguagePack {
 			Get-Item -Path "HKCU:\Software\Microsoft\Speech\Voices"
 		}
 
-		Write-Output "$Language pack has been enabled!"
+		Write-Output "$Language pack (and features) has been installed and enabled!"
 		Get-Language
 		Write-Output "You may need to sign out and sign back in for the change to take effect."
 	}
