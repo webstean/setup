@@ -1,88 +1,200 @@
-if (Get-Command podman -ErrorAction SilentlyContinue ) {
-    ## Stop podman if it is running,. so upgrade will work
-    podman machine stop
-}
+#Requires -RunAsAdministrator
 
-function HideVideoPicturesFileExplorer {
-    $folders = @{
-        "Pictures" = "{0DDD015D-B06C-45D5-8C4C-F59713854639}"
-        "Videos"   = "{35286A68-3C57-41A1-BBB1-0EAE73D76C95}"
+function Test-DeveloperMode {
+    $regPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
+    $regName = 'AllowDevelopmentWithoutDevLicense'
+
+    if (-not (Test-Path $regPath)) {
+        return $false
     }
 
-    foreach ($name in $folders.Keys) {
-        $guid = $folders[$name]
-        $regPath = "HKCR:\CLSID\$guid\ShellFolder"
-
-        if (Test-Path $regPath) {
-            # Get current attributes
-            $attrs = Get-ItemProperty -Path $regPath -Name "Attributes" -ErrorAction SilentlyContinue
-            $current = if ($attrs.Attributes) { $attrs.Attributes } else { 0 }
-
-            # Add SFGAO_HIDDEN flag (0x10000000)
-            $newAttrs = $current -bor 0x10000000
-            Set-ItemProperty -Path $regPath -Name "Attributes" -Value $newAttrs
-
-            Write-Host "$name folder hidden in File Explorer"
-        } else {
-            Write-Warning "Registry key for $name not found"
-        }
-    }
-    Stop-Process -Name explorer -Force
+    $val = (Get-ItemProperty -Path $regPath -Name $regName -ErrorAction SilentlyContinue).$regName
+    return ($val -eq 1)
 }
-HideVideoPicturesFileExplorer
-exit 0
 
-function Install-VLC {
+function Install-LatestWindowsSDK {
     <#
     .SYNOPSIS
-        Installs VLC (if missing) and sets it as the default app
-        for common media file types (current user only).
+        Installs the latest Windows SDK using winget if Developer Mode is enabled.
+
+    .DESCRIPTION
+        - Verifies Developer Mode is enabled via registry.
+        - Queries winget to detect the latest Windows SDK package ID.
+        - Installs it silently.
+        - Returns $true on success, $false on failure.
 
     .NOTES
-        Works best on Windows 10/11 with winget installed.
-        May require logoff/logon for associations to fully apply.
+        - Requires administrator privileges.
+        - Works on Windows 10/11.
+        - Developer Mode check is based on registry:
+          HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock
     #>
 
-    # 1. Install VLC if not already installed
-    if (-not (Get-Command "vlc.exe" -ErrorAction SilentlyContinue)) {
-        Write-Host "Installing VLC via winget..."
-        winget install --id VideoLAN.VLC -e --accept-source-agreements --accept-package-agreements
-    } else {
-        Write-Host "VLC is already installed."
+    [CmdletBinding()]
+    param()
+
+    $packageIdPrefix = 'Microsoft.WindowsSDK.'
+
+    # --- Helper: Check Developer Mode ---
+
+    Write-Verbose "Checking if Developer Mode is enabled..."
+    if (-not (Test-DeveloperMode)) {
+        Write-Warning "❌ Developer Mode is not enabled. Enable it in Settings > For Developers or via registry."
+        return $false
     }
 
-    # 2. VLC ProgIDs (more precise per extension than just VLC.mp4)
-    $vlcProgIDs = @{
-        ".mp4" = "VLC.mp4"
-        ".mkv" = "VLC.mkv"
-        ".avi" = "VLC.avi"
-        ".mov" = "VLC.mov"
-        ".flv" = "VLC.flv"
-        ".wmv" = "VLC.wmv"
-        ".mp3" = "VLC.mp3"
-        ".wav" = "VLC.wav"
-        ".flac" = "VLC.flac"
-        ".aac" = "VLC.aac"
-        ".ogg" = "VLC.ogg"
-        ".m4a" = "VLC.m4a"
+    Write-Verbose "Developer Mode is enabled. Searching for Windows SDK packages..."
+
+    # --- Find latest Windows SDK ---
+    $output = winget search "Windows SDK" --accept-source-agreements | Out-String
+    if (-not $output -or $output -notmatch $packageIdPrefix) {
+        Write-Error "Could not find Windows SDK packages in winget."
+        return $false
     }
 
-    $regBase = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts"
+    $ids = ($output -split "`r?`n") |
+        Where-Object { $_ -match $packageIdPrefix } |
+        ForEach-Object { ($_ -split '\s+')[0] } |
+        Sort-Object -Unique
 
-    foreach ($ext in $vlcProgIDs.Keys) {
-        $progId = $vlcProgIDs[$ext]
-        $userChoicePath = Join-Path (Join-Path $regBase $ext) "UserChoice"
+    if (-not $ids) {
+        Write-Error "No matching Windows SDK packages found."
+        return $false
+    }
 
-        # Ensure key exists
-        if (-not (Test-Path $userChoicePath)) {
-            New-Item -Path $userChoicePath -Force | Out-Null
+    $versions = $ids | ForEach-Object { $_ -replace [regex]::Escape($packageIdPrefix), '' }
+    $latestVersion = ($versions | Sort-Object { [version]$_ } -Descending)[0]
+
+    if (-not $latestVersion) {
+        Write-Error "Could not determine the latest SDK version."
+        return $false
+    }
+
+    $latestId = "$packageIdPrefix$latestVersion"
+    Write-Verbose "Latest Windows SDK version detected: $latestVersion (ID: $latestId)"
+
+    # --- Install ---
+    try {
+        & winget install --id $latestId -e --accept-package-agreements --accept-source-agreements
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "✅ Windows SDK $latestVersion installed successfully."
+            return $true
+        } else {
+            Write-Error "❌ Installation failed with exit code $LASTEXITCODE."
+            return $false
         }
+    }
+    catch {
+        Write-Error "❌ Exception during installation: $($_.Exception.Message)"
+        return $false
+    }
+}
 
-        # Set VLC as default handler
-        Set-ItemProperty -Path $userChoicePath -Name "ProgId" -Value $progId -Force
-        Write-Host "Associated $ext with VLC ($progId)"
+function Enable-DeveloperDevicePortal {
+    ## Device Discovery requires Windows SDK (1803 or later)
+    ## 
+    
+    [CmdletBinding(SupportsShouldProcess)]
+    param ()
+
+    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole] "Administrator")) {
+        Write-Error "❌ This function must be run as Administrator."
+        return
     }
 
-    Write-Host "✅ VLC set as default media player for current user. Logoff/logon may be required."
+    Write-Verbose "Checking if Developer Mode is enabled..."
+    if (-not (Test-DeveloperMode)) {
+        Write-Warning "❌ Developer Mode is not enabled. Enable it in Settings > For Developers or via registry."
+        return $false
+    }
+
+    if ( -not (Install-LatestWindowsSDK)) {
+        Write-Warning "❌ WindowsSDK installation has failed (or wasn't found)"
+        return $false
+    }
+    return
+        
+    Write-Host "📦 Installing required Windows capabilities..."
+    $capabilities = @(
+        "DeviceDiscovery",
+        "WindowsDeveloperMode",
+        "DevicePortal"
+    )
+
+    foreach ($capability in $capabilities) {
+        Write-Host "→ Installing $capability..."
+        try {
+            Add-WindowsCapability -Online -Name "${capability}~~~~0.0.1.0" -ErrorAction Stop
+        }
+        catch {
+            Write-Warning "⚠️ Could not install ${capability}: $_"
+        }
+    }
+
+    Write-Host "🔐 Enabling Device Portal via registry..."
+    $regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DevicePortal"
+    New-Item -Path $regPath -Force | Out-Null
+    Set-ItemProperty -Path $regPath -Name "EnableDevPortal" -Value 1 -Force
+
+    Write-Host "🔄 Restarting services..."
+    Try {
+        Restart-Service -Name dmwappushservice -ErrorAction SilentlyContinue
+    }
+    catch {
+        Write-Warning "⚠️ Could not restart dmwappushservice: $_"
+    }
+    if (Get-ItemProperty -Path $DevicePortalKeyPath -Name "EnableDevicePortal" -ErrorAction SilentlyContinue) {
+        Set-ItemProperty -Path $DevicePortalKeyPath -Name "EnableDevicePortal" -Value 1
+    }
+    else {
+        New-ItemProperty -Path $DevicePortalKeyPath -Name "EnableDevicePortal" -PropertyType DWORD -Value 1
+    }
+
+    ## Enable authentication (optional but recommended)
+    if (Get-ItemProperty -Path $DevicePortalKeyPath -Name "Authentication" -ErrorAction SilentlyContinue) {
+        Set-ItemProperty -Path $DevicePortalKeyPath -Name "Authentication" -Value 1
+    }
+    else {
+        New-ItemProperty -Path $DevicePortalKeyPath -Name "Authentication" -PropertyType DWORD -Value 1
+    }
+
+    if (! (Test-Path -Path $WebMgrKeyPath)) {
+        New-Item -Path $WebMgrKeyPath -ItemType Directory -Force
+    }
+    if (Get-ItemProperty -Path $WebMgrKeyPath -Name HttpsPort -ErrorAction SilentlyContinue) {
+        Set-ItemProperty -Path $WebMgrKeyPath -Name HttpsPort -Value 0x0000c50b
+    }
+    else {
+        New-ItemProperty -Path $WebMgrKeyPath -Name HttpsPort -PropertyType DWORD -Value 0x0000c50b
+    }
+    if (Get-ItemProperty -Path $WebMgrKeyPath -Name RequireDevUnlock -ErrorAction SilentlyContinue) {
+        Set-ItemProperty -Path $WebMgrKeyPath -Name RequireDevUnlock -Value 1
+    }
+    else {
+        New-ItemProperty -Path $WebMgrKeyPath -Name RequireDevUnlock -PropertyType DWORD -Value 1
+    }
+    if (Get-ItemProperty -Path $WebMgrKeyPath -Name UseDefaultAuthorizer -ErrorAction SilentlyContinue) {
+        Set-ItemProperty -Path $WebMgrKeyPath -Name UseDefaultAuthorizer -Value 0
+    }
+    else {
+        New-ItemProperty -Path $WebMgrKeyPath -Name UseDefaultAuthorizer -PropertyType DWORD -Value 0
+    }
+    if (Get-ItemProperty -Path $WebMgrKeyPath -Name UseDynamicPorts -ErrorAction SilentlyContinue) {
+        Set-ItemProperty -Path $WebMgrKeyPath -Name UseDynamicPorts -Value 0
+    }
+    else {
+        New-ItemProperty -Path $WebMgrKeyPath -Name UseDynamicPorts -PropertyType DWORD -Value 0
+    }
+    Get-Item -Path $WebMgrKeyPath
+    # Open firewall port for Device Portal (usually 50080 for HTTP and 50443 for HTTPS)
+    New-NetFirewallRule -DisplayName "Developer Device Portal HTTP" -Direction Inbound -LocalPort 50080 -Protocol TCP -Action Allow
+    New-NetFirewallRule -DisplayName "Developer Device Portal HTTPS" -Direction Inbound -LocalPort 50443 -Protocol TCP -Action Allow
+    Write-Host "🔄 Restarting Web Management Service..."
+    Set-Service -Name webmanagement -StartupType Automatic
+    Restart-Service -Name webmanagement -ErrorAction SilentlyContinue
+
+    Write-Host "`n✅ Device Portal is enabled."
+    Write-Host "   🔗 Open: https://localhost:50080"
 }
-Install-VLC
+Enable-DeveloperDevicePortal
+
