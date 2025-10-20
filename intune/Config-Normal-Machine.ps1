@@ -504,26 +504,10 @@ function UninstallThirdPartyBloat {
 UninstallThirdPartyBloat
 
 function Disable-WindowsGaming {
-    <#
-    .SYNOPSIS
-      Disables Windows gaming features (Game Bar, Game DVR/Captures, Game Mode auto, Xbox services & tasks).
-
-    .DESCRIPTION
-      Applies policy and per-user registry settings, stops & disables Xbox services, disables related scheduled tasks,
-      and removes common auto-start entries. Run as Administrator.
-
-    .EXAMPLE
-      Disable-WindowsGaming -Verbose
-    #>
     [CmdletBinding(SupportsShouldProcess)]
     param()
 
     # ----- Helpers ------------------------------------------------------------
-    function Test-Admin {
-        ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
-        ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-    }
-
     function Ensure-Key {
         param([Parameter(Mandatory)][string]$Path)
         if (-not (Test-Path $Path)) { New-Item -Path $Path -Force | Out-Null }
@@ -537,10 +521,6 @@ function Disable-WindowsGaming {
         )
         Ensure-Key -Path $Path
         New-ItemProperty -Path $Path -Name $Name -PropertyType DWord -Value $Value -Force | Out-Null
-    }
-
-    if (-not (Test-Admin)) {
-        throw "Administrator rights are required. Start PowerShell as Administrator and rerun Disable-WindowsGaming."
     }
 
     $summary = [ordered]@{
@@ -659,6 +639,139 @@ function Disable-WindowsGaming {
     [pscustomobject]$summary
 }
 Disable-WindowsGaming
+
+function Set-SettingsPageVisibility {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [ValidateSet('Hide','ShowOnly')]
+        [string]$Mode,
+
+        [string[]]$Pages,
+
+        [switch]$Add,
+        [switch]$Remove,
+        [switch]$Clear,
+        [switch]$Get
+    )
+
+    # Registry target
+    $KeyPath   = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    $ValueName = 'SettingsPageVisibility'
+
+    # --- Admin check for HKLM writes
+    $needsWrite = -not $Get
+    if ($needsWrite -and -not $Clear -and -not $Remove -and -not $Add -and -not $Mode) {
+        throw "No action specified. Use -Hide/-ShowOnly via -Mode with -Pages, or -Add/-Remove/-Clear/-Get."
+    }
+    if ($needsWrite -and (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
+        ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) {
+        throw "Run elevated (Administrator) to modify HKLM."
+    }
+
+    # Helpers
+    function Parse-Value([string]$v){
+        if ([string]::IsNullOrWhiteSpace($v)) { return @{ Mode=$null; Pages=@() } }
+        $parts = $v.Split(':',2)
+        $mode  = $parts[0].Trim().ToLower()
+        $pages = @()
+        if ($parts.Count -gt 1 -and -not [string]::IsNullOrWhiteSpace($parts[1])) {
+            $pages = $parts[1].Split(';') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+        }
+        return @{
+            Mode  = if ($mode -eq 'hide') {'Hide'} elseif ($mode -eq 'showonly') {'ShowOnly'} else {$null}
+            Pages = $pages
+        }
+    }
+    function Build-Value([string]$m,[string[]]$p){
+        $p2 = ($p | Where-Object { $_ } | Select-Object -Unique)
+        switch ($m) {
+            'Hide'     { return ("hide:"     + ($p2 -join ';')) }
+            'ShowOnly' { return ("showonly:" + ($p2 -join ';')) }
+            default    { throw "Invalid mode '$m' when building value." }
+        }
+    }
+
+    # Ensure key exists (for writes)
+    if (-not (Test-Path $KeyPath)) {
+        if ($Get) {
+            return [pscustomobject]@{ Mode=$null; Pages=@(); Raw=$null; Path="$KeyPath\$ValueName" }
+        }
+        New-Item -Path $KeyPath -Force | Out-Null
+    }
+
+    # Read current
+    $currentRaw = (Get-ItemProperty -Path $KeyPath -Name $ValueName -ErrorAction SilentlyContinue).$ValueName
+    $parsed     = Parse-Value $currentRaw
+    $curMode    = $parsed.Mode
+    $curPages   = [System.Collections.Generic.List[string]]::new()
+    $parsed.Pages | ForEach-Object { [void]$curPages.Add($_) }
+
+    if ($Get) {
+        return [pscustomobject]@{
+            Mode = $curMode
+            Pages = $parsed.Pages
+            Raw = $currentRaw
+            Path = "$KeyPath\$ValueName"
+        }
+    }
+
+    # --- Clear
+    if ($Clear) {
+        if ($PSCmdlet.ShouldProcess("$KeyPath\$ValueName","Remove")) {
+            Remove-ItemProperty -Path $KeyPath -Name $ValueName -ErrorAction SilentlyContinue
+        }
+        Write-Verbose "Policy cleared."
+        return
+    }
+
+    # Normalize supplied pages
+    if (($Mode -or $Add -or $Remove) -and $Pages) {
+        $Pages = $Pages | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+    }
+
+    # --- Overwrite with explicit mode (Hide/ShowOnly)
+    if ($Mode -and -not $Add -and -not $Remove) {
+        if (-not $Pages -or $Pages.Count -eq 0) { throw "You must supply -Pages when using -Mode (Hide/ShowOnly) to overwrite." }
+        $newRaw = Build-Value -m $Mode -p $Pages
+        if ($PSCmdlet.ShouldProcess("$KeyPath\$ValueName","Set to '$newRaw'")) {
+            New-ItemProperty -Path $KeyPath -Name $ValueName -PropertyType String -Value $newRaw -Force | Out-Null
+        }
+        return
+    }
+
+    # --- Add to existing value (or start a new one with provided Mode)
+    if ($Add) {
+        if (-not $Pages) { throw "Use -Add with one or more -Pages." }
+        $targetMode = $curMode
+        if (-not $targetMode) {
+            if (-not $Mode) { throw "No existing value. Use -Add together with -Mode Hide/ShowOnly to establish the mode." }
+            $targetMode = $Mode
+        }
+        foreach ($p in $Pages) {
+            if (-not ($curPages.Contains($p))) { [void]$curPages.Add($p) }
+        }
+        $newRaw = Build-Value -m $targetMode -p $curPages
+        if ($PSCmdlet.ShouldProcess("$KeyPath\$ValueName","Add -> '$newRaw'")) {
+            New-ItemProperty -Path $KeyPath -Name $ValueName -PropertyType String -Value $newRaw -Force | Out-Null
+        }
+        return
+    }
+
+    # --- Remove from existing value
+    if ($Remove) {
+        if (-not $Pages) { throw "Use -Remove with one or more -Pages." }
+        if (-not $curMode) { Write-Verbose "Nothing to remove; value not set."; return }
+        $remaining = $curPages | Where-Object { $Pages -notcontains $_ }
+        $newRaw = Build-Value -m $curMode -p $remaining
+        if ($PSCmdlet.ShouldProcess("$KeyPath\$ValueName","Remove -> '$newRaw'")) {
+            New-ItemProperty -Path $KeyPath -Name $ValueName -PropertyType String -Value $newRaw -Force | Out-Null
+        }
+        return
+    }
+
+    throw "No valid action specified. Use one of: -Mode Hide/ShowOnly (with -Pages), -Add, -Remove, -Clear, or -Get."
+}
+Set-SettingsPageVisibility -Mode Hide -Pages 'gaming-gamebar','gaming-captures','gaming-gamemode','gaming-xboxnetworking'
 
 # Enable Clipboard History
 function EnableClipboardHistory {
