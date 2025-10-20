@@ -150,6 +150,15 @@ properties:
         id: Microsoft.Azure.AZCopy.10
         source: winget
 
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: GnuWin32.UnZip
+      directives:
+        description: Install GnuWin32.UnZip
+        allowPrerelease: false
+      settings:
+        id: GnuWin32.UnZip
+        source: winget
+
 #    - resource: Microsoft.WinGet.DSC/WinGetPackage
 #      id: Docker.DockerDesktop
 #      directives:
