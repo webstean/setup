@@ -503,7 +503,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install C# extension
+        description: Install C#  (PreRelease) extension
         allowPrerelease: true
         securityContext: current
       settings:
@@ -515,19 +515,31 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install .NET RunTime Vscode Extension
+        description: .NET Install Tool (PreRelease) extension
         allowPrerelease: true
         securityContext: current
       settings:
         Name: ms-dotnettools.vscode-dotnet-runtime
-    
+
+    # VS Code DotNet extension
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: ms-vscode-remote.remote-containers
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Dev Containers (PreRelease) extension
+        allowPrerelease: true
+        securityContext: current
+      settings:
+        Name: ms-vscode-remote.remote-containers
+
     # VS Code PowerShell extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-powershell
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install PowerShell extension
+        description: Install PowerShell  (PreRelease) extension
         allowPrerelease: true
         securityContext: current
       settings:
@@ -539,7 +551,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install Docker extension
+        description: Install Docker  (PreRelease) extension
         allowPrerelease: true
         securityContext: current
       settings:
@@ -551,7 +563,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install HashiCorp Terraform extension
+        description: Install HashiCorp Terraform (PreRelease) extension
         allowPrerelease: true
         securityContext: current
       settings:
@@ -563,7 +575,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install Microsoft Terraform extension
+        description: Install Microsoft Terraform (PreRelease) extension
         allowPrerelease: true
         securityContext: current
       settings:
@@ -575,7 +587,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install Red Hat YAML extension
+        description: Install Red Hat YAML (PreRelease) extension
         allowPrerelease: true
         securityContext: current
       settings:
@@ -587,7 +599,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install GitHub Copilot extension
+        description: Install GitHub Copilot (PreRelease) extension
         allowPrerelease: true
         securityContext: current
       settings:
@@ -599,7 +611,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install GitHub Copilot Chat extension
+        description: Install GitHub Copilot Chat (PreRelease) extension
         allowPrerelease: true
         securityContext: current
       settings:
@@ -611,7 +623,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install GitHub Copilot Chat extension
+        description: Install GitHub Copilot Chat (PreRelease) extension
         allowPrerelease: true
         securityContext: current
       settings:
