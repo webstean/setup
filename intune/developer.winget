@@ -434,9 +434,9 @@ properties:
           FancyzonesEditorHotkey: "Shift+Ctrl+Alt+F"
         Awake:
           Enabled: false
-        ColorPicker
+        ColorPicker:
           Enabled: true
-        EnvironmentVariables
+        EnvironmentVariables:
           Enabled: true
           LaunchAdministrator: false
         Hosts:
