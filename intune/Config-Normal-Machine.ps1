@@ -388,6 +388,10 @@ Write-Output ("Uninstalling Microsoft Software Bloat...")
 # Uninstall default Microsoft applications
 Function UninstallMsftBloat {
 	## Import-Module Appx
+	Get-AppxPackage "Microsoft.XboxIdentityProvider" | Remove-AppxPackage
+	Get-AppxPackage "Microsoft.Xbox.TCUI" | Remove-AppxPackage
+	Get-AppxPackage "Microsoft.Windows.DevHome" | Remove-AppxPackage 
+	Get-AppxPackage "Clipchamp.Clipchamp" | Remove-AppxPackage 
 	Get-AppxPackage "Microsoft.3DBuilder" | Remove-AppxPackage
 	Get-AppxPackage "Microsoft.AppConnector" | Remove-AppxPackage
 	Get-AppxPackage "Microsoft.BingFinance" | Remove-AppxPackage
@@ -498,6 +502,163 @@ function UninstallThirdPartyBloat {
 	Get-AppxPackage "XINGAG.XING" | Remove-AppxPackage
 }
 UninstallThirdPartyBloat
+
+function Disable-WindowsGaming {
+    <#
+    .SYNOPSIS
+      Disables Windows gaming features (Game Bar, Game DVR/Captures, Game Mode auto, Xbox services & tasks).
+
+    .DESCRIPTION
+      Applies policy and per-user registry settings, stops & disables Xbox services, disables related scheduled tasks,
+      and removes common auto-start entries. Run as Administrator.
+
+    .EXAMPLE
+      Disable-WindowsGaming -Verbose
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    # ----- Helpers ------------------------------------------------------------
+    function Test-Admin {
+        ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
+        ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    }
+
+    function Ensure-Key {
+        param([Parameter(Mandatory)][string]$Path)
+        if (-not (Test-Path $Path)) { New-Item -Path $Path -Force | Out-Null }
+    }
+
+    function Set-Dword {
+        param(
+            [Parameter(Mandatory)][string]$Path,
+            [Parameter(Mandatory)][string]$Name,
+            [Parameter(Mandatory)][int]$Value
+        )
+        Ensure-Key -Path $Path
+        New-ItemProperty -Path $Path -Name $Name -PropertyType DWord -Value $Value -Force | Out-Null
+    }
+
+    if (-not (Test-Admin)) {
+        throw "Administrator rights are required. Start PowerShell as Administrator and rerun Disable-WindowsGaming."
+    }
+
+    $summary = [ordered]@{
+        GameBarProcessesStopped = $false
+        GameDVREnforcedPolicy   = $false
+        GameDVREnabledHKCU      = $false
+        GameConfigDvrDisabled   = $false
+        GameBarUiDisabled       = $false
+        GameModeAutoDisabled    = $false
+        RunEntriesRemoved       = @()
+        ServicesDisabled        = @()
+        TasksDisabled           = @()
+        Notes                   = @()
+    }
+
+    Write-Verbose "Stopping Game Bar processes if running..."
+    try {
+        Get-Process -Name XboxGameBar, GameBar, GameBarFT -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        $summary.GameBarProcessesStopped = $true
+    } catch { $summary.Notes += "Could not stop Game Bar processes: $($_.Exception.Message)" }
+
+    # ---- Disable Game DVR/Captures (policy + per-user)
+    if ($PSCmdlet.ShouldProcess("Policy HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR","Disable Game DVR")) {
+        try {
+            Set-Dword -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR' -Name 'AllowGameDVR' -Value 0
+            $summary.GameDVREnforcedPolicy = $true
+        } catch { $summary.Notes += "Policy write failed: $($_.Exception.Message)" }
+    }
+
+    if ($PSCmdlet.ShouldProcess("HKCU GameDVR","Disable AppCaptureEnabled")) {
+        try {
+            Set-Dword -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR' -Name 'AppCaptureEnabled' -Value 0
+            $summary.GameDVREnabledHKCU = $true
+        } catch { $summary.Notes += "HKCU GameDVR write failed: $($_.Exception.Message)" }
+    }
+
+    if ($PSCmdlet.ShouldProcess("HKCU GameConfigStore","Disable GameDVR_Enabled")) {
+        try {
+            Set-Dword -Path 'HKCU:\System\GameConfigStore' -Name 'GameDVR_Enabled' -Value 0
+            $summary.GameConfigDvrDisabled = $true
+        } catch { $summary.Notes += "HKCU GameConfigStore write failed: $($_.Exception.Message)" }
+    }
+
+    # ---- Disable Game Bar UI, tips, hotkey; Disable Game Mode auto
+    if ($PSCmdlet.ShouldProcess("HKCU GameBar","Disable Game Bar UI and Game Mode auto")) {
+        try {
+            $hkcuBar = 'HKCU:\Software\Microsoft\GameBar'
+            Set-Dword -Path $hkcuBar -Name 'ShowStartupPanel' -Value 0
+            Set-Dword -Path $hkcuBar -Name 'UseNexusForGameBarEnabled' -Value 0
+            Set-Dword -Path $hkcuBar -Name 'OpenGameBar' -Value 0
+            Set-Dword -Path $hkcuBar -Name 'AutoGameModeEnabled' -Value 0
+            $summary.GameBarUiDisabled = $true
+            $summary.GameModeAutoDisabled = $true
+        } catch { $summary.Notes += "GameBar settings write failed: $($_.Exception.Message)" }
+    }
+
+    # ---- Remove common auto-start entries (per-user)
+    if ($PSCmdlet.ShouldProcess("HKCU Run entries","Remove Xbox/GameBar autostart")) {
+        $runCU = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+        foreach ($name in 'XboxGameBar','GameBar') {
+            try {
+                if (Get-ItemProperty -Path $runCU -Name $name -ErrorAction SilentlyContinue) {
+                    Remove-ItemProperty -Path $runCU -Name $name -Force -ErrorAction SilentlyContinue
+                    $summary.RunEntriesRemoved += $name
+                }
+            } catch { $summary.Notes += "Failed removing Run entry $name: $($_.Exception.Message)" }
+        }
+    }
+
+    # ---- Disable Xbox-related services
+    if ($PSCmdlet.ShouldProcess("Xbox services","Stop and disable")) {
+        $svcNames = 'XblAuthManager','XblGameSave','XboxGipSvc','XboxNetApiSvc'
+        foreach ($svc in $svcNames) {
+            $s = Get-Service -Name $svc -ErrorAction SilentlyContinue
+            if ($s) {
+                try {
+                    if ($s.Status -ne 'Stopped') { Stop-Service -Name $svc -Force -ErrorAction SilentlyContinue }
+                    Set-Service -Name $svc -StartupType Disabled -ErrorAction SilentlyContinue
+                    $summary.ServicesDisabled += $svc
+                } catch { $summary.Notes += "Service $svc change failed: $($_.Exception.Message)" }
+            }
+        }
+    }
+
+    # ---- Disable scheduled tasks
+    if ($PSCmdlet.ShouldProcess("Scheduled tasks","Disable Xbox Game Save tasks")) {
+        $taskItems = @(
+            @{ Path = '\Microsoft\XblGameSave\'; Name = 'XblGameSaveTask' },
+            @{ Path = '\Microsoft\XblGameSave\'; Name = 'XblGameSaveTaskLogon' }
+        )
+        foreach ($t in $taskItems) {
+            try {
+                $st = Get-ScheduledTask -TaskPath $t.Path -TaskName $t.Name -ErrorAction SilentlyContinue
+                if ($st) {
+                    Disable-ScheduledTask -TaskPath $t.Path -TaskName $t.Name | Out-Null
+                    $summary.TasksDisabled += ($t.Path + $t.Name)
+                }
+            } catch { $summary.Notes += "Task disable failed for $($t.Path)$($t.Name): $($_.Exception.Message)" }
+        }
+    }
+
+    # ---- Optional light-touch on package (do not remove system app)
+    # Attempt to keep overlay from re-registering background tasks; harmless if unsupported.
+    if ($PSCmdlet.ShouldProcess("XboxGamingOverlay package","Re-register manifest to block background tasks (best-effort)")) {
+        try {
+            Get-AppxPackage -Name 'Microsoft.XboxGamingOverlay' -AllUsers -ErrorAction SilentlyContinue |
+                ForEach-Object {
+                    try {
+                        Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppxManifest.xml" -ErrorAction SilentlyContinue | Out-Null
+                    } catch {}
+                }
+        } catch { $summary.Notes += "Overlay package handling skipped: $($_.Exception.Message)" }
+    }
+
+    Write-Verbose "Done. Some changes apply after sign-out or Explorer restart."
+    [pscustomobject]$summary
+}
+Disable-WindowsGaming
 
 # Enable Clipboard History
 function EnableClipboardHistory {
