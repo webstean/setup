@@ -269,91 +269,14 @@ function Add-DirectoryToPath {
 ## Detailed example
 ## https://raw.githubusercontent.com/microsoft/artifacts-credprovider/refs/heads/master/helpers/installcredprovider.ps1
 function Install-NuGetCredentialProviderforAzureArtefacts {
-    # Define function parameters
-    param (
-        ## using a tar file, instead of zip to contained powershell limitations
-        [string]$DownloadUrl = "https://github.com/microsoft/artifacts-credprovider/releases/latest/download/Microsoft.NuGet.CredentialProvider.tar.gz",
-        ## [string]$DownloadUrl = "https://github.com/microsoft/artifacts-credprovider/releases/latest/download/Microsoft.NuGet.CredentialProvider.zip",
-
-        [string]$DestinationPath = "$HOME/.nuget/plugins"
-    )
-
-    # Create destination directory if it doesn't exist
-    if (-not (Test-Path -Path $DestinationPath)) {
-        New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
-    }
-
-    ## Define the extraction paths
-    $TempTarFile = "$env:TEMP\NuGetCredentialProvider.tar.gz"
-    $TempExtractPath = "$env:TEMP\NuGetCredentialProvider"
-    ##$TempTarFile = "C:\TEMP\NuGetCredentialProvider.tar.gz"
-    ##$TempExtractPath = "C:\TEMP\NuGetCredentialProvider"
-
-    # Ensure C:\workspaces exists
-    $workspacePath = "C:\workspaces"
-    if (-not (Test-Path -Path $workspacePath)) {
-        New-Item -ItemType Directory -Path $workspacePath -Force | Out-Null
-        Write-Output "Created directory: $workspacePath"
-    }
-
-    try {
-        # Download the latest release
-        ## Invoke-WebRequest -Uri "https://github.com/microsoft/artifacts-credprovider/releases/latest/download/Microsoft.NuGet.CredentialProvider.zip"
-        Write-Output "Downloading $DownloadUrl..." 
-        Invoke-WebRequest -Uri $DownloadUrl -OutFile $TempTarFile
-
-        # Extract the tar.gz file
-        Write-Output "Extracting $TempTarFile..." 
-        New-Item -ItemType Directory -Path $TempExtractPath -Force | Out-Null
-        tar -xzf $TempTarFile -C $TempExtractPath
-
-        # Copy the required directories
-        $NetCorePath = "$TempExtractPath\plugins\netcore\"
-        $NetFxPath = "$TempExtractPath\plugins\netfx\"
-        Write-Output ("NetCorePath = $NetCorePath")
-        Write-Output ("NetFxPath   = $NetFxPath")
-
-        if (Test-Path -Path $NetCorePath) {
-            Write-Output "Copying $NetCorePath directory to $DestinationPath..." 
-            Copy-Item -Path "$NetCorePath" -Destination $DestinationPath -Recurse -Force
-        }
-        else {
-            Write-Output "$NetCorePath directory not found in the extracted files." 
-        }
-
-        if (Test-Path -Path $NetFxPath) {
-            Write-Output "Copying $NetFxPath directory to $DestinationPath..." 
-            Copy-Item -Path "$NetFxPath" -Destination $DestinationPath -Recurse -Force
-        }
-        else {
-            Write-Output "$NetFxPath directory not found in the extracted files." 
-        }
-
-        Write-Output "Installation complete." 
-    }
-    catch {
-        Write-Output "An exception occurred: $_" 
-        Write-Output "Exception Type: $($_.Exception.GetType().FullName)" 
-        Write-Output "Exception Message: $($_.Exception.Message)" 
-        Write-Output "Stack Trace: $($_.Exception.StackTrace)" 
-    }
-    finally {
-        Write-Output "Finished!" 
-        # Clean up temporary files
-        if (Test-Path -Path $TempTarFile) {
-            ## Remove-Item -Path $TempTarFile -Force
-        }
-        if (Test-Path -Path $TempExtractPath) {
-            ## Remove-Item -Path $TempExtractPath -Recurse -Force
-        }
-    }
+    Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-artifacts-credprovider.ps1) }"
 }
 ## Install Azure Arctefacts Credential Provider
 #Install-NuGetCredentialProviderforAzureArtefacts
 
 ## Generate StrongPassword for developers, used in scripts such as SQL Server installations
 if ( [string]::IsNullOrWhiteSpace($env:STRONGPASSWORD)) {
-    Write-Output "Generating a random password retained in an environment variable..."
+    Write-Output "Generating a random password retained as an environment variable..."
     ## All uppercase and lowercase letters, all numbers and some special characters.
     ## Make sure the first character is a letter
     $randompwd = @()
@@ -589,7 +512,7 @@ try {
     ## git config --global user.name `"$($env:USERNAME)`"
     git config --global user.name `"webstean@gmail.com`"
     if ($env:UPN) {
-        git config --global user.email "Get-Item Env:UPN).Value"
+        git config --global user.email "(Get-Item Env:UPN).Value"
     }
     git config --global core.autocrlf true          # per-user solution
     # git config --global http.sslbackend schannel
@@ -601,10 +524,13 @@ try {
     git commit-graph write --reachable
 
     # Generate the DotNet dev certificate
-    if (-not (Test-Path "$HOME\dev-certificate.pfx")) {
+    $devcertname = (Get-Item Env:OneDrive).Value + "\dotnet-dev-certificate.pfx"
+    $devcertpassword = (Get-Item Env:OneDrive).Value + "\dotnet-dev-certificate-password.txt"
+    if (-not (Test-Path "$devcertname")) {
         dotnet dev-certs https --clean
         dotnet dev-certs https --trust --quiet --check
-        dotnet dev-certs https --export-path "$HOME\dev-certificate.pfx" -Password (Get-Item Env:STRONGPASSWORD).Value
+        dotnet dev-certs https --export-path "$devcertname" -Password (Get-Item Env:STRONGPASSWORD).Value
+        
     }
 }
 catch {
