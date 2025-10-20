@@ -2,41 +2,116 @@
 
 ## Helper Function for JSON files
 function Set-JsonValue {
-    ## Example usage: Set-JsonValue -JsonObject $json -Path "profiles.defaults.colorScheme" -Value "One Half Dark"
+    <#
+      .SYNOPSIS
+        Set a value inside a JSON-like PSCustomObject using a dotted path with optional [index] parts.
+
+      .EXAMPLE
+        $json = Get-Content .\settings.json -Raw | ConvertFrom-Json
+        Set-JsonValue -JsonObject $json -Path 'profiles.defaults.colorScheme' -Value 'One Half Dark'
+
+      .EXAMPLE
+        Set-JsonValue -JsonObject $json -Path 'profiles.list[0].name' -Value 'PowerShell'
+    #>
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory)][object]$JsonObject,
         [Parameter(Mandatory)][string]$Path,
         [Parameter(Mandatory)]$Value
     )
 
-    try {
-        # Split path into segments
-        $parts = $Path -split '\.'
-        $current = $JsonObject
-        for ($i = 0; $i -lt $parts.Length; $i++) {
-            $name = $parts[$i]
+    # Helper: get exact property or $null
+    function Get-ExactProperty([object]$obj, [string]$name) {
+        $prop = $obj.PSObject.Properties | Where-Object { $_.Name -ceq $name } | Select-Object -First 1
+        if ($prop) { return $prop.Value }
+        return $null
+    }
 
-            # Last part = set value
-            if ($i -eq $parts.Length - 1) {
-                if (-not $current.PSObject.Properties.Match($name)) {
-                    $current | Add-Member -NotePropertyName $name -NotePropertyValue $Value
-                }
-                $current.$name = $Value
-            }
-            else {
-                # Ensure intermediate object exists
-                if (-not $current.PSObject.Properties.Match($name)) {
-                    $current | Add-Member -NotePropertyName $name -NotePropertyValue ([PSCustomObject]@{})
-                }
-                $current = $current.$name
-            }
+    # Helper: set exact property on PSCustomObject (create if missing)
+    function Set-ExactProperty([object]$obj, [string]$name, $val) {
+        $prop = $obj.PSObject.Properties | Where-Object { $_.Name -ceq $name } | Select-Object -First 1
+        if ($prop) {
+            $obj.$name = $val
+        } else {
+            $obj | Add-Member -NotePropertyName $name -NotePropertyValue $val
         }
     }
+
+    # Parse tokens like:  "profiles", "list[0]", "name"
+    # For each token, split into Name + optional Index
+    $tokens = $Path -split '\.'
+    try {
+        $current = $JsonObject
+        for ($i = 0; $i -lt $tokens.Length; $i++) {
+            $token = $tokens[$i]
+
+            # Extract name and optional [index]
+            if ($token -match '^(?<name>[^\[\]]+)(\[(?<index>\d+)\])?$') {
+                $name  = $Matches['name']
+                $index = if ($Matches['index']) { [int]$Matches['index'] } else { $null }
+            } else {
+                throw "Invalid path token: '$token'"
+            }
+
+            $isLast = ($i -eq $tokens.Length - 1)
+
+            # Ensure the property exists (create object/array as needed)
+            $propVal = $null
+            if ($current -is [System.Collections.IDictionary]) {
+                # Hashtable scenario (rare if using ConvertFrom-Json, but safe)
+                if (-not $current.Contains($name)) { $current[$name] = $null }
+                $propVal = $current[$name]
+            } else {
+                $propVal = Get-ExactProperty -obj $current -name $name
+                if ($null -eq $propVal) {
+                    Set-ExactProperty -obj $current -name $name -val $null
+                    $propVal = $null
+                }
+            }
+
+            # If we need an array
+            if ($null -ne $index) {
+                if ($null -eq $propVal -or -not ($propVal -is [System.Collections.IList])) {
+                    # create an array list to allow expansion
+                    $propVal = [System.Collections.ArrayList]::new()
+                    if ($current -is [System.Collections.IDictionary]) { $current[$name] = $propVal } else { $current.$name = $propVal }
+                }
+                # Expand array to fit index
+                while ($propVal.Count -le $index) { [void]$propVal.Add($null) }
+
+                if ($isLast) {
+                    # Set final value
+                    $propVal[$index] = $Value
+                    if ($current -is [System.Collections.IDictionary]) { $current[$name] = $propVal } else { $current.$name = $propVal }
+                } else {
+                    # Descend into element, ensure it’s an object
+                    if ($null -eq $propVal[$index] -or -not ($propVal[$index].psobject -and $propVal[$index].psobject.TypeNames)) {
+                        $propVal[$index] = [PSCustomObject]@{}
+                    }
+                    $current = $propVal[$index]
+                }
+                continue
+            }
+
+            # No index: property is an object path segment
+            if ($isLast) {
+                # Final assignment
+                if ($current -is [System.Collections.IDictionary]) { $current[$name] = $Value } else { $current.$name = $Value }
+            } else {
+                # Ensure intermediate object exists
+                if ($null -eq $propVal -or -not ($propVal -is [psobject])) {
+                    $propVal = [PSCustomObject]@{}
+                    if ($current -is [System.Collections.IDictionary]) { $current[$name] = $propVal } else { $current.$name = $propVal }
+                }
+                $current = $propVal
+            }
+        }
+
+        return ; ### $JsonObject
+    }
     catch {
-        Write-Output "An error occurred while updating JSON value: $_" 
-        Write-Output "Exception Type: $($_.Exception.GetType().FullName)" 
-        Write-Output "Exception Message: $($_.Exception.Message)" 
-        Write-Output "Stack Trace: $($_.Exception.StackTrace)" 
+        Write-Error -Message "Set-JsonValue failed at path '$Path': $($_.Exception.Message)"
+        throw
     }
 }
 
@@ -49,10 +124,12 @@ function Set-MSTerminalSetting {
         [int]$opacity = 97, ## Default opacity
         [string]$BackgroundImage = $null, # "ms-appdata:///Roaming/terminal_cat.jpg", ## background image
         [string]$TabColor = "#012456",
-        [string]$font = "FiraCode Nerd Font", ## Default font
-        [int]$FontSize = 10, ## Default font size
+        [string]$face = "Cascadia Code NF", ## Default font
+        [int]$FontSize = 12, ## Default font size
         [string]$scheme = "Campbell Powershell"
     )
+    
+    Write-Output "Settings file: $settingsfile"
 
     ## Check if the settings file exists
     if (-not (Test-Path $settingsfile  -PathType Leaf)) {
@@ -63,6 +140,10 @@ function Set-MSTerminalSetting {
             }
         }
         $json | ConvertTo-Json -Depth 10 -Compress | Set-Content -Path $settingsfile -Force
+    }
+
+    if (-not (Test-Path $BackgroundImage  -PathType Leaf)) {
+        $BackgroundImage = $null
     }
 
     ## Read the settings
@@ -78,111 +159,63 @@ function Set-MSTerminalSetting {
         $json.profiles.defaults = @{}
     }
 
-    ## Modify or add properties
-    Set-JsonValue -JsonObject $json -Path "centerOnLaunch" -Value $false
+    ## Global
+    Set-JsonValue -JsonObject $json -Path "confirmCloseAllTabs" -value $false
+    Set-JsonValue -JsonObject $json -Path "alwaysShowTabs" -value $true
     Set-JsonValue -JsonObject $json -Path "copyOnSelect" -Value $true
+    Set-JsonValue -JsonObject $json -Path "copyFormatting" -Value $false
+    Set-JsonValue -JsonObject $json -Path "centerOnLaunch" -Value $false
     Set-JsonValue -JsonObject $json -Path "showMarksOnPaste" -Value $false
     Set-JsonValue -JsonObject $json -Path "bellStyle" -Value $false
     Set-JsonValue -JsonObject $json -Path "backgroundImageOpacity" -Value [float]"0.25"
     Set-JsonValue -JsonObject $json -Path "background" -Value $BackgroundColor
-    Set-JsonValue -JsonObject $json -Path "foreground" -Value $FouregroundColor
+    Set-JsonValue -JsonObject $json -Path "foreground" -Value $ForegroundColor
     Set-JsonValue -JsonObject $json -Path "opacity" -Value $opacity
     Set-JsonValue -JsonObject $json -Path "backgroundImageAlignment" -Value "bottomRight"
     Set-JsonValue -JsonObject $json -Path "backgroundImageStretchMode" -Value "none"
     Set-JsonValue -JsonObject $json -Path "backgroundImage" -Value $BackgroundImage
     Set-JsonValue -JsonObject $json -Path "focusFollowMouse" -Value $true
-    Set-JsonValue -JsonObject $json -Path "useAcrylic" -Value $true
-    Set-JsonValue -JsonObject $json -Path "acrylicOpacity" -Value 0.75
-    Set-JsonValue -JsonObject $json -Path "cursorColor" -Value "#FFFFFF"
-    Set-JsonValue -JsonObject $json -Path "scrollbarState" -Value "always"
-        }
-        else {
-            $json.profiles.defaults.scrollbarState = "always"
-        }
+    #Set-JsonValue -JsonObject $json -Path "startupActions" -Value "newTab -p 'PowerShell'; newTab -p 'Headless Helper'"
+    #Set-JsonValue -JsonObject $json -Path "wt -p "Command Prompt" `; split-pane -p "Windows PowerShell" `; split-pane -H wsl.exe
 
-        if (-NOT $json.profiles.defaults.PSObject.Properties["colorScheme"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "colorScheme" -Value $scheme
-        }
-        else {
-            $json.profiles.defaults.colorScheme = $scheme
-        }
 
-        if (-NOT $json.profiles.defaults.PSObject.Properties["tabColor"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "tabColor" -Value $tabColor
-        }
-        else {
-            $json.profiles.defaults.tabColor = $TabColor
-        }
+    ## Profiles
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.useAcrylic" -Value $true
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.useAcrylicInTabRow" -Value $true
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.acrylicOpacity" -Value 0.75
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.cursorColor" -Value "#FFFFFF"
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.scrollbarState" -Value "always"
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.colorScheme" -Value $scheme
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.tabColor" -Value $tabColor
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.useAcrylicInTabRow" -Value $true
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.font.face" -Value $face
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.font.size" -Value $FontSize
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.font.weight" -Value "normal"
+    Set-JsonValue -JsonObject $json -Path "multiLinePasteWarning" -Value $false
+    Set-JsonValue -JsonObject $json -Path "BellSound" -Value ""
+    
+    ## Write the updated settings back
+    $backupPath = "$settingsfile.bak"
+    Copy-Item -Path $settingsfile -Destination $backupPath -Force
+    Write-Output "Backup created at: $backupPath"
 
-        if (-NOT $json.PSObject.Properties["useAcrylicInTabRow"]) {
-            $json | Add-Member -MemberType NoteProperty -Name "useAcrylicInTabRow" -Value $true
-        }
-        else {
-            $json.useAcrylicInTabRow = $true
-        }
-
-        if (-NOT $json.PSObject.Properties["compatibility"]) {
-            $json | Add-Member -MemberType NoteProperty -Name "compatibility" -Value @{ allowHeadless = $true }
-        }
-        elseif (-NOT $json.compatibility.PSObject.Properties["allowHeadless"]) {
-            $json.compatibility | Add-Member -MemberType NoteProperty -Name "allowHeadless" -Value $true
-        }
-        else {
-            $json.compatibility.allowHeadless = $true
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["font"]) {
-            $json.profiles.defaults.font | Add-Member -MemberType NoteProperty -Name "font" -Value $font
-        }
-        else {
-            $json.profiles.defaults.font.face = $font
-        }
-
-        ## bug here
-        if (-NOT $json.profiles.defaults.font.PSObject.Properties["face"]) {
-            $json.profiles.defaults.font | Add-Member -MemberType NoteProperty -Name "face" -Value $font
-        }
-        else {
-            $json.profiles.defaults.font.face = $font
-        }
-
-        if (-NOT $json.profiles.defaults.font.PSObject.Properties["size"]) {
-            $json.profiles.defaults.font | Add-Member -MemberType NoteProperty -Name "size" -Value $FontSize
-        }
-        else {
-            $json.profiles.defaults.font.size = $fontSize
-        }
-
-        if (-NOT $json.profiles.defaults.font.PSObject.Properties["weight"]) {
-            $json.profiles.defaults.font | Add-Member -MemberType NoteProperty -Name "weight" -Value "medium"
-        }
-        else {
-            $json.profiles.defaults.font.weight = "medium"
-        }
-
-        ## Write the updated settings back
-        $backupPath = "$settingsfile.bak"
-        Copy-Item -Path $settingsfile -Destination $backupPath -Force
-        Write-Output "Backup created at: $backupPath"
-
-        $json | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsfile -Force
-        Write-Output "Terminal settings updated successfully. Restart Microsoft Terminal to apply changes."
-    }
+    $json | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsfile -Force
+    Write-Output "Terminal settings updated successfully. Restart Microsoft Terminal to apply changes."
 }
 ## Terminal (unpackaged: Scoop, Chocolately, etc): $env:{LOCALAPPDATA}\Microsoft\Windows Terminal\settings.json
 ## $statefile = [Environment]::GetFolderPath("localapplicationdata") + "\Microsoft\Windows Terminal\state.json"
 $settingsfile = [Environment]::GetFolderPath("localapplicationdata") + "\Microsoft\Windows Terminal\settings.json"
 if (Test-Path -Path $settingsfile -PathType Leaf) {
     Write-Output "MS Terminal Settings for unpackaged version..."
-    Set-MSTerminalSetting $settingsfile
+    Set-MSTerminalSetting -settingsfile $settingsfile
 }
 
 ## Terminal (preview release): %LOCALAPPDATA%\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json
 ## $statefile = [Environment]::GetFolderPath("localapplicationdata") + "\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\state.json"
 $settingsfile = [Environment]::GetFolderPath("localapplicationdata") + "\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json"
 if (Test-Path -Path $settingsfile -PathType Leaf) {
-    Remove-Item $settingsfile -Force
-    ##Write-Output "MS Terminal Settings for preview version..."
+    ##Remove-Item $settingsfile -Force
+    Write-Output "MS Terminal Settings for preview version..."
     ##Set-MSTerminalSetting $settingsfile
 }
 
@@ -191,44 +224,47 @@ if (Test-Path -Path $settingsfile -PathType Leaf) {
 $settingsfile = [Environment]::GetFolderPath("localapplicationdata") + "\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
 if (Test-Path -Path $settingsfile -PathType Leaf) {
     Write-Output "MS Terminal Settings for stable version..."
-    Set-MSTerminalSetting $settingsfile
+    Set-MSTerminalSetting -settingsfile $settingsfile
 }
 
 ## Add or Remote Directory from the Path, add check to see if it is already there first
 function Add-DirectoryToPath {
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$DirectoryToAdd,
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Directory,
 
-        [Parameter()]
-        [ValidateSet("User", "Machine")]
-        [string]$Scope = "User"
+        [ValidateSet('User','System')]
+        [string]$Scope = 'User'
     )
 
-    # Get the current PATH environment variable based on the specified scope
-    $CurrentPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::$Scope)
+    # Normalize the path (remove trailing slash, resolve relative paths)
+    $resolvedPath = (Resolve-Path -Path $Directory).Path.TrimEnd('\')
 
-    # Split the PATH into an array of directories
-    $PathArray = $CurrentPath -split ";"
-
-    # Check if the directory already exists in the PATH
-    if (-not ($PathArray -contains $DirectoryToAdd)) {
-        # Add the directory to the PATH
-        $NewPath = "$CurrentPath;$DirectoryToAdd"
-
-        # Update the PATH environment variable
-        [System.Environment]::SetEnvironmentVariable("Path", $NewPath, [System.EnvironmentVariableTarget]::$Scope)
-
-        Write-Output "Directory '$DirectoryToAdd' added to $Scope PATH."
+    # Read the current PATH value
+    if ($Scope -eq 'User') {
+        $currentPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+    } else {
+        $currentPath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
     }
-    else {
-        Write-Output  "Directory '$DirectoryToAdd' already exists in $Scope PATH."
+
+    # Split PATH into individual entries
+    $pathEntries = $currentPath -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
+
+    # Check if the path already exists (case-insensitive)
+    if ($pathEntries -contains $resolvedPath) {
+        Write-Host "✅ '$resolvedPath' is already in the $Scope PATH."
+        return
+    }
+
+    # Append the new path
+    $newPath = ($pathEntries + $resolvedPath) -join ';'
+
+    if ($PSCmdlet.ShouldProcess("$Scope PATH", "Add '$resolvedPath'")) {
+        [Environment]::SetEnvironmentVariable('Path', $newPath, $Scope)
+        Write-Host "✅ Added '$resolvedPath' to the $Scope PATH."
     }
 }
-# Example usage
-# Add-DirectoryToPath -DirectoryToAdd "C:\MyNewPath" -Scope "Machine"
-
-
 
 ## Detailed example
 ## https://raw.githubusercontent.com/microsoft/artifacts-credprovider/refs/heads/master/helpers/installcredprovider.ps1
@@ -426,166 +462,10 @@ if ( -not ([string]::IsNullOrWhiteSpace($getupn))) {
 
 Write-Output ("Ensuring WSL is upto date...") 
 ## ensure WSL is upto date, can only be done per user (not system)
-$Arguments = "--status"
-$Process = Start-Process -FilePath "wsl" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru
-$Arguments = "--update"
-$Process = Start-Process -FilePath "wsl" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru
+Start-Process -FilePath "wsl" -ArgumentList "--status" -NoNewWindow -Wait -PassThru
+Start-Process -FilePath "wsl" -ArgumentList "--update" -NoNewWindow -Wait -PassThru
 
 function Set-DockerDesktopBestPractices {
-    <#
-    .SYNOPSIS
-        Applies best-practice configuration for Docker Desktop.
-
-    .DESCRIPTION
-        Configures Docker Desktop settings.json with recommended defaults
-        such as resource limits, WSL2 integration, and performance options.
-
-    .NOTES
-        Run this with Docker Desktop closed, otherwise your changes may be overwritten.
-    #>
-
-    # Path to Docker Desktop settings
-    $settingsPath = "$env:APPDATA\Docker\settings.json"
-    if (-not (Test-Path $settingsPath)) {
-        Write-Error "Docker Desktop settings.json not found at $settingsPath"
-        return
-    }
-
-    # Backup original
-    $backupPath = "$settingsPath.bak"
-    Copy-Item $settingsPath $backupPath -Force
-    Write-Host "Backup created: $backupPath"
-
-    # Load settings
-    $json = Get-Content $settingsPath -Raw | ConvertFrom-Json
-
-    # Apply recommended settings
-    $json.version = 3
-    $json.analyticsEnabled = $true               # Allow anonymous usage stats (optional)
-    $json.autoStart = $true                      # Start Docker Desktop at login
-    $json.useWindowsContainers = $false          # Prefer Linux containers (WSL2 backend)
-    $json.useWslEngine = $true                   # Enable WSL2
-    $json.wslEngineEnabled = $true
-    $json.wslDistros = @("Ubuntu-22.04")         # Integrate specific distro(s)
-
-    # Resource limits (tune as needed)
-    $json.memoryMiB = 4096                       # 4 GB RAM
-    $json.cpus = 2                               # 2 vCPUs
-    $json.diskSizeMiB = 65536                    # 64 GB virtual disk
-    $json.swapMiB = 1024                         # 1 GB swap
-
-    # Networking
-    $json.exposeDockerAPIOnTCP2375 = $false      # Don’t expose insecure API
-    $json.hosts = @("npipe:////./pipe/docker_engine") # Local access only
-
-    # File sharing
-    $json.sharedDirs = @("$env:HOME", "C:\Workspaces")
-
-    # Save modified config
-    $json | ConvertTo-Json -Depth 5 | Set-Content $settingsPath -Encoding utf8
-    Write-Host "Docker Desktop best-practice configuration applied."
-}
-#Set-DockerDesktopBestPractices
-
-## Azure CLI configuration
-try {
-    ## Remove configuration files - if install is corrupt
-    ##if (Test-Path "$($env:USERPROFILE)\.azure\") {
-    ##    Remove-Item "$($env:USERPROFILE)\.azure\" -Recurse -Force -ErrorAction SilentlyContinue
-    ##}
-    az config set extension.use_dynamic_install=yes_without_prompt
-    az config set core.allow_broker=true
-    az config set core.survey_message=false
-    ## not maintained - so turn it off, just in case
-    az config set auto-upgrade.enable=no
-    ##az account clear
-    ##az fzf install
-    ## Upgrade Azure CLI
-    ## az upgrade --yes
-    az version
-    ## az ad user show --id $env:UPN
-}
-catch {
-    Write-Output "An error occurred while configuring Azure CLI: $_" 
-    Write-Output "Exception Type: $($_.Exception.GetType().FullName)" 
-    Write-Output "Exception Message: $($_.Exception.Message)" 
-    Write-Output "Stack Trace: $($_.Exception.StackTrace)" 
-}
-
-## git config for http://github.com
-## type "C:\Program Files\Git\etc\gitconfig"
-try {
-    git config --global color.ui true
-    ## git config --global user.name `"$($env:USERNAME)`"
-    git config --global user.name `"webstean@gmail.com`"
-    if ($env:UPN) {
-        git config --global user.email `"$($env:UPN)`"
-    }
-    git config --global core.autocrlf true          # per-user solution
-    # git config --global http.sslbackend schannel
-    # git config --global http.sslVerify false ## totally disable TLS/SLS certification verification (terible idea!)
-    git --no-pager config list
-    # Enables the Git repo to use the commit-graph file, if the file is present 
-    git config --local core.commitGraph true
-    # Update the Git repository’s commit-graph file to contain all reachable commits
-    git commit-graph write --reachable
-
-    # Import into LocalMachine Root (requires Admin)
-    Import-PfxCertificate -FilePath "$env:TEMP\devcert.pfx" `
-        -Password (ConvertTo-SecureString -String $env:STRONGPASSWORD -Force -AsPlainText) `
-        -CertStoreLocation Cert:\LocalMachine\Root
-
-    # Generate the DotNet dev certificate
-    #dotnet dev-certs https --clean
-    ## dotnet dev-certs https --trust --quiet
-    dotnet dev-certs https --export-path "$HOME\dev-certificate.pfx" -p $env:STRONGPASSWORD
-    dotnet nuget config paths
-}
-catch {
-    Write-Output "An exception occurred: $_" 
-    Write-Output "Exception Type: $($_.Exception.GetType().FullName)" 
-    Write-Output "Exception Message: $($_.Exception.Message)" 
-    Write-Output "Stack Trace: $($_.Exception.StackTrace)" 
-}
-
-## Unpin Microsoft Store on taskbar
-function Remove-MicrosoftStore-Taskbar-Icon {
-    # Define the application name to unpin
-    $appName = "Microsoft Store"
-
-    # Access the taskbar items and filter for the specified application
-    $taskbarItems = (New-Object -ComObject Shell.Application).NameSpace('shell:::{4234d49b-0245-4df3-b780-3893943456e1}').Items()
-    $appItem = $taskbarItems | Where-Object { $_.Name -eq $appName }
-
-    # Find the "Unpin from taskbar" verb and execute it
-    $appItem.Verbs() | Where-Object { $_.Name.Replace('&', '') -match 'Unpin from taskbar' } | ForEach-Object { $_.DoIt() }
-}
-Remove-MicrosoftStore-Taskbar-Icon
-
-function Set-DockerDesktop {
-
-    $dockerExe = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
-
-    # Add current user to docker-users group
-    Write-Host "Adding user $env:USERNAME to 'docker-users' group..."
-    # Check if 'docker-users' group exists before adding user
-    if (Get-LocalGroup -Name "docker-users" -ErrorAction SilentlyContinue) {
-        Add-LocalGroupMember -Group "docker-users" -Member $env:USERNAME -ErrorAction SilentlyContinue
-    }
-    else {
-        Write-Warning "'docker-users' group does not exist. Please install Docker Desktop first."
-    }
-
-    # Optionally enable WSL 2
-    $wslFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
-    if ($wslFeature.State -ne "Enabled") {
-        Write-Host "Enabling WSL 2..."
-        wsl --install
-    }
-    else {
-        Write-Host "WSL 2 is already enabled."
-    }
-
     $configPath = "$env:APPDATA\Docker\settings.json"
     if (-Not (Test-Path $configPath)) {
         Write-Host "Creating new Docker Desktop settings file..."
@@ -597,8 +477,9 @@ function Set-DockerDesktop {
         $currentConfig = Get-Content $configPath | ConvertFrom-Json
     }
 
-    # Default Docker Desktop configuration
+    # Docker Best Practices configuration
     $defaultConfig = @{
+        "version"              = 3
         "cpuCount"             = 4
         "memoryMiB"            = 8192
         "swapMiB"              = 1024
@@ -607,6 +488,8 @@ function Set-DockerDesktop {
         "httpProxy"            = ""
         "httpsProxy"           = ""
         "noProxy"              = ""
+        "exposeDockerAPIOnTCP2375" = $false      # Don’t expose insecure API
+        "hosts"                = @("npipe:////./pipe/docker_engine") # Local access only
         "showTrayIcon"         = $true
         "autoStart"            = $true
         "hideDesktopIcon"      = $false
@@ -616,6 +499,7 @@ function Set-DockerDesktop {
         "telemetryEnabled"     = $true
         "experimentalFeatures" = $false
         "gpuSupport"           = $false
+        "sharedDirs"           = @("$env:HOME", "C:\Workspaces")
         "resources"            = @{
             "cpuCount"    = 4
             "memoryMiB"   = 8192
@@ -639,27 +523,119 @@ function Set-DockerDesktop {
 
     $defaultConfig | ConvertTo-Json -Depth 10 | Set-Content $configPath -Force
     Write-Host "Docker Desktop configuration applied at $configPath"
-        
+}
+#Set-DockerDesktopBestPractices
+
+function Set-DockerDesktop {
+
+    # Optionally enable WSL 2
+    $wslFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+    if ($wslFeature.State -ne "Enabled") {
+        Write-Host "Enabling WSL 2..."
+        wsl --install --no-distribution --no-launch
+    }
+
+    $dockerExe = (Get-Item Env:ProgramFiles).Value + "\Docker\Docker Desktop.exe"
+
+    if (-not (Test-Path $dockerEXE )) {
+        winget install docker.Desktop
+    }
+
+    # Add current user to docker-users group
+    Write-Host "Adding user $env:USERNAME to 'docker-users' group..."
+    # Check if 'docker-users' group exists before adding user
+    if (Get-LocalGroup -Name "docker-users" -ErrorAction SilentlyContinue) {
+        Add-LocalGroupMember -Group "docker-users" -Member $env:USERNAME -ErrorAction SilentlyContinue
+    }
+
     if (Test-Path $dockerExe) {
-        Write-Host "Starting Docker Desktop..."
-        # Start-Process $dockerExe
+        Write-Host "Starting Docker Desktop service..."
+        Stop-Service com.docker.service
         Set-Service -Name com.docker.service -StartupType Automatic
         Start-Service com.docker.service
     }
-    else {
-        Write-Warning "Docker Desktop executable not found at $dockerExe"
+}
+
+## Azure CLI configuration
+try {
+    ## Remove configuration files - if install is corrupt
+    ##if (Test-Path "$($env:USERPROFILE)\.azure\") {
+    ##    Remove-Item "$($env:USERPROFILE)\.azure\" -Recurse -Force -ErrorAction SilentlyContinue
+    ##}
+    az config set extension.use_dynamic_install=yes_without_prompt
+    az config set core.allow_broker=true
+    az config set core.survey_message=false
+    ## not maintained - so turn it off, just in case
+    az config set auto-upgrade.enable=no
+    ##az account clear
+    ##az fzf install
+    ## Upgrade Azure CLI
+    ## az upgrade --yes
+    az version
+    ## az ad user show --id (Get-Item Env:UPN).Value
+    ## az ad signed-in-user show
+}
+catch {
+    Write-Output "An error occurred while configuring Azure CLI: $_" 
+    Write-Output "Exception Type: $($_.Exception.GetType().FullName)" 
+    Write-Output "Exception Message: $($_.Exception.Message)" 
+    Write-Output "Stack Trace: $($_.Exception.StackTrace)" 
+}
+
+## git config for http://github.com
+## type "C:\Program Files\Git\etc\gitconfig"
+try {
+    git config --global color.ui true
+    ## git config --global user.name `"$($env:USERNAME)`"
+    git config --global user.name `"webstean@gmail.com`"
+    if ($env:UPN) {
+        git config --global user.email "Get-Item Env:UPN).Value"
+    }
+    git config --global core.autocrlf true          # per-user solution
+    # git config --global http.sslbackend schannel
+    # git config --global http.sslVerify false ## totally disable TLS/SLS certification verification (terible idea!)
+    git --no-pager config list
+    # Enables the Git repo to use the commit-graph file, if the file is present 
+    git config --local core.commitGraph true
+    # Update the Git repository’s commit-graph file to contain all reachable commits
+    git commit-graph write --reachable
+
+    # Generate the DotNet dev certificate
+    if (-not (Test-Path "$HOME\dev-certificate.pfx")) {
+        dotnet dev-certs https --clean
+        dotnet dev-certs https --trust --quiet --check
+        dotnet dev-certs https --export-path "$HOME\dev-certificate.pfx" -Password (Get-Item Env:STRONGPASSWORD).Value
     }
 }
-# Set-DockerDesktop
+catch {
+    Write-Output "An exception occurred: $_" 
+    Write-Output "Exception Type: $($_.Exception.GetType().FullName)" 
+    Write-Output "Exception Message: $($_.Exception.Message)" 
+    Write-Output "Stack Trace: $($_.Exception.StackTrace)" 
+}
 
-function New-CodeSigningCertificateAndSignScript {
+## Unpin Microsoft Store on taskbar
+function Remove-MicrosoftStore-Taskbar-Icon {
+    # Define the application name to unpin
+    $appName = "Microsoft Store"
+
+    # Access the taskbar items and filter for the specified application
+    $taskbarItems = (New-Object -ComObject Shell.Application).NameSpace('shell:::{4234d49b-0245-4df3-b780-3893943456e1}').Items()
+    $appItem = $taskbarItems | Where-Object { $_.Name -eq $appName }
+
+    # Find the "Unpin from taskbar" verb and execute it
+    $appItem.Verbs() | Where-Object { $_.Name.Replace('&', '') -match 'Unpin from taskbar' } | ForEach-Object { $_.DoIt() }
+}
+Remove-MicrosoftStore-Taskbar-Icon
+
+function New-CodeSigningCertificate {
     param (
         [Parameter(Mandatory = $true)]
         [string]$ScriptPath,
 
         [string]$CertName = "MyCodeSigningCert",
         [Parameter()]
-        [System.Security.SecureString]$PfxPassword = (ConvertTo-SecureString -String $env:STRONGPASSWORD -AsPlainText -Force),
+        [System.Security.SecureString]$PfxPassword = (ConvertTo-SecureString -String (Get-Item Env:STRONGPASSWORD).Value -AsPlainText -Force),
         [string]$OutputPath = "$env:USERPROFILE\Desktop"
     )
 
@@ -689,12 +665,24 @@ function New-CodeSigningCertificateAndSignScript {
 
         Write-Host "==> Exporting certificate..."
         Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $securePass | Out-Null
-        Export-Certificate   -Cert $cert -FilePath $cerPath | Out-Null
+        Export-Certificate    -Cert $cert -FilePath $cerPath | Out-Null
         Write-Host "PFX exported to $pfxPath"
         Write-Host "CER exported to $cerPath"
 
-        Write-Host "==> Importing certificate into Trusted Root..."
-        Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
+        #Write-Host "==> Importing certificate into Trusted Root..."
+        #Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
+    }
+
+    catch {
+        Write-Output "An exception occurred: $_" 
+        Write-Output "Exception Type: $($_.Exception.GetType().FullName)" 
+        Write-Output "Exception Message: $($_.Exception.Message)" 
+        Write-Output "Stack Trace: $($_.Exception.StackTrace)" 
+    }
+}
+
+function New-CodeSigningCertificate {
+    try {
 
         Write-Host "==> Signing script: $ScriptPath"
         $signingCert = Get-ChildItem Cert:\CurrentUser\My\$($cert.Thumbprint)
@@ -735,9 +723,9 @@ function Set-CodeSigningCertificate {
 }
 # Set-CodeSigningCertificate
 
-$Bin = "$env:SystemDrive\BIN"
-#Add-DirectoryToPath -DirectoryToAdd "${Bin}" -Scope "User"
-#$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User")
+$BIN = "$env:SystemDrive\BIN"
+Add-MpPreference -ExclusionPath $BIN
+Add-DirectoryToPath -Directory "${BIN}" -Scope "User"
 
 Write-Output ("Configuring Oh My Posh, if it isn't already installed...")
 ## Oh My Posh
@@ -772,13 +760,7 @@ else {
     Write-Output("Skipping... Oh-My-Posh not found!")
 }
 
-Write-Output ("Upgrading anything else...") 
-## bring everything up to date
-## winget
-$Arguments = "upgrade --all --accept-package-agreements --accept-source-agreements --disable-interactivity"
-$ExitCode = $Process.ExitCode
-$Process = Start-Process -FilePath winget -ArgumentList $Arguments -NoNewWindow -Wait -PassThru
-Write-Output "Winget upgrade exited with code: $ExitCode"
+Add-MpPreference -ExclusionPath 'C:\Program Files\starship\bin'
 
 #dotnet tool install -g dotnet-aspnet-codegenerator
 #npm install -g @azure/static-web-apps-cli
