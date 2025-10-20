@@ -1,7 +1,68 @@
 ﻿#Requires -RunAsAdministrator
 
+function Set-RdpQueryDirPrefetch {
+    <#
+    .SYNOPSIS
+        Sets the RDP registry value fAllowQueryDirPrefetch to 1.
+
+    .DESCRIPTION
+        This function ensures the key:
+            HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
+        exists, and then sets the REG_DWORD value:
+            fAllowQueryDirPrefetch = 1
+        Returns $true if the operation succeeds, otherwise $false.
+
+    .NOTES
+        Requires Administrator privileges.
+    #>
+
+    [CmdletBinding()]
+    param()
+
+    $regPath  = 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp'
+    $regName  = 'fAllowQueryDirPrefetch'
+    $regValue = 1
+
+    try {
+        # Ensure key exists
+        if (-not (Test-Path $regPath)) {
+            New-Item -Path $regPath -Force | Out-Null
+        }
+
+        # Set or update value
+        New-ItemProperty -Path $regPath -Name $regName -Value $regValue -PropertyType DWord -Force | Out-Null
+
+        # Verify the result
+        $currentValue = (Get-ItemProperty -Path $regPath -Name $regName -ErrorAction Stop).$regName
+        if ($currentValue -eq $regValue) {
+            Write-Verbose "Successfully set $regName to $regValue at $regPath"
+            return $true
+        }
+        else {
+            Write-Error "Failed to verify registry value."
+            return $false
+        }
+    }
+    catch {
+        Write-Error "Error setting registry value: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+function Test-DeveloperMode {
+    $regPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
+    $regName = 'AllowDevelopmentWithoutDevLicense'
+
+    if (-not (Test-Path $regPath)) {
+        return $false
+    }
+
+    $val = (Get-ItemProperty -Path $regPath -Name $regName -ErrorAction SilentlyContinue).$regName
+    return ($val -eq 1)
+}
+
 function Set-NetworkProfilesToPrivate {
-    # Make all the network connection private
+    # Make all the network connection profiles private
     $networks = Get-NetConnectionProfile
     foreach ($net in $networks) {
         Write-Host "Changing '$($net.Name)' from $($net.NetworkCategory) to Private..."
@@ -13,7 +74,7 @@ function Set-NetworkProfilesToPrivate {
 Set-NetworkProfilesToPrivate
 
 function Install-WinRM {
-    ## Network profiles MUST be private
+    ## Network profiles MUST be private for WinRM to work
     Set-NetworkProfilesToPrivate
 
     ## Open firewall rules for WinRM (HTTP:5985, HTTPS:5986)
@@ -175,7 +236,7 @@ function Set-DriveVolumeLabel {
         $SystemVolumeLabel = Get-Volume -DriveLetter $DriveLetter -ErrorAction Stop
         if ($SystemVolumeLabel.FileSystemLabel -ne $DesiredVolumeName) {
             Write-Output ("Labeling Drive $DriveLetter...") 
-            Set-Volume -DriveLetter $DriveLetter -NewFileSystemLabel $DesiredVolumeName -ErrorAction Stop
+            Set-Volume -DriveLetter $DriveLetter -NewFileSystemLabel $DesiredVolumeName -ErrorAction SilentlyContinue
         }
         else {
             Write-Output "Drive $DriveLetter already labeled as '$DesiredVolumeName'." 
@@ -210,21 +271,88 @@ function New-TempDirectories {
 # Call the function
 New-TempDirectories
 
-function Enable-DeveloperDevicePortal {
+function Install-LatestWindowsSDK {
     <#
     .SYNOPSIS
-        Installs and enables Developer Mode Device Portal on Windows.
+        Installs the latest Windows SDK using winget if Developer Mode is enabled.
 
     .DESCRIPTION
-        - Enables Developer Mode via registry.
-        - Installs required Windows features: DeviceDiscovery, DeveloperMode, DevicePortal.
-        - Configures the registry to enable Device Portal.
-        - Restarts necessary services.
+        - Verifies Developer Mode is enabled via registry.
+        - Queries winget to detect the latest Windows SDK package ID.
+        - Installs it silently.
+        - Returns $true on success, $false on failure.
 
-    .EXAMPLE
-        Enable-DevicePortal
+    .NOTES
+        - Requires administrator privileges.
+        - Works on Windows 10/11.
+        - Developer Mode check is based on registry:
+          HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock
     #>
 
+    [CmdletBinding()]
+    param()
+
+    $packageIdPrefix = 'Microsoft.WindowsSDK.'
+
+    # --- Helper: Check Developer Mode ---
+
+    Write-Verbose "Checking if Developer Mode is enabled..."
+    if (-not (Test-DeveloperMode)) {
+        Write-Warning "❌ Developer Mode is not enabled. Enable it in Settings > For Developers or via registry."
+        return $false
+    }
+
+    Write-Verbose "Developer Mode is enabled. Searching for Windows SDK packages..."
+
+    # --- Find latest Windows SDK ---
+    $output = winget search "Windows SDK" --accept-source-agreements | Out-String
+    if (-not $output -or $output -notmatch $packageIdPrefix) {
+        Write-Error "Could not find Windows SDK packages in winget."
+        return $false
+    }
+
+    $ids = ($output -split "`r?`n") |
+        Where-Object { $_ -match $packageIdPrefix } |
+        ForEach-Object { ($_ -split '\s+')[0] } |
+        Sort-Object -Unique
+
+    if (-not $ids) {
+        Write-Error "No matching Windows SDK packages found."
+        return $false
+    }
+
+    $versions = $ids | ForEach-Object { $_ -replace [regex]::Escape($packageIdPrefix), '' }
+    $latestVersion = ($versions | Sort-Object { [version]$_ } -Descending)[0]
+
+    if (-not $latestVersion) {
+        Write-Error "Could not determine the latest SDK version."
+        return $false
+    }
+
+    $latestId = "$packageIdPrefix$latestVersion"
+    Write-Verbose "Latest Windows SDK version detected: $latestVersion (ID: $latestId)"
+
+    # --- Install ---
+    try {
+        & winget install --id $latestId -e --accept-package-agreements --accept-source-agreements
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "✅ Windows SDK $latestVersion installed successfully."
+            return $true
+        } else {
+            Write-Error "❌ Installation failed with exit code $LASTEXITCODE."
+            return $false
+        }
+    }
+    catch {
+        Write-Error "❌ Exception during installation: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+function Enable-DeveloperDevicePortal {
+    ## Device Discovery requires Windows SDK (1803 or later)
+    ## 
+    
     [CmdletBinding(SupportsShouldProcess)]
     param ()
 
@@ -233,11 +361,17 @@ function Enable-DeveloperDevicePortal {
         return
     }
 
-    Write-Host "🔧 Enabling Developer Mode..."
-    New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" -Force | Out-Null
-    New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" `
-        -Name "AllowDevelopmentWithoutDevLicense" -PropertyType DWord -Value 1 -Force | Out-Null
+    Write-Verbose "Checking if Developer Mode is enabled..."
+    if (-not (Test-DeveloperMode)) {
+        Write-Warning "❌ Developer Mode is not enabled. Enable it in Settings > For Developers or via registry."
+        return $false
+    }
 
+    if ( -not (Install-LatestWindowsSDK)) {
+        Write-Warning "❌ WindowsSDK installation has failed (or wasn't found)"
+        return $false
+    }
+        
     Write-Host "📦 Installing required Windows capabilities..."
     $capabilities = @(
         "DeviceDiscovery",
