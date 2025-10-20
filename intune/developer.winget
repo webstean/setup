@@ -442,6 +442,13 @@ properties:
         Hosts:
           Enabled: true
           ShowStartupWarning: false
+        LightSwitch:
+          Enabled: false
+        ScreenRuler:
+          Enabled: false
+        TextExtractor:
+          Enabled: true
+       
 
 #    - resource: GitDsc/GitClone
 #      id: github.com/lscph1929/lscph-azterraform.git
