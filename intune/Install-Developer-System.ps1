@@ -80,37 +80,42 @@ Install-OrUpdate-DotNetTools
 
 ## Add or Remote Directory from the Path, add check to see if it is already there first
 function Add-DirectoryToPath {
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$DirectoryToAdd,
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Directory,
 
-        [Parameter()]
-        [ValidateSet("User", "Machine")]
-        [string]$Scope = "User"
+        [ValidateSet('User','System')]
+        [string]$Scope = 'User'
     )
 
-    # Get the current PATH environment variable based on the specified scope
-    $CurrentPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::$Scope)
+    # Normalize the path (remove trailing slash, resolve relative paths)
+    $resolvedPath = (Resolve-Path -Path $Directory).Path.TrimEnd('\')
 
-    # Split the PATH into an array of directories
-    $PathArray = $CurrentPath -split ";"
-
-    # Check if the directory already exists in the PATH
-    if (-not ($PathArray -contains $DirectoryToAdd)) {
-        # Add the directory to the PATH
-        $NewPath = "$CurrentPath;$DirectoryToAdd"
-
-        # Update the PATH environment variable
-        [System.Environment]::SetEnvironmentVariable("Path", $NewPath, [System.EnvironmentVariableTarget]::$Scope)
-
-        Write-Output "Directory '$DirectoryToAdd' added to $Scope PATH." 
+    # Read the current PATH value
+    if ($Scope -eq 'User') {
+        $currentPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+    } else {
+        $currentPath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
     }
-    else {
-        Write-Output "Directory '$DirectoryToAdd' already exists in $Scope PATH." 
+
+    # Split PATH into individual entries
+    $pathEntries = $currentPath -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
+
+    # Check if the path already exists (case-insensitive)
+    if ($pathEntries -contains $resolvedPath) {
+        Write-Host "✅ '$resolvedPath' is already in the $Scope PATH."
+        return
+    }
+
+    # Append the new path
+    $newPath = ($pathEntries + $resolvedPath) -join ';'
+
+    if ($PSCmdlet.ShouldProcess("$Scope PATH", "Add '$resolvedPath'")) {
+        [Environment]::SetEnvironmentVariable('Path', $newPath, $Scope)
+        Write-Host "✅ Added '$resolvedPath' to the $Scope PATH."
     }
 }
-# Example usage
-# Add-DirectoryToPath -DirectoryToAdd "C:\MyNewPath" -Scope "Machine"
 
 function CleanupDirectoryPath {
     param (
