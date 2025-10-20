@@ -155,7 +155,7 @@ function Invoke-IfFileExists {
 
     if (Test-Path -LiteralPath $Path) {
         Write-Host "File found: $Path.. executing..."
-        #& $Path
+        & $Path
     }
     else {
         Write-Host "File not found: $Path"
@@ -170,8 +170,8 @@ try {
     Invoke-IfFileExists "$TranscriptDir\Install-Windows-Admin-Centre.ps1"
     Invoke-IfFileExists "$TranscriptDir\Install-Developer-Fonts.ps1"
     Invoke-IfFileExists "$TranscriptDir\Install-Developer-System.ps1" ## installs dotnet, that we need later
-    Invoke-IfFileExists  "$TranscriptDir\Install-Developer-User.ps1"
-    Invoke-IfFileExists  "$TranscriptDir\Winget-Config-Developer.ps1"
+    Invoke-IfFileExists "$TranscriptDir\Install-Developer-User.ps1"
+    Invoke-IfFileExists "$TranscriptDir\Winget-Config-Developer.ps1"
 }
 catch {
     Write-Error "Error executing: $_"
