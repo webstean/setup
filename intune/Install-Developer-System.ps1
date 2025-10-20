@@ -377,10 +377,11 @@ try {
     $ramGB = [math]::Round((Get-WmiObject -Class Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
 
     if ($cpuCores -ge 4 -and $ramGB -ge 16) {
+        Write-Output "Enabling Sandbox (disposable VM)"
         Enable-WindowsOptionalFeature -FeatureName "Containers-DisposableClientVM" -All -Online -NoRestart
     }
     else {
-        Write-Output "Insufficient resources to enable Containers-DisposableClientVM. Requires at least 4 CPU cores and 16GB of RAM." 
+        Write-Output "Insufficient resources to enable Windows Sandbox - require at least 4 CPU cores and 16GB of RAM." 
         Disable-WindowsOptionalFeature -FeatureName "Containers-DisposableClientVM" -Online -NoRestart
     }
 }
