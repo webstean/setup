@@ -150,15 +150,15 @@ properties:
         id: Microsoft.Azure.AZCopy.10
         source: winget
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Docker.DockerDesktop
-      directives:
-        description: Installing Docker.DockerDesktop %APPDATA%\Docker\settings.json
-        allowPrerelease: false
-        securityContext: current
-      settings:
-        id: Docker.DockerDesktop
-        source: winget
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Docker.DockerDesktop
+#      directives:
+#        description: Installing Docker.DockerDesktop %APPDATA%\Docker\settings.json
+#        allowPrerelease: false
+#        securityContext: current
+#      settings:
+#        id: Docker.DockerDesktop
+#        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.Azd
@@ -362,14 +362,6 @@ properties:
         id: Microsoft.Edit
         source: winget
 
-#  - resource: Microsoft.Windows.Developer/ShowSecondsInClock
-#    directives:
-#      description: Show seconds in clock
-#      allowPrerelease: true
-#    settings:
-#      Ensure: Present
-#      ShowSeconds: True
-
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-esbenp.prettier-vscode
       dependsOn:
@@ -451,40 +443,40 @@ properties:
          ShowStartupWarning: false
         
 
-    - resource: GitDsc/GitClone
-      id: github.com/lscph1929/lscph-azterraform.git
-      directives:
-        description: Clone the lscph-azterraform repository
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        HttpsUrl: https://github.com/lscph1929/lscph-azterraform.git
-        RootDirectory: "C:/WorkSpaces"
+#    - resource: GitDsc/GitClone
+#      id: github.com/lscph1929/lscph-azterraform.git
+#      directives:
+#        description: Clone the lscph1929/lscph-azterraform private repository
+#        allowPrerelease: true
+#        securityContext: current
+#      settings:
+#        HttpsUrl: https://github.com/lscph1929/lscph-azterraform.git
+#        RootDirectory: "C:/WorkSpaces"
 
-    - resource: GitDsc/GitClone
-      id: github.com/stomble/stm-cloud-scaffold.git
-      directives:
-        description: Clone the stm-cloud-scaffold
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        HttpsUrl: https://github.com/stomble/stm-cloud-scaffold.git
-        RootDirectory: "C:/WorkSpaces"
+#    - resource: GitDsc/GitClone
+#      id: github.com/stomble/stm-cloud-scaffold.git
+#      directives:
+#        description: Clone the stomble/stm-cloud-scaffold private repository
+#        allowPrerelease: true
+#        securityContext: current
+#      settings:
+#        HttpsUrl: https://github.com/stomble/stm-cloud-scaffold.git
+#        RootDirectory: "C:/WorkSpaces"
 
-    - resource: GitDsc/GitClone
-      id: github.com/lscph1929/scripts.git
-      directives:
-        description: Clone the scripts repository
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        HttpsUrl: https://github.com/lscph1929/scripts.git
-        RootDirectory: "C:/WorkSpaces"
+#    - resource: GitDsc/GitClone
+#      id: github.com/lscph1929/scripts.git
+#      directives:
+#        description: Clone the lscph1929/scripts private repository
+#        allowPrerelease: true
+#        securityContext: current
+#      settings:
+#        HttpsUrl: https://github.com/lscph1929/scripts.git
+#        RootDirectory: "C:/WorkSpaces"
 
     - resource: GitDsc/GitClone
       id: github.com/webstean/setup
       directives:
-        description: Clone the scripts repository
+        description: Clone the webstean/scripts public repository
         allowPrerelease: true
         securityContext: current
       settings:
@@ -498,7 +490,7 @@ properties:
 #    settings:
 #      Name: mhutchie.git-graph
 
-  # .NET Development Extensions
+    # VS Code .NET Development Extensions
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-dotnettools.csharp
       dependsOn:
@@ -510,6 +502,7 @@ properties:
       settings:
         Name: ms-dotnettools.csharp
     
+    # VS Code DotNet extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-dotnettools.vscode-dotnet-runtime
       dependsOn:
@@ -521,7 +514,7 @@ properties:
       settings:
         Name: ms-dotnettools.vscode-dotnet-runtime
     
-  # PowerShell Development
+    # VS Code PowerShell extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-powershell
       dependsOn:
@@ -533,7 +526,7 @@ properties:
       settings:
         Name: ms-vscode.powershell
     
-  # Docker and Containerization
+    # VS Code Azure Docker tools
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-azuretools.vscode-docker
       dependsOn:
@@ -545,6 +538,7 @@ properties:
       settings:
         Name: ms-azuretools.vscode-docker
 
+    # VS Code Terraform extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-hashicorp.terraform
       dependsOn:
@@ -556,6 +550,7 @@ properties:
       settings:
         Name: hashicorp.terraform
 
+    # VS Code Terraform extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-azuretools.vscode-azureterraform
       dependsOn:
@@ -567,6 +562,7 @@ properties:
       settings:
         Name: ms-azuretools.vscode-azureterraform
 
+    # VS Code RedHat YML extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: redhat.vscode-yaml
       dependsOn:
@@ -578,6 +574,7 @@ properties:
       settings:
         Name: redhat.vscode-yaml
 
+    # VS Code GitHub Copilot extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: GitHub.copilot
       dependsOn:
@@ -589,6 +586,7 @@ properties:
       settings:
         Name: GitHub.copilot
 
+    # VS Code GitHub Copilot Chat extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: GitHub.copilot-chat
       dependsOn:
@@ -600,6 +598,7 @@ properties:
       settings:
         Name: GitHub.copilot-chat
 
+    # VS Code
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: ms-azuretools.vscode-azure-github-copilot
       dependsOn:
@@ -611,6 +610,7 @@ properties:
       settings:
         Name: ms-azuretools.vscode-azure-github-copilot
       
+    # Java (open source)
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: ms-java-jdk
       directives:
@@ -620,6 +620,7 @@ properties:
         id: Microsoft.OpenJDK.21
         source: winget
 
+    # NDI Runtime
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: NDI.NDIRuntime
       directives:
@@ -629,10 +630,11 @@ properties:
         id: NDI.NDIRuntime
         source: winget
 
+    # NodeJS
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: OpenJS.NodeJS
       directives:
-        description: Install OpenJS.NodeJS
+        description: Install OpenJS.NodeJS (dependency for many VS Code extensions)
         securityContext: current
       settings:
         id: OpenJS.NodeJS
