@@ -772,7 +772,7 @@ function Set-SettingsPageVisibility {
     throw "No valid action specified. Use one of: -Mode Hide/ShowOnly (with -Pages), -Add, -Remove, -Clear, or -Get."
 }
 Set-SettingsPageVisibility -Get | Format-List
-Set-SettingsPageVisibility -Mode Hide -Pages 'gaming-gamebar','gaming-captures','gaming-gamemode','gaming-xboxnetworking'
+Set-SettingsPageVisibility -Mode Hide -Pages 'gaming' ## 'gaming-gamebar','gaming-captures','gaming-gamemode','gaming-xboxnetworking'
 Set-SettingsPageVisibility -Get | Format-List
 
 # Enable Clipboard History
@@ -1043,6 +1043,7 @@ function SortOutTimeManagement {
 }
 SortOutTimeManagement
 
+Write-Host "Restarting Windows Explorer..."
 Stop-Process -Name explorer -Force
 Start-Process explorer.exe
 
