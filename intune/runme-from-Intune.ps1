@@ -1,24 +1,19 @@
 #Requires -RunAsAdministrator
 
 ## Base URL for raw GitHub content (public`)
-$baseUrl = "https://raw.githubusercontent.com/webstean/setup//main/intune"
+$baseUrl = "https://raw.githubusercontent.com/webstean/setup//main/intune/"
 
 ## List of script files to download and run
-$scripts = @(
+$filesToDownload = @(
+    "Config-Normal-Machine.ps1",
+    "developer.winget",
+    "Install-Developer-Fonts.ps1",
+    "Install-Developer-PowershellModules.ps1",
+    "Install-Developer-System.ps1",
+    "Install-Developer-User.ps1",
     "Install-Global-Secure-Access-Client.ps1",
     "Install-Windows-Admin-Centre.ps1",
-    "Install-Developer-System.ps1",
-    "Install-Developer-PowerShellModules.ps1",
-    "Install-Developer-User.ps1",
-    "Install-Developer-Fonts.ps1",
-    "Config-Normal-Machine.ps1",
     "Winget-Config-Developer.ps1"
-)
-
-## List of files to download but NOT execute
-$filesToDownloadOnly = @(
-    # Example files:
-    "developer.winget",
     "wallpaper.jpg",
     "wallpaper.mp4"
     # Add more filenames as needed
@@ -117,35 +112,66 @@ if ($winget) {
 }
 
 # Local folder to save downloaded scripts
-$scriptFolder = $TranscriptDir
+
+function New-EmptyTempDirectory {
+    [CmdletBinding()]
+    param()
+
+    # $env:TEMP gives us the temp folder path
+    $basePath = $env:TEMP
+
+    # Use New-Guid (PowerShell 5+) to generate a unique name
+    $uniqueName = (New-Guid).Guid
+    $fullPath = Join-Path -Path $basePath -ChildPath $uniqueName
+
+    # Ensure it's empty: remove if somehow it already exists
+    if (Test-Path -LiteralPath $fullPath) {
+        Remove-Item -LiteralPath $fullPath -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    # Create the empty directory
+    $null = New-Item -ItemType Directory -Path $fullPath -Force
+
+    # Return the path as string
+    return $fullPath
+}
+$scriptFolder = New-EmptyTempDirectory
 
 # Download files that should NOT be executed
-foreach ($file in $scripts) {
+foreach ($file in $filesToDownload) {
     $url = "$baseUrl/$file"
     $destination = Join-Path -Path $scriptFolder -ChildPath $file
-    Write-Host "Downloading (no execute): $file from $url ..."
+    Write-Output "Downloading (no execute): $url... to $destination"
     Invoke-WebRequest -Uri $url -OutFile $destination -UseBasicParsing
 }
-# Download files that need to be executed
-foreach ($file in $filesToDownloadOnly) {
-    $url = "$baseUrl/$file"
-    $destination = Join-Path -Path $scriptFolder -ChildPath $file
-    Write-Host "Downloading (no execute): $file from $url ..."
-    Invoke-WebRequest -Uri $url -OutFile $destination -UseBasicParsing
+
+function Invoke-IfFileExists {
+
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path
+    )
+
+    if (Test-Path -LiteralPath $Path) {
+        Write-Host "File found: $Path.. executing..."
+        #& $Path
+    }
+    else {
+        Write-Host "File not found: $Path"
+    }
 }
-return $true
 
 ## Execute downloaded scripts
 try {
-    & "$TranscriptDir\Config-Normal-Machine.ps1"
-    & "$TranscriptDir\Install-Developer-PowerShellModules.ps1"
-    & "$TranscriptDir\Install-Global-Secure-Access-Client.ps1"
-    & "$TranscriptDir\Install-Windows-Admin-Centre.ps1"
-    & "$TranscriptDir\Install-Developer-Fonts.ps1"
-    & "$TranscriptDir\Install-Developer-System.ps1" ## installs dotnet, that we need later
-
-#    & "$TranscriptDir\Install-Developer-User.ps1"
-#    & "$TranscriptDir\Winget-Config-Developer.ps1"
+    Invoke-IfFileExists "$TranscriptDir\Config-Normal-Machine.ps1"
+    Invoke-IfFileExists "$TranscriptDir\Install-Developer-PowerShellModules.ps1"
+    Invoke-IfFileExists "$TranscriptDir\Install-Global-Secure-Access-Client.ps1"
+    Invoke-IfFileExists "$TranscriptDir\Install-Windows-Admin-Centre.ps1"
+    Invoke-IfFileExists "$TranscriptDir\Install-Developer-Fonts.ps1"
+    Invoke-IfFileExists "$TranscriptDir\Install-Developer-System.ps1" ## installs dotnet, that we need later
+    Invoke-IfFileExists  "$TranscriptDir\Install-Developer-User.ps1"
+    Invoke-IfFileExists  "$TranscriptDir\Winget-Config-Developer.ps1"
 }
 catch {
     Write-Error "Error executing: $_"
