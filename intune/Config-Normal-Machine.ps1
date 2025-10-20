@@ -606,7 +606,7 @@ function Disable-WindowsGaming {
                     Remove-ItemProperty -Path $runCU -Name $name -Force -ErrorAction SilentlyContinue
                     $summary.RunEntriesRemoved += $name
                 }
-            } catch { $summary.Notes += "Failed removing Run entry $name: $($_.Exception.Message)" }
+            } catch { $summary.Notes += "Failed removing Run entry ${name}: $($_.Exception.Message)" }
         }
     }
 
