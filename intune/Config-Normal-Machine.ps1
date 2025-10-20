@@ -18,7 +18,7 @@ function Ensure-RegistryValue {
         [Parameter(Mandatory)] [string] $SubKey,
         [Parameter(Mandatory)] [string] $Name,
         [Parameter(Mandatory)] [object] $Value,
-        [ValidateSet('String','DWord','QWord','Binary','MultiString','ExpandString')]
+        [ValidateSet('STRING','DWORD','QWORD','BINARY','MULTISTRING','EXPANDSTRING')]
         [string] $Type = 'String'
     )
     $path = "$Hive`:\$SubKey"
@@ -164,11 +164,12 @@ DisableErrorReporting
 Function DisableRecoveryAndReset {
 	reagentc /disable 2>&1 | Out-Null
 }
-DisableRecoveryAndReset ## these dont work with Intune enrolled Autopilot devices anyway
+DisableRecoveryAndReset ## this does NOT work with Intune enrolled Autopilot devices anyway
 
 # Disable Autoplay
 Function DisableAutoplay {
 	Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" -Name "DisableAutoplay" -Type DWord -Value 1
+	Ensure-RegistryValue -Hive HKCU -SubKey 'Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers' -Name 'DisableAutoplay' -Value '1' -Type 'DWORD'
 }
 DisableAutoplay
 
