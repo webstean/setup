@@ -388,6 +388,7 @@ Write-Output ("Uninstalling Microsoft Software Bloat...")
 # Uninstall default Microsoft applications
 Function UninstallMsftBloat {
 	## Import-Module Appx
+	Get-AppxPackage "Microsoft.GamingApp" | Remove-AppxPackage
 	Get-AppxPackage "Microsoft.XboxIdentityProvider" | Remove-AppxPackage
 	Get-AppxPackage "Microsoft.Xbox.TCUI" | Remove-AppxPackage
 	Get-AppxPackage "Microsoft.Windows.DevHome" | Remove-AppxPackage 
