@@ -368,6 +368,9 @@ function Enable-DeveloperDevicePortal {
         return $false
     }
 
+    ## Network profiles MUST be private for DevPortal
+    Set-NetworkProfilesToPrivate
+
     #if ( -not (Install-LatestWindowsSDK)) {
     #    Write-Warning "❌ WindowsSDK installation has failed (or wasn't found)"
     #    return $false
