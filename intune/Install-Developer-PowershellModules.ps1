@@ -103,25 +103,36 @@ if (-not (Get-Module -Name Microsoft.WinGet.Configuration -ListAvailable -ErrorA
 ## 'Az.ImageBuilder', 'Az.ManagedServiceIdentity' | ForEach-Object {Install-Module -Name $_ -AllowPrerelease}
 
 ## Microsoft Graph Modules
-if ( -not (Get-Module -Name Microsoft.Graph -ListAvailable)) {
+if ( -not (Get-Module -Name Microsoft.Graph -ListAvailable -ErrorAction SilentlyContinue)) {
     Write-Output ("Installing Microsoft Graph Powershell modules...")
     Install-Module Microsoft.Graph -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
     Write-Output ("Updating Microsoft Graph Powershell modules...")
     Update-Module Microsoft.Graph -Force -Scope $installscope -ErrorAction SilentlyContinue
 } 
+Import-Module Microsoft.Graph
 
 ## Install Teams Modules
-if ( -not (Get-Module -Name MicrosoftTeams -ListAvailable)) {
+if ( -not (Get-Module -Name MicrosoftTeams -ListAvailable -ErrorAction SilentlyContinue)) {
     Write-Output ("Installing Microsoft Teams Powershell modules...")
     Install-Module MicrosoftTeams -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
     Write-Output ("Updating Microsoft Teams Powershell modules...")
     Update-Module MicrosoftTeams -Force -Scope $installscope -ErrorAction SilentlyContinue
-} 
+}
+Import-Module MicrosoftTeams
+
+if ( -not (Get-Module -Name Microsoft.WinGet.Client -ListAvailable -ErrorAction SilentlyContinue)) {
+    Write-Output ("Installing WinGet Client modules...")
+    Install-Module Microsoft.WinGet.Client -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
+} else {
+    Write-Output ("Updating WinGet Client modules...")
+    Update-Module Microsoft.WinGet.Client -Force -Scope $installscope -ErrorAction SilentlyContinue
+}
+Import-Module Microsoft.Winget.Client
 
 ## Install PowerApps Modules
-if ( -not (Get-Module -Name Microsoft.PowerApps.Administration.PowerShell -ListAvailable)) {
+if ( -not (Get-Module -Name Microsoft.PowerApps.Administration.PowerShell  -ListAvailable -ErrorAction SilentlyContinue)) {
     Write-Output ("Installing Microsoft Power Apps modules...")
     Install-Module Microsoft.PowerApps.Administration.PowerShell -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
@@ -153,7 +164,7 @@ $jsonObject= @"
 #Get-InstalledModule -Name VMware.PowerCLI
 
 ## Install Azure Tools Predictor
-if ( -not (Get-Module -Name Az.Tools.Predictor -ListAvailable)) {
+if ( -not (Get-Module -Name Az.Tools.Predictor -ListAvailable -ErrorAction SilentlyContinue)) {
     Install-Module Az.Tools.Predictor -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
     Update-Module Az.Tools.Predictor -Force -Scope $installscope -ErrorAction SilentlyContinue
@@ -163,13 +174,6 @@ Enable-AzPredictor -AllSession ## will update $profile
 (Get-PSReadLineOption).PredictionSource
 Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction SilentlyContinue
 # Set-PSReadLineOption -PredictionViewStyle InlineView
-
-if (-not (Get-Module -ListAvailable -Name Microsoft.WinGet.Client)) {
-    Install-Module Microsoft.WinGet.Client -Force -Scope CurrentUser
-}
-if (-not (Get-Module -Name Microsoft.WinGet.Client)) {
-    Import-Module Microsoft.WinGet.Client
-}
 
 ## Install Help for all installed modules
 if (-not (Get-Help -Name Get-Command -ErrorAction SilentlyContinue | Where-Object { $_.Category -eq "HelpFile" })) {
