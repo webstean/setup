@@ -111,11 +111,11 @@ function Enable-DeveloperDevicePortal {
         return $false
     }
 
-    if ( -not (Install-LatestWindowsSDK)) {
-        Write-Warning "❌ WindowsSDK installation has failed (or wasn't found)"
-        return $false
-    }
-    return
+   # if ( -not (Install-LatestWindowsSDK)) {
+   #     Write-Warning "❌ WindowsSDK installation has failed (or wasn't found)"
+   #     return $false
+   # }
+   # return
         
     Write-Host "📦 Installing required Windows capabilities..."
     $capabilities = @(
