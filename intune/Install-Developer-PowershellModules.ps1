@@ -164,6 +164,13 @@ Enable-AzPredictor -AllSession ## will update $profile
 Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction SilentlyContinue
 # Set-PSReadLineOption -PredictionViewStyle InlineView
 
+if (-not (Get-Module -ListAvailable -Name Microsoft.WinGet.Client)) {
+    Install-Module Microsoft.WinGet.Client -Force -Scope CurrentUser
+}
+if (-not (Get-Module -Name Microsoft.WinGet.Client)) {
+    Import-Module Microsoft.WinGet.Client
+}
+
 ## Install Help for all installed modules
 if (-not (Get-Help -Name Get-Command -ErrorAction SilentlyContinue | Where-Object { $_.Category -eq "HelpFile" })) {
     Update-Help -UICulture en-AU -Force -ErrorAction SilentlyContinue | Out-Null
