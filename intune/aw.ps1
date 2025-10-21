@@ -46,11 +46,14 @@ function Install-LatestWindowsSDK {
     Write-Verbose "Developer Mode is enabled. Searching for Windows SDK packages..."
 
     # --- Find latest Windows SDK ---
+    winget search "Windows SDK" --accept-source-agreements | Out-Null
     $output = winget search "Windows SDK" --accept-source-agreements | Out-String
     if (-not $output -or $output -notmatch $packageIdPrefix) {
         Write-Error "Could not find Windows SDK packages in winget."
         return $false
     }
+
+    $rows = $output | Where-Object { $_ -match $packageIdPrefix }
 
     $ids = ($output -split "`r?`n") |
         Where-Object { $_ -match $packageIdPrefix } |
