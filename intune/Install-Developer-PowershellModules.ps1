@@ -2,12 +2,17 @@
 
 ## Installing developer orientated PowerShell modules
 
-$IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-# Check language mode — must not be ConstrainedLanguage for method invocation
 $IsLanguagePermissive = $ExecutionContext.SessionState.LanguageMode -ne 'ConstrainedLanguage'
+if ($IsLanguagePermissive) {
+    $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+} else {
+    # Check language mode — must not be ConstrainedLanguage for method invocation
+    $IsAdmin = (whoami /groups | Select-String "S-1-5-32-544") -ne $null
+}
 
 # Set install scope variable based on elevation
-if ($IsAdmin -and $IsLanguagePermissive) {
+## if ($IsAdmin -and $IsLanguagePermissive) {
+if ($IsAdmin) {
     $InstallScope = 'AllUsers'
 } else {
     $InstallScope = 'CurrentUser'
