@@ -270,6 +270,7 @@ function Add-DirectoryToPath {
 ## https://raw.githubusercontent.com/microsoft/artifacts-credprovider/refs/heads/master/helpers/installcredprovider.ps1
 function Install-NuGetCredentialProviderforAzureArtefacts {
     Invoke-Expression "& { $(Invoke-RestMethod https://aka.ms/install-artifacts-credprovider.ps1) }"
+    return (Test-Path "$HOME\.nuget\plugins\netcore\CredentialProvider.Microsoft")
 }
 ## Install Azure Arctefacts Credential Provider
 #Install-NuGetCredentialProviderforAzureArtefacts
