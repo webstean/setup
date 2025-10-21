@@ -180,6 +180,15 @@ if (-not (Get-Help -Name Get-Command -ErrorAction SilentlyContinue | Where-Objec
     Update-Help -UICulture en-AU -Force -ErrorAction SilentlyContinue | Out-Null
 }
 
+Get-Module
+
+## Upgrade all the installed modules - needs to run as a job
+#Get-InstalledModule | ForEach-Object {
+#    Write-Host "Updating $($_.Name) ..."
+#    Update-Module -Name $_.Name -Force -ErrorAction Continue
+#}
+
+
 ## Clear-AzConfig
 if ( -not (Test-Path $HOME\AzConfig.json)) {
     Export-AzConfig -Path $HOME\AzConfig.json -Force
