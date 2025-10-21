@@ -292,26 +292,24 @@ function Install-LatestWindowsSDK {
     [CmdletBinding()]
     param()
 
-    $packageIdPrefix = 'Microsoft.WindowsSDK.'
 
-    # --- Helper: Check Developer Mode ---
 
     Write-Verbose "Checking if Developer Mode is enabled..."
     if (-not (Test-DeveloperMode)) {
         Write-Warning "❌ Developer Mode is not enabled. Enable it in Settings > For Developers or via registry."
         return $false
     }
-
     Write-Verbose "Developer Mode is enabled. Searching for Windows SDK packages..."
 
     # --- Find latest Windows SDK ---
-    winget search "Windows SDK" --accept-source-agreements | Out-Null
-    $output = winget search Microsoft.WindowsSDK | ConvertFrom-String -PropertyNames Name,Id,Version,Available,Source,System,Version,ID
-    if (-not $output -or $output -notmatch $packageIdPrefix) {
+    $packageIdPrefix = 'Windows SDK'
+    $Output = Find-WinGetPackage -Name $packageIdPrefix
+    if (-not $output[0] ) {
         Write-Error "Could not find Windows SDK packages in winget."
         return $false
     }
 
+    $output = $output | Sort-Object -Verson
     $ids = ($output -split "`r?`n") |
         Where-Object { $_ -match $packageIdPrefix } |
         ForEach-Object { ($_ -split '\s+')[0] } |
