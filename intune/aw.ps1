@@ -65,49 +65,21 @@ function Enable-DeveloperDevicePortal {
     catch {
         Write-Warning "⚠️ Could not restart dmwappushservice: $_"
     }
-    if (Get-ItemProperty -Path $DevicePortalKeyPath -Name "EnableDevicePortal" -ErrorAction SilentlyContinue) {
+    if (Get-ItemProperty -Path $regPath -Name "EnableDevicePortal" -ErrorAction SilentlyContinue) {
         Set-ItemProperty -Path $DevicePortalKeyPath -Name "EnableDevicePortal" -Value 1
     }
     else {
-        New-ItemProperty -Path $DevicePortalKeyPath -Name "EnableDevicePortal" -PropertyType DWORD -Value 1
+        New-ItemProperty -Path $regPath -Name "EnableDevicePortal" -PropertyType DWORD -Value 1
     }
 
     ## Enable authentication (optional but recommended)
-    if (Get-ItemProperty -Path $DevicePortalKeyPath -Name "Authentication" -ErrorAction SilentlyContinue) {
-        Set-ItemProperty -Path $DevicePortalKeyPath -Name "Authentication" -Value 1
+    if (Get-ItemProperty -Path $regPath -Name "Authentication" -ErrorAction SilentlyContinue) {
+        Set-ItemProperty -Path $regPath -Name "Authentication" -Value 0
     }
     else {
-        New-ItemProperty -Path $DevicePortalKeyPath -Name "Authentication" -PropertyType DWORD -Value 1
+        New-ItemProperty -Path $regPath -Name "Authentication" -PropertyType DWORD -Value 0
     }
 
-    if (! (Test-Path -Path $WebMgrKeyPath)) {
-        New-Item -Path $WebMgrKeyPath -ItemType Directory -Force
-    }
-    if (Get-ItemProperty -Path $WebMgrKeyPath -Name HttpsPort -ErrorAction SilentlyContinue) {
-        Set-ItemProperty -Path $WebMgrKeyPath -Name HttpsPort -Value 0x0000c50b
-    }
-    else {
-        New-ItemProperty -Path $WebMgrKeyPath -Name HttpsPort -PropertyType DWORD -Value 0x0000c50b
-    }
-    if (Get-ItemProperty -Path $WebMgrKeyPath -Name RequireDevUnlock -ErrorAction SilentlyContinue) {
-        Set-ItemProperty -Path $WebMgrKeyPath -Name RequireDevUnlock -Value 1
-    }
-    else {
-        New-ItemProperty -Path $WebMgrKeyPath -Name RequireDevUnlock -PropertyType DWORD -Value 1
-    }
-    if (Get-ItemProperty -Path $WebMgrKeyPath -Name UseDefaultAuthorizer -ErrorAction SilentlyContinue) {
-        Set-ItemProperty -Path $WebMgrKeyPath -Name UseDefaultAuthorizer -Value 0
-    }
-    else {
-        New-ItemProperty -Path $WebMgrKeyPath -Name UseDefaultAuthorizer -PropertyType DWORD -Value 0
-    }
-    if (Get-ItemProperty -Path $WebMgrKeyPath -Name UseDynamicPorts -ErrorAction SilentlyContinue) {
-        Set-ItemProperty -Path $WebMgrKeyPath -Name UseDynamicPorts -Value 0
-    }
-    else {
-        New-ItemProperty -Path $WebMgrKeyPath -Name UseDynamicPorts -PropertyType DWORD -Value 0
-    }
-    Get-Item -Path $WebMgrKeyPath
     # Open firewall port for Device Portal (usually 50080 for HTTP and 50443 for HTTPS)
     New-NetFirewallRule -DisplayName "Developer Device Portal HTTP" -Direction Inbound -LocalPort 50080 -Protocol TCP -Action Allow
     New-NetFirewallRule -DisplayName "Developer Device Portal HTTPS" -Direction Inbound -LocalPort 50443 -Protocol TCP -Action Allow
