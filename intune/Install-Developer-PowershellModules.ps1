@@ -60,6 +60,15 @@ if ( -not (Get-Module -Name PackageManagement -ListAvailable -ErrorAction Silent
 }
 Import-Module PackageManagement ## FIND-PACKAGE
 
+if ( -not (Get-Module -Name ModernWorkplaceClientCenter -ListAvailable -ErrorAction SilentlyContinue)) {
+    Write-Output ("Installing PackageManagement module...")
+    Install-Module ModernWorkplaceClientCenter -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
+} else {
+    Write-Output ("Updating ModernWorkplaceClientCenter module...")
+    Update-Module ModernWorkplaceClientCenter -Force -Scope $installscope -ErrorAction SilentlyContinue
+}
+Import-Module ModernWorkplaceClientCenter
+
 ## Setup PSReadline
 Write-Output "Setting up PSReadline..."
 if ( -not (Get-Module -Name Terminal-Icons -ListAvailable)) {
