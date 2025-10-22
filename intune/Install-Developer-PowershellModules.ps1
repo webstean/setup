@@ -51,6 +51,15 @@ Find-PackageProvider -ForceBootstrap
 Get-PSRepository -Name PSGallery
 ## Get-PSRepository -Name PSGallery | Format-List * -Force
 
+if ( -not (Get-Module -Name PackageManagement -ListAvailable -ErrorAction SilentlyContinue)) {
+    Write-Output ("Installing PackageManagement module...")
+    Install-Module PackageManagement -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
+} else {
+    Write-Output ("Updating PackageManagement module...")
+    Update-Module PackageManagement -Force -Scope $installscope -ErrorAction SilentlyContinue
+}
+Import-Module PackageManagement ## FIND-PACKAGE
+
 ## Setup PSReadline
 Write-Output "Setting up PSReadline..."
 if ( -not (Get-Module -Name Terminal-Icons -ListAvailable)) {
@@ -109,39 +118,39 @@ if (-not (Get-Module -Name Microsoft.WinGet.Configuration -ListAvailable -ErrorA
 
 ## Microsoft Graph Modules
 if ( -not (Get-Module -Name Microsoft.Graph -ListAvailable -ErrorAction SilentlyContinue)) {
-    Write-Output ("Installing Microsoft Graph Powershell modules...")
+    Write-Output ("Installing Microsoft Graph Powershell module...")
     Install-Module Microsoft.Graph -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
-    Write-Output ("Updating Microsoft Graph Powershell modules...")
+    Write-Output ("Updating Microsoft Graph Powershell module...")
     Update-Module Microsoft.Graph -Force -Scope $installscope -ErrorAction SilentlyContinue
 } 
 Import-Module Microsoft.Graph
 
 ## Install Teams Modules
 if ( -not (Get-Module -Name MicrosoftTeams -ListAvailable -ErrorAction SilentlyContinue)) {
-    Write-Output ("Installing Microsoft Teams Powershell modules...")
+    Write-Output ("Installing Microsoft Teams Powershell module...")
     Install-Module MicrosoftTeams -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
-    Write-Output ("Updating Microsoft Teams Powershell modules...")
+    Write-Output ("Updating Microsoft Teams Powershell module...")
     Update-Module MicrosoftTeams -Force -Scope $installscope -ErrorAction SilentlyContinue
 }
 Import-Module MicrosoftTeams
 
 if ( -not (Get-Module -Name Microsoft.WinGet.Client -ListAvailable -ErrorAction SilentlyContinue)) {
-    Write-Output ("Installing WinGet Client modules...")
+    Write-Output ("Installing WinGet Client module...")
     Install-Module Microsoft.WinGet.Client -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
-    Write-Output ("Updating WinGet Client modules...")
+    Write-Output ("Updating WinGet Client module...")
     Update-Module Microsoft.WinGet.Client -Force -Scope $installscope -ErrorAction SilentlyContinue
 }
 Import-Module Microsoft.Winget.Client
 
 ## Install PowerApps Modules
 if ( -not (Get-Module -Name Microsoft.PowerApps.Administration.PowerShell  -ListAvailable -ErrorAction SilentlyContinue)) {
-    Write-Output ("Installing Microsoft Power Apps modules...")
+    Write-Output ("Installing Microsoft Power Apps module...")
     Install-Module Microsoft.PowerApps.Administration.PowerShell -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
 } else {
-    Write-Output ("Updating Microsoft Power Apps modules...")
+    Write-Output ("Updating Microsoft Power Apps module...")
     Update-Module Microsoft.PowerApps.Administration.PowerShell -Force -Scope $installscope -ErrorAction SilentlyContinue
 } 
 ## Add-PowerAppsAccount -Endpoint prod
