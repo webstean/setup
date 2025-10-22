@@ -691,29 +691,55 @@ Add-MpPreference -ExclusionPath 'C:\Program Files\starship\bin'
 
 ## Define the path for the .log extension and the program path
 $extensionKey = "HKCU:\Software\Classes\.log"
-$programPath = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\zarunbal.LogExpert_Microsoft.Winget.Source_8wekyb3d8bbwe\logexpert.exe"
+
+# Define paths and program to associate
+$extensionKey = "HKCU:\Software\Classes\.log"
 $fileTypeKey = "HKCU:\Software\Classes\LogExpertFile"
 $commandKey = "$fileTypeKey\shell\open\command"
+$programPath = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\zarunbal.LogExpert_Microsoft.Winget.Source_8wekyb3d8bbwe\logexpert.exe"
 
-## Create the .log extension association
+# Ensure the .log extension is associated with LogExpertFile
 if (-not (Test-Path $extensionKey)) {
     New-Item -Path $extensionKey -Force
 }
 Set-ItemProperty -Path $extensionKey -Name "(Default)" -Value "LogExpertFile"
 
-## Create the LogExpertFile key if it doesn't exist
+# Ensure LogExpertFile key exists
 if (-not (Test-Path $fileTypeKey)) {
     New-Item -Path $fileTypeKey -Force
 }
 
-## Create the 'shell\open\command' key
+# Create the shell\open\command key
 if (-not (Test-Path $commandKey)) {
     New-Item -Path $commandKey -Force
 }
 
-## Set the command to open LogExpert
+# Set the command to open LogExpert for LogExpertFile type
 Set-ItemProperty -Path $commandKey -Name "(Default)" -Value "`"$programPath`" `"%1`""
 
+# Now, set LogExpert as the default app for .log files
+$defaultAppProgID = "LogExpertFile"
+$assocKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.log"
+
+# Remove old file associations (if any)
+if (Test-Path $assocKey) {
+    Remove-Item -Path $assocKey -Recurse -Force
+}
+
+# Set the file extension association for .log to the LogExpertFile type
+New-Item -Path $assocKey -Force
+Set-ItemProperty -Path $assocKey -Name "UserChoice" -Value @{
+    Progid = $defaultAppProgID
+}
+cmd.exe /c assoc .log=LogExpertFile
+cmd.exe /c ftype LogExpertFile="$env:LOCALAPPDATA\Microsoft\WinGet\Packages\zarunbal.LogExpert_Microsoft.Winget.Source_8wekyb3d8bbwe\logexpert.exe" "%1"
+
+## Alternatively
+Install-Module -Name Set-UserFTA -Force -Scope CurrentUser
+Import-Module -Name Set-UserFTA
+Set-UserFTA -FileExtension .log -Application "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\zarunbal.LogExpert_Microsoft.Winget.Source_8wekyb3d8bbwe\logexpert.exe"
+
+Write-Host "File extension .log is now associated with LogExpert and no longer requires confirmation."
 
 #dotnet tool install -g dotnet-aspnet-codegenerator
 #npm install -g @azure/static-web-apps-cli
