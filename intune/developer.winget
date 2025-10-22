@@ -344,6 +344,7 @@ properties:
       id: zarunbal.LogExpert
       directives:
         description: Installing zarunbal.LogExpert
+        ## C:\Users\vid9na6\AppData\Local\Microsoft\WinGet\Packages\zarunbal.LogExpert_Microsoft.Winget.Source_8wekyb3d8bbwe\logexpert.exe
         allowPrerelease: false
         securityContext: current
       settings:
