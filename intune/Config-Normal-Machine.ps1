@@ -896,14 +896,6 @@ function Install-VLC {
 }
 Install-VLC
 
-# Specify the path to the application
-#$appPath = "C:\Program Files\LogExpert\LogExpert.exe"
-$appPath = "C:\Program Files\LogExpert\LogExpert.exe"
-# Associate the .log extension with the application
-Set-ItemProperty -Path "HKCU:\Software\Classes\.log" -Name "(Default)" -Value "LogExpertFile"
-Set-ItemProperty -Path "HKCU:\Software\Classes\LogExpertFile\shell\open\command" -Name "(Default)" -Value "`"$appPath`" `"%1`""
-
-
 function Wait-WindowsUptime {
 
     $Minutes = 10
