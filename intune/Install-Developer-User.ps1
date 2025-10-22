@@ -689,6 +689,32 @@ else {
 
 Add-MpPreference -ExclusionPath 'C:\Program Files\starship\bin'
 
+## Define the path for the .log extension and the program path
+$extensionKey = "HKCU:\Software\Classes\.log"
+$programPath = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\zarunbal.LogExpert_Microsoft.Winget.Source_8wekyb3d8bbwe\logexpert.exe"
+$fileTypeKey = "HKCU:\Software\Classes\LogExpertFile"
+$commandKey = "$fileTypeKey\shell\open\command"
+
+## Create the .log extension association
+if (-not (Test-Path $extensionKey)) {
+    New-Item -Path $extensionKey -Force
+}
+Set-ItemProperty -Path $extensionKey -Name "(Default)" -Value "LogExpertFile"
+
+## Create the LogExpertFile key if it doesn't exist
+if (-not (Test-Path $fileTypeKey)) {
+    New-Item -Path $fileTypeKey -Force
+}
+
+## Create the 'shell\open\command' key
+if (-not (Test-Path $commandKey)) {
+    New-Item -Path $commandKey -Force
+}
+
+## Set the command to open LogExpert
+Set-ItemProperty -Path $commandKey -Name "(Default)" -Value "`"$programPath`" `"%1`""
+
+
 #dotnet tool install -g dotnet-aspnet-codegenerator
 #npm install -g @azure/static-web-apps-cli
 #swa --version
