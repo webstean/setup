@@ -340,6 +340,16 @@ properties:
         id: RaspberryPiFoundation.RaspberryPiImager
         source: winget
 
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: zarunbal.LogExpert
+      directives:
+        description: Installing zarunbal.LogExpert
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: zarunbal.LogExpert
+        source: winget
+
     - resource: Microsoft.Windows.Settings/WindowsSettings
       id: WindowsSettings1
       directives:
