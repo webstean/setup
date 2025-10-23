@@ -33,6 +33,38 @@ function Ensure-RegistryValue {
 ## Example:
 #Ensure-RegistryValue -Hive HKLM -SubKey 'SOFTWARE\Contoso\MyApp' -Name 'ServerUrl' -Value 'https://example.local' -Type 'String'
 
+# Check if winget is installed
+$winget = Get-Command winget -ErrorAction SilentlyContinue
+if ($winget) {
+    Write-Host "✅ Winget is already installed. Version:" 
+    winget --version
+} else {
+    Write-Host "⚠️ Winget is not installed. Installing..."
+
+    # Winget comes with the "App Installer" package from Microsoft Store
+    # Try to install App Installer using winget’s official MSIX package
+    $url = "https://aka.ms/getwinget"
+    $installerPath = "$env:TEMP\AppInstaller.msixbundle"
+
+    Write-Host "Downloading Winget installer..."
+    Invoke-WebRequest -Uri $url -OutFile $installerPath
+
+    Write-Host "Installing Winget..."
+    Add-AppxPackage -Path $installerPath
+
+    # Verify installation
+    $winget = Get-Command winget -ErrorAction SilentlyContinue
+    if ($winget) {
+        Write-Host "✅ Winget installed successfully. Version:" 
+        winget --version
+        winget source export
+        
+    } else {
+        Write-Host "❌ Winget installation failed. You may need to update Windows or install manually from Microsoft Store."
+        exit 1
+    }
+}
+
 Write-Output ("Configuring...")
 function PreferIPv4 {
 	## Prefer IPv4 over IPv6 with 0x20, disable  IPv6 with 0xff, revert to default with 0x00.
