@@ -51,58 +51,50 @@ Find-PackageProvider -ForceBootstrap
 Get-PSRepository -Name PSGallery
 ## Get-PSRepository -Name PSGallery | Format-List * -Force
 
-if ( -not (Get-Module -Name PackageManagement -ListAvailable -ErrorAction SilentlyContinue)) {
-    Write-Output ("Installing PackageManagement module...")
-    Install-Module PackageManagement -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-} else {
-    Write-Output ("Updating PackageManagement module...")
-    Update-Module PackageManagement -Force -Scope $installscope -ErrorAction SilentlyContinue
-}
-Import-Module PackageManagement ## FIND-PACKAGE
+function Install-OrUpdateModule {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$ModuleName,
 
-if ( -not (Get-Module -Name ModernWorkplaceClientCenter -ListAvailable -ErrorAction SilentlyContinue)) {
-    Write-Output ("Installing PackageManagement module...")
-    Install-Module ModernWorkplaceClientCenter -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-} else {
-    Write-Output ("Updating ModernWorkplaceClientCenter module...")
-    Update-Module ModernWorkplaceClientCenter -Force -Scope $installscope -ErrorAction SilentlyContinue
-}
-Import-Module ModernWorkplaceClientCenter
+        [switch]$Prerelease          # Optional: install prerelease versions
+    )
 
-## Setup PSReadline
-Write-Output "Setting up PSReadline..."
-if ( -not (Get-Module -Name Terminal-Icons -ListAvailable)) {
-    Install-Module Terminal-Icons -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-} else {
-    Update-Module Terminal-Icons -Force -Scope $installscope -ErrorAction SilentlyContinue
-}
-if ( -not (Get-Module -Name PSReadline -ListAvailable)) {
-    Install-Module PSReadline -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-}
-Set-PSReadLineOption -Colors @{
-    Command            = 'White'
-    Number             = 'DarkGray'
-    Member             = 'DarkGray'
-    Operator           = 'DarkGray'
-    Type               = 'DarkGray'
-    Variable           = 'DarkGreen'
-    Parameter          = 'DarkGreen'
-    ContinuationPrompt = 'DarkGray'
-    Default            = 'DarkGray'
-}
-Set-PSReadLineOption -HistoryNoDuplicates
-Set-PSReadLineOption -PredictionSource History
-## This parameter was added in PSReadLine 2.2.0
-Set-PSReadLineOption -PredictionViewStyle ListView
+    # Check if PSResourceGet is available
+    if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
+        Write-Host "PSResourceGet not found. Installing it first..." -ForegroundColor Yellow
+        Install-Module -Name Microsoft.PowerShell.PSResourceGet -Scope $InstallScope -Force
+        Import-Module Microsoft.PowerShell.PSResourceGet
+    }
 
-# Active Directory (AD) Modules
-# Install AZ Modules - Az PowerShell module is the recommended PowerShell module for managing Azure resources on all platforms.
-if ( -not (Get-Module -Name Az -ListAvailable)) {
-    Write-Output ("Installing AZ (Azure) Powershell module...")
-    Install-Module -Name Az -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-} else {
-    Write-Output ("Updating AZ (Azure) Powershell module...")
-    Update-Module -Name Az -Scope $installscope -Force -ErrorAction SilentlyContinue 
+    # Check if module is already installed
+    $installed = Get-PSResource -Name $ModuleName -ErrorAction SilentlyContinue
+
+    # Common params
+    $commonParams = @{
+        Name = $ModuleName
+        ErrorAction = 'Stop'
+    }
+    if ($ScopeCurrentUser) { $commonParams['Scope'] = 'CurrentUser' }
+    if ($Prerelease) { $commonParams['Prerelease'] = $true }
+
+    try {
+        if ($null -eq $installed) {
+            Write-Host "Module '$ModuleName' not found. Installing..." -ForegroundColor Green
+            Install-PSResource @commonParams
+        }
+        else {
+            Write-Host "Module '$ModuleName' found. Updating..." -ForegroundColor Cyan
+            Update-PSResource @commonParams
+        }
+
+        # Optional: import after install/update
+        Import-Module $ModuleName -Force
+        Write-Host "✅ '$ModuleName' is installed and up to date." -ForegroundColor Green
+    }
+    catch {
+        Write-Host "❌ Failed to install or update '$ModuleName': $_" -ForegroundColor Red
+    }
 }
 
 ## Get rid of depreciated modules
@@ -113,55 +105,16 @@ if (Get-Module -Name AzureAD.Standard.Preview -ListAvailable -ErrorAction Silent
     Uninstall-Module AzureAD.Standard.Preview -Force -ErrorAction SilentlyContinue
 }
 
-## Install Winget Configuration
-if (-not (Get-Module -Name Microsoft.WinGet.Configuration -ListAvailable -ErrorAction SilentlyContinue)) {
-    Install-Module -Name Microsoft.WinGet.Configuration -AllowPrerelease -AcceptLicense -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-} else {
-    Update-Module -Name Microsoft.WinGet.Configuration -AllowPrerelease -Force -ErrorAction SilentlyContinue
-}
-## $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-## get-WinGetConfiguration -file .\.configurations\vside.dsc.yaml | Invoke-WinGetConfiguration -AcceptConfigurationAgreements
 
-## Example
-## 'Az.ImageBuilder', 'Az.ManagedServiceIdentity' | ForEach-Object {Install-Module -Name $_ -AllowPrerelease}
-
-## Microsoft Graph Modules
-if ( -not (Get-Module -Name Microsoft.Graph -ListAvailable -ErrorAction SilentlyContinue)) {
-    Write-Output ("Installing Microsoft Graph Powershell module...")
-    Install-Module Microsoft.Graph -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-} else {
-    Write-Output ("Updating Microsoft Graph Powershell module...")
-    Update-Module Microsoft.Graph -Force -Scope $installscope -ErrorAction SilentlyContinue
-} 
-Import-Module Microsoft.Graph
-
-## Install Teams Modules
-if ( -not (Get-Module -Name MicrosoftTeams -ListAvailable -ErrorAction SilentlyContinue)) {
-    Write-Output ("Installing Microsoft Teams Powershell module...")
-    Install-Module MicrosoftTeams -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-} else {
-    Write-Output ("Updating Microsoft Teams Powershell module...")
-    Update-Module MicrosoftTeams -Force -Scope $installscope -ErrorAction SilentlyContinue
-}
-Import-Module MicrosoftTeams
-
-if ( -not (Get-Module -Name Microsoft.WinGet.Client -ListAvailable -ErrorAction SilentlyContinue)) {
-    Write-Output ("Installing WinGet Client module...")
-    Install-Module Microsoft.WinGet.Client -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-} else {
-    Write-Output ("Updating WinGet Client module...")
-    Update-Module Microsoft.WinGet.Client -Force -Scope $installscope -ErrorAction SilentlyContinue
-}
-Import-Module Microsoft.Winget.Client
-
-## Install PowerApps Modules
-if ( -not (Get-Module -Name Microsoft.PowerApps.Administration.PowerShell  -ListAvailable -ErrorAction SilentlyContinue)) {
-    Write-Output ("Installing Microsoft Power Apps module...")
-    Install-Module Microsoft.PowerApps.Administration.PowerShell -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-} else {
-    Write-Output ("Updating Microsoft Power Apps module...")
-    Update-Module Microsoft.PowerApps.Administration.PowerShell -Force -Scope $installscope -ErrorAction SilentlyContinue
-} 
+Install-OrUpdateModule PackageManagement
+Install-OrUpdateModule ModernWorkplaceClientCenter
+Install-OrUpdateModule Terminal-Icons
+Install-OrUpdateModule Az
+Install-OrUpdateModule Microsoft.WinGet.Client
+Install-OrUpdateModule Microsoft.WinGet.Configuration
+Install-OrUpdateModule Microsoft.Graph
+Install-OrUpdateModule MicrosoftTeams
+Install-OrUpdateModule Microsoft.PowerApps.Administration.PowerShell
 ## Add-PowerAppsAccount -Endpoint prod
 $jsonObject= @" 
 { 
@@ -186,6 +139,23 @@ $jsonObject= @"
 #} 
 #Get-InstalledModule -Name VMware.PowerCLI
 
+## Setup PSReadLine
+Set-PSReadLineOption -Colors @{
+    Command            = 'White'
+    Number             = 'DarkGray'
+    Member             = 'DarkGray'
+    Operator           = 'DarkGray'
+    Type               = 'DarkGray'
+    Variable           = 'DarkGreen'
+    Parameter          = 'DarkGreen'
+    ContinuationPrompt = 'DarkGray'
+    Default            = 'DarkGray'
+}
+Set-PSReadLineOption -HistoryNoDuplicates
+Set-PSReadLineOption -PredictionSource History
+## This parameter was added in PSReadLine 2.2.0
+Set-PSReadLineOption -PredictionViewStyle ListView
+
 ## Install Azure Tools Predictor
 if ( -not (Get-Module -Name Az.Tools.Predictor -ListAvailable -ErrorAction SilentlyContinue)) {
     Install-Module Az.Tools.Predictor -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
@@ -202,8 +172,6 @@ Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction SilentlyContinue
 if (-not (Get-Help -Name Get-Command -ErrorAction SilentlyContinue | Where-Object { $_.Category -eq "HelpFile" })) {
     Update-Help -UICulture en-AU -Force -ErrorAction SilentlyContinue | Out-Null
 }
-
-Get-Module
 
 ## Upgrade all the installed modules - needs to run as a job
 #Get-InstalledModule | ForEach-Object {
