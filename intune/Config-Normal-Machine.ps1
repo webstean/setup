@@ -998,11 +998,11 @@ function EnableAustralianLanguagePack {
 	$DisplayName = ([System.Globalization.CultureInfo]::GetCultureInfo("en-$ShortLanguage")).DisplayName
 	$Language = ([System.Globalization.CultureInfo]::GetCultureInfo("en-$ShortLanguage")).Name
 	
-	Set-WinSystemLocale -SystemLocale $lcid
 	Write-Output "Installing language pack: $DisplayName"
 
 	try {
 		## Install the language pack with UI, system, and input preferences
+		Install-Language -Language $Language
 		Install-Language -Language $Language -CopyToSettings
 
 		## Get-WindowsCapability -Online | Where-Object Name -like '*en-AU*'
@@ -1021,10 +1021,7 @@ function EnableAustralianLanguagePack {
 			}
 		}
 	
-		## Set system locale
-		Set-WinSystemLocale -SystemLocale $Language
-
-		# sets a user-preferred display language to be used for the Windows user interface (UI).
+	    # sets a user-preferred display language to be used for the Windows user interface (UI).
 		# Log off and loging back on is required for changes to take place.
 		Set-WinUILanguageOverride -Language $Language
 		Set-Culture -CultureInfo $Language
