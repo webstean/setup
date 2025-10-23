@@ -518,49 +518,49 @@ UninstallMsftBloat
 function UninstallThirdPartyBloat {
 	Write-Output ("Uninstalling 3rd Party Software Bloat...")
 	## Import-Module Appx
-	Get-AppxPackage "2414FC7A.Viber" | Remove-AppxPackage
-	Get-AppxPackage "41038Axilesoft.ACGMediaPlayer" | Remove-AppxPackage
-	Get-AppxPackage "46928bounde.EclipseManager" | Remove-AppxPackage
-	Get-AppxPackage "4DF9E0F8.Netflix" | Remove-AppxPackage
-	Get-AppxPackage "64885BlueEdge.OneCalendar" | Remove-AppxPackage
-	Get-AppxPackage "7EE7776C.LinkedInforWindows" | Remove-AppxPackage
-	Get-AppxPackage "828B5831.HiddenCityMysteryofShadows" | Remove-AppxPackage
-	Get-AppxPackage "89006A2E.AutodeskSketchBook" | Remove-AppxPackage
-	Get-AppxPackage "9E2F88E3.Twitter" | Remove-AppxPackage
-	Get-AppxPackage "A278AB0D.DisneyMagicKingdoms" | Remove-AppxPackage
-	Get-AppxPackage "A278AB0D.DragonManiaLegends" | Remove-AppxPackage
-	Get-AppxPackage "A278AB0D.MarchofEmpires" | Remove-AppxPackage
-	Get-AppxPackage "ActiproSoftwareLLC.562882FEEB491" | Remove-AppxPackage
-	Get-AppxPackage "AD2F1837.GettingStartedwithWindows8" | Remove-AppxPackage
-	Get-AppxPackage "AD2F1837.HPJumpStart" | Remove-AppxPackage
-	Get-AppxPackage "AD2F1837.HPRegistration" | Remove-AppxPackage
-	Get-AppxPackage "AdobeSystemsIncorporated.AdobePhotoshopExpress" | Remove-AppxPackage
-	Get-AppxPackage "Amazon.com.Amazon" | Remove-AppxPackage
-	Get-AppxPackage "C27EB4BA.DropboxOEM" | Remove-AppxPackage
-	Get-AppxPackage "CAF9E577.Plex" | Remove-AppxPackage
-	Get-AppxPackage "CyberLinkCorp.hs.PowerMediaPlayer14forHPConsumerPC" | Remove-AppxPackage
-	Get-AppxPackage "D52A8D61.FarmVille2CountryEscape" | Remove-AppxPackage
-	Get-AppxPackage "D5EA27B7.Duolingo-LearnLanguagesforFree" | Remove-AppxPackage
-	Get-AppxPackage "DB6EA5DB.CyberLinkMediaSuiteEssentials" | Remove-AppxPackage
-	Get-AppxPackage "DolbyLaboratories.DolbyAccess" | Remove-AppxPackage
-	Get-AppxPackage "Drawboard.DrawboardPDF" | Remove-AppxPackage
-	Get-AppxPackage "Facebook.Facebook" | Remove-AppxPackage
-	Get-AppxPackage "Fitbit.FitbitCoach" | Remove-AppxPackage
-	Get-AppxPackage "flaregamesGmbH.RoyalRevolt2" | Remove-AppxPackage
-	Get-AppxPackage "GAMELOFTSA.Asphalt8Airborne" | Remove-AppxPackage
-	Get-AppxPackage "KeeperSecurityInc.Keeper" | Remove-AppxPackage
-	Get-AppxPackage "king.com.BubbleWitch3Saga" | Remove-AppxPackage
-	Get-AppxPackage "king.com.CandyCrushFriends" | Remove-AppxPackage
-	Get-AppxPackage "king.com.CandyCrushSaga" | Remove-AppxPackage
-	Get-AppxPackage "king.com.CandyCrushSodaSaga" | Remove-AppxPackage
-	Get-AppxPackage "king.com.FarmHeroesSaga" | Remove-AppxPackage
-	Get-AppxPackage "Nordcurrent.CookingFever" | Remove-AppxPackage
-	Get-AppxPackage "PandoraMediaInc.29680B314EFC2" | Remove-AppxPackage
-	Get-AppxPackage "PricelinePartnerNetwork.Booking.comBigsavingsonhot" | Remove-AppxPackage
-	Get-AppxPackage "SpotifyAB.SpotifyMusic" | Remove-AppxPackage
-	Get-AppxPackage "ThumbmunkeysLtd.PhototasticCollage" | Remove-AppxPackage
-	Get-AppxPackage "WinZipComputing.WinZipUniversal" | Remove-AppxPackage
-	Get-AppxPackage "XINGAG.XING" | Remove-AppxPackage
+	Uninstall-AppxPackageAndWait "2414FC7A.Viber"
+	Uninstall-AppxPackageAndWait "41038Axilesoft.ACGMediaPlayer"
+	Uninstall-AppxPackageAndWait "46928bounde.EclipseManager"
+	Uninstall-AppxPackageAndWait "4DF9E0F8.Netflix"
+	Uninstall-AppxPackageAndWait "64885BlueEdge.OneCalendar"
+	Uninstall-AppxPackageAndWait "7EE7776C.LinkedInforWindows"
+	Uninstall-AppxPackageAndWait "828B5831.HiddenCityMysteryofShadows"
+	Uninstall-AppxPackageAndWait "89006A2E.AutodeskSketchBook"
+	Uninstall-AppxPackageAndWait "9E2F88E3.Twitter"
+	Uninstall-AppxPackageAndWait "A278AB0D.DisneyMagicKingdoms"
+	Uninstall-AppxPackageAndWait "A278AB0D.DragonManiaLegends"
+	Uninstall-AppxPackageAndWait "A278AB0D.MarchofEmpires"
+	Uninstall-AppxPackageAndWait "ActiproSoftwareLLC.562882FEEB491"
+	Uninstall-AppxPackageAndWait "AD2F1837.GettingStartedwithWindows8"
+	Uninstall-AppxPackageAndWait "AD2F1837.HPJumpStart"
+	Uninstall-AppxPackageAndWait "AD2F1837.HPRegistration"
+	Uninstall-AppxPackageAndWait "AdobeSystemsIncorporated.AdobePhotoshopExpress"
+	Uninstall-AppxPackageAndWait "Amazon.com.Amazon"
+	Uninstall-AppxPackageAndWait "C27EB4BA.DropboxOEM"
+	Uninstall-AppxPackageAndWait "CAF9E577.Plex"
+	Uninstall-AppxPackageAndWait "CyberLinkCorp.hs.PowerMediaPlayer14forHPConsumerPC"
+	Uninstall-AppxPackageAndWait "D52A8D61.FarmVille2CountryEscape"
+	Uninstall-AppxPackageAndWait "D5EA27B7.Duolingo-LearnLanguagesforFree"
+	Uninstall-AppxPackageAndWait "DB6EA5DB.CyberLinkMediaSuiteEssentials"
+	Uninstall-AppxPackageAndWait "DolbyLaboratories.DolbyAccess"
+	Uninstall-AppxPackageAndWait "Drawboard.DrawboardPDF"
+	Uninstall-AppxPackageAndWait "Facebook.Facebook"
+	Uninstall-AppxPackageAndWait "Fitbit.FitbitCoach"
+	Uninstall-AppxPackageAndWait "flaregamesGmbH.RoyalRevolt2"
+	Uninstall-AppxPackageAndWait "GAMELOFTSA.Asphalt8Airborne"
+	Uninstall-AppxPackageAndWait "KeeperSecurityInc.Keeper"
+	Uninstall-AppxPackageAndWait "king.com.BubbleWitch3Saga"
+	Uninstall-AppxPackageAndWait "king.com.CandyCrushFriends"
+	Uninstall-AppxPackageAndWait "king.com.CandyCrushSaga"
+	Uninstall-AppxPackageAndWait "king.com.CandyCrushSodaSaga"
+	Uninstall-AppxPackageAndWait "king.com.FarmHeroesSaga"
+	Uninstall-AppxPackageAndWait "Nordcurrent.CookingFever"
+	Uninstall-AppxPackageAndWait "PandoraMediaInc.29680B314EFC2"
+	Uninstall-AppxPackageAndWait "PricelinePartnerNetwork.Booking.comBigsavingsonhot"
+	Uninstall-AppxPackageAndWait "SpotifyAB.SpotifyMusic"
+	Uninstall-AppxPackageAndWait "ThumbmunkeysLtd.PhototasticCollage"
+	Uninstall-AppxPackageAndWait "WinZipComputing.WinZipUniversal"
+	Uninstall-AppxPackageAndWait "XINGAG.XING"
 }
 UninstallThirdPartyBloat
 
