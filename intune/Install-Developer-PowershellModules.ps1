@@ -29,10 +29,6 @@ Write-Host "Installed .NET SDK version: ${INSTALLED_DOTNET_VERSION}"
 #winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.10
 winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.Preview
 
-Import-Module PackageManagement
-Install-Module PowerShellGet -Force
-Import-Module PowerShellGet
-
 ## Provider: nuget
 Write-Output "Enabling nuget..."
 if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
@@ -40,16 +36,14 @@ if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
 }
 Get-PackageProvider -ListAvailable
 Set-PackageSource -Name "nuget.org" -Trusted -ErrorAction SilentlyContinue
+Find-PackageProvider -ForceBootstrap
 
 ## Provider: PSGallery
 Write-Output "Enabling and trusting PSGallery..."
 Register-PSRepository -Default -ErrorAction SilentlyContinue
 if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
-            Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction SilentlyContinue
+    Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction SilentlyContinue
 }
-Find-PackageProvider -ForceBootstrap
-Get-PSRepository -Name PSGallery
-## Get-PSRepository -Name PSGallery | Format-List * -Force
 
 function Install-OrUpdateModule {
     [CmdletBinding()]
