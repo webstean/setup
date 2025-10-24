@@ -3,15 +3,15 @@
 # Check if module is already installed
 $installed = Get-PSResource -Name PSWindowsUpdate -ErrorAction SilentlyContinue
 if ($null -eq $installed) {
-    Write-Host "Module '$ModuleName' not found. Installing..." -ForegroundColor Green
-    Install-PSResource PSWindowsUpdate
+    Write-Host "Installing PSWindowsUpdate..."
+    Install-PSResource PSWindowsUpdate -ErrorAction SilentlyContinue
 } else {
-    Write-Host "Module '$ModuleName' found. Updating..." -ForegroundColor Cyan
-    Update-PSResource PSWindowsUpdate
+    Write-Host "Updating PSWindowsUpdate..."
+    Update-PSResource PSWindowsUpdate -ErrorAction SilentlyContinue
 }
-Import-Module PSWindowsUpdate -Force
+Import-Module PSWindowsUpdate -Force -ErrorAction SilentlyContinue
 # Install all available updates silently
-Get-WindowsUpdate -AcceptAll -Install -IgnoreReboot
+Get-WindowsUpdate -AcceptAll -Install -IgnoreReboot -ErrorAction Stop
 
 # Reboot automatically if required
 if (Get-WURebootStatus) {
