@@ -135,14 +135,16 @@ function New-EmptyTempDirectory {
     # Return the path as string
     return $fullPath
 }
-$scriptFolder = New-EmptyTempDirectory
+$destination = New-EmptyTempDirectory
 
 # Download files that should NOT be executed
-foreach ($file in $filesToDownload) {
-    $url = "$baseUrl/$file"
-    $destination = Join-Path -Path $scriptFolder -ChildPath $file
-    Write-Output "Downloading (no execute): $url... to $destination"
-    Invoke-WebRequest -Uri $url -OutFile $destination -UseBasicParsing
+function Invoke-Download {
+    foreach ($file in $filesToDownload) {
+        $url = "$baseUrl/$file"
+        $filedestination = Join-Path -Path $destination -ChildPath $file
+        Write-Output "Downloading (no execute): $url... to $filedestination"
+        Invoke-WebRequest -Uri $url -OutFile $filedestination -UseBasicParsing
+    }
 }
 
 function Invoke-IfFileExists {
@@ -158,12 +160,13 @@ function Invoke-IfFileExists {
         & $Path
     }
     else {
-        Write-Host "File not found: $Path"
+        Write-Host "File to execute not found: $Path"
     }
 }
 
 ## Execute downloaded scripts
 try {
+    Invoke-Download
     Invoke-IfFileExists "$destination\Config-Normal-Machine.ps1"
     Invoke-IfFileExists "$destination\Install-Developer-PowerShellModules.ps1"
     Invoke-IfFileExists "$destination\Install-Global-Secure-Access-Client.ps1"
