@@ -4,10 +4,10 @@
 $installed = Get-PSResource -Name PSWindowsUpdate -ErrorAction SilentlyContinue
 if ($null -eq $installed) {
     Write-Host "Installing PSWindowsUpdate..."
-    Install-PSResource PSWindowsUpdate -ErrorAction SilentlyContinue
+    Install-PSResource PSWindowsUpdate -Scope AllUsers -ErrorAction SilentlyContinue
 } else {
     Write-Host "Updating PSWindowsUpdate..."
-    Update-PSResource PSWindowsUpdate -ErrorAction SilentlyContinue
+    Update-PSResource PSWindowsUpdate -Scope AllUsers -ErrorAction SilentlyContinue
 }
 Import-Module PSWindowsUpdate -Force -ErrorAction SilentlyContinue
 # Install all available updates silently
