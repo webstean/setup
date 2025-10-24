@@ -164,14 +164,14 @@ function Invoke-IfFileExists {
 
 ## Execute downloaded scripts
 try {
-    Invoke-IfFileExists "$TranscriptDir\Config-Normal-Machine.ps1"
-    Invoke-IfFileExists "$TranscriptDir\Install-Developer-PowerShellModules.ps1"
-    Invoke-IfFileExists "$TranscriptDir\Install-Global-Secure-Access-Client.ps1"
-    Invoke-IfFileExists "$TranscriptDir\Install-Windows-Admin-Centre.ps1"
-    Invoke-IfFileExists "$TranscriptDir\Install-Developer-Fonts.ps1"
-    Invoke-IfFileExists "$TranscriptDir\Install-Developer-System.ps1" ## installs dotnet, that we need later
-    Invoke-IfFileExists "$TranscriptDir\Install-Developer-User.ps1"
-    Invoke-IfFileExists "$TranscriptDir\Winget-Config-Developer.ps1"
+    Invoke-IfFileExists "$destination\Config-Normal-Machine.ps1"
+    Invoke-IfFileExists "$destination\Install-Developer-PowerShellModules.ps1"
+    Invoke-IfFileExists "$destination\Install-Global-Secure-Access-Client.ps1"
+    Invoke-IfFileExists "$destination\Install-Windows-Admin-Centre.ps1"
+    Invoke-IfFileExists "$destination\Install-Developer-Fonts.ps1"
+    Invoke-IfFileExists "$destination\Install-Developer-System.ps1" ## installs dotnet, that we need later
+    Invoke-IfFileExists "$destination\Install-Developer-User.ps1"
+    Invoke-IfFileExists "$destination\Winget-Config-Developer.ps1"
 }
 catch {
     Write-Error "Error executing: $_"
