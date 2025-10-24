@@ -144,7 +144,7 @@ properties:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.AIShell
       directives:
-        description: Install Microsoft.AIShell
+        description: Install Microsoft.AIShell (aish)
         allowPrerelease: true
       settings:
         id: Microsoft.AIShell
