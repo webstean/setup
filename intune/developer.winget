@@ -442,6 +442,7 @@ properties:
       settings:
         GeneralSettings:
           Startup: true
+          EnableWarningsElevatedApps: false
           AutoDownloadUpdates: true
           ShowWhatsNewAfterUpdates: false
           EnableExperimentation: true
@@ -452,6 +453,8 @@ properties:
         FancyZones:
           Enabled: true
           FancyzonesEditorHotkey: "Shift+Ctrl+Alt+F"
+        FindMyMouse:
+          Enabled: true
         Awake:
           Enabled: false
         ColorPicker:
@@ -462,12 +465,19 @@ properties:
         Hosts:
           Enabled: true
           ShowStartupWarning: false
+        ImageResizer:
+          Enabled: true
+          ImageresizerReplace: true
+        KeyboardManager:
+          Enabled: false
         LightSwitch:
           Enabled: false
-        ScreenRuler:
+        MouseJump:
           Enabled: false
-        TextExtractor:
-          Enabled: true
+        #ScreenRuler:
+        #  Enabled: false
+        #TextExtractor:
+        #  Enabled: true
        
 
 #    - resource: GitDsc/GitClone
