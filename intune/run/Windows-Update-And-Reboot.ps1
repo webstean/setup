@@ -15,9 +15,12 @@ Import-Module PSWindowsUpdate -Force -ErrorAction SilentlyContinue
 Get-WindowsUpdate -AcceptAll -Install -IgnoreReboot -ErrorAction Stop
 
 # Reboot automatically if required
-if (Get-WURebootStatus) {
+if (Get-WURebootStatus -Silent) {
     Write-Host "**REboot-Required**"
     Sleep 30
     Write-Host "REbooting...."
+    Sleep 3
     Restart-Computer -Force
+} else {
+    Write-Host "This machine is FULLY updated"
 }
