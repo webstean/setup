@@ -187,6 +187,7 @@ function Invoke-WingetConfiguration-Developer {
 try {
     Write-Host "******************= Scripts to EXECUTE =******************************"
     Invoke-Download
+    Copy-Item "$destination\wallpaper.jpg" -force
     Invoke-IfFileExists "$destination\Config-Normal-Machine.ps1"
     Invoke-IfFileExists "$destination\Install-Developer-PowerShellModules.ps1"
     Invoke-IfFileExists "$destination\Install-Global-Secure-Access-Client.ps1"
