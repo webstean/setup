@@ -165,6 +165,25 @@ function Invoke-IfFileExists {
     }
 }
 
+function Invoke-WingetConfiguration-Developer {
+    #winget configure validate --file developer.winget --ignore-warnings --disable-interactivity --verbose-logs
+    #winget configure show     --file developer.winget --ignore-warnings --disable-interactivity --verbose-logs
+    winget configure          --file $destination\developer.winget --accept-configuration-agreements --suppress-initial-details --disable-interactivity --verbose-logs
+    return ;
+    ## get-childitem     $env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir\
+    #if (-not (Get-Module -ListAvailable -Name Microsoft.WinGet.Client)) {
+    #Install-Module Microsoft.WinGet.Client -Force -Scope CurrentUser
+    #}
+    #if (-not (Get-Module -Name Microsoft.WinGet.Client)) {
+    #Import-Module Microsoft.WinGet.Client
+    #}
+    #if (-not (Get-Module -Name Microsoft.WinGet.Configuration)) {
+    #Import-Module Microsoft.WinGet.Configuration
+    #}
+    #$configSet = Get-WinGetConfiguration -File developer.winget
+    #Invoke-WinGetConfiguration -Set $configSet -AcceptConfigurationAgreements
+}
+
 ## Execute downloaded scripts
 try {
     Write-Host "******************= Scripts to EXECUTE =******************************"
@@ -176,7 +195,7 @@ try {
     Invoke-IfFileExists "$destination\Install-Developer-Fonts.ps1" ## need ZIP from PowerShell modules
     Invoke-IfFileExists "$destination\Install-Developer-System.ps1" ## installs dotnet, that we need later
     Invoke-IfFileExists "$destination\Install-Developer-User.ps1"
-    Invoke-IfFileExists "$destination\Winget-Config-Developer.ps1"
+    Invoke-WingetConfiguration-Developer
     Write-Host "******************= All scripts executed =******************************"
 }
 catch {
