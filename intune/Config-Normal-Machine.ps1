@@ -871,39 +871,67 @@ function EnableClipboardHistorySync {
 EnableClipboardHistorySync
 
 function Set-DefaultTerminalToWindowsTerminal {
-    <#
-    .SYNOPSIS
-        Sets Windows Terminal as the default terminal application for the current user.
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [switch]$AllUsers # also set HKLM keys (requires admin)
+    )
 
-    .DESCRIPTION
-        Updates the registry under HKCU:\Console\%%Startup to set
-        DelegationConsole and DelegationTerminal to "Windows.Terminal".
+    $terminalMoniker = 'Windows.Terminal'
+    $hkcu = 'HKCU:\Console'
+    $hklm = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Console'
+    $targets = @(
+        '%%Startup',
+        '%SystemRoot%_system32_cmd.exe',
+        '%SystemRoot%_System32_WindowsPowerShell_v1.0_powershell.exe',
+        '%ProgramFiles%_PowerShell_7_pwsh.exe',
+        '%ProgramFiles(x86)%_PowerShell_7_pwsh.exe',
+        '%SystemRoot%_system32_wsl.exe'
+    )
 
-    .EXAMPLE
-        Set-DefaultTerminalToWindowsTerminal
-    #>
+    # 0) Sanity: is Windows Terminal present?
+    $wtInstalled = Get-AppxPackage -Name 'Microsoft.WindowsTerminal' -AllUsers -ErrorAction SilentlyContinue
+    if (-not $wtInstalled) {
+        Write-Warning "Windows Terminal not found. Install from Microsoft Store or winget, then re-run."
+        return $false
+    }
 
-    $registryPath = 'HKCU:\Console\%%Startup'
+    # helper to ensure a key + two values
+    function Set-Delegation([string]$root, [string]$subKey){
+        $path = Join-Path $root $subKey
+        if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
+        Set-ItemProperty -Path $path -Name DelegationConsole  -Value $terminalMoniker -Type String
+        Set-ItemProperty -Path $path -Name DelegationTerminal -Value $terminalMoniker -Type String
+    }
 
     try {
-        # Ensure key exists
-        if (-not (Test-Path $registryPath)) {
-            New-Item -Path $registryPath -Force | Out-Null
+        foreach ($t in $targets) { Set-Delegation -root $hkcu -subKey $t }
+
+        # Also ensure "legacy console" not forced (ForceV2 must be 1 or absent)
+        $forceV2Path = Join-Path $hkcu '%%Startup'
+        if (-not (Test-Path $forceV2Path)) { New-Item -Path $forceV2Path -Force | Out-Null }
+        New-ItemProperty -Path $forceV2Path -Name ForceV2 -PropertyType DWord -Value 1 -Force | Out-Null
+
+        if ($AllUsers) {
+            if (-not ([bool](New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) {
+                Write-Warning "AllUsers requested but session not elevated. Skipping HKLM."
+            } else {
+                # Mirror to HKLM so new users inherit sane defaults
+                Set-Delegation -root $hklm -subKey '%%Startup'
+                foreach ($t in $targets[1..($targets.Count-1)]) { Set-Delegation -root $hklm -subKey $t }
+                New-ItemProperty -Path (Join-Path $hklm '%%Startup') -Name ForceV2 -PropertyType DWord -Value 1 -Force | Out-Null
+            }
         }
 
-        # Set Windows Terminal as default terminal
-        Set-ItemProperty -Path $registryPath -Name DelegationConsole -Value 'Windows.Terminal' -Type String
-        Set-ItemProperty -Path $registryPath -Name DelegationTerminal -Value 'Windows.Terminal' -Type String
-
-        Write-Host "✅ Windows Terminal has been set as the default terminal application."
+        Write-Host "✅ Windows Terminal set as the default terminal for common hosts."
+        Write-Host "Tip: Close all consoles (conhost.exe) and relaunch, or sign out/in."
         return $true
     }
     catch {
-        Write-Warning "❌ Failed to set Windows Terminal as default: $($_.Exception.Message)"
+        Write-Warning "❌ Failed: $($_.Exception.Message)"
         return $false
     }
 }
-Set-DefaultTerminalToWindowsTerminal
+Set-DefaultTerminalToWindowsTerminal -AllUsers
 
 function DisableSearchonStartMenu {
 	# Disable Bing web search in Start Menu
