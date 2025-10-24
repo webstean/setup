@@ -836,13 +836,24 @@ Set-SettingsPageVisibility -Get | Format-List
 Set-SettingsPageVisibility -Mode Hide -Pages 'family-group','gaming','windowsinsider-optin','map','maps-downloadmaps','autoplay','network-dialup','network-proxy','delivery-optimization' ## 'gaming-gamebar','gaming-captures','gaming-gamemode','gaming-xboxnetworking'
 Set-SettingsPageVisibility -Get | Format-List
 
-# Enable Clipboard History
-function EnableClipboardHistory {
-	#$regPath = "HKCU:\Software\Microsoft\Clipboard"
+# Enable Clipboard History & Sync
+function EnableClipboardHistorySync {
+
+	$regPath = "Software\Microsoft\Clipboard"
+
+	# Enable Cloud History
 	$propertyName = "EnableClipboardHistory"
 	$propertyValue = 1 ## 1 = enabled, 0 = disabled
+	Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name $propertyName -Value $propertyValue -Type 'DWORD'
 
-	Ensure-RegistryValue -Hive HKCU -SubKey 'Software\Microsoft\Clipboard' -Name $propertyName -Value $propertyValue -Type 'DWORD'
+	# Enable Cloud Clipboard Sync (Automatic)
+	$propertyName = "CloudClipboardAutomaticUpload"
+	$propertyValue = 1 ## 1 = enabled, 0 = disabled
+	Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name $propertyName -Value $propertyValue -Type 'DWORD'
+
+	$propertyName = "CloudClipboardAutomaticUpload"
+	$propertyValue = 1 ## 1 = enabled, 0 = disabled
+	Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name $propertyName -Value $propertyValue -Type 'DWORD'
 
 	# Ensure the registry key exists
 #	if (-not (Test-Path $regPath)) {
@@ -857,7 +868,7 @@ function EnableClipboardHistory {
 
 	Write-Output "Clipboard history has been enabled."
 }
-EnableClipboardHistory
+EnableClipboardHistorySync
 
 function DisableSearchonStartMenu {
 	# Disable Bing web search in Start Menu
