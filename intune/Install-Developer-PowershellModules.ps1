@@ -42,6 +42,7 @@ Find-PackageProvider -ForceBootstrap
 Write-Output "Enabling and trusting PSGallery..."
 Register-PSRepository -Default -ErrorAction SilentlyContinue
 if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
+    Set-PSResourceRepository -Name 'PSGallery' -Trusted -ErrorAction SilentlyContinue
     Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction SilentlyContinue
 }
 
