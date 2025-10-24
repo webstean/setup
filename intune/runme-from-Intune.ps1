@@ -156,11 +156,12 @@ function Invoke-IfFileExists {
     )
 
     if (Test-Path -LiteralPath $Path) {
-        Write-Host "File found: $Path.. executing..."
+        Write-Host "EXECUTING: Stated $Path.."
         & $Path
+        Write-Host "EXECUTING: Finished $Path.."
     }
     else {
-        Write-Host "File to execute not found: $Path"
+        Write-Host "Failed to execute as file was not found: $Path"
     }
 }
 
