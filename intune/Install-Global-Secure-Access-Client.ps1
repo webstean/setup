@@ -16,10 +16,10 @@ try{
     # Download the GSA Client
     $webClient = New-Object System.Net.WebClient
     $webClient.DownloadFile($downloadUrl, $destinationFile)
-   Write-Output "Client downloaded and saved to $destinationFile." 
+    Write-Output "Client downloaded and saved to $destinationFile." 
 }
 catch{
-   Write-Output "Error downloading the GSAClient: $($_.Exception.Message)" 
+    Write-Output "Error downloading the GSAClient: $($_.Exception.Message)" 
     exit
 }
 Start-Process -FilePath $destinationFile -ArgumentList "/install", "/quiet", "/norestart" -Wait
