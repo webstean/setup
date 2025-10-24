@@ -838,17 +838,22 @@ Set-SettingsPageVisibility -Get | Format-List
 
 # Enable Clipboard History
 function EnableClipboardHistory {
-	$regPath = "HKCU:\Software\Microsoft\Clipboard"
+	#$regPath = "HKCU:\Software\Microsoft\Clipboard"
 	$propertyName = "EnableClipboardHistory"
-	$propertyValue = 1
+	$propertyValue = 1 ## 1 = enabled, 0 = disabled
+
+	Ensure-RegistryValue -Hive HKCU -SubKey 'Software\Microsoft\Clipboard' -Name $propertyName -Value $propertyValue -Type 'DWORD'
 
 	# Ensure the registry key exists
-	if (-not (Test-Path $regPath)) {
-		New-Item -Path $regPath -Force | Out-Null
-	}
+#	if (-not (Test-Path $regPath)) {
+#		New-Item -Path $regPath -Force | Out-Null
+#	}
 
 	# Set the value
-	Set-ItemProperty -Path $regPath -Name $propertyName -Value $propertyValue -Type DWord
+#	Set-ItemProperty -Path $regPath -Name $propertyName -Value $propertyValue -Type DWord
+
+	## Display Any Policy - if it exists
+	Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Name AllowClipboardHistory -ErrorAction SilentlyContinue
 
 	Write-Output "Clipboard history has been enabled."
 }
