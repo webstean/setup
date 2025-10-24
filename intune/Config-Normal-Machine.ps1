@@ -1018,9 +1018,12 @@ function EnableAustralianLanguagePack {
 
 	try {
 		## Install the language pack with UI, system, and input preferences
-		Install-Language -Language $Language
-		Install-Language -Language $Language -CopyToSettings
-
+		$job = Install-Language -Language $Language -CopyToSettings
+		# Wait until the installation completes
+		$job | Wait-Job
+		Receive-Job $job
+		Write-Host "✅ Language installation completed."
+		
 		## Get-WindowsCapability -Online | Where-Object Name -like '*en-AU*'
 		$capabilities = @(
 			"Language.Basic~~~$Language~0.0.1.0",
