@@ -530,12 +530,12 @@ try {
     if (-not (Test-Path "$devcertname")) {
         dotnet dev-certs https --clean
         dotnet dev-certs https --trust --quiet --check
-        if ( -not (Get-Item Env:STRONGPASSWORD).Value -ErrorAction SilentlyContinue ) { 
+        if ( -not (Get-Item -ErrorAction SilentlyContinue Env:STRONGPASSWORD).Value ) { 
             if ($randompwd) { 
-                dotnet dev-certs https --export-path "$devcertname" -Password $randompwd
+                dotnet dev-certs https --export-path "$devcertname" --password "$randompwd"
             }
         } else {
-            dotnet dev-certs https --export-path "$devcertname" -Password (Get-Item Env:STRONGPASSWORD).Value
+            dotnet dev-certs https --export-path "$devcertname" --password (Get-Item  -ErrorAction SilentlyContinue Env:STRONGPASSWORD).Value
         }
     }
 }
