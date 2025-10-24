@@ -34,17 +34,27 @@ Write-Output "Enabling nuget..."
 if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
   Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$true | Out-Null
 }
-Get-PackageProvider -ListAvailable
-Set-PackageSource -Name "nuget.org" -Trusted -ErrorAction SilentlyContinue
 Find-PackageProvider -ForceBootstrap
+Set-PackageSource -Name "nuget.org" -Trusted -ErrorAction SilentlyContinue
 
 ## Provider: PSGallery
 Write-Output "Enabling and trusting PSGallery..."
 Register-PSRepository -Default -ErrorAction SilentlyContinue
 if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
-    Set-PSResourceRepository -Name 'PSGallery' -Trusted -ErrorAction SilentlyContinue
     Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction SilentlyContinue
 }
+if ((Get-PSResourceRepository -Name PSGallery).Trusted -ne $true) {
+    Set-PSResourceRepository -Name 'PSGallery' -Trusted -ErrorAction SilentlyContinue
+}
+if ((Get-PSResourceRepository -Name PSGallery).IsAllowedByPolicy -ne $true) {
+    Set-PSResourceRepository -Name 'PSGallery' -IsAllowedByPolicy $true -ErrorAction SilentlyContinue
+}
+
+### Container Registry - BTW: PSResourceGet expects a NuGet v2 or v3 feed, not a pure OCI registry.
+#Register-PSResourceRepository -Name ACR -Uri https://mycompanyregistry.azurecr.io/nuget/v2 -Trusted -ApiVersion ContainerRegistry
+
+Find-PSResource -Repository PSGallery -name PackageManagement
+
 
 function Install-OrUpdateModule {
     [CmdletBinding()]
