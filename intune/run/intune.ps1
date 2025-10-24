@@ -51,7 +51,7 @@ $env:HostIP = (
     }
 ).IPv4Address.IPAddress
 Write-Output $env:HostIP
-## For the transcript: Existing Powerhell versions
+## For the transcript: Powershell versions
 $PSVersionTable
 
 $info = Get-ComputerInfo
