@@ -70,8 +70,8 @@ properties:
           [System.Environment]::SetEnvironmentVariable("DEVELOPER","Yes","Machine")
 
     - resource: xPSDesiredStateConfiguration/xScript
-      id: Script.Set.Wallpaper
-      description: Set Developer wallpaper
+      id: Script.Set.User.Wallpaper
+      description: Set Developer USER wallpaper
       settings:
         GetScript: return $false
         TestScript: return $false
@@ -92,6 +92,41 @@ properties:
           }"@
           [Wallpaper]::SystemParametersInfo(0x0014, 0, $wallPaper, 3)
         }
+
+    - resource: xPSDesiredStateConfiguration/xScript
+      id: Script.Set.Logon.Wallpaper
+      dependsOn:
+        - Script.Set.User.Wallpaper
+      description: Set Developer LOGON wallpaper
+      settings:
+        GetScript: return $false
+        TestScript: return $false
+        SetScript: |
+          $wallpaper = "default-wallpaper.jpg"
+          $regPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System"
+          $location = "$env:ALLUSERSPROFILE"
+          $wallpaperlocation = "${location}\${wallpaper}"
+          if (Test-Path "$wallpaperlocation" ) {          
+            Set-ItemProperty -Path $regPath -Name wallpaper -Value $wallpaperlocation
+          }
+
+    - resource: xPSDesiredStateConfiguration/xScript
+      id: Script.Set.Lock.Wallpaper
+      dependsOn:
+        - Script.Set.User.Wallpaper
+      description: Set Developer LOCK wallpaper
+      settings:
+        GetScript: return $false
+        TestScript: return $false
+        SetScript: |
+          $wallpaper = "default-wallpaper.jpg"
+          $regPath = ""HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
+          $location = "$env:ALLUSERSPROFILE"
+          $wallpaperlocation = "${location}\${wallpaper}"
+          if (Test-Path "$wallpaperlocation" ) {          
+            Set-ItemProperty -Path $regPath -Name wallpaper -Value $wallpaperlocation
+          }
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.VisualStudioCode
       directives:
