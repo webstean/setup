@@ -13,7 +13,6 @@ $filesToDownload = @(
     "Install-Developer-User.ps1",
     "Install-Global-Secure-Access-Client.ps1",
     "Install-Windows-Admin-Centre.ps1",
-    "Winget-Config-Developer.ps1"
     "wallpaper.jpg",
     "wallpaper.mp4"
     # Add more filenames as needed
@@ -161,14 +160,14 @@ function Invoke-IfFileExists {
         Write-Host "EXECUTING: Finished $Path.."
     }
     else {
-        Write-Host "Failed to execute as file was not found: $Path"
+        Write-Host "Failed to execute as script was not found: $Path"
     }
 }
 
 function Invoke-WingetConfiguration-Developer {
     #winget configure validate --file developer.winget --ignore-warnings --disable-interactivity --verbose-logs
     #winget configure show     --file developer.winget --ignore-warnings --disable-interactivity --verbose-logs
-    winget configure          --file $destination\developer.winget --accept-configuration-agreements --suppress-initial-details --disable-interactivity --verbose-logs
+    winget configure          --file ${destination}\developer.winget --accept-configuration-agreements --suppress-initial-details --disable-interactivity --verbose-logs
     return ;
     ## get-childitem     $env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir\
     #if (-not (Get-Module -ListAvailable -Name Microsoft.WinGet.Client)) {
