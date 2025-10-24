@@ -440,6 +440,7 @@ properties:
       directives:
         description: Configure PowerToys
       settings:
+        ## https://learn.microsoft.com/en-us/windows/powertoys/dsc-configure
         GeneralSettings:
           Startup: true
           EnableWarningsElevatedApps: false
