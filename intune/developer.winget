@@ -160,6 +160,15 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Anthropic.Claude
+      directives:
+        description: Install Anthropic.Claude
+        allowPrerelease: true
+      settings:
+        id: Anthropic.Claude
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.Azure.AZCopy.10
       directives:
         description: Install Azure Az Copy Tool
