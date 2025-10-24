@@ -167,15 +167,17 @@ function Invoke-IfFileExists {
 
 ## Execute downloaded scripts
 try {
+    Write-Host "******************= Scripts to EXECUTE =******************************"
     Invoke-Download
     Invoke-IfFileExists "$destination\Config-Normal-Machine.ps1"
     Invoke-IfFileExists "$destination\Install-Developer-PowerShellModules.ps1"
     Invoke-IfFileExists "$destination\Install-Global-Secure-Access-Client.ps1"
     Invoke-IfFileExists "$destination\Install-Windows-Admin-Centre.ps1"
-    Invoke-IfFileExists "$destination\Install-Developer-Fonts.ps1"
+    Invoke-IfFileExists "$destination\Install-Developer-Fonts.ps1" ## need ZIP from PowerShell modules
     Invoke-IfFileExists "$destination\Install-Developer-System.ps1" ## installs dotnet, that we need later
     Invoke-IfFileExists "$destination\Install-Developer-User.ps1"
     Invoke-IfFileExists "$destination\Winget-Config-Developer.ps1"
+    Write-Host "******************= All scripts executed =******************************"
 }
 catch {
     Write-Error "Error executing: $_"
@@ -185,4 +187,3 @@ finally {
     Stop-Transcript
     Write-Host "Transcript stopped."
 }
-Write-Host "All scripts executed."
