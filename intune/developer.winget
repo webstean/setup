@@ -151,10 +151,19 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: SlackTechnologies.Slack
+      directives:
+        description: Install SlackTechnologies.Slack
+        allowPrerelease: false
+      settings:
+        id: SlackTechnologies.Slack
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.Azure.AZCopy.10
       directives:
         description: Install Azure Az Copy Tool
-        allowPrerelease: true
+        allowPrerelease: false
       settings:
         id: Microsoft.Azure.AZCopy.10
         source: winget
