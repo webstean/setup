@@ -17,5 +17,6 @@ Get-WindowsUpdate -AcceptAll -Install -IgnoreReboot -ErrorAction Stop
 if (Get-WURebootStatus) {
     Write-Host "**REboot-Required**"
     Sleep 30
+    Write-Host "REbooting...."
     Restart-Computer -Force
 }
