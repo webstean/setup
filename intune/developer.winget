@@ -142,6 +142,15 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.AIShell
+      directives:
+        description: Install Microsoft.AIShell
+        allowPrerelease: true
+      settings:
+        id: Microsoft.AIShell
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.Azure.AZCopy.10
       directives:
         description: Install Azure Az Copy Tool
