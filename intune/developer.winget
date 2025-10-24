@@ -76,22 +76,22 @@ properties:
         GetScript: return $false
         TestScript: return $false
         SetScript: |
-          $wallpaper = "wallpaper.jpg"
+          $wallpaper = "default-wallpaper.jpg"
           $regPath = "HKCU:\Control Panel\Desktop"
           $location = "$env:ALLUSERSPROFILE"
           $wallpaperlocation = "${location}\${wallpaper}"
-          Copy-Item $wallpaper -Destination $wallpaperlocation -Force
-          Set-ItemProperty -Path $regPath -Name wallpaper -Value $wallpaperlocation
-          rundll32.exe user32.dll, UpdatePerUserSystemParameters
-          Add-Type @"
-            using System.Runtime.InteropServices;
-            public class Wallpaper {
-              [DllImport("user32.dll", SetLastError = true)]
-              public static extern bool SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
-          }
-          "@
+          if (Test-Path "$wallpaperlocation" ) {          
+            Set-ItemProperty -Path $regPath -Name wallpaper -Value $wallpaperlocation
+            rundll32.exe user32.dll, UpdatePerUserSystemParameters
+            Add-Type @"
+              using System.Runtime.InteropServices;
+              public class Wallpaper {
+                [DllImport("user32.dll", SetLastError = true)]
+                public static extern bool SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+            }
+          }"@
           [Wallpaper]::SystemParametersInfo(0x0014, 0, $wallPaper, 3)
-
+        }
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.VisualStudioCode
       directives:
