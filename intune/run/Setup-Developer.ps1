@@ -1,5 +1,7 @@
 #Requires -RunAsAdministrator
 
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
+
 ## Base URL for raw GitHub content (public`)
 $baseUrl = "https://raw.githubusercontent.com/webstean/setup//main/intune/"
 
@@ -198,6 +200,8 @@ try {
     Invoke-IfFileExists "$destination\Install-Developer-User.ps1"
     Invoke-WingetConfiguration-Developer
     Write-Host "******************= All scripts executed =******************************"
+    $sw.Stop()
+    Write-Host "⏳ Script completed in $([math]::Round($elapsed.TotalMinutes,2)) minutes."
 }
 catch {
     Write-Error "Error executing: $_"
@@ -206,4 +210,7 @@ finally {
     # Stop transcript no matter what
     Stop-Transcript
     Write-Host "Transcript stopped."
+    Write-Host "COMPLETED."
 }
+return $true
+
