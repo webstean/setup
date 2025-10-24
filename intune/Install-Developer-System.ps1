@@ -654,4 +654,11 @@ function Add-WSLShortcutToDesktop {
 }
 Add-WSLShortcutToDesktop
 
+## Set Symbol server to be over the Internet
+[System.Environment]::SetEnvironmentVariable(
+    "_NT_SYMBOL_PATH",
+    "srv*C:\Symbols*https://msdl.microsoft.com/download/symbols",
+    [System.EnvironmentVariableTarget]::Machine
+)
+
 
