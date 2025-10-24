@@ -846,14 +846,14 @@ function EnableClipboardHistorySync {
 	$propertyValue = 1 ## 1 = enabled, 0 = disabled
 	Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name $propertyName -Value $propertyValue -Type 'DWORD'
 
-	# Enable Cloud Clipboard Sync (Automatic)
-	$propertyName = "CloudClipboardAutomaticUpload"
-	$propertyValue = 1 ## 1 = enabled, 0 = disabled
-	Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name $propertyName -Value $propertyValue -Type 'DWORD'
+	# Enable Cloud Clipboard Sync (Automatic) - must use a Microsoft Account to sync accross devices.
+	# $propertyName = "CloudClipboardAutomaticUpload"
+	# $propertyValue = 1 ## 1 = enabled, 0 = disabled
+	# Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name $propertyName -Value $propertyValue -Type 'DWORD'
 
-	$propertyName = "CloudClipboardAutomaticUpload"
-	$propertyValue = 1 ## 1 = enabled, 0 = disabled
-	Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name $propertyName -Value $propertyValue -Type 'DWORD'
+	# $propertyName = "CloudClipboardAutomaticUpload"
+	# $propertyValue = 1 ## 1 = enabled, 0 = disabled
+	# Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name $propertyName -Value $propertyValue -Type 'DWORD'
 
 	# Ensure the registry key exists
 #	if (-not (Test-Path $regPath)) {
