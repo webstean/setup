@@ -55,7 +55,6 @@ if ((Get-PSResourceRepository -Name PSGallery).IsAllowedByPolicy -ne $true) {
 
 Find-PSResource -Repository PSGallery -name PackageManagement
 
-
 function Install-OrUpdateModule {
     [CmdletBinding()]
     param(
@@ -110,7 +109,7 @@ if (Get-Module -Name AzureAD.Standard.Preview -ListAvailable -ErrorAction Silent
     Uninstall-Module AzureAD.Standard.Preview -Force -ErrorAction SilentlyContinue
 }
 
-
+Install-OrUpdateModule PSWindowsUpdate
 Install-OrUpdateModule PackageManagement
 Install-OrUpdateModule ModernWorkplaceClientCenter
 Install-OrUpdateModule Terminal-Icons
