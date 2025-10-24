@@ -13,8 +13,7 @@ $filesToDownload = @(
     "Install-Developer-User.ps1",
     "Install-Global-Secure-Access-Client.ps1",
     "Install-Windows-Admin-Centre.ps1",
-    "wallpaper.jpg",
-    "wallpaper.mp4"
+    "wallpaper.jpg"
     # Add more filenames as needed
 )
 
