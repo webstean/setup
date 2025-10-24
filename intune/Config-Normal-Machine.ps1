@@ -870,6 +870,41 @@ function EnableClipboardHistorySync {
 }
 EnableClipboardHistorySync
 
+function Set-DefaultTerminalToWindowsTerminal {
+    <#
+    .SYNOPSIS
+        Sets Windows Terminal as the default terminal application for the current user.
+
+    .DESCRIPTION
+        Updates the registry under HKCU:\Console\%%Startup to set
+        DelegationConsole and DelegationTerminal to "Windows.Terminal".
+
+    .EXAMPLE
+        Set-DefaultTerminalToWindowsTerminal
+    #>
+
+    $registryPath = 'HKCU:\Console\%%Startup'
+
+    try {
+        # Ensure key exists
+        if (-not (Test-Path $registryPath)) {
+            New-Item -Path $registryPath -Force | Out-Null
+        }
+
+        # Set Windows Terminal as default terminal
+        Set-ItemProperty -Path $registryPath -Name DelegationConsole -Value 'Windows.Terminal' -Type String
+        Set-ItemProperty -Path $registryPath -Name DelegationTerminal -Value 'Windows.Terminal' -Type String
+
+        Write-Host "✅ Windows Terminal has been set as the default terminal application."
+        return $true
+    }
+    catch {
+        Write-Warning "❌ Failed to set Windows Terminal as default: $($_.Exception.Message)"
+        return $false
+    }
+}
+Set-DefaultTerminalToWindowsTerminal
+
 function DisableSearchonStartMenu {
 	# Disable Bing web search in Start Menu
 	$Path = "HKCU:\Software\Policies\Microsoft\Windows\Explorer"
