@@ -731,15 +731,8 @@ New-Item -Path $assocKey -Force
 Set-ItemProperty -Path $assocKey -Name "UserChoice" -Value @{
     Progid = $defaultAppProgID
 }
-cmd.exe /c assoc .log=LogExpertFile
-cmd.exe /c ftype LogExpertFile="$env:LOCALAPPDATA\Microsoft\WinGet\Packages\zarunbal.LogExpert_Microsoft.Winget.Source_8wekyb3d8bbwe\logexpert.exe" "%1"
-
-## Alternatively
-Install-Module -Name Set-UserFTA -Force -Scope CurrentUser
-Import-Module -Name Set-UserFTA
-Set-UserFTA -FileExtension .log -Application "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\zarunbal.LogExpert_Microsoft.Winget.Source_8wekyb3d8bbwe\logexpert.exe"
-
-Write-Host "File extension .log is now associated with LogExpert and no longer requires confirmation."
+#cmd.exe /c assoc .log=LogExpertFile
+#cmd.exe /c ftype LogExpertFile="$env:LOCALAPPDATA\Microsoft\WinGet\Packages\zarunbal.LogExpert_Microsoft.Winget.Source_8wekyb3d8bbwe\logexpert.exe" "%1"
 
 #dotnet tool install -g dotnet-aspnet-codegenerator
 #npm install -g @azure/static-web-apps-cli
