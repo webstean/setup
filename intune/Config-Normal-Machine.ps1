@@ -1076,10 +1076,16 @@ function EnableAustralianLanguagePack {
 	$lcid = ([System.Globalization.CultureInfo]::GetCultureInfo("en-$ShortLanguage")).LCID
 	$DisplayName = ([System.Globalization.CultureInfo]::GetCultureInfo("en-$ShortLanguage")).DisplayName
 	$Language = ([System.Globalization.CultureInfo]::GetCultureInfo("en-$ShortLanguage")).Name
+	Write-Host 		"lcid        = $lcid"            ## 3081
+	Write-Host  	"DisplayName = $DisplayName"     ## English (Australia)
+	Write-Host      "Language    = $Language"        ## en-AU
 	
 	Write-Output "Installing language pack: $DisplayName"
 
 	try {
+		## Set-Culture -CultureInfo de-DE
+		Set-Culture -CultureInfo $Language 
+
 		## Install the language pack with UI, system, and input preferences
 		$job = Install-Language -Language $Language -CopyToSettings
 		# Wait until the installation completes
