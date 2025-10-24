@@ -1,6 +1,6 @@
 #Requires -RunAsAdministrator
 
-$sw = [System.Diagnostics.Stopwatch]::StartNew()
+$elapsed = [System.Diagnostics.Stopwatch]::StartNew()
 
 ## Base URL for raw GitHub content (public`)
 $baseUrl = "https://raw.githubusercontent.com/webstean/setup//main/intune/"
@@ -191,17 +191,41 @@ try {
     If ( Test-Path "$destination\wallpaper.jpg" ) {
         Copy-Item "$destination\wallpaper.jpg" "$env:ALLUSERSPROFILE\default-wallpaper.jpg" -Force -ErrorAction SilentlyContinue
     }
+    $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Config-Normal-Machine.ps1"
+    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+
+    $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Install-Developer-PowerShellModules.ps1"
+    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+    
+    $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Install-Global-Secure-Access-Client.ps1"
+    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+    
+    $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Install-Windows-Admin-Centre.ps1"
+    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+    
+    $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Install-Developer-Fonts.ps1" ## need ZIP from PowerShell modules
+    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+    
+    $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Install-Developer-System.ps1" ## installs dotnet, that we need later
+    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+    
+    $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Install-Developer-User.ps1"
+    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+    
+    $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-WingetConfiguration-Developer
+    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+    
     Write-Host "******************= All scripts executed =******************************"
-    $sw.Stop()
-    Write-Host "⏳ Script completed in $([math]::Round($elapsed.TotalMinutes,2)) minutes."
+    $elapsed.Stop()
+    Write-Host "⏳ All Scripts completed in $([math]::Round($elapsed.TotalMinutes,2)) minutes."
 }
 catch {
     Write-Error "Error executing: $_"
