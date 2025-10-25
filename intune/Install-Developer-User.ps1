@@ -178,8 +178,10 @@ function Set-MSTerminalSetting {
     #Set-JsonValue -JsonObject $json -Path "startupActions" -Value "newTab -p 'PowerShell'; newTab -p 'Headless Helper'"
     #Set-JsonValue -JsonObject $json -Path "wt -p "Command Prompt" `; split-pane -p "Windows PowerShell" `; split-pane -H wsl.exe
 
-
     ## Profiles
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.historySize" -Value 10000
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.snapOnInput" -Value $true
+   
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.useAcrylic" -Value $true
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.useAcrylicInTabRow" -Value $true
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.acrylicOpacity" -Value 0.75
