@@ -91,7 +91,7 @@ properties:
             }
           }"@
           [Wallpaper]::SystemParametersInfo(0x0014, 0, $wallPaper, 3)
-        }
+       
 
     - resource: xPSDesiredStateConfiguration/xScript
       id: Script.Set.Logon.Wallpaper
