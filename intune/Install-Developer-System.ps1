@@ -108,6 +108,7 @@ function Install-WinRM {
         return $false
     }
 }
+#
 #Install-WinRM
 
 ## The tools functionality is only installed via DOTNET SDKs, not Runtimes
@@ -292,8 +293,6 @@ function Install-LatestWindowsSDK {
     [CmdletBinding()]
     param()
 
-
-
     Write-Verbose "Checking if Developer Mode is enabled..."
     if (-not (Test-DeveloperMode)) {
         Write-Warning "❌ Developer Mode is not enabled. Enable it in Settings > For Developers or via registry."
@@ -347,6 +346,7 @@ function Install-LatestWindowsSDK {
         return $false
     }
 }
+#Install-LatestWindowsSDK
 
 function Enable-DeveloperDevicePortal {
     ## Device Discovery requires Windows SDK (1803 or later)
