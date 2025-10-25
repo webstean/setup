@@ -10,7 +10,7 @@ $filesToDownload = @(
     "Config-Normal-Machine.ps1",
     "developer.winget",
     "Install-Developer-Fonts.ps1",
-    "Install-Developer-PowershellModules.ps1",
+    "Install-Developer-PowershellModules.ps1", --file 
     "Install-Developer-System.ps1",
     "Install-Developer-User.ps1",
     "Install-Global-Secure-Access-Client.ps1",
@@ -168,7 +168,11 @@ function Invoke-IfFileExists {
 function Invoke-WingetConfiguration-Developer {
     #winget configure validate --file developer.winget --ignore-warnings --disable-interactivity --verbose-logs
     #winget configure show     --file developer.winget --ignore-warnings --disable-interactivity --verbose-logs
-    winget configure          --file ${destination}\developer.winget --accept-configuration-agreements --suppress-initial-details --disable-interactivity --verbose-logs
+    if ( Test-Path "${destination}\developer.winget" ) {
+        winget configure --file ${destination}\developer.winget --accept-configuration-agreements --suppress-initial-details --disable-interactivity --verbose-logs
+    } else {
+        Write-Host "${destination}\developer.winget not found!!"
+    }
     return ;
     ## get-childitem     $env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir\
     #if (-not (Get-Module -ListAvailable -Name Microsoft.WinGet.Client)) {
@@ -221,7 +225,7 @@ try {
     
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-WingetConfiguration-Developer
-    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+    Write-Host "⏳ winget configure completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
     
     Write-Host "******************= All scripts executed =******************************"
     $elapsed.Stop()
