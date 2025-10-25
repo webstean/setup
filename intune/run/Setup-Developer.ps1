@@ -172,6 +172,7 @@ function Invoke-WingetConfiguration-Developer {
         winget configure --file ${destination}\developer.winget --accept-configuration-agreements --suppress-initial-details --disable-interactivity --verbose-logs
     } else {
         Write-Host "${destination}\developer.winget not found!!"
+        Read-Host "Press Enter to continue..."
     }
     return ;
     ## get-childitem     $env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir\
@@ -197,39 +198,47 @@ try {
     }
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Config-Normal-Machine.ps1"
-    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+    $csw.Stop()
+    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
 
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Install-Developer-PowerShellModules.ps1"
-    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
     
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Install-Global-Secure-Access-Client.ps1"
-    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+    $csw.Stop()
+    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
     
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Install-Windows-Admin-Centre.ps1"
-    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+    $csw.Stop()
+    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
     
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Install-Developer-Fonts.ps1" ## need ZIP from PowerShell modules
-    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+    $csw.Stop()
+    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
     
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Install-Developer-System.ps1" ## installs dotnet, that we need later
-    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
+    $csw.Stop()
+    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
     
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Install-Developer-User.ps1"
-    Write-Host "⏳ Script completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
-    
-    $csw = [System.Diagnostics.Stopwatch]::StartNew()
-    Invoke-WingetConfiguration-Developer
-    Write-Host "⏳ winget configure completed in $([math]::Round($csw.TotalMinutes,2)) minutes."
-    
+    $csw.Stop()
+    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
+
     Write-Host "******************= All scripts executed =******************************"
     $elapsed.Stop()
-    Write-Host "⏳ All Scripts completed in $([math]::Round($elapsed.TotalMinutes,2)) minutes."
+    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
+
+    $csw = [System.Diagnostics.Stopwatch]::StartNew()
+    Invoke-WingetConfiguration-Developer
+    $csw.Stop()
+    Write-Host "⏳ winget configure completed in $($csw.Elapsed.Minutes) minutes."
+    
 }
 catch {
     Write-Error "Error executing: $_"
