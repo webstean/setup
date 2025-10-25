@@ -521,8 +521,7 @@ Get-WindowsOptionalFeature -Online | Select-Object FeatureName, State | Format-T
 ## NFS example (or use WSL)
 # mount -o anon \\10.1.1.211\mnt\vms Z:
 
-## Get rid of Sysinternal EULA messages - if it get installed or is ever installed
-## Local User
+## Executables - goes into the PATH
 $Bin = "$env:SystemDrive\BIN"
 if (-Not (Test-Path -Path "${Bin}" -PathType Container -ErrorAction SilentlyContinue)) {
     New-Item -Path "${Bin}" -Type Container
@@ -530,6 +529,17 @@ if (-Not (Test-Path -Path "${Bin}" -PathType Container -ErrorAction SilentlyCont
 else {
     Write-Output "Directory $Bin already exists." 
 }
+
+## Scripts - not in the path
+$Scripts = "$env:SystemDrive\SCRIPTS"
+if (-Not (Test-Path -Path "${Scripts}" -PathType Container -ErrorAction SilentlyContinue)) {
+    New-Item -Path "${Scripts}" -Type Container
+}
+else {
+    Write-Output "Directory ${Scripts} already exists." 
+}
+
+
 
 Write-Output "Turning off Sysinternals EULA prompt." 
 if (-not (Test-Path -Path "HKCU:\Software\Sysinternals")) {
