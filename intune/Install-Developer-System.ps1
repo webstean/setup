@@ -495,13 +495,17 @@ try {
     $ramGB = [math]::Round((Get-WmiObject -Class Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
 
     if ($cpuCores -ge 4 -and $ramGB -ge 16) {
-        Write-Output "Enabling Sandbox (disposable VM)"
+        Write-Output "Enabling Windows Sandbox (disposable VM)"
         Enable-WindowsOptionalFeature -FeatureName "Containers-DisposableClientVM" -All -Online -NoRestart
-        ## WindowsSandboxTools
+        ## https://github.com/jdhitsolutions/WindowsSandboxTools
+        Install-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
+        Update-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
+        ## https://github.com/HarmVeenstra/Powershellisfun/blob/main/Create%20a%20development%20Windows%20Sandbox/AW_Sandbox.ps1
     }
     else {
         Write-Output "Insufficient resources to enable Windows Sandbox - require at least 4 CPU cores and 16GB of RAM." 
         Disable-WindowsOptionalFeature -FeatureName "Containers-DisposableClientVM" -Online -NoRestart
+        UnInstall-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
     }
 }
 catch {
