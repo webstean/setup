@@ -833,7 +833,7 @@ function Set-SettingsPageVisibility {
     throw "No valid action specified. Use one of: -Mode Hide/ShowOnly (with -Pages), -Add, -Remove, -Clear, or -Get."
 }
 Set-SettingsPageVisibility -Get | Format-List
-Set-SettingsPageVisibility -Mode Hide -Pages 'family-group','gaming','windowsinsider-optin','map','maps-downloadmaps','autoplay','network-dialup','network-proxy','delivery-optimization' ## 'gaming-gamebar','gaming-captures','gaming-gamemode','gaming-xboxnetworking'
+Set-SettingsPageVisibility -Mode Hide -Pages 'family-group','otherusers','gaming','lockscreen','windowsinsider','windowsinsider-optin','troubleshoot','map','maps-downloadmaps','autoplay','network-dialup','network-proxy','delivery-optimization','gaming-gamebar','gaming-gamedvr','gaming-gamemode','gaming-xboxnetworking'
 Set-SettingsPageVisibility -Get | Format-List
 
 # Enable Clipboard History & Sync
