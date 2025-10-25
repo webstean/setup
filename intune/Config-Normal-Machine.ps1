@@ -325,6 +325,46 @@ Function DisableIEandEdgeWarnings {
 }
 DisableIEandEdgeWarnings
 
+function Set-EdgeNoFirstRun {
+    <#
+    .SYNOPSIS
+        Configures Microsoft Edge to skip first run and import prompts.
+    .DESCRIPTION
+        Sets enterprise policy registry keys so Edge launches without asking to import or sign in.
+    #>
+
+    $edgePolicyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+
+    # Create path if not exists
+    if (-not (Test-Path $edgePolicyPath)) {
+        New-Item -Path $edgePolicyPath -Force | Out-Null
+    }
+
+    # Set policy values
+    $policies = @{
+        "HideFirstRunExperience"       = 1
+        "ImportFavorites"              = 0
+        "AutoImportAtFirstRun"         = 0
+        "BrowserAddProfileEnabled"     = 0
+        "DefaultBrowserSettingEnabled" = 0
+    }
+
+    foreach ($policy in $policies.GetEnumerator()) {
+        New-ItemProperty -Path $edgePolicyPath -Name $policy.Key -Value $policy.Value -PropertyType DWord -Force | Out-Null
+    }
+
+    # Optional: user hive to suppress sign-in CTA
+    $userCtaPath = "HKCU:\Software\Microsoft\Edge\SignIn"
+    if (-not (Test-Path $userCtaPath)) {
+        New-Item -Path $userCtaPath -Force | Out-Null
+    }
+    New-ItemProperty -Path $userCtaPath -Name "SignInCtaShownCount" -Value 1 -PropertyType DWord -Force | Out-Null
+
+    Write-Host "✅ Microsoft Edge configured to skip first run experience."
+    Write-Host "You may need to close and reopen Edge for changes to apply."
+}
+Set-EdgeNoFirstRun
+
 # Disable Windows Media Player's media sharing feature
 Function DisableMediaSharing {
 	If (!(Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\WindowsMediaPlayer")) {
