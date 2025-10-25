@@ -497,6 +497,7 @@ try {
     if ($cpuCores -ge 4 -and $ramGB -ge 16) {
         Write-Output "Enabling Sandbox (disposable VM)"
         Enable-WindowsOptionalFeature -FeatureName "Containers-DisposableClientVM" -All -Online -NoRestart
+        ## WindowsSandboxTools
     }
     else {
         Write-Output "Insufficient resources to enable Windows Sandbox - require at least 4 CPU cores and 16GB of RAM." 
