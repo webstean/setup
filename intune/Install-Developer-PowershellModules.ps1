@@ -79,24 +79,26 @@ function Install-OrUpdateModule {
     # Common params
     $commonParams = @{
         Name = $ModuleName
+        AcceptLicense = $true
+        Confirm = $true
         ErrorAction = 'Stop'
+        Scope = $InstallScope
     }
-    if ($ScopeCurrentUser) { $commonParams['Scope'] = 'CurrentUser' }
     if ($Prerelease) { $commonParams['Prerelease'] = $true }
 
     try {
         if ($null -eq $installed) {
-            Write-Host "Module '$ModuleName' not found. Installing..." -ForegroundColor Green
+            Write-Host "Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
             Install-PSResource @commonParams
         }
         else {
-            Write-Host "Module '$ModuleName' found. Updating..." -ForegroundColor Cyan
+            Write-Host "Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
             Update-PSResource @commonParams
         }
 
         # Optional: import after install/update
         Import-Module $ModuleName -Force
-        Write-Host "✅ '$ModuleName' is installed and up to date." -ForegroundColor Green
+        Write-Host "✅ '$ModuleName' is installed (and up to date." -ForegroundColor Green
     }
     catch {
         Write-Host "❌ Failed to install or update '$ModuleName': $_" -ForegroundColor Red
