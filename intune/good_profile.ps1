@@ -3,7 +3,7 @@
 
 function Update-Profile-Force {
     # Define the remote URL
-    $url = 'https://raw.githubusercontent.com/lscph1929/scripts/refs/heads/main/profile/good_profile.ps1'
+    $url = 'https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/good_profile.ps1'
 
     # Ensure the profile directory exists
     $profileDir = Split-Path -Parent $PROFILE
