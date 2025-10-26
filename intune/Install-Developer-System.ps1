@@ -120,6 +120,7 @@ function Install-OrUpdate-DotNetTools {
         "microsoft.powerapps.cli.tool",           ## powerapp tools
         "dotnet-reportgenerator-globaltool",      ## report generator
         "paket",                                  ## Paket dependency manager
+        "Aspire.Cli", # --prerelease
         "upgrade-assistant"                       ## upgrade assistant
     )
 
