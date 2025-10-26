@@ -349,15 +349,35 @@ properties:
         id: CoralCreek.SQLiteExpert.Personal
         source: winget
 
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Oracle.SQLDeveloper
+#      directives:
+#        description: Installing Oracle.SQLDeveloper HUGE
+#        allowPrerelease: false
+#        securityContext: current
+#      settings:
+#        id: Oracle.SQLDeveloper
+#        source: winget
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.SQLServerManagementStudio
+      id: Oracle.OCI-CLI
       directives:
-        description: Installing Microsoft.SQLServerManagementStudio
+        description: Installing Oracle.OCI-CLI
         allowPrerelease: false
         securityContext: current
       settings:
-        id: Microsoft.SQLServerManagementStudio
+        id: Oracle.OCI-CLI
         source: winget
+
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Microsoft.SQLServerManagementStudio
+#      directives:
+#        description: Installing Microsoft.SQLServerManagementStudio
+#        allowPrerelease: false
+#        securityContext: current
+#      settings:
+#        id: Microsoft.SQLServerManagementStudio
+#        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.WindowsTerminal
