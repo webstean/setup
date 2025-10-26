@@ -57,6 +57,9 @@ if ((Get-PSResourceRepository -Name PSGallery).IsAllowedByPolicy -ne $true) {
 
 Find-PSResource -Repository PSGallery -name PackageManagement
 
+## Cleanup User Scope
+## Get-PSResource -Scope 'CurrentUser' | Uninstall-PSResource -SkipDependencyCheck
+
 function Install-OrUpdateModule {
     [CmdletBinding()]
     param(
@@ -74,31 +77,20 @@ function Install-OrUpdateModule {
     }
 
     # Check if module is already installed
-    $installed = Get-PSResource -Name $ModuleName -ErrorAction SilentlyContinue
-
-    # Common params
-    $commonParams = @{
-        Name = $ModuleName
-        AcceptLicense = $true
-        Confirm = $false
-        ErrorAction = 'Stop'
-        Scope = $InstallScope
-    }
-    if ($Prerelease) { $commonParams['Prerelease'] = $true }
+    $installed = Get-PSResource -Name $ModuleName -ErrorAction SilentlyContinue -Scope $Installscope
 
     try {
         if ($null -eq $installed) {
             Write-Host "Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
-            Install-PSResource @commonParams
+            Install-PSResource -Name $ModuleName  -Prerelease $Prerelease -AcceptLicense $true -Confirm $false -ErrorAction Stop -Scope $Installscope
         }
         else {
             Write-Host "Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
-            Update-PSResource @commonParams
+            Update-PSResource -Name $ModuleName  -Prerelease $Prerelease -AcceptLicense $true -Confirm $false -ErrorAction Stop
         }
-
         # Optional: import after install/update
         Import-Module $ModuleName -Force
-        Write-Host "✅ '$ModuleName' is installed (and up to date." -ForegroundColor Green
+        Write-Host "✅ '$ModuleName' is installed (and up to date.)" -ForegroundColor Green
     }
     catch {
         Write-Host "❌ Failed to install or update '$ModuleName': $_" -ForegroundColor Red
