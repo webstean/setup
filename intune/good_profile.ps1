@@ -15,6 +15,7 @@ function Update-Profile-Force {
     Invoke-WebRequest -Uri $url -OutFile $PROFILE -UseBasicParsing
     Write-Host "✅ Profile updated at $PROFILE"
 }
+#Update-Profile-Force
 
 ## FullLanguage: No restrictions (default in most PowerShell sessions)
 ## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
