@@ -1127,10 +1127,10 @@ function EnableAustralianLanguagePack {
 		Set-Culture -CultureInfo $Language 
 
 		## Install the language pack with UI, system, and input preferences
-		$job = Install-Language -Language $Language -CopyToSettings
+		$job = Install-Language -Language $Language -CopyToSettings -ErrorAction SilentlyContinue
 		# Wait until the installation completes
 		$job | Wait-Job
-		Receive-Job $job
+		Receive-Job $job -ErrorAction SilentlyContinue
 		Write-Host "✅ Language installation completed."
 		
 		## Get-WindowsCapability -Online | Where-Object Name -like '*en-AU*'
@@ -1186,7 +1186,7 @@ function EnableAustralianLanguagePack {
 	return
 }
 SetAustraliaLocation
-EnableAustralianLanguagePack
+#EnableAustralianLanguagePack
 
 function SortOutTimeManagement {
 	$vmic = Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\TimeProviders\VMICTimeProvider"
