@@ -197,7 +197,10 @@ try {
     If ( Test-Path "$destination\wallpaper.jpg" ) {
         Copy-Item "$destination\wallpaper.jpg" "$env:ALLUSERSPROFILE\default-wallpaper.jpg" -Force -ErrorAction SilentlyContinue
     }
-
+    If ( Test-Path "$destination\logo.png" ) {
+        Copy-Item "$destination\logo.png" "$env:ALLUSERSPROFILE\logo.png" -Force -ErrorAction SilentlyContinue
+    }
+   
     ### Normal Machine ###
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Config-Normal-Machine.ps1"
