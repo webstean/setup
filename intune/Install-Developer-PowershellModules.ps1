@@ -86,7 +86,7 @@ function Install-OrUpdateModule {
         }
         else {
             Write-Host "Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
-            Update-PSResource -Name $ModuleName  -Prerelease $Prerelease -AcceptLicense $true -Confirm $false -ErrorAction Stop
+            Update-PSResource -Name $ModuleName  -Prerelease $Prerelease -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue
         }
         # Optional: import after install/update
         Import-Module $ModuleName -Force
