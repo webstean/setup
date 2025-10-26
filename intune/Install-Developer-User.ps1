@@ -122,7 +122,7 @@ function Set-MSTerminalSetting {
         [string]$BackgroundColor = "#335bc8", ## Default blue background
         [string]$ForegroundColor = "#FFFFFF", ## Default white text
         [int]$opacity = 97, ## Default opacity
-        [string]$BackgroundImage = $null, # "ms-appdata:///Roaming/terminal_cat.jpg", ## background image
+        [string]$BackgroundImage = "$env:ALLUSERSPROFILE\logo.png", # "ms-appdata:///Roaming/terminal_cat.jpg", ## background image
         [string]$TabColor = "#012456",
         [string]$face = "Cascadia Code NF", ## Default font
         [int]$FontSize = 12, ## Default font size
@@ -173,7 +173,9 @@ function Set-MSTerminalSetting {
     Set-JsonValue -JsonObject $json -Path "opacity" -Value $opacity
     Set-JsonValue -JsonObject $json -Path "backgroundImageAlignment" -Value "bottomRight"
     Set-JsonValue -JsonObject $json -Path "backgroundImageStretchMode" -Value "none"
-    Set-JsonValue -JsonObject $json -Path "backgroundImage" -Value $BackgroundImage
+    if ( Test-Path "$BackgroundIUmage" ) {
+        Set-JsonValue -JsonObject $json -Path "backgroundImage" -Value $BackgroundImage
+    }
     Set-JsonValue -JsonObject $json -Path "focusFollowMouse" -Value $true
     #Set-JsonValue -JsonObject $json -Path "startupActions" -Value "newTab -p 'PowerShell'; newTab -p 'Headless Helper'"
     #Set-JsonValue -JsonObject $json -Path "wt -p "Command Prompt" `; split-pane -p "Windows PowerShell" `; split-pane -H wsl.exe
