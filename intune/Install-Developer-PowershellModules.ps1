@@ -82,11 +82,20 @@ function Install-OrUpdateModule {
     try {
         if ($null -eq $installed) {
             Write-Host "Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
-            Install-PSResource -Name $ModuleName  -Prerelease $Prerelease -AcceptLicense $true -Confirm $false -ErrorAction Stop -Scope $Installscope
+            if ($prerelease) {
+                Install-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+            } else {
+                Install-PSResource -Name $ModuleName -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+            }
         }
         else {
             Write-Host "Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
-            Update-PSResource -Name $ModuleName  -Prerelease $Prerelease -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue
+            ## Update-PSResource -Name PackageManagement -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue
+            if ($prerelease) {
+                Update-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+            } else {
+                Update-PSResource -Name $ModuleName -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+            }
         }
         # Optional: import after install/update
         Import-Module $ModuleName -Force
