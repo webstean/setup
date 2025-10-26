@@ -206,7 +206,8 @@ if ($env:USERNAME) {
         [System.EnvironmentVariableTarget]::User
     )
 }
-#azd config set platform.type devcenter
+# Use DevCenter for deployments
+azd config set platform.type devcenter
 
 Update-AzConfig -CheckForUpgrade $false | Out-Null
 Update-AzConfig -DisplayRegionIdentified $true | Out-Null
