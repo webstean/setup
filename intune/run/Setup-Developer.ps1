@@ -155,7 +155,7 @@ function Invoke-ScriptReliably {
         [string[]]$ScriptArgs,
         [switch]$UsePwsh = $true,  # prefer PowerShell 7 if available
         [switch]$Elevate = $false, # run as admin (UAC prompt)
-        [switch]$Force64Bit,       # ensure 64-bit host on 64-bit Windows
+        [switch]$Force64Bit =$false,       # ensure 64-bit host on 64-bit Windows
         [string]$WorkingDirectory = $(Split-Path -Path $ScriptPath),
         [int]$TimeoutSeconds = 0,  # 0 = no timeout
         [switch]$Hidden = $false   # hide window
@@ -326,7 +326,8 @@ try {
     Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
     
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
-    Invoke-IfFileExists "$destination\Install-Developer-User.ps1"
+    #Invoke-IfFileExists "$destination\Install-Developer-User.ps1"
+    Invoke-ScriptReliably "$destination\Install-Developer-User.ps1"
     $csw.Stop()
     Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
 
