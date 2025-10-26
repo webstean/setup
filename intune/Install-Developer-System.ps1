@@ -428,7 +428,7 @@ function Enable-DeveloperDevicePortal {
     Write-Host "`n✅ Device Portal is enabled."
     Write-Host "   🔗 Open: https://localhost:50080"
 }
-Enable-DeveloperDevicePortal
+#Enable-DeveloperDevicePortal
 
 ## Enable sudo, if installed
 if (Get-Command sudo ) {
