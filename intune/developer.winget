@@ -330,6 +330,26 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: SQLite.SQLite
+      directives:
+        description: Installing SQLite.SQLite
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: SQLite.SQLite
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: CoralCreek.SQLiteExpert.Personal
+      directives:
+        description: Installing CoralCreek.SQLiteExpert.Personal
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: CoralCreek.SQLiteExpert.Personal
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.SQLServerManagementStudio
       directives:
         description: Installing Microsoft.SQLServerManagementStudio
