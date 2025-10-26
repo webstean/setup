@@ -195,7 +195,12 @@ if (Test-Path env:AZURE_SUBSCRIPTION_ID) {
     Update-AzConfig -DefaultSubscriptionForLogin $env:AZURE_SUBSCRIPTION_ID
     azd config set defaults.subscription $env:AZURE_SUBSCRIPTION_ID
 }
-azd config set defaults.location australiaeast
+if (Test-Path env:AZURE_LOCATION) {
+    Update-AzConfig -DefaultSubscriptionForLogin $env:AZURE_SUBSCRIPTION_ID
+    azd config set defaults.location $env:AZURE_LOCATION
+} else {
+    azd config set defaults.location australiaeast
+}
 Update-AzConfig -CheckForUpgrade $false | Out-Null
 Update-AzConfig -DisplayRegionIdentified $true | Out-Null
 Update-AzConfig -DisplaySecretsWarning $false | Out-Null
