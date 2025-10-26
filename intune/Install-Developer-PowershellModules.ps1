@@ -18,6 +18,8 @@ if ($IsAdmin) {
     $InstallScope = 'CurrentUser'
 }
 
+Write-Host "InstallScope = $InstallScope"
+
 #winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.NuGet
 winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.9
 $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' +
@@ -114,10 +116,12 @@ Install-OrUpdateModule PackageManagement
 Install-OrUpdateModule ModernWorkplaceClientCenter
 Install-OrUpdateModule Terminal-Icons
 Install-OrUpdateModule Az
-Install-OrUpdateModule Microsoft.WinGet.Client
-Install-OrUpdateModule Microsoft.WinGet.Configuration
+Install-OrUpdateModule Microsoft.WinGet
+## Install-OrUpdateModule Microsoft.WinGet.Client
+## Install-OrUpdateModule Microsoft.WinGet.Configuration
 Install-OrUpdateModule Microsoft.Graph
 Install-OrUpdateModule MicrosoftTeams
+#Install-OrUpdateModule VMware.PowerCLI ## VMware PowerCLI (its too big - as no longer used much)
 Install-OrUpdateModule Microsoft.PowerApps.Administration.PowerShell
 ## Add-PowerAppsAccount -Endpoint prod
 $jsonObject= @" 
@@ -125,7 +129,7 @@ $jsonObject= @"
  "PostProvisioningPackages": 
  [ 
  { 
-     "applicationUniqueName": "msdyn_FinanceAndOperationsProvisioningAppAnchor", 
+    "applicationUniqueName": "msdyn_FinanceAndOperationsProvisioningAppAnchor", 
     "parameters": "DevToolsEnabled=true|DemoDataEnabled=true" 
  } 
  ] 
@@ -134,14 +138,6 @@ $jsonObject= @"
 # To kick off new PowerApp environment
 # IMPORTANT - This has to be a single line, after the copy & paste the command
 # New-AdminPowerAppEnvironment -DisplayName "MyUniqueNameHere" -EnvironmentSku Sandbox -Templates "D365_FinOps_Finance" -TemplateMetadata $jsonObject -LocationName "Australia" -ProvisionDatabase
-
-## Install Vmware PowerCLI (its too big)
-#if ( -not (Get-Module -Name VMware.PowerCLI -ListAvailable)) {
-#    Install-Module -Name VMware.PowerCLI  -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-#} else {
-#    Update-Module VMware.PowerCLI -Force -Scope $installscope -ErrorAction SilentlyContinue
-#} 
-#Get-InstalledModule -Name VMware.PowerCLI
 
 ## Setup PSReadLine
 Set-PSReadLineOption -Colors @{
@@ -161,18 +157,14 @@ Set-PSReadLineOption -PredictionSource History
 Set-PSReadLineOption -PredictionViewStyle ListView
 
 ## Install Azure Tools Predictor
-if ( -not (Get-Module -Name Az.Tools.Predictor -ListAvailable -ErrorAction SilentlyContinue)) {
-    Install-Module Az.Tools.Predictor -Force -Scope $installscope -AllowClobber -Repository PSGallery -ErrorAction SilentlyContinue
-} else {
-    Update-Module Az.Tools.Predictor -Force -Scope $installscope -ErrorAction SilentlyContinue
-}    
+Install-OrUpdateModule Az.Tools.Predictor
 Import-Module Az.Tools.Predictor
-Enable-AzPredictor -AllSession ## will update $profile
+#Enable-AzPredictor -AllSession ## will update $profile (which include this in the default)
 (Get-PSReadLineOption).PredictionSource
 Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction SilentlyContinue
 # Set-PSReadLineOption -PredictionViewStyle InlineView
 
-## Install Help for all installed modules
+## Install (and Update) PowerShell Help
 if (-not (Get-Help -Name Get-Command -ErrorAction SilentlyContinue | Where-Object { $_.Category -eq "HelpFile" })) {
     Update-Help -UICulture en-AU -Force -ErrorAction SilentlyContinue | Out-Null
 }
@@ -182,7 +174,6 @@ if (-not (Get-Help -Name Get-Command -ErrorAction SilentlyContinue | Where-Objec
 #    Write-Host "Updating $($_.Name) ..."
 #    Update-Module -Name $_.Name -Force -ErrorAction Continue
 #}
-
 
 ## Clear-AzConfig
 if ( -not (Test-Path $HOME\AzConfig.json)) {
