@@ -148,6 +148,89 @@ function Invoke-Download {
     }
 }
 
+function Invoke-ScriptReliably {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$ScriptPath,
+        [string[]]$ScriptArgs,
+        [switch]$UsePwsh = $true,  # prefer PowerShell 7 if available
+        [switch]$Elevate = $false, # run as admin (UAC prompt)
+        [switch]$Force64Bit,       # ensure 64-bit host on 64-bit Windows
+        [string]$WorkingDirectory = $(Split-Path -Path $ScriptPath),
+        [int]$TimeoutSeconds = 0,  # 0 = no timeout
+        [switch]$Hidden = $false   # hide window
+    )
+
+    # Resolve and pre-flight
+    $full = (Resolve-Path -LiteralPath $ScriptPath).Path
+    if (Get-Item -LiteralPath $full -Stream Zone.Identifier -ErrorAction SilentlyContinue) {
+        Unblock-File -LiteralPath $full -ErrorAction SilentlyContinue
+    }
+
+    # Choose host: pwsh.exe (if asked/available) or Windows PowerShell (64-bit if requested)
+    if ($UsePwsh -and (Get-Command pwsh.exe -ErrorAction SilentlyContinue)) {
+        $hostExe = (Get-Command pwsh.exe).Source
+    } else {
+        if ($Force64Bit -and $env:PROCESSOR_ARCHITECTURE -ne 'AMD64' -and $env:PROCESSOR_ARCHITEW6432) {
+            # 32-bit process on 64-bit OS -> force 64-bit PowerShell via SysNative
+            $hostExe = "$env:WINDIR\SysNative\WindowsPowerShell\v1.0\powershell.exe"
+        } else {
+            $hostExe = "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe"
+        }
+    }
+
+    # Build arguments
+    $argList = @(
+        '-NoLogo','-NoProfile','-NonInteractive',
+        '-ExecutionPolicy','Bypass',
+        '-File', "`"$full`""
+    )
+    if ($ScriptArgs) { $argList += @('--') + $ScriptArgs }
+
+    # Log files next to the script
+    $outFile = [IO.Path]::ChangeExtension($full, '.out.log')
+    $errFile = [IO.Path]::ChangeExtension($full, '.err.log')
+
+    $startInfo = @{
+        FilePath                = $hostExe
+        ArgumentList            = $argList
+        WorkingDirectory        = $WorkingDirectory
+        RedirectStandardOutput  = $outFile
+        RedirectStandardError   = $errFile
+        Wait                    = $true
+        PassThru                = $true
+        ErrorAction             = 'Stop'
+    }
+    if ($Elevate) { $startInfo.Verb = 'RunAs' }
+    if ($Hidden)  { $startInfo.WindowStyle = 'Hidden' }
+
+    $proc = Start-Process @startInfo
+
+    # Optional timeout
+    if ($TimeoutSeconds -gt 0 -and -not $proc.HasExited) {
+        if (-not $proc.WaitForExit($TimeoutSeconds * 1000)) {
+            try { $proc.Kill() } catch {}
+            throw "Timed out after $TimeoutSeconds seconds. See logs: `"$outFile`", `"$errFile`"."
+        }
+    } else {
+        $proc.WaitForExit()
+    }
+
+    if ($proc.ExitCode -ne 0) {
+        $err = Get-Content -LiteralPath $errFile -Raw -ErrorAction SilentlyContinue
+        throw "Script failed with exit code $($proc.ExitCode). $err"
+    }
+
+    [pscustomobject]@{
+        ExitCode     = $proc.ExitCode
+        StdOutLog    = $outFile
+        StdErrLog    = $errFile
+        Host         = $hostExe
+        WorkingDir   = $WorkingDirectory
+    }
+}
+
+
 function Invoke-IfFileExists {
 
     [CmdletBinding()]
@@ -249,7 +332,7 @@ try {
 
     Write-Host "******************= All scripts executed =******************************"
     $elapsed.Stop()
-    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
+    Write-Host "⏳ All STEP completed in $($elapsed.Elapsed.Minutes) minutes."
 }
 catch {
     Write-Error "Error executing: $_"
