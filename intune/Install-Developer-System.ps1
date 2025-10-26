@@ -539,8 +539,6 @@ else {
     Write-Output "Directory ${Scripts} already exists." 
 }
 
-
-
 Write-Output "Turning off Sysinternals EULA prompt." 
 if (-not (Test-Path -Path "HKCU:\Software\Sysinternals")) {
     New-Item -Path "HKCU:\Software\Sysinternals" -Force | Out-Null
