@@ -60,6 +60,11 @@ Find-PSResource -Repository PSGallery -name PackageManagement
 ## Cleanup User Scope
 ## Get-PSResource -Scope 'CurrentUser' | Uninstall-PSResource -SkipDependencyCheck
 
+## Delete everything and start again
+## Get-PSResource -Scope 'AllUsers' | Uninstall-PSResource -SkipDependencyCheck
+
+
+
 function Install-OrUpdateModule {
     [CmdletBinding()]
     param(
