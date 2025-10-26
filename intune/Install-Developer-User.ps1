@@ -482,6 +482,7 @@ function Set-DockerDesktop {
         Start-Service com.docker.service
     }
 }
+#Set-DockerDesktop
 
 ## Azure CLI configuration
 try {
