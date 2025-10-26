@@ -171,14 +171,9 @@ function Set-MSTerminalSetting {
     Set-JsonValue -JsonObject $json -Path "background" -Value $BackgroundColor
     Set-JsonValue -JsonObject $json -Path "foreground" -Value $ForegroundColor
     Set-JsonValue -JsonObject $json -Path "opacity" -Value $opacity
-    Set-JsonValue -JsonObject $json -Path "backgroundImageAlignment" -Value "bottomRight"
-    Set-JsonValue -JsonObject $json -Path "backgroundImageStretchMode" -Value "none"
-    if ( Test-Path "$BackgroundImage" ) {
-        Set-JsonValue -JsonObject $json -Path "backgroundImage" -Value $BackgroundImage
-    } else {
-        Write-Host "$BackgroundImage NOT found!"
-    }
     Set-JsonValue -JsonObject $json -Path "focusFollowMouse" -Value $true
+    Set-JsonValue -JsonObject $json -Path "multiLinePasteWarning" -Value $false
+    Set-JsonValue -JsonObject $json -Path "BellSound" -Value ""
     #Set-JsonValue -JsonObject $json -Path "startupActions" -Value "newTab -p 'PowerShell'; newTab -p 'Headless Helper'"
     #Set-JsonValue -JsonObject $json -Path "wt -p "Command Prompt" `; split-pane -p "Windows PowerShell" `; split-pane -H wsl.exe
 
@@ -198,9 +193,15 @@ function Set-MSTerminalSetting {
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.font.face" -Value $face
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.font.size" -Value $FontSize
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.font.weight" -Value "normal"
-    Set-JsonValue -JsonObject $json -Path "multiLinePasteWarning" -Value $false
-    Set-JsonValue -JsonObject $json -Path "BellSound" -Value ""
-    
+
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.backgroundImageAlignment" -Value "bottomRight"
+    Set-JsonValue -JsonObject $json -Path "profiles.defaults.backgroundImageStretchMode" -Value "none"
+    if ( Test-Path "$BackgroundImage" ) {
+        Set-JsonValue -JsonObject $json -Path "profiles.defaults.backgroundImage" -Value $BackgroundImage
+    } else {
+        Write-Host "Warning: $BackgroundImage NOT found!"
+    }
+
     ## Write the updated settings back
     $backupPath = "$settingsfile.bak"
     Copy-Item -Path $settingsfile -Destination $backupPath -Force
