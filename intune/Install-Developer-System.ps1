@@ -37,8 +37,7 @@ function Set-RdpQueryDirPrefetch {
         if ($currentValue -eq $regValue) {
             Write-Verbose "Successfully set $regName to $regValue at $regPath"
             return $true
-        }
-        else {
+        } else {
             Write-Error "Failed to verify registry value."
             return $false
         }
@@ -130,8 +129,7 @@ function Install-OrUpdate-DotNetTools {
             Write-Output "Installing $tool..." 
             $Arguments = "tool install --ignore-failed-sources --global $tool"
             Start-Process -FilePath "dotnet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru
-        }
-        else {
+        } else {
             Write-Output "$tool is already installed." 
         }
     }
@@ -239,8 +237,7 @@ function Set-DriveVolumeLabel {
         if ($SystemVolumeLabel.FileSystemLabel -ne $DesiredVolumeName) {
             Write-Output ("Labeling Drive $DriveLetter...") 
             Set-Volume -DriveLetter $DriveLetter -NewFileSystemLabel $DesiredVolumeName -ErrorAction SilentlyContinue
-        }
-        else {
+        } else {
             Write-Output "Drive $DriveLetter already labeled as '$DesiredVolumeName'." 
         }
     }
@@ -264,8 +261,7 @@ function New-TempDirectories {
             catch {
                 Write-Output "Failed to create ${Temp}: $($_.Exception.Message)" 
             }
-        }
-        else {
+        } else {
             Write-Output "Directory already exists: ${Temp}" 
         }
     }
@@ -404,8 +400,7 @@ function Enable-DeveloperDevicePortal {
     }
     if (Get-ItemProperty -Path $regPath -Name "EnableDevicePortal" -ErrorAction SilentlyContinue) {
         Set-ItemProperty -Path $regPath -Name "EnableDevicePortal" -Value 1
-    }
-    else {
+    } else {
         New-ItemProperty -Path $regPath -Name "EnableDevicePortal" -PropertyType DWORD -Value 1
     }
 
@@ -502,8 +497,7 @@ try {
         Install-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
         Update-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
         ## https://github.com/HarmVeenstra/Powershellisfun/blob/main/Create%20a%20development%20Windows%20Sandbox/AW_Sandbox.ps1
-    }
-    else {
+    } else {
         Write-Output "Insufficient resources to enable Windows Sandbox - require at least 4 CPU cores and 16GB of RAM." 
         Disable-WindowsOptionalFeature -FeatureName "Containers-DisposableClientVM" -Online -NoRestart
         UnInstall-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
