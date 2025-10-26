@@ -247,6 +247,16 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.Bicep
+      directives:
+        description: Installing Microsoft.Bicep
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Microsoft.Bicep
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Hashicorp.Terraform
       directives:
         description: Installing Hashicorp.Terraform
