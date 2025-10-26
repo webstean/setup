@@ -668,10 +668,17 @@ function Add-WSLShortcutToDesktop {
 Add-WSLShortcutToDesktop
 
 ## Set Symbol server to be over the Internet
+## Symbols - not in the path
+$Symbols = "$env:SystemDrive\Symbols"
+if (-Not (Test-Path -Path "${Symbols}" -PathType Container -ErrorAction SilentlyContinue)) {
+    New-Item -Path "${Symbols}" -Type Container
+}
+else {
+    Write-Output "Directory ${Symbols} already exists." 
+}
 [System.Environment]::SetEnvironmentVariable(
     "_NT_SYMBOL_PATH",
-    "srv*C:\Symbols*https://msdl.microsoft.com/download/symbols",
+    "srv*${Symbols}*https://msdl.microsoft.com/download/symbols",
     [System.EnvironmentVariableTarget]::Machine
 )
-
-
+##     "srv*C:\Symbols*https://msdl.microsoft.com/download/symbols",
