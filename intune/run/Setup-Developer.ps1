@@ -219,6 +219,7 @@ try {
 
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Install-Developer-PowerShellModules.ps1"
+    $csw.Stop()
     Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
     
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
@@ -249,7 +250,6 @@ try {
     Write-Host "******************= All scripts executed =******************************"
     $elapsed.Stop()
     Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
-    
 }
 catch {
     Write-Error "Error executing: $_"
