@@ -191,6 +191,8 @@ if ( -not (Test-Path $HOME\AzConfig.json)) {
 Update-AzConfig -DisplayBreakingChangeWarning $false | Out-Null
 Update-AzConfig -DisplaySurveyMessage $false | Out-Null
 Update-AzConfig -EnableLoginByWam $true | Out-Null
+Update-AzConfig -EnableErrorRecordsPersistence $false | Out-Null ## When enabled, error records will be written to ~/.Azure/ErrorRecords.
+        
 if (Test-Path env:AZURE_SUBSCRIPTION_ID) {
     Update-AzConfig -DefaultSubscriptionForLogin $env:AZURE_SUBSCRIPTION_ID
     azd config set defaults.subscription $env:AZURE_SUBSCRIPTION_ID
