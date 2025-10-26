@@ -196,10 +196,22 @@ try {
     If ( Test-Path "$destination\wallpaper.jpg" ) {
         Copy-Item "$destination\wallpaper.jpg" "$env:ALLUSERSPROFILE\default-wallpaper.jpg" -Force -ErrorAction SilentlyContinue
     }
+
+    ### Normal Machine ###
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Config-Normal-Machine.ps1"
     $csw.Stop()
     Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
+
+    if ($env:IsDevBox -eq "True") {
+        Write-Host "*** This is a DevBox ***"
+    }
+
+    ### DEVELOPER Machine ###
+    $csw = [System.Diagnostics.Stopwatch]::StartNew()
+    Invoke-WingetConfiguration-Developer
+    $csw.Stop()
+    Write-Host "⏳ winget configuration completed in $($csw.Elapsed.Minutes) minutes."
 
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Invoke-IfFileExists "$destination\Install-Developer-PowerShellModules.ps1"
@@ -233,11 +245,6 @@ try {
     Write-Host "******************= All scripts executed =******************************"
     $elapsed.Stop()
     Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
-
-    $csw = [System.Diagnostics.Stopwatch]::StartNew()
-    Invoke-WingetConfiguration-Developer
-    $csw.Stop()
-    Write-Host "⏳ winget configure completed in $($csw.Elapsed.Minutes) minutes."
     
 }
 catch {
