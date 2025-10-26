@@ -193,7 +193,9 @@ Update-AzConfig -DisplaySurveyMessage $false | Out-Null
 Update-AzConfig -EnableLoginByWam $true | Out-Null
 if (Test-Path env:AZURE_SUBSCRIPTION_ID) {
     Update-AzConfig -DefaultSubscriptionForLogin $env:AZURE_SUBSCRIPTION_ID
+    azd config set defaults.subscription $env:AZURE_SUBSCRIPTION_ID
 }
+azd config set defaults.location australiaeast
 Update-AzConfig -CheckForUpgrade $false | Out-Null
 Update-AzConfig -DisplayRegionIdentified $true | Out-Null
 Update-AzConfig -DisplaySecretsWarning $false | Out-Null
