@@ -78,13 +78,14 @@ properties:
         SetScript: |
           $wallpaper = "default-wallpaper.jpg"
           $regPath = "HKCU:\Control Panel\Desktop"
+          $regName = "wallpaper"
           $location = "$env:ALLUSERSPROFILE"
           $wallpaperlocation = "${location}\${wallpaper}"
           if (Test-Path "$wallpaperlocation" ) {          
-            Set-ItemProperty -Path $regPath -Name wallpaper -Value $wallpaperlocation
+            Set-ItemProperty -Path $regPath -Name $regName -Value $wallpaperlocation
             rundll32.exe user32.dll, UpdatePerUserSystemParameters
+            Write-Host "Set USER Wallpaper"
           }
-     
 
     - resource: xPSDesiredStateConfiguration/xScript
       id: Script.Set.Logon.Wallpaper
@@ -97,11 +98,12 @@ properties:
         SetScript: |
           $wallpaper = "default-wallpaper.jpg"
           $regPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System"
+          $regName = "wallpaper"
           $location = "$env:ALLUSERSPROFILE"
           $wallpaperlocation = "${location}\${wallpaper}"
           if (Test-Path "$wallpaperlocation" ) {          
-            Set-ItemProperty -Path $regPath -Name wallpaper -Value $wallpaperlocation
-            rundll32.exe user32.dll, UpdatePerUserSystemParameters
+            Set-ItemProperty -Path $regPath -Name $regName -Value $wallpaperlocation
+            Write-Host "Set LOGON Wallpaper"
           }
 
     - resource: xPSDesiredStateConfiguration/xScript
@@ -115,11 +117,12 @@ properties:
         SetScript: |
           $wallpaper = "default-wallpaper.jpg"
           $regPath = ""HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
+          $regName = "wallpaper"
           $location = "$env:ALLUSERSPROFILE"
           $wallpaperlocation = "${location}\${wallpaper}"
           if (Test-Path "$wallpaperlocation" ) {          
-            Set-ItemProperty -Path $regPath -Name wallpaper -Value $wallpaperlocation
-            rundll32.exe user32.dll, UpdatePerUserSystemParameters 
+            Set-ItemProperty -Path $regPath -Name $regName -Value $wallpaperlocation
+            Write-Host "Set LOCK Wallpaper"
           }
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
