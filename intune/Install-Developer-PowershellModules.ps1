@@ -198,11 +198,21 @@ if (Test-Path env:AZURE_SUBSCRIPTION_ID) {
     azd config set defaults.subscription $env:AZURE_SUBSCRIPTION_ID
 }
 if (Test-Path env:AZURE_LOCATION) {
-    Update-AzConfig -DefaultSubscriptionForLogin $env:AZURE_SUBSCRIPTION_ID
     azd config set defaults.location $env:AZURE_LOCATION
 } else {
     azd config set defaults.location australiaeast
+    ## Set Azure Location to australiaeast
+    [System.Environment]::SetEnvironmentVariable(
+        "AZURE_LOCATION",
+        "australiaeast",
+        [System.EnvironmentVariableTarget]::Machine
+    )
 }
+[System.Environment]::SetEnvironmentVariable(
+    "AZURE_ENV_NAME",
+    "devtest",
+    [System.EnvironmentVariableTarget]::Machine
+)
 Update-AzConfig -CheckForUpgrade $false | Out-Null
 Update-AzConfig -DisplayRegionIdentified $true | Out-Null
 Update-AzConfig -DisplaySecretsWarning $false | Out-Null
