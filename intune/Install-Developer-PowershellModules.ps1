@@ -80,7 +80,7 @@ function Install-OrUpdateModule {
     $commonParams = @{
         Name = $ModuleName
         AcceptLicense = $true
-        Confirm = $true
+        Confirm = $false
         ErrorAction = 'Stop'
         Scope = $InstallScope
     }
