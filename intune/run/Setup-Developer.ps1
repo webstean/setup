@@ -10,7 +10,7 @@ $filesToDownload = @(
     "Config-Normal-Machine.ps1",
     "developer.winget",
     "Install-Developer-Fonts.ps1",
-    "Install-Developer-PowershellModules.ps1", --file 
+    "Install-Developer-PowershellModules.ps1",
     "Install-Developer-System.ps1",
     "Install-Developer-User.ps1",
     "Install-Global-Secure-Access-Client.ps1",
