@@ -672,8 +672,7 @@ Add-WSLShortcutToDesktop
 $Symbols = "$env:SystemDrive\Symbols"
 if (-Not (Test-Path -Path "${Symbols}" -PathType Container -ErrorAction SilentlyContinue)) {
     New-Item -Path "${Symbols}" -Type Container
-}
-else {
+} else {
     Write-Output "Directory ${Symbols} already exists." 
 }
 [System.Environment]::SetEnvironmentVariable(
@@ -683,17 +682,7 @@ else {
 )
 ##     "srv*C:\Symbols*https://msdl.microsoft.com/download/symbols",
 
-## Set Azure Location to australiaeast
-[System.Environment]::SetEnvironmentVariable(
-    "AZURE_LOCATION",
-    "australiaeast",
-    [System.EnvironmentVariableTarget]::Machine
-)
-[System.Environment]::SetEnvironmentVariable(
-    "AZURE_ENV_NAME",
-    "devtest",
-    [System.EnvironmentVariableTarget]::Machine
-)
+
 
 
 
