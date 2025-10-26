@@ -173,8 +173,10 @@ function Set-MSTerminalSetting {
     Set-JsonValue -JsonObject $json -Path "opacity" -Value $opacity
     Set-JsonValue -JsonObject $json -Path "backgroundImageAlignment" -Value "bottomRight"
     Set-JsonValue -JsonObject $json -Path "backgroundImageStretchMode" -Value "none"
-    if ( Test-Path "$BackgroundIUmage" ) {
+    if ( Test-Path "$BackgroundImage" ) {
         Set-JsonValue -JsonObject $json -Path "backgroundImage" -Value $BackgroundImage
+    } else {
+        Write-Host "$BackgroundImage NOT found!"
     }
     Set-JsonValue -JsonObject $json -Path "focusFollowMouse" -Value $true
     #Set-JsonValue -JsonObject $json -Path "startupActions" -Value "newTab -p 'PowerShell'; newTab -p 'Headless Helper'"
