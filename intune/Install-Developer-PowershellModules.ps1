@@ -210,7 +210,7 @@ if (Test-Path env:AZURE_LOCATION) {
 if ($env:USERNAME) {
     [System.Environment]::SetEnvironmentVariable(
         "AZURE_ENV_NAME",
-        "devtest-${USERNAME}",
+        "devtest-${env:USERNAME}",
         [System.EnvironmentVariableTarget]::User
     )
 }
