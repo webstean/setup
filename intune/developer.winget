@@ -216,15 +216,25 @@ properties:
         id: GnuWin32.UnZip
         source: winget
 
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: Docker.DockerDesktop
-#      directives:
-#        description: Installing Docker.DockerDesktop %APPDATA%\Docker\settings.json
-#        allowPrerelease: false
-#        securityContext: current
-#      settings:
-#        id: Docker.DockerDesktop
-#        source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: RedHat.Podman
+      directives:
+        description: Installing RedHat.Podman
+        allowPrerelease: true
+      settings:
+        id: RedHat.Podman
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: RedHat.Podman-Desktop
+      dependson:
+      - RedHat.Podman
+      directives:
+        description: Installing RedHat.Podman-Desktop
+        allowPrerelease: true
+      settings:
+        id: RedHat.Podman-Desktop
+        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Azure.VPN
