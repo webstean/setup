@@ -206,6 +206,15 @@ if (Test-Path env:AZURE_LOCATION) {
     "devtest",
     [System.EnvironmentVariableTarget]::Machine
 )
+
+if ($env:USERNAME) {
+    [System.Environment]::SetEnvironmentVariable(
+        "AZURE_ENV_NAME",
+        "devtest-${USERNAME}",
+        [System.EnvironmentVariableTarget]::User
+    )
+}
+
 Update-AzConfig -CheckForUpgrade $false | Out-Null
 Update-AzConfig -DisplayRegionIdentified $true | Out-Null
 Update-AzConfig -DisplaySecretsWarning $false | Out-Null
