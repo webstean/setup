@@ -682,3 +682,18 @@ else {
     [System.EnvironmentVariableTarget]::Machine
 )
 ##     "srv*C:\Symbols*https://msdl.microsoft.com/download/symbols",
+
+## Set Azure Location to australiaeast
+[System.Environment]::SetEnvironmentVariable(
+    "AZURE_LOCATION",
+    "australiaeast",
+    [System.EnvironmentVariableTarget]::Machine
+)
+[System.Environment]::SetEnvironmentVariable(
+    "AZURE_ENV_NAME",
+    "devtest",
+    [System.EnvironmentVariableTarget]::Machine
+)
+
+
+
