@@ -290,8 +290,8 @@ try {
     $csw.Stop()
     Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
 
-    if ($env:IsDevBox -eq "True") {
-        Write-Host "*** This is a DevBox ***"
+    if ($env:IsDevBox -eq "True" -or $true) {
+        Write-Host "*** This is a Develper Machine ***"
 
         ### DEVELOPER Machine ###
         $csw = [System.Diagnostics.Stopwatch]::StartNew()
