@@ -20,6 +20,15 @@ properties:
         id: 9NVTPZWRC6KQ
         source: msstore
 
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.Company.Portal
+      directives:
+        description: Install Microsoft.Company.Portal
+        allowPrerelease: false
+      settings:
+        id: 9WZDNCRFJ3PZ
+        source: msstore
+
 #   - resource: PSDscResources/WindowsOptionalFeature
 #    directives:
 #      description: Install VirtualMachinePlatform
