@@ -44,31 +44,6 @@ Start-Transcript -Path $TranscriptFile -Append -Force -IncludeInvocationHeader -
 if ($env:AUTOMATION_ASSET_ACCOUNTID) {
     Write-Output "Running in Azure Automation: $env:AUTOMATION_ASSET_ACCOUNTID"
 }
-### For the transcript: Get the IP Address(es)
-$env:HostIP = (
-    Get-NetIPConfiguration |
-    Where-Object {
-        $_.IPv4DefaultGateway -ne $null -and
-        $_.NetAdapter.Status -ne "Disconnected"
-    }
-).IPv4Address.IPAddress
-Write-Output $env:HostIP
-## For the transcript: Powershell versions
-$PSVersionTable
-
-$info = Get-ComputerInfo
-$info.CSDNSHostName
-$info.OsName
-$info.OsProductType
-$info.OsArchitecture
-$info.OsVersion
-$info.OsHardwareAbstractionLayer
-$info.OsUptime.Hours
-$info.OsOrganization
-$info.CsManufacturer
-$info.CsSystemFamily
-$info.Timezone
-$info.LogonServer
 
 Write-Output "Retrieving current user information..." 
 $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
@@ -113,7 +88,6 @@ if ($winget) {
 }
 
 # Local folder to save downloaded scripts
-
 function New-EmptyTempDirectory {
     [CmdletBinding()]
     param()
@@ -138,7 +112,7 @@ function New-EmptyTempDirectory {
 }
 $destination = New-EmptyTempDirectory
 
-# Download files that should NOT be executed
+# Just download the files - do not execute
 function Invoke-Download {
     foreach ($file in $filesToDownload) {
         $url = "$baseUrl/$file"
@@ -229,7 +203,6 @@ function Invoke-ScriptReliably {
         WorkingDir   = $WorkingDirectory
     }
 }
-
 
 function Invoke-IfFileExists {
 
