@@ -752,3 +752,168 @@ Set-ItemProperty -Path $assocKey -Name "UserChoice" -Value @{
 #npm install -g @azure/static-web-apps-cli
 #swa --version
 
+
+function Setup-Podman {
+    [CmdletBinding(SupportsShouldProcess=$true)]
+    param(
+        [switch] $InstallUbuntuIfMissing,
+        [switch] $ConfigureDockerShim,     # sets DOCKER_HOST and enables podman.socket
+        [int]    $Cpus   = 4,              # VM CPU allocation (applies if machine exists)
+        [int]    $MemoryMB = 4096,         # VM Memory in MB
+        [int]    $DiskGB = 30,             # VM Disk size in GB (applies on first init)
+        [switch] $AutoStartOnLogin,        # set Podman machine to autostart (via Podman Desktop)
+        [string] $MachineName = "podman-machine-default"
+    )
+
+    begin {
+        $ErrorActionPreference = 'Stop'
+        $success = $false
+        function Write-Step([string]$msg){ Write-Host ">>> $msg" -ForegroundColor Cyan }
+        function Test-Admin {
+            return ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
+            ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        }
+        function Ensure-Feature([string]$name){
+            if ($PSCmdlet.ShouldProcess("Windows feature $name","Enable")) {
+                & dism.exe /online /enable-feature /featurename:$name /all /norestart | Out-Null
+            }
+        }
+        function Ensure-Winget {
+            if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+                throw "winget not found. Install the Microsoft App Installer from the Store, then rerun."
+            }
+        }
+        function Ensure-WSL2 {
+            Write-Step "Ensuring WSL2 and required features"
+            Ensure-Feature "Microsoft-Windows-Subsystem-Linux"
+            Ensure-Feature "VirtualMachinePlatform"
+
+            if ($PSCmdlet.ShouldProcess("WSL default version","Set to 2")) {
+                if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) {
+                    throw "wsl.exe not present even after enabling features. Please reboot, then rerun."
+                }
+                wsl --set-default-version 2 | Out-Null
+            }
+        }
+        function Ensure-Ubuntu {
+            # Installs Ubuntu if there are no WSL distros registered
+            $haveDistro = (& wsl -l -q 2>$null) | Where-Object { $_ -ne "" } | Select-Object -First 1
+            if (-not $haveDistro) {
+                Write-Step "No WSL distro detected; installing Ubuntu (this may take a while)"
+                if ($PSCmdlet.ShouldProcess("Ubuntu (WSL)","Install")) {
+                    wsl --install -d Ubuntu
+                    Write-Host "A reboot may be required to finish Ubuntu installation." -ForegroundColor Yellow
+                }
+            }
+        }
+        function Ensure-PodmanDesktop {
+            Write-Step "Ensuring Podman Desktop is installed"
+            Ensure-Winget
+            $pkg = "RedHat.Podman-Desktop"
+            $installed = winget list --accept-source-agreements | Select-String -SimpleMatch $pkg
+            if (-not $installed) {
+                if ($PSCmdlet.ShouldProcess("Podman Desktop","Install via winget")) {
+                    winget install $pkg --accept-package-agreements --accept-source-agreements -h
+                }
+            } else {
+                Write-Verbose "Podman Desktop already installed."
+            }
+        }
+        function Ensure-PodmanMachine {
+            Write-Step "Ensuring Podman machine exists and is configured"
+            $existing = podman machine list 2>$null
+            $exists = $false
+            if ($existing) {
+                $exists = $existing -match "^\s*$MachineName\s"
+            }
+
+            if (-not $exists) {
+                # Build init args only on first creation
+                $args = @("machine","init","--name",$MachineName,"--cpus",$Cpus,"--memory",$MemoryMB,"--disk-size",$DiskGB)
+                if ($PSCmdlet.ShouldProcess("Podman $MachineName","Initialize")) {
+                    podman @args | Out-Null
+                }
+            } else {
+                Write-Verbose "Machine '$MachineName' already exists; applying CPU/Memory updates if needed."
+                if ($PSCmdlet.ShouldProcess("Podman $MachineName","Apply resource settings")) {
+                    podman machine stop $MachineName 2>$null | Out-Null
+                    podman machine set --cpus $Cpus --memory $MemoryMB $MachineName | Out-Null
+                }
+            }
+
+            if ($PSCmdlet.ShouldProcess("Podman $MachineName","Start")) {
+                podman machine start $MachineName | Out-Null
+            }
+        }
+        function Enable-DockerShim {
+            Write-Step "Enabling Docker CLI compatibility (podman.socket + DOCKER_HOST)"
+            if ($PSCmdlet.ShouldProcess("podman.socket","Enable and start in VM")) {
+                podman machine ssh $MachineName "sudo systemctl enable podman.socket --now" | Out-Null
+            }
+            # npipe path is used by Docker Desktop; Podman Desktop provides a Windows named pipe bridge
+            [System.Environment]::SetEnvironmentVariable('DOCKER_HOST','npipe:////./pipe/docker_engine','Machine')
+            $env:DOCKER_HOST = 'npipe:////./pipe/docker_engine'  # current session
+        }
+        function Maybe-Autostart {
+            if ($AutoStartOnLogin) {
+                # Podman Desktop handles autostart; we toggle its setting via config file.
+                # Location: %APPDATA%\Podman Desktop\settings.json (if present). We'll patch conservatively.
+                $cfg = Join-Path $env:APPDATA "Podman Desktop\settings.json"
+                if (Test-Path $cfg) {
+                    Write-Step "Enabling autostart in Podman Desktop settings"
+                    $json = Get-Content $cfg -Raw | ConvertFrom-Json
+                    if (-not $json.autostart) { $json | Add-Member -NotePropertyName autostart -NotePropertyValue $true }
+                    else { $json.autostart = $true }
+                    $json | ConvertTo-Json -Depth 10 | Set-Content $cfg -Encoding UTF8
+                } else {
+                    Write-Verbose "Podman Desktop settings not found; launch the app once to create them."
+                }
+            }
+        }
+        function Smoke-Test {
+            Write-Step "Running smoke test container (quay.io/podman/hello)"
+            if ($PSCmdlet.ShouldProcess("quay.io/podman/hello","Pull & Run")) {
+                podman pull quay.io/podman/hello | Out-Null
+                podman run --rm quay.io/podman/hello | Out-Null
+                Write-Host "Smoke test completed." -ForegroundColor Green
+            }
+        }
+    }
+    process {
+        try {
+            if (-not (Test-Admin)) {
+                throw "Please run this function in an elevated PowerShell session (Administrator)."
+            }
+
+            Ensure-WSL2
+
+            if ($InstallUbuntuIfMissing) {
+                Ensure-Ubuntu
+            }
+
+            Ensure-PodmanDesktop
+            Ensure-PodmanMachine
+
+            if ($ConfigureDockerShim) {
+                Enable-DockerShim
+            }
+
+            Maybe-Autostart
+            Smoke-Test
+
+            $success = $true
+            Write-Host "`n✅ Setup-Podman completed successfully." -ForegroundColor Green
+            if ($ConfigureDockerShim) {
+                Write-Host "   DOCKER_HOST has been set at Machine scope; restart terminals to pick it up." -ForegroundColor Yellow
+            }
+        }
+        catch {
+            Write-Error $_.Exception.Message
+            $success = $false
+        }
+    }
+    end {
+        return $success
+    }
+}
+
