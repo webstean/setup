@@ -125,9 +125,8 @@ Install-OrUpdateModule PackageManagement
 Install-OrUpdateModule ModernWorkplaceClientCenter
 Install-OrUpdateModule Terminal-Icons
 Install-OrUpdateModule Az
-Install-OrUpdateModule Microsoft.WinGet
-## Install-OrUpdateModule Microsoft.WinGet.Client
-## Install-OrUpdateModule Microsoft.WinGet.Configuration
+Install-OrUpdateModule Microsoft.WinGet.Client
+Install-OrUpdateModule Microsoft.WinGet.Configuration
 Install-OrUpdateModule Microsoft.Graph
 Install-OrUpdateModule MicrosoftTeams
 #Install-OrUpdateModule VMware.PowerCLI ## VMware PowerCLI (its too big - as no longer used much)
