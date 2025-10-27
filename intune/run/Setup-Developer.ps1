@@ -292,45 +292,45 @@ try {
 
     if ($env:IsDevBox -eq "True") {
         Write-Host "*** This is a DevBox ***"
+
+        ### DEVELOPER Machine ###
+        $csw = [System.Diagnostics.Stopwatch]::StartNew()
+        Invoke-WingetConfiguration-Developer
+        $csw.Stop()
+        Write-Host "⏳ winget configuration completed in $($csw.Elapsed.Minutes) minutes."
+
+        $csw = [System.Diagnostics.Stopwatch]::StartNew()
+        Invoke-IfFileExists "$destination\Install-Developer-PowerShellModules.ps1"
+        $csw.Stop()
+        Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
+    
+        $csw = [System.Diagnostics.Stopwatch]::StartNew()
+        Invoke-IfFileExists "$destination\Install-Global-Secure-Access-Client.ps1"
+        $csw.Stop()
+        Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
+    
+        $csw = [System.Diagnostics.Stopwatch]::StartNew()
+        Invoke-IfFileExists "$destination\Install-Windows-Admin-Centre.ps1"
+        $csw.Stop()
+        Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
+    
+        $csw = [System.Diagnostics.Stopwatch]::StartNew()
+        Invoke-IfFileExists "$destination\Install-Developer-Fonts.ps1" ## need ZIP from PowerShell modules
+        $csw.Stop()
+        Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
+    
+        $csw = [System.Diagnostics.Stopwatch]::StartNew()
+        Invoke-IfFileExists "$destination\Install-Developer-System.ps1" ## installs dotnet, that we need later
+        $csw.Stop()
+        Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
+    
+        $csw = [System.Diagnostics.Stopwatch]::StartNew()
+        #Invoke-IfFileExists "$destination\Install-Developer-User.ps1"
+        Invoke-ScriptReliably "$destination\Install-Developer-User.ps1"
+        $csw.Stop()
+        Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
     }
-
-    ### DEVELOPER Machine ###
-    $csw = [System.Diagnostics.Stopwatch]::StartNew()
-    Invoke-WingetConfiguration-Developer
-    $csw.Stop()
-    Write-Host "⏳ winget configuration completed in $($csw.Elapsed.Minutes) minutes."
-
-    $csw = [System.Diagnostics.Stopwatch]::StartNew()
-    Invoke-IfFileExists "$destination\Install-Developer-PowerShellModules.ps1"
-    $csw.Stop()
-    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
     
-    $csw = [System.Diagnostics.Stopwatch]::StartNew()
-    Invoke-IfFileExists "$destination\Install-Global-Secure-Access-Client.ps1"
-    $csw.Stop()
-    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
-    
-    $csw = [System.Diagnostics.Stopwatch]::StartNew()
-    Invoke-IfFileExists "$destination\Install-Windows-Admin-Centre.ps1"
-    $csw.Stop()
-    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
-    
-    $csw = [System.Diagnostics.Stopwatch]::StartNew()
-    Invoke-IfFileExists "$destination\Install-Developer-Fonts.ps1" ## need ZIP from PowerShell modules
-    $csw.Stop()
-    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
-    
-    $csw = [System.Diagnostics.Stopwatch]::StartNew()
-    Invoke-IfFileExists "$destination\Install-Developer-System.ps1" ## installs dotnet, that we need later
-    $csw.Stop()
-    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
-    
-    $csw = [System.Diagnostics.Stopwatch]::StartNew()
-    #Invoke-IfFileExists "$destination\Install-Developer-User.ps1"
-    Invoke-ScriptReliably "$destination\Install-Developer-User.ps1"
-    $csw.Stop()
-    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
-
     Write-Host "******************= All scripts executed =******************************"
     $elapsed.Stop()
     Write-Host "⏳ All STEP completed in $($elapsed.Elapsed.Minutes) minutes."
