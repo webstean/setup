@@ -29,6 +29,15 @@ properties:
         id: 9WZDNCRFJ3PZ
         source: msstore
 
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Raw Image Extension
+      directives:
+        description: Install Raw Image Extension
+        allowPrerelease: false
+      settings:
+        id: 9NCTDW2W1BH8
+        source: msstore
+
 #   - resource: PSDscResources/WindowsOptionalFeature
 #    directives:
 #      description: Install VirtualMachinePlatform
