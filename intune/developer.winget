@@ -116,7 +116,7 @@ properties:
         TestScript: return $false
         SetScript: |
           $wallpaper = "default-wallpaper.jpg"
-          $regPath = ""HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
+          $regPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
           $regName = "wallpaper"
           $location = "$env:ALLUSERSPROFILE"
           $wallpaperlocation = "${location}\${wallpaper}"
