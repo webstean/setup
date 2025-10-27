@@ -1,4 +1,4 @@
-﻿#Requires -RunAsAdministrator
+We﻿#Requires -RunAsAdministrator
 
 ## Helper Function for JSON files
 function Set-JsonValue {
@@ -917,3 +917,17 @@ function Setup-Podman {
     }
 }
 
+# Basic setup (WSL2 + Podman Desktop + machine init/start + smoke test)
+Setup-Podman -Verbose
+
+# Also install Ubuntu if no WSL distro exists
+Setup-Podman -InstallUbuntuIfMissing -Verbose
+
+# Enable Docker CLI compatibility (lets you use `docker` CLI against Podman)
+Setup-Podman -ConfigureDockerShim -Verbose
+
+# Tune resources and enable autostart
+Setup-Podman -Cpus 6 -MemoryMB 8192 -DiskGB 50 -AutoStartOnLogin -Verbose
+
+# Dry-run (see what would change)
+Setup-Podman -WhatIf
