@@ -165,10 +165,34 @@ function Disable-MsnFeedsAndWidgets {
 Disable-MsnFeedsAndWidgets
 
 
-# Enable location feature and scripting for the location feature (This does NOT work on Windows 11)
+# Enable location on Windows 10/11
 Function EnableLocation {
 	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors" -Name "DisableLocation" -ErrorAction SilentlyContinue
 	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors" -Name "DisableLocationScripting" -ErrorAction SilentlyContinue
+
+	## Enable location services system-wide
+	$cfgKey = 'HKLM:\SYSTEM\CurrentControlSet\Services\lfsvc\Service\Configuration'
+	if (-not (Test-Path $cfgKey)) {
+    	New-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\lfsvc\Service' -Name 'Configuration' -Force | Out-Null
+	}
+	New-ItemProperty -Path $cfgKey -Name 'Status' -PropertyType DWord -Value 1 -Force | Out-Null
+	Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\lfsvc\Service\Configuration" -Name "Status" -Value 1
+
+	## Allow apps to access location
+	$capCU = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location'
+	if (-not (Test-Path $capCU)) {
+		New-Item -Path $capCU -Force | Out-Null 
+	}
+	New-ItemProperty -Path $capCU -Name 'Value' -PropertyType String -Value 'Allow' -Force | Out-Null
+	Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" -Name "Value" -Value "Allow"
+
+	Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" -Name "Value"
+	## this will be set to DENY if there is a Groiup Policy, MDM controlling this
+	## Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" -Name "Value"
+
+	## Setp location service to Automation and Restart
+	Set-Service -Name lfsvc -StartupType Automatic -ErrorAction SilentlyContinue
+	Restart-Service lfsvc
 }
 EnableLocation
 
@@ -360,8 +384,7 @@ function Set-EdgeNoFirstRun {
     }
     New-ItemProperty -Path $userCtaPath -Name "SignInCtaShownCount" -Value 1 -PropertyType DWord -Force | Out-Null
 
-    Write-Host "✅ Microsoft Edge configured to skip first run experience."
-    Write-Host "You may need to close and reopen Edge for changes to apply."
+    Write-Host "✅ Microsoft Edge configured to skip first run experience (config via Group Policy, MDM as required)."
 }
 Set-EdgeNoFirstRun
 
@@ -374,7 +397,6 @@ Function DisableMediaSharing {
 }
 DisableMediaSharing
 
-# Uninstall Windows Media Player (use VLC instead)
 Write-Output ("Installing DotNet 2, 3 and 3.5 for compatability...")
 # Install .NET Framework 2.0, 3.0 and 3.5 runtimes - Requires internet connection
 Function InstallNET23 {
@@ -888,7 +910,7 @@ function EnableClipboardHistorySync {
 
 	# Enable Cloud Clipboard Sync (Automatic) - must use a Microsoft Account to sync accross devices.
 	$propertyName = "CloudClipboardAutomaticUpload"
-	$propertyValue = 1 ## 1 = enabled, 0 = disabled
+	$propertyValue = 0 ## 1 = enabled, 0 = disabled (since corporation won't be using a Microsoft Account)
 	Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name $propertyName -Value $propertyValue -Type 'DWORD'
 
 	# $propertyName = "CloudClipboardAutomaticUpload"
@@ -910,6 +932,7 @@ function EnableClipboardHistorySync {
 }
 EnableClipboardHistorySync
 
+##Gets rid of banner at top of MSTerminal screen (effective after a reboot) 
 function Set-DefaultTerminalToWindowsTerminal {
     [CmdletBinding(SupportsShouldProcess)]
     param(
@@ -980,37 +1003,6 @@ function DisableSearchonStartMenu {
 	New-ItemProperty -Path $Path -Name "DisableSearchBoxSuggestions" -Value 1 -PropertyType DWord -Force | Out-Null
 }
 DisableSearchonStartMenu
-
-function HideVideoPicturesFileExplorer {
-
-	# Hide Videos and Pictures folders from File Explorer (This PC / navigation pane)
-	# Windows 10/11
-
-	# Pictures Known Folder GUID
-	$picturesGUID = "{0ddd015d-b06c-45d5-8c4c-f59713854639}"
-
-	# Videos Known Folder GUID
-	$videosGUID = "{35286a68-3c57-41a1-bbb1-0eae73d76c95}"
-
-	# Registry paths
-	$regPaths = @(
-		"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace",
-		"HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace"
-	)
-
-	foreach ($guid in @($picturesGUID, $videosGUID)) {
-		foreach ($path in $regPaths) {
-			$fullPath = Join-Path $path $guid
-			if (Test-Path $fullPath) {
-				Remove-Item $fullPath -Recurse -Force
-				Write-Host "Removed $guid from $path"
-			}
-		}
-	}
-	# Optional: Restart Explorer automatically
-	Stop-Process -Name explorer -Force
-}
-HideVideoPicturesFileExplorer
 
 Write-Output ("Configuring Media...")
 Function UninstallMediaPlayer {
@@ -1236,7 +1228,11 @@ Start-Process explorer.exe
 Write-Host "`n🛑 Changes applied. Please sign out or restart the computer to fully apply settings."
 
 ## Cleanup
+
+## Remote Control - Desktop
+## winget install Splashtop.SplashtopStreamer
 ## winget remove Splashtop.SplashtopStreamer
+
 ## winrm HTTPS requires a local computer Server Authentication certificate with a CN matching the hostname to be installed. The certificate mustn't be expired, revoked, or self-signed.
 ## Test-NetConnection -Port 443 -ComputerName localhost -InformationLevel Detailed
 Return $true
