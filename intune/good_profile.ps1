@@ -77,7 +77,8 @@ function Set-MSTerminalBackground {
         }
 
         ## Read the settings
-        $json = Get-Content -Path $settingsfile -Raw | ConvertFrom-Json -Depth 10
+        ## -Depth 10 - removed for compatibility with earlier versions
+        $json = Get-Content -Path $settingsfile -Raw | ConvertFrom-Json
 
         ## Ensure the profiles object exists
         if (-Not $json.profiles) {
@@ -102,7 +103,8 @@ function Set-MSTerminalBackground {
             $json.profiles.defaults.useAcrylic = $true
         }
         ## Save the updated JSON content back to the settings file
-        $json | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsfile -Encoding UTF8
+        ## -Depth 10 - removed for compatibility with earlier versions
+        $json | ConvertTo-Json | Set-Content -Path $settingsfile -Encoding UTF8
     }
     catch {
         Write-Host "Error updating settings: $_"
