@@ -26,12 +26,30 @@ $unacceptableModes = @("ConstrainedLanguage","RestrictedLanguage", "NoLanguage")
 $currentMode = $ExecutionContext.SessionState.LanguageMode.ToString()
 $IsLanguagePermissive = $currentMode -in $acceptableModes
 
+$UTF8 = $false
+if ($IsLanguagePermissive) {
+    Write-Host ("Setting PowerShell to UTF-8 output encoding...")
+    [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
+    $UTF8 = $true
+} 
+if ((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage').ACP -eq '65001') { 
+    $UTF8 = $true
+}
+
 # Get the current language mode
 if ($IsLanguagePermissive) {
-    Write-Host "✅ PowerShell Language Mode is: $currentMode"
+    if ($UTF8) {
+        Write-Host "✅ PowerShell Language Mode is: $currentMode"
+    } else {
+        Write-Host "PowerShell Language Mode is: $currentMode"
+    }
     $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 } else {
-    Write-Host "❌ PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
+    if ($UTF8) {
+        Write-Host "❌ PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
+    } else
+        Write-Host "PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
+    }
     $IsAdmin = (whoami /groups | Select-String "S-1-5-32-544") -ne $null
 }
 
@@ -42,14 +60,6 @@ if ($IsAdmin) {
 } else {
     $InstallScope = 'CurrentUser'
 }
-
-$UTF8 = $false
-if ($IsLanguagePermissive) {
-    Write-Host ("Setting PowerShell to UTF-8 output encoding...")
-    [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
-    $UTF8 = $true
-}
-
 
 function Set-MSTerminalBackground {
     param (
