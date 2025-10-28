@@ -75,7 +75,7 @@ function Set-MSTerminalBackground {
         [string]$BackgroundColor = "#993755" ## "#994755" "#506950ff" "#000000"
     )
 
-    ## Forget it if this is Windows PowerShell, because ConvertFrom-Json does not support enough depth edit config file
+    ## Forget it, if this is Windows PowerShell, because ConvertFrom-Json does not support enough depth edit config file
     if ($PSVersionTable.PSEdition -eq 'Desktop') { return }
 
     $ErrorActionPreference = 'Ignore'
@@ -87,7 +87,6 @@ function Set-MSTerminalBackground {
         }
 
         ## Read the settings
-        ## -Depth 10 - removed for compatibility with earlier versions
         $json = Get-Content -Path $settingsfile -Raw | ConvertFrom-Json -Depth 10
 
         ## Ensure the profiles object exists
@@ -113,7 +112,6 @@ function Set-MSTerminalBackground {
             $json.profiles.defaults.useAcrylic = $true
         }
         ## Save the updated JSON content back to the settings file
-        ## -Depth 10 - removed for compatibility with earlier versions
         $json | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsfile -Encoding UTF8
     }
     catch {
@@ -166,7 +164,7 @@ function Initialize-PSReadLineSmart {
 
     if ( -not ($IsLanguagePermissive)) { return }
 
-    if (-not ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15)) { return }
+    if ( -not ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15)) { return }
 
     $result = [pscustomobject]@{
         PSVersion            = $PSVersionTable.PSVersion.ToString()
