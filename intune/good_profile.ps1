@@ -165,7 +165,7 @@ function Initialize-PSReadLineSmart {
 
     if ( -not ($IsLanguagePermissive)) { return }
 
-    if (-not ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15))0 { return }
+    if (-not ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15)) { return }
 
     $result = [pscustomobject]@{
         PSVersion            = $PSVersionTable.PSVersion.ToString()
