@@ -174,7 +174,7 @@ function Set-MSTerminalSetting {
     Set-JsonValue -JsonObject $json -Path "focusFollowMouse" -Value $true
     Set-JsonValue -JsonObject $json -Path "multiLinePasteWarning" -Value $false
     Set-JsonValue -JsonObject $json -Path "BellSound" -Value ""
-    Set-JsonValue -JsonObject $json -Path "initialRows" -Value "35"
+    Set-JsonValue -JsonObject $json -Path "initialRows" -Value [integer]"35"
     Set-JsonValue -JsonObject $json -Path "focusFollowMouse" -Value $true
        
     #Set-JsonValue -JsonObject $json -Path "startupActions" -Value "newTab -p 'PowerShell'; newTab -p 'Headless Helper'"
