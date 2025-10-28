@@ -68,6 +68,9 @@ function Set-MSTerminalBackground {
         [string]$BackgroundColor = "#993755" ## "#994755" "#506950ff" "#000000"
     )
 
+    ## Forget it if this is Windows PowerShell, because ConvertFrom-Json does not support enough depth edit config file
+    if ($PSVersionTable.PSEdition -eq 'Desktop') { return }
+
     $ErrorActionPreference = 'Ignore'
     try {
 
@@ -78,7 +81,7 @@ function Set-MSTerminalBackground {
 
         ## Read the settings
         ## -Depth 10 - removed for compatibility with earlier versions
-        $json = Get-Content -Path $settingsfile -Raw | ConvertFrom-Json
+        $json = Get-Content -Path $settingsfile -Raw | ConvertFrom-Json -Depth 10
 
         ## Ensure the profiles object exists
         if (-Not $json.profiles) {
@@ -104,7 +107,7 @@ function Set-MSTerminalBackground {
         }
         ## Save the updated JSON content back to the settings file
         ## -Depth 10 - removed for compatibility with earlier versions
-        $json | ConvertTo-Json | Set-Content -Path $settingsfile -Encoding UTF8
+        $json | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsfile -Encoding UTF8
     }
     catch {
         Write-Host "Error updating settings: $_"
