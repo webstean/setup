@@ -20,7 +20,7 @@ function Update-Profile-Force {
 ## If Windows Powershell
 if ($PSVersionTable.PSEdition -eq 'Desktop') {
     Write-Host "Ignoring Profile - as this is Windows PowerShell"
-    return $true
+    return $true | Out-Null
 }
 
 ## FullLanguage: No restrictions (default in most PowerShell sessions)
