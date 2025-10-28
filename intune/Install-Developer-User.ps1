@@ -752,16 +752,15 @@ Set-ItemProperty -Path $assocKey -Name "UserChoice" -Value @{
 #npm install -g @azure/static-web-apps-cli
 #swa --version
 
-
 function Setup-Podman {
     [CmdletBinding(SupportsShouldProcess=$true)]
     param(
-        [switch] $InstallUbuntuIfMissing,
-        [switch] $ConfigureDockerShim,     # sets DOCKER_HOST and enables podman.socket
-        [int]    $Cpus   = 4,              # VM CPU allocation (applies if machine exists)
-        [int]    $MemoryMB = 4096,         # VM Memory in MB
-        [int]    $DiskGB = 30,             # VM Disk size in GB (applies on first init)
-        [switch] $AutoStartOnLogin,        # set Podman machine to autostart (via Podman Desktop)
+        [switch] $InstallUbuntuIfMissing = $false,   # don't install Ubuntu
+        [switch] $ConfigureDockerShim = $true,       # sets DOCKER_HOST and enables podman.socket
+        [int]    $Cpus   = 4,                        # VM CPU allocation (applies if machine exists)
+        [int]    $MemoryMB = 4096,                   # VM Memory in MB
+        [int]    $DiskGB = 30,                       # VM Disk size in GB (applies on first init)
+        [switch] $AutoStartOnLogin = $true,          # set Podman machine to autostart (via Podman Desktop)
         [string] $MachineName = "podman-machine-default"
     )
 
@@ -801,7 +800,7 @@ function Setup-Podman {
             if (-not $haveDistro) {
                 Write-Step "No WSL distro detected; installing Ubuntu (this may take a while)"
                 if ($PSCmdlet.ShouldProcess("Ubuntu (WSL)","Install")) {
-                    wsl --install -d Ubuntu
+                    wsl --install -d Ubuntu ## this is interactive - it prompts
                     Write-Host "A reboot may be required to finish Ubuntu installation." -ForegroundColor Yellow
                 }
             }
