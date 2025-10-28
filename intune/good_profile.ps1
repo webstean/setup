@@ -22,6 +22,7 @@ if ($PSVersionTable.PSEdition -eq 'Desktop') {
     Write-Host "Ignoring Profile - as this is Windows PowerShell"
     return $true
 }
+
 ## FullLanguage: No restrictions (default in most PowerShell sessions)
 ## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
 ## RestrictedLanguage: Very limited (e.g., only basic expressions)
