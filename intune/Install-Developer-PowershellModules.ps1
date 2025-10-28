@@ -236,50 +236,81 @@ Get-AzConfig
 ## Can only work if Machine is running inside Azure
 ## Connect-AzAccount -Identity -ErrorAction Stop
 
-function Connect-AzAccountSilentCurrentUser {
+function Connect-AzAccountSilentAuto {
+    <#
+    .SYNOPSIS
+        Silent Azure login using current Windows user (cached context) or Managed Identity.
+        Returns an object with TenantId, SubscriptionId, AccountId on success; $false on failure.
+    .NOTES
+        - Never opens a browser or device code prompt.
+        - Does NOT attempt interactive user login.
+        - Requires Az.Accounts module.
+    #>
+    [CmdletBinding()]
     param(
-        [string]$TenantId,
-        [string]$SubscriptionId,
-        [string]$AccountId  # e.g. user@contoso.com (optional; helps pick the right cached token)
+        [switch]$PreferManagedIdentity = $true  # MI first by default
     )
 
-    # Enable WAM so Az can reuse Windows SSO if available
+    # Make WAM preferred in this process so cached Windows SSO can be reused (still no UI).
     try { Update-AzConfig -EnableLoginByWam $true -Scope Process | Out-Null } catch {}
 
-    # Prefer an existing cached context to avoid triggering any interactive flow
-    $ctx = Get-AzContext -ListAvailable | Where-Object {
-        ($_ -and ($_.Tenant.Id -eq $TenantId -or -not $TenantId)) -and
-        ($AccountId ? ($_.Account -and $_.Account.Id -eq $AccountId) : $true)
-    } | Select-Object -First 1
+    $ctx = $null
 
-    if ($ctx) {
-        Set-AzContext -Context $ctx -ErrorAction Stop | Out-Null
-    } else {
-        # Attempt a silent connect that succeeds only if a cached token exists.
-        # Passing -AccountId helps Az pick the right cached identity.
-        $params = @{}
-        if ($TenantId)   { $params.Tenant    = $TenantId }
-        if ($AccountId)  { $params.AccountId = $AccountId }
-        try {
-            Connect-AzAccount @params -ErrorAction Stop | Out-Null
-        } catch {
-            Write-Verbose "Silent sign-in failed; no prompts shown."
-            return $false
+    # Helper: return projection
+    function _out($c) {
+        if (-not $c) { return $false }
+        [pscustomobject]@{
+            TenantId       = $c.Tenant.Id
+            SubscriptionId = $c.Subscription.Id
+            AccountId      = $c.Account.Id
+            ContextName    = $c.Name
         }
     }
 
-    # Optional: select subscription silently if provided
-    if ($SubscriptionId) {
-        try { Set-AzContext -Subscription $SubscriptionId -ErrorAction Stop | Out-Null } catch { return $false }
+    # Optionally try Managed Identity first (always silent)
+    if ($PreferManagedIdentity) {
+        try {
+            Connect-AzAccount -Identity -ErrorAction Stop | Out-Null
+            $ctx = Get-AzContext -ErrorAction Stop
+            if ($ctx) { return _out $ctx }
+        } catch { }
     }
 
-    # Final sanity check: ensure we can get an access token without interaction
-    try {
-        Get-AzAccessToken -ErrorAction Stop | Out-Null
-        return $true
-    } catch {
-        return $false
+    # 1) Use an existing cached context if present (silent)
+    try { $ctx = Get-AzContext -ErrorAction SilentlyContinue } catch {}
+    if (-not $ctx) {
+        # If no "current" context, search all cached contexts (still silent)
+        try {
+            $all = Get-AzContext -ListAvailable -ErrorAction SilentlyContinue
+            # Prefer a context that already has a subscription bound
+            $ctx = $all | Where-Object { $_.Subscription -and $_.Tenant -and $_.Account } | Select-Object -First 1
+            if ($ctx) {
+                Set-AzContext -Context $ctx -ErrorAction SilentlyContinue | Out-Null
+            }
+        } catch {}
     }
+
+    if ($ctx) {
+        # Validate we can actually get a token without interaction
+        try {
+            Get-AzAccessToken -ErrorAction Stop | Out-Null
+            return _out $ctx
+        } catch { }
+    }
+
+    # 2) If no cached context worked, try Managed Identity (silent and safe)
+    try {
+        Connect-AzAccount -Identity -ErrorAction Stop | Out-Null
+        $ctx = Get-AzContext -ErrorAction Stop
+        if ($ctx) {
+            # Note: AccountId will be MSI identity (e.g., appId/objectId), which is expected.
+            return _out $ctx
+        }
+    } catch { }
+
+    # Nothing worked without prompting
+    Write-Verbose "No cached user context and no Managed Identity available. Not attempting interactive login."
+    return $false
 }
 
 ## Connect-AzAccount
