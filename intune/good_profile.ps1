@@ -28,7 +28,7 @@ if ($PSVersionTable.PSEdition -eq 'Desktop') {
 ## RestrictedLanguage: Very limited (e.g., only basic expressions)
 ## NoLanguage: No scripting allowed at all
 $acceptableModes = @("FullLanguage")
-$unacceptableModes = @("ConstrainedLanguage","RestrictedLanguage", "NoLanguage")
+$unacceptableModes = @("ConstrainedLanguage", "RestrictedLanguage", "NoLanguage")
 $currentMode = $ExecutionContext.SessionState.LanguageMode.ToString()
 $IsLanguagePermissive = $currentMode -in $acceptableModes
 
