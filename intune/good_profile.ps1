@@ -47,7 +47,7 @@ if ($IsLanguagePermissive) {
 } else {
     if ($UTF8) {
         Write-Host "❌ PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
-    } else
+    } else {
         Write-Host "PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
     }
     $IsAdmin = (whoami /groups | Select-String "S-1-5-32-544") -ne $null
