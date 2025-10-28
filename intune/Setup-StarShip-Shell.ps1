@@ -4,36 +4,12 @@ function Set-StarshipAdminIndicator {
         Adds Starship custom modules that change colour based on elevation (Admin vs User).
 
     .DESCRIPTION
-        - Creates/updates ~/.config/starship.toml with two custom modules:
+        - Creates/updates ~/.config/starship.toml with:
             [custom.admin] -> red icon when elevated
             [custom.user]  -> green icon when not elevated
         - Ensures the modules appear in the prompt format.
         - Optionally appends 'Invoke-Expression (&starship init powershell)' to $PROFILE.
         - Idempotent: re-running updates sections without duplicating them.
-
-    .PARAMETER AddInitToProfile
-        When set, ensures Starship init is present in the current user PowerShell profile.
-
-    .PARAMETER AdminStyle
-        Starship style for the admin indicator (default: 'bold red').
-
-    .PARAMETER UserStyle
-        Starship style for the user indicator (default: 'bold green').
-
-    .PARAMETER AdminIcon
-        Icon/text shown when elevated (default: '󰷛').
-
-    .PARAMETER UserIcon
-        Icon/text shown when non-elevated (default: '󰈸').
-
-    .OUTPUTS
-        PSCustomObject summary of what was changed.
-
-    .EXAMPLE
-        Set-StarshipAdminIndicator -AddInitToProfile
-
-    .EXAMPLE
-        Set-StarshipAdminIndicator -AdminStyle 'bold yellow' -UserStyle 'bold cyan' -AdminIcon '#' -UserIcon '$'
     #>
     [CmdletBinding()]
     param(
@@ -59,29 +35,34 @@ function Set-StarshipAdminIndicator {
     $result.ConfigPath = $starshipToml
 
     # Ensure dirs/files
-    if (-not (Test-Path $configDir)) { New-Item -ItemType Directory -Path $configDir -Force | Out-Null }
-    if (-not (Test-Path $starshipToml)) { New-Item -ItemType File -Path $starshipToml -Force | Out-Null }
+    if (-not (Test-Path $configDir))  { New-Item -ItemType Directory -Path $configDir  -Force | Out-Null }
+    if (-not (Test-Path $starshipToml)) { New-Item -ItemType File      -Path $starshipToml -Force | Out-Null }
 
-    # TOML blocks (interpolate styles/icons)
-    $adminBlock = @"
+    # --- TOML blocks (use single-quoted here-strings to avoid $ expansion) ---
+    $adminBlock = @'
 [custom.admin]
-command = 'powershell -NoProfile -Command "if (([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { Write-Output \"$AdminIcon\" }"'
+command = 'powershell -NoProfile -Command "if (([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { Write-Output \"__ADMIN_ICON__\" }"'
 when = 'powershell -NoProfile -Command "([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)"'
 shell = ["powershell"]
-format = "[$`output]($`style) "
-style = "$AdminStyle"
-"@
+format = "[$output]($style) "
+style = "__ADMIN_STYLE__"
+'@
 
-    $userBlock = @"
+    $userBlock = @'
 [custom.user]
-command = 'powershell -NoProfile -Command "if (-not (([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) { Write-Output \"$UserIcon\" }"'
+command = 'powershell -NoProfile -Command "if (-not (([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) { Write-Output \"__USER_ICON__\" }"'
 when = 'powershell -NoProfile -Command "-not (([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))"'
 shell = ["powershell"]
-format = "[$`output]($`style) "
-style = "$UserStyle"
-"@
+format = "[$output]($style) "
+style = "__USER_STYLE__"
+'@
 
-    $defaultFormat = @"
+    # Inject chosen styles/icons
+    $adminBlock = $adminBlock.Replace('__ADMIN_STYLE__', $AdminStyle).Replace('__ADMIN_ICON__', $AdminIcon)
+    $userBlock  = $userBlock .Replace('__USER_STYLE__' , $UserStyle ).Replace('__USER_ICON__' , $UserIcon )
+
+    # Default format (single-quoted so $custom.* stays literal)
+    $defaultFormat = @'
 format = """
 $custom.admin\
 $custom.user\
@@ -90,7 +71,7 @@ $git_branch\
 $git_status\
 $character
 """
-"@
+'@
 
     # Helper: upsert a TOML section (replace existing section content or append)
     function _Set-TomlSection {
@@ -115,12 +96,8 @@ $character
     }
 
     # Upsert modules
-    if (_Set-TomlSection -Path $starshipToml -SectionHeaderRegex '^\[custom\.admin\]\s*$' -BlockText $adminBlock) {
-        $result.AdminModuleUpsert = $true
-    }
-    if (_Set-TomlSection -Path $starshipToml -SectionHeaderRegex '^\[custom\.user\]\s*$' -BlockText $userBlock) {
-        $result.UserModuleUpsert = $true
-    }
+    if (_Set-TomlSection -Path $starshipToml -SectionHeaderRegex '^\[custom\.admin\]\s*$' -BlockText $adminBlock) { $result.AdminModuleUpsert = $true }
+    if (_Set-TomlSection -Path $starshipToml -SectionHeaderRegex '^\[custom\.user\]\s*$'  -BlockText $userBlock)  { $result.UserModuleUpsert  = $true }
 
     # Ensure our modules appear in the format
     $content = Get-Content -Path $starshipToml -Raw
@@ -128,11 +105,17 @@ $character
         Add-Content -Path $starshipToml -Value ("`r`n" + $defaultFormat + "`r`n")
         $result.FormatUpdated = $true
     } else {
+        # Prepend our two module lines if missing (escape $ so TOML sees $custom.* literally)
         $pattern = '(?ms)^\s*format\s*=\s*"""(.*?)"""'
         if ($content -match $pattern) {
             $inner = $Matches[1]
-            if ($inner -notmatch '\$custom\.admin' -or $inner -notmatch '\$custom\.user') {
-                $newInner = "$custom.admin`" + [Environment]::NewLine + "$custom.user`" + [Environment]::NewLine + $inner
+            $needsAdmin = ($inner -notmatch '\$custom\.admin')
+            $needsUser  = ($inner -notmatch '\$custom\.user')
+            if ($needsAdmin -or $needsUser) {
+                $prepend = @()
+                if ($needsAdmin) { $prepend += '`$custom.admin\' }
+                if ($needsUser)  { $prepend += '`$custom.user\' }
+                $newInner   = ($prepend -join [Environment]::NewLine) + [Environment]::NewLine + $inner
                 $newContent = [regex]::Replace($content, $pattern, 'format = """' + $newInner + '"""')
                 if ($newContent -ne $content) {
                     Set-Content -Path $starshipToml -Value $newContent -Encoding UTF8
