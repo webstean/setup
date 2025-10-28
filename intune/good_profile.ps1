@@ -166,6 +166,8 @@ function Initialize-PSReadLineSmart {
         [bool]$UsePluginIfAvailable = $true
     )
 
+    if ( -not ($IsLanguagePermissive)) { return }
+
     $result = [pscustomobject]@{
         PSVersion            = $PSVersionTable.PSVersion.ToString()
         PSEdition            = $PSVersionTable.PSEdition
