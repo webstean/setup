@@ -30,7 +30,7 @@ $UTF8 = $false
 if ($IsLanguagePermissive) {
     Write-Host ("Setting PowerShell to UTF-8 output encoding...")
     [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
-    $UTF8 = $true
+    #$UTF8 = $true
 } 
 if ((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage').ACP -eq '65001') { 
     $UTF8 = $true
