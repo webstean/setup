@@ -43,6 +43,14 @@ if ($IsAdmin) {
     $InstallScope = 'CurrentUser'
 }
 
+$UTF8 = $false
+if ($IsLanguagePermissive) {
+    Write-Host ("Setting PowerShell to UTF-8 output encoding...")
+    [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
+    $UTF8 = $true
+}
+
+
 function Set-MSTerminalBackground {
     param (
         [string]$settingsfile = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
@@ -150,11 +158,6 @@ style = "blue bold"
     }
 }
 
-if ($IsLanguagePermissive) {
-    Write-Host ("Setting PowerShell to UTF-8 output encoding...")
-    [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
-}
-
 Set-PSReadLineKeyHandler -Key Ctrl+Shift+b `
     -BriefDescription BuildCurrentDirectory `
     -LongDescription "DotNet Build the current directory" `
@@ -190,11 +193,21 @@ function Install-OrUpdateModule {
     try {
         if ($null -eq $installed) {
             Write-Host "Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
-            Install-PSResource -Name $ModuleName  -Prerelease $Prerelease -AcceptLicense $true -Confirm $false -ErrorAction Stop -Scope $Installscope
+            if ($prerelease) {
+                Install-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+            } else {
+                ## Install-PSResource -Name PackageManagement -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+                Install-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+            }
         }
         else {
             Write-Host "Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
-            Update-PSResource -Name $ModuleName  -Prerelease $Prerelease -AcceptLicense $true -Confirm $false -ErrorAction Stop
+            ## Update-PSResource -Name PackageManagement -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue
+            if ($prerelease) {
+                Update-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+            } else {
+                Update-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+            }
         }
         # Optional: import after install/update
         Import-Module $ModuleName -Force
@@ -204,8 +217,6 @@ function Install-OrUpdateModule {
         Write-Host "❌ Failed to install or update '$ModuleName': $_" -ForegroundColor Red
     }
 }
-
-
 
 #Only works for Powershell naked (no starship,Oh My Posh etc..)
 function prompt {
