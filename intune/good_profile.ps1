@@ -17,6 +17,11 @@ function Update-Profile-Force {
 }
 #Update-Profile-Force
 
+## If Windows Powershell
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+    Write-Host "Ignoring Profile - as this is Windows PowerShell"
+    return $true
+}
 ## FullLanguage: No restrictions (default in most PowerShell sessions)
 ## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
 ## RestrictedLanguage: Very limited (e.g., only basic expressions)
@@ -331,13 +336,15 @@ style = "blue bold"
     }
 }
 
-Set-PSReadLineKeyHandler -Key Ctrl+Shift+b `
-    -BriefDescription BuildCurrentDirectory `
-    -LongDescription "DotNet Build the current directory" `
-    -ScriptBlock {
-    [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
-    [Microsoft.PowerShell.PSConsoleReadLine]::Insert("dotnet build")
-    [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
+if ($IsLanguagePermissive) {
+    Set-PSReadLineKeyHandler -Key Ctrl+Shift+b `
+        -BriefDescription BuildCurrentDirectory `
+        -LongDescription "DotNet Build the current directory" `
+        -ScriptBlock {
+        [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
+        [Microsoft.PowerShell.PSConsoleReadLine]::Insert("dotnet build")
+        [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
+    }
 }
 
 function Invoke-Starship-TransientFunction {
@@ -393,7 +400,7 @@ function Install-OrUpdateModule {
 
 #Only works for Powershell naked (no starship,Oh My Posh etc..)
 function prompt {
-    if (-not ($IsLanguagePermissive)) { return }
+    #if (-not ($IsLanguagePermissive)) { return  }
 
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = [Security.Principal.WindowsPrincipal] $identity
@@ -407,8 +414,18 @@ function prompt {
         $color = "Green"    
         Write-Host ("PS " + $(Get-Location) + ">") -NoNewline -ForegroundColor $Color
     }
-    return " "
+    return "`n> "
 }
+
+#function prompt {
+#    $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+#    $path = (Get-Location).Path
+#
+#    Write-Host "[$user]" -ForegroundColor Cyan -NoNewline
+#    Write-Host " $path" -ForegroundColor Yellow -NoNewline
+#    return "`n> "
+#}
+
 
 if ($env:IsDevBox -eq "True" ) {
     if ($env:UPN) {
