@@ -113,7 +113,7 @@ function New-EmptyTempDirectory {
 $destination = New-EmptyTempDirectory
 
 # Just download the files - do not execute
-function Invoke-Download {
+function Invoke-GitHub-Download {
     foreach ($file in $filesToDownload) {
         $url = "$baseUrl/$file"
         $filedestination = Join-Path -Path $destination -ChildPath $file
@@ -121,6 +121,87 @@ function Invoke-Download {
         Invoke-WebRequest -Uri $url -OutFile $filedestination -UseBasicParsing
     }
 }
+
+function Invoke-AzBlobDownload {
+    <#
+    .SYNOPSIS
+        Download a list of blobs from Azure Blob Storage using a SAS token.
+
+    .PARAMETER StorageAccount
+        Storage account name (e.g., mystorageacct)
+
+    .PARAMETER Container
+        Container name (e.g., tools)
+
+    .PARAMETER SasToken
+        SAS token string. Can start with '?' or not.
+
+    .PARAMETER FilesToDownload
+        Array of blob paths relative to the container (e.g., 'folder/tool.exe')
+
+    .PARAMETER Destination
+        Local destination folder. Subfolders are created as needed.
+
+    .PARAMETER Overwrite
+        Overwrite existing files if present.
+
+    .PARAMETER MaxRetries
+        Number of retries per file (default: 3)
+
+    .PARAMETER RetryDelaySeconds
+        Base delay between retries, backoff is linear (default: 2)
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$StorageAccount,
+        [Parameter(Mandatory)][string]$Container,
+        [Parameter(Mandatory)][string]$SasToken,
+        [Parameter(Mandatory)][string[]]$FilesToDownload = $filesToDownload,
+        [Parameter(Mandatory)][string]$Destination = $destination,
+        [bool]$Overwrite = $true,
+        [int]$MaxRetries = 3,
+        [int]$RetryDelaySeconds = 2
+    )
+
+    # Normalize SAS (ensure it starts with '?')
+    $sas = $SasToken.Trim()
+    if ($sas -and -not $sas.StartsWith('?')) { $sas = '?' + $sas }
+
+    # Base URL (public cloud)
+    $baseUrl = "https://$StorageAccount.blob.core.windows.net/$Container"
+
+    # Ensure destination exists
+    if (-not (Test-Path -LiteralPath $Destination)) {
+        New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+    }
+
+    foreach ($file in $FilesToDownload) {
+        # Encode path parts safely (keeps slashes, escapes spaces etc.)
+        $escapedPath = [System.Uri]::EscapeUriString($file)
+        $uri = "$baseUrl/$escapedPath$sas"
+
+        $fileDestination = Join-Path -Path $Destination -ChildPath $file
+        $destDir = Split-Path -Path $fileDestination -Parent
+        if (-not (Test-Path -LiteralPath $destDir)) {
+            New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+        }
+
+        if ((-not $Overwrite) -and (Test-Path -LiteralPath $fileDestination)) {
+            Write-Output "Skip (exists): $fileDestination"
+            continue
+        }
+
+        Write-Output "Downloading: $uri -> $fileDestination"
+
+        $attempt = 0
+        $downloaded = $false
+        while (-not $downloaded -and $attempt -lt $MaxRetries) {
+            $attempt++
+            try {
+                # Optional header helps some environments; harmless otherwise
+                $headers = @{ 'x-ms-version' = '2020-10-02' }
+                Invoke-WebRequest -Uri $uri -OutFile $fileDestination -UseBasicParsing -Headers $headers -ErrorAction Stop
+
 
 function Invoke-ScriptReliably {
     [CmdletBinding()]
@@ -249,7 +330,7 @@ function Invoke-WingetConfiguration-Developer {
 ## Execute downloaded scripts
 try {
     Write-Host "******************= Scripts to EXECUTE =******************************"
-    Invoke-Download
+    Invoke-GitHub-Download
     If ( Test-Path "$destination\wallpaper.jpg" ) {
         Copy-Item "$destination\wallpaper.jpg" "$env:ALLUSERSPROFILE\default-wallpaper.jpg" -Force -ErrorAction SilentlyContinue
     }
