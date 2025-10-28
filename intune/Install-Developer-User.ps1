@@ -406,98 +406,6 @@ Write-Output ("Ensuring WSL is upto date...")
 Start-Process -FilePath "wsl" -ArgumentList "--status" -NoNewWindow -Wait -PassThru
 Start-Process -FilePath "wsl" -ArgumentList "--update" -NoNewWindow -Wait -PassThru
 
-function Set-DockerDesktopBestPractices {
-    $configPath = "$env:APPDATA\Docker\settings.json"
-    if (-Not (Test-Path $configPath)) {
-        Write-Host "Creating new Docker Desktop settings file..."
-        New-Item -Path $configPath -ItemType File -Force | Out-Null
-        $currentConfig = @{}
-    }
-    else {
-        Write-Host "Loading existing Docker Desktop settings..."
-        $currentConfig = Get-Content $configPath | ConvertFrom-Json
-    }
-
-    # Docker Best Practices configuration
-    $defaultConfig = @{
-        "version"              = 3
-        "cpuCount"             = 4
-        "memoryMiB"            = 8192
-        "swapMiB"              = 1024
-        "diskSizeMiB"          = 64000
-        "useProxy"             = $false
-        "httpProxy"            = ""
-        "httpsProxy"           = ""
-        "noProxy"              = ""
-        "exposeDockerAPIOnTCP2375" = $false      # Don’t expose insecure API
-        "hosts"                = @("npipe:////./pipe/docker_engine") # Local access only
-        "showTrayIcon"         = $true
-        "autoStart"            = $true
-        "hideDesktopIcon"      = $false
-        "wslIntegration"       = @{"docker-desktop" = $true }  # Adjust for installed WSL distros
-        "kubernetesEnabled"    = $false
-        "kubernetesVersion"    = ""
-        "telemetryEnabled"     = $true
-        "experimentalFeatures" = $false
-        "gpuSupport"           = $false
-        "sharedDirs"           = @("$env:HOME", "C:\Workspaces")
-        "resources"            = @{
-            "cpuCount"    = 4
-            "memoryMiB"   = 8192
-            "swapMiB"     = 1024
-            "diskSizeMiB" = 64000
-        }
-    }
-
-    # Merge user-provided config if any
-    if ($currentConfig) {
-        foreach ($key in $currentConfig.Keys) {
-            $defaultConfig[$key] = $currentConfig[$key]
-        }
-    }
-
-    # Save configuration to settings.json
-    $configPath = "$env:APPDATA\Docker\settings.json"
-    if (-Not (Test-Path $configPath)) {
-        New-Item -Path $configPath -ItemType File -Force | Out-Null
-    }
-
-    $defaultConfig | ConvertTo-Json -Depth 10 | Set-Content $configPath -Force
-    Write-Host "Docker Desktop configuration applied at $configPath"
-}
-#Set-DockerDesktopBestPractices
-
-function Set-DockerDesktop {
-
-    # Optionally enable WSL 2
-    $wslFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
-    if ($wslFeature.State -ne "Enabled") {
-        Write-Host "Enabling WSL 2..."
-        wsl --install --no-distribution --no-launch
-    }
-
-    $dockerExe = (Get-Item Env:ProgramFiles).Value + "\Docker\Docker Desktop.exe"
-
-    if (-not (Test-Path $dockerEXE )) {
-        winget install docker.Desktop
-    }
-
-    # Add current user to docker-users group
-    Write-Host "Adding user $env:USERNAME to 'docker-users' group..."
-    # Check if 'docker-users' group exists before adding user
-    if (Get-LocalGroup -Name "docker-users" -ErrorAction SilentlyContinue) {
-        Add-LocalGroupMember -Group "docker-users" -Member $env:USERNAME -ErrorAction SilentlyContinue
-    }
-
-    if (Test-Path $dockerExe) {
-        Write-Host "Starting Docker Desktop service..."
-        Stop-Service com.docker.service
-        Set-Service -Name com.docker.service -StartupType Automatic
-        Start-Service com.docker.service
-    }
-}
-#Set-DockerDesktop
-
 ## Azure CLI configuration
 try {
     ## Remove configuration files - if install is corrupt
@@ -761,7 +669,99 @@ Set-ItemProperty -Path $assocKey -Name "UserChoice" -Value @{
 #npm install -g @azure/static-web-apps-cli
 #swa --version
 
-function Setup-Podman {
+function Set-DockerDesktopBestPractices {
+    $configPath = "$env:APPDATA\Docker\settings.json"
+    if (-Not (Test-Path $configPath)) {
+        Write-Host "Creating new Docker Desktop settings file..."
+        New-Item -Path $configPath -ItemType File -Force | Out-Null
+        $currentConfig = @{}
+    }
+    else {
+        Write-Host "Loading existing Docker Desktop settings..."
+        $currentConfig = Get-Content $configPath | ConvertFrom-Json
+    }
+
+    # Docker Best Practices configuration
+    $defaultConfig = @{
+        "version"              = 3
+        "cpuCount"             = 4
+        "memoryMiB"            = 8192
+        "swapMiB"              = 1024
+        "diskSizeMiB"          = 64000
+        "useProxy"             = $false
+        "httpProxy"            = ""
+        "httpsProxy"           = ""
+        "noProxy"              = ""
+        "exposeDockerAPIOnTCP2375" = $false      # Don’t expose insecure API
+        "hosts"                = @("npipe:////./pipe/docker_engine") # Local access only
+        "showTrayIcon"         = $true
+        "autoStart"            = $true
+        "hideDesktopIcon"      = $false
+        "wslIntegration"       = @{"docker-desktop" = $true }  # Adjust for installed WSL distros
+        "kubernetesEnabled"    = $false
+        "kubernetesVersion"    = ""
+        "telemetryEnabled"     = $true
+        "experimentalFeatures" = $false
+        "gpuSupport"           = $false
+        "sharedDirs"           = @("$env:HOME", "C:\Workspaces")
+        "resources"            = @{
+            "cpuCount"    = 4
+            "memoryMiB"   = 8192
+            "swapMiB"     = 1024
+            "diskSizeMiB" = 64000
+        }
+    }
+
+    # Merge user-provided config if any
+    if ($currentConfig) {
+        foreach ($key in $currentConfig.Keys) {
+            $defaultConfig[$key] = $currentConfig[$key]
+        }
+    }
+
+    # Save configuration to settings.json
+    $configPath = "$env:APPDATA\Docker\settings.json"
+    if (-Not (Test-Path $configPath)) {
+        New-Item -Path $configPath -ItemType File -Force | Out-Null
+    }
+
+    $defaultConfig | ConvertTo-Json -Depth 10 | Set-Content $configPath -Force
+    Write-Host "Docker Desktop configuration applied at $configPath"
+}
+#Set-DockerDesktopBestPractices
+
+function Set-DockerDesktop {
+
+    # Optionally enable WSL 2
+    $wslFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+    if ($wslFeature.State -ne "Enabled") {
+        Write-Host "Enabling WSL 2..."
+        wsl --install --no-distribution --no-launch
+    }
+
+    $dockerExe = (Get-Item Env:ProgramFiles).Value + "\Docker\Docker Desktop.exe"
+
+    if (-not (Test-Path $dockerEXE )) {
+        winget install docker.Desktop
+    }
+
+    # Add current user to docker-users group
+    Write-Host "Adding user $env:USERNAME to 'docker-users' group..."
+    # Check if 'docker-users' group exists before adding user
+    if (Get-LocalGroup -Name "docker-users" -ErrorAction SilentlyContinue) {
+        Add-LocalGroupMember -Group "docker-users" -Member $env:USERNAME -ErrorAction SilentlyContinue
+    }
+
+    if (Test-Path $dockerExe) {
+        Write-Host "Starting Docker Desktop service..."
+        Stop-Service com.docker.service
+        Set-Service -Name com.docker.service -StartupType Automatic
+        Start-Service com.docker.service
+    }
+}
+#Set-DockerDesktop
+
+function Set-Podman {
     [CmdletBinding(SupportsShouldProcess=$true)]
     param(
         [switch] $InstallUbuntuIfMissing = $false,   # don't install Ubuntu
@@ -924,18 +924,4 @@ function Setup-Podman {
         return $success
     }
 }
-
-# Basic setup (WSL2 + Podman Desktop + machine init/start + smoke test)
-Setup-Podman -Verbose
-
-# Also install Ubuntu if no WSL distro exists
-Setup-Podman -InstallUbuntuIfMissing -Verbose
-
-# Enable Docker CLI compatibility (lets you use `docker` CLI against Podman)
-Setup-Podman -ConfigureDockerShim -Verbose
-
-# Tune resources and enable autostart
-Setup-Podman -Cpus 6 -MemoryMB 8192 -DiskGB 50 -AutoStartOnLogin -Verbose
-
-# Dry-run (see what would change)
-Setup-Podman -WhatIf
+#Set-Podman -Verbose
