@@ -365,6 +365,7 @@ function free {
 }
 
 function checkdiskspace {
+    if (-not ($IsLanguagePermissive)) { return }
     (Get-Volume -DriveLetter C).SizeRemaining | ForEach-Object {
         $sizeInGB = [math]::Round($_ / 1GB, 2)
         if ($sizeInGB -lt 5) {
