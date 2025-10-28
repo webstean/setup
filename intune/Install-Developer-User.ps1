@@ -1,4 +1,4 @@
-We﻿#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 
 ## Helper Function for JSON files
 function Set-JsonValue {
