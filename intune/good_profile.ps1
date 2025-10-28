@@ -209,7 +209,7 @@ function Install-OrUpdateModule {
 
 #Only works for Powershell naked (no starship,Oh My Posh etc..)
 function prompt {
-    if -not ($IsLanguagePermissive) { return }
+    if (-not ($IsLanguagePermissive)) { return }
 
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = [Security.Principal.WindowsPrincipal] $identity
