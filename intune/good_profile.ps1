@@ -124,14 +124,11 @@ function Set-MSTerminalBackground {
 # The following code should be outside the function
 if ($IsAdmin) {
     Write-Output "Admin Shell - be careful!"
-    Set-MSTerminalBackground -BackgroundColor "#993755"
+    #Set-MSTerminalBackground -BackgroundColor "#993755"
 } else {
     Write-Output "Non-Admin Shell - limited functionality"
-    Set-MSTerminalBackground -BackgroundColor "#000000"
+    #Set-MSTerminalBackground -BackgroundColor "#000000"
 }
-    if ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15) {
-        Set-PSReadLineOption -EditMode Windows
-    }
 
 #use only for PowerShell and VS Code
 #if ($host.Name -eq 'ConsoleHost' -or $host.Name -eq 'Visual Studio Code Host' ) {
@@ -167,6 +164,8 @@ function Initialize-PSReadLineSmart {
     )
 
     if ( -not ($IsLanguagePermissive)) { return }
+
+    if (-not ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15))0 { return }
 
     $result = [pscustomobject]@{
         PSVersion            = $PSVersionTable.PSVersion.ToString()
