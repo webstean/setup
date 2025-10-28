@@ -518,21 +518,21 @@ function Restore-Terminal {
 #    }
 #}
 
-$CLSIDs = @()
-foreach($registryKey in (Get-ChildItem "Registry::HKEY_CLASSES_ROOT\CLSID" -Recurse -ErrorAction SilentlyContinue)){
-    If (($registryKey.GetValueNames() | %{$registryKey.GetValue($_)}) -eq "Drive or folder redirected using Remote Desktop") {
-        $CLSIDs += $registryKey
+if ($IsLanguagePermissive) {
+    $CLSIDs = @()
+    foreach($registryKey in (Get-ChildItem "Registry::HKEY_CLASSES_ROOT\CLSID" -Recurse -ErrorAction SilentlyContinue)){
+        If (($registryKey.GetValueNames() | %{$registryKey.GetValue($_)}) -eq "Drive or folder redirected using Remote Desktop") {
+            $CLSIDs += $registryKey
+        }
     }
-}
-
-$drives = @()
-foreach ($CLSID in $CLSIDs.PSPath) {
-    $drives += (Get-ItemProperty $CLSID)."(default)"
-}
-
-if ( $drives ) {
-    Write-Output "These are the local drives redirected to this Remote Desktop session:`n"
-    $drives
+    $drives = @()
+    foreach ($CLSID in $CLSIDs.PSPath) {
+        $drives += (Get-ItemProperty $CLSID)."(default)"
+    }
+    if ( $drives ) {
+        Write-Output "These are the local drives redirected to this Remote Desktop session:`n"
+        $drives
+    }
 }
 
 if (Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue) {
