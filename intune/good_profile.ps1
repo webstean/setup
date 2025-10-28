@@ -267,21 +267,12 @@ if ($env:STARSHIP_CONFIG -and (Test-Path "$starshipConfig" -PathType Leaf)) {
     Write-Host "Found Starship prompt...so starting it..."
     Invoke-Expression (&starship init powershell)
     Enable-TransientPrompt
-}
-elseif ($env:POSH_THEMES_PATH -and (Test-Path "$ompConfig" -Pathtype Leaf)) {
+} elseif ($env:POSH_THEMES_PATH -and (Test-Path "$ompConfig" -Pathtype Leaf)) {
     Write-Host "Found Oh-My-Posh prompt...so starting it..."
     ## Load Oh My Posh
     & ([ScriptBlock]::Create((oh-my-posh init pwsh --config $ompConfig --print) -join "`n"))
-}
-else {
+} else {
     Write-Host "Starting default prompt..."
-    Install-OrUpdateModule Terminal-Icons
-    Install-OrUpdateModule PackageManagement
-    #    if ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15) {
-    #        Set-PSReadLineOption -PredictionViewStyle ListView
-    #        Set-PSReadLineOption -PredictionViewStyle InlineView
-    #        Set-PSReadLineOption -EditMode Windows
-    #    }
 }
 
 ## Test Nerd Fonts
@@ -559,7 +550,10 @@ if ($IsLanguagePermissive) {
     }
 }
 
-if (Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue) {
+if ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15) {
+    Set-PSReadLineOption -PredictionViewStyle ListView
+    Set-PSReadLineOption -PredictionViewStyle InlineView
+    Set-PSReadLineOption -EditMode Windows
     Set-PSReadLineOption -PredictionSource HistoryAndPlugin -ErrorAction SilentlyContinue
     Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction SilentlyContinue
 }
