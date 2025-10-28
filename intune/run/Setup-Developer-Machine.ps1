@@ -348,9 +348,11 @@ try {
     Write-Host "******************= Scripts to EXECUTE =******************************"
     Invoke-GitHub-Download
     If ( Test-Path "$destination\wallpaper.jpg" ) {
+        #Copy-Item "wallpaper.jpg" "$env:ALLUSERSPROFILE\default-wallpaper.jpg" -Force -ErrorAction SilentlyContinue
         Copy-Item "$destination\wallpaper.jpg" "$env:ALLUSERSPROFILE\default-wallpaper.jpg" -Force -ErrorAction SilentlyContinue
     }
     If ( Test-Path "$destination\logo.png" ) {
+        #Copy-Item "logo.png" "$env:ALLUSERSPROFILE\logo.png" -Force -ErrorAction SilentlyContinue
         Copy-Item "$destination\logo.png" "$env:ALLUSERSPROFILE\logo.png" -Force -ErrorAction SilentlyContinue
     }
    
