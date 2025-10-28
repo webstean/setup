@@ -167,10 +167,6 @@ Set-PSReadLineOption -PredictionViewStyle ListView
 ## Install Azure Tools Predictor
 Install-OrUpdateModule Az.Tools.Predictor
 Import-Module Az.Tools.Predictor
-#Enable-AzPredictor -AllSession ## will update $profile (which include this in the default)
-(Get-PSReadLineOption).PredictionSource
-Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction SilentlyContinue
-# Set-PSReadLineOption -PredictionViewStyle InlineView
 
 ## Install (and Update) PowerShell Help
 if (-not (Get-Help -Name Get-Command -ErrorAction SilentlyContinue | Where-Object { $_.Category -eq "HelpFile" })) {
@@ -221,7 +217,8 @@ if ($env:USERNAME) {
     )
 }
 # Use DevCenter for deployments
-azd config set platform.type devcenter
+# azd config set platform.type devcenter
+# azd config unset platform.type devcenter
 
 Update-AzConfig -CheckForUpgrade $false | Out-Null
 Update-AzConfig -DisplayRegionIdentified $true | Out-Null
