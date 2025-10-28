@@ -267,15 +267,13 @@ $ompConfig = "$env:POSH_THEMES_PATH\cloud-native-azure.omp.json"
 
 ## Check for Starship
 if ($env:STARSHIP_CONFIG -and (Test-Path "$starshipConfig" -PathType Leaf)) {
-    Write-Host "Found Starship prompt...so starting it..."
+    Write-Host "Found Starship shell...so starting it..."
     Invoke-Expression (&starship init powershell)
     Enable-TransientPrompt
 } elseif ($env:POSH_THEMES_PATH -and (Test-Path "$ompConfig" -Pathtype Leaf)) {
-    Write-Host "Found Oh-My-Posh prompt...so starting it..."
-    ## Load Oh My Posh
+    Write-Host "Found Oh-My-Posh shell...so starting it..."
     & ([ScriptBlock]::Create((oh-my-posh init pwsh --config $ompConfig --print) -join "`n"))
 } else {
-    Write-Host "Starting default prompt..."
     if ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15) {
         Set-PSReadLineOption -HistoryNoDuplicates
         Set-PSReadLineOption -EditMode Windows
@@ -286,7 +284,7 @@ if ($env:STARSHIP_CONFIG -and (Test-Path "$starshipConfig" -PathType Leaf)) {
 if ($IsLanguagePermissive) {
     $char = [System.Text.Encoding]::UTF8.GetString([byte[]](0xF0, 0x9F, 0x90, 0x8D))
     if ([string]::IsNullOrEmpty($char)) {
-        Write-Host -ForegroundColor "Yellow" "Warning: Nerd Fonts are not installed!" 
+        Write-Host -ForegroundColor "Yellow" "Warning: Nerd Fonts are NOT installed!" 
     }
 }
 
