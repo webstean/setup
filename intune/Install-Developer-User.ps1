@@ -370,7 +370,7 @@ function Set-EnvironmentVariable {
         Write-Output "✅ Environment variable '$Name' set at $Scope scope to '$Value'."
 
         if ($Refresh) {
-            $env:${Name} = $Value
+            env:${Name} = $Value
             Write-Output "🔄 Session environment updated."
         }
     }
