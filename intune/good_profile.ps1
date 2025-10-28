@@ -17,6 +17,7 @@ function Update-Profile-Force {
 }
 #Update-Profile-Force
 
+
 ## If Windows Powershell
 if ($PSVersionTable.PSEdition -eq 'Desktop') {
     Write-Host "Ignoring Profile - as this is Windows PowerShell"
