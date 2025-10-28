@@ -728,5 +728,8 @@ if ($IsLanguagePermissive) {
     foreach ($CLSID in $CLSIDs.PSPath) {
         $drives += (Get-ItemProperty $CLSID)."(default)"
     }
+    if (Get-Module -ListAvailable -Name Terminal-Icons | Out-Null ) {
+        Import-Module Terminal-Icons -ErrorAction SilentlyContinue
+    }
 }
 
