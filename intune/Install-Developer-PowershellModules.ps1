@@ -227,8 +227,61 @@ Update-AzConfig -CheckForUpgrade $false | Out-Null
 Update-AzConfig -DisplayRegionIdentified $true | Out-Null
 Update-AzConfig -DisplaySecretsWarning $false | Out-Null
 Update-AzConfig -EnableDataCollection $false | Out-Null
+Get-AzConfig
 
-## Connect-AzAccount -Identity -AccountId <user-assigned-identity-clientId-or-resourceId>
+## Connect machine outside of Azure to Azure
+## Connect-AzConnectedMachine -ResourceGroupName "rg-hybrid" -SubscriptionId "00000000-0000-0000-0000-000000000000" -Location "australiaeast"
+
+## Automatically connect, if this machine has a Managed Identity (System or User Assigned)
+## Can only work if Machine is running inside Azure
+## Connect-AzAccount -Identity -ErrorAction Stop
+
+function Connect-AzAccountSilentCurrentUser {
+    param(
+        [string]$TenantId,
+        [string]$SubscriptionId,
+        [string]$AccountId  # e.g. user@contoso.com (optional; helps pick the right cached token)
+    )
+
+    # Enable WAM so Az can reuse Windows SSO if available
+    try { Update-AzConfig -EnableLoginByWam $true -Scope Process | Out-Null } catch {}
+
+    # Prefer an existing cached context to avoid triggering any interactive flow
+    $ctx = Get-AzContext -ListAvailable | Where-Object {
+        ($_ -and ($_.Tenant.Id -eq $TenantId -or -not $TenantId)) -and
+        ($AccountId ? ($_.Account -and $_.Account.Id -eq $AccountId) : $true)
+    } | Select-Object -First 1
+
+    if ($ctx) {
+        Set-AzContext -Context $ctx -ErrorAction Stop | Out-Null
+    } else {
+        # Attempt a silent connect that succeeds only if a cached token exists.
+        # Passing -AccountId helps Az pick the right cached identity.
+        $params = @{}
+        if ($TenantId)   { $params.Tenant    = $TenantId }
+        if ($AccountId)  { $params.AccountId = $AccountId }
+        try {
+            Connect-AzAccount @params -ErrorAction Stop | Out-Null
+        } catch {
+            Write-Verbose "Silent sign-in failed; no prompts shown."
+            return $false
+        }
+    }
+
+    # Optional: select subscription silently if provided
+    if ($SubscriptionId) {
+        try { Set-AzContext -Subscription $SubscriptionId -ErrorAction Stop | Out-Null } catch { return $false }
+    }
+
+    # Final sanity check: ensure we can get an access token without interaction
+    try {
+        Get-AzAccessToken -ErrorAction Stop | Out-Null
+        return $true
+    } catch {
+        return $false
+    }
+}
+
 ## Connect-AzAccount
 ## Get-AzSubscription -SubscriptionId "<your-subscription-id>" | Format-List
 
