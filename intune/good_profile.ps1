@@ -127,29 +127,160 @@ if ($IsAdmin) {
         Set-PSReadLineOption -EditMode Windows
     }
 
-#use PSReadLine only for PowerShell and VS Code
-if ($host.Name -eq 'ConsoleHost' -or $host.Name -eq 'Visual Studio Code Host' ) {
-    #ensure the correct version is loaded
-    Install-Module PSReadline -RequiredVersion 2.2.0
-    Import-Module PSReadline -RequiredVersion 2.2.0
-    #ListView currently works only with -EditMode Windows properly
-    Set-PSReadLineOption -EditMode Windows
-    Set-PSReadLineOption -BellStyle None
-    Set-PSReadLineOption -HistoryNoDuplicates
+#use only for PowerShell and VS Code
+#if ($host.Name -eq 'ConsoleHost' -or $host.Name -eq 'Visual Studio Code Host' ) {
+function Initialize-PSReadLineSmart {
+    <#
+    .SYNOPSIS
+        Configure PSReadLine predictively, handling different versions at runtime.
 
-    if ($host.Version.Major -eq 7){
-        #only PS 7 supports HistoryAndPlugin
-        Set-PSReadLineOption -PredictionSource HistoryAndPlugin
+    .DESCRIPTION
+        - Loads the newest available PSReadLine.
+        - Enables prediction from History on any version that supports it.
+        - If running PowerShell 7.2+ AND Az.Tools.Predictor is installed, switches to HistoryAndPlugin.
+        - Chooses an appropriate view style (Inline if supported; else List; else skips).
+        - Adds helpful keybindings when supported.
+        - Never throws on older builds; degrades gracefully.
+
+    .PARAMETER ViewStyle
+        Preferred prediction view. One of: Auto, Inline, List. Default: Auto.
+        Auto = Inline if supported, else List if supported, else skip.
+
+    .PARAMETER UsePluginIfAvailable
+        If true (default), and running on PowerShell 7.2+ with Az.Tools.Predictor installed,
+        sets PredictionSource = HistoryAndPlugin.
+
+    .OUTPUTS
+        PSCustomObject summarizing what was applied.
+    #>
+    [CmdletBinding()]
+    param(
+        [ValidateSet('Auto','Inline','List')]
+        [string]$ViewStyle = 'Auto',
+        [bool]$UsePluginIfAvailable = $true
+    )
+
+    $result = [pscustomobject]@{
+        PSVersion            = $PSVersionTable.PSVersion.ToString()
+        PSEdition            = $PSVersionTable.PSEdition
+        PSReadLineVersion    = $null
+        PredictionEnabled    = $false
+        PredictionSource     = $null
+        PredictionViewStyle  = $null
+        KeybindingsApplied   = @()
+        Notes                = @()
     }
-    else{
-        #use history as the prediction source on 5.1
-        Set-PSReadLineOption -PredictionSource History
+
+    # 1) Load newest PSReadLine available (quietly)
+    $rl = Get-Module PSReadLine -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1
+    if (-not $rl) {
+        $result.Notes += "PSReadLine not installed; skipping configuration."
+        return $result
     }
-    #add background color to the prediction preview
-    Set-PSReadLineOption -Colors @{InlinePrediction = "$([char]0x1b)[36;7;238m]"}
-    #change the key to accept suggestions (default is right arrow)
-    #Set-PSReadLineKeyHandler -Function AcceptSuggestion -Key 'ALT+r'
+    try {
+        Import-Module $rl -ErrorAction Stop
+        $result.PSReadLineVersion = (Get-Module PSReadLine).Version.ToString()
+    } catch {
+        $result.Notes += "Failed to import PSReadLine: $($_.Exception.Message)"
+        return $result
+    }
+
+    # Helpers to probe capability rather than assume version thresholds
+    $setOpt = Get-Command Set-PSReadLineOption -ErrorAction SilentlyContinue
+    $hasPredictionSource = $false
+    $hasPredictionView   = $false
+    if ($setOpt) {
+        $params = ($setOpt.Parameters.Keys)
+        $hasPredictionSource = $params -contains 'PredictionSource'
+        $hasPredictionView   = $params -contains 'PredictionViewStyle'
+    }
+
+    # 2) Decide PredictionSource
+    $source = $null
+    if ($hasPredictionSource) {
+        # Default to History everywhere that supports it
+        $source = 'History'
+
+        # Optionally upgrade to HistoryAndPlugin when truly supported:
+        # Requires PowerShell 7.2+ and Az.Tools.Predictor module available
+        $isPS72Plus = ($PSVersionTable.PSVersion.Major -gt 7) -or
+                      (($PSVersionTable.PSVersion.Major -eq 7) -and ($PSVersionTable.PSVersion.Minor -ge 2))
+        $azPred = Get-Module Az.Tools.Predictor -ListAvailable | Select-Object -First 1
+
+        if ($UsePluginIfAvailable -and $isPS72Plus -and $azPred) {
+            try {
+                Import-Module Az.Tools.Predictor -ErrorAction Stop
+                $source = 'HistoryAndPlugin'
+            } catch {
+                $result.Notes += "Az.Tools.Predictor present but failed to import: $($_.Exception.Message)"
+            }
+        }
+
+        try {
+            Set-PSReadLineOption -PredictionSource $source
+            $result.PredictionEnabled = $true
+            $result.PredictionSource  = $source
+        } catch {
+            $result.Notes += "Set-PSReadLineOption -PredictionSource failed: $($_.Exception.Message)"
+        }
+    } else {
+        $result.Notes += "This PSReadLine does not expose -PredictionSource; skipping predictions."
+    }
+
+    # 3) Decide PredictionViewStyle
+    if ($hasPredictionView) {
+        $viewToSet = $null
+        switch ($ViewStyle) {
+            'Inline' { $viewToSet = 'InlineView' }
+            'List'   { $viewToSet = 'ListView' }
+            'Auto'   {
+                # Prefer Inline when available; fallback to List
+                # If Inline throws, we’ll try List and then skip.
+                $viewToSet = 'InlineView'
+            }
+        }
+
+        if ($viewToSet) {
+            $applied = $false
+            foreach ($candidate in @($viewToSet, 'ListView')) {
+                if ($applied) { break }
+                try {
+                    Set-PSReadLineOption -PredictionViewStyle $candidate
+                    $result.PredictionViewStyle = $candidate
+                    $applied = $true
+                } catch {
+                    # try next candidate if we're in Auto and Inline failed
+                }
+            }
+            if (-not $applied) { $result.Notes += "Could not set any PredictionViewStyle on this build." }
+        }
+    } else {
+        $result.Notes += "This PSReadLine does not expose -PredictionViewStyle; view not set."
+    }
+
+    # 4) Edit mode (safe everywhere)
+    try {
+        Set-PSReadLineOption -EditMode Windows
+    } catch { }
+
+    # 5) Helpful keybindings — only if functions exist
+    $keyFn = @{
+        "Ctrl+RightArrow" = "AcceptNextSuggestionWord"
+        "Alt+RightArrow"  = "NextSuggestion"
+        "Alt+LeftArrow"   = "PreviousSuggestion"
+    }
+    foreach ($kvp in $keyFn.GetEnumerator()) {
+        try {
+            Set-PSReadLineKeyHandler -Key $kvp.Key -Function $kvp.Value
+            $result.KeybindingsApplied += "$($kvp.Key)→$($kvp.Value)"
+        } catch {
+            # Older PSReadLine may not have those functions; ignore
+        }
+    }
+
+    return $result
 }
+Initialize-PSReadLineSmart
 
 if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
     Set-Alias -Name docker -Value podman
