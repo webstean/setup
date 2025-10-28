@@ -399,6 +399,7 @@ DisableMediaSharing
 
 Write-Output ("Installing DotNet 2, 3 and 3.5 for compatability...")
 # Install .NET Framework 2.0, 3.0 and 3.5 runtimes - Requires internet connection
+# Take ages to install!!
 Function InstallNET23 {
 	If ((Get-CimInstance -Class "Win32_OperatingSystem").ProductType -eq 1) {
 		Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "NetFx3" } | Enable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
@@ -407,7 +408,7 @@ Function InstallNET23 {
 		Install-WindowsFeature -Name "NET-Framework-Core" -WarningAction SilentlyContinue | Out-Null
 	}
 }
-InstallNET23
+#InstallNET23
 
 # Uninstall Internet Explorer (not applicable on later Windows 10/11 builds)
 Function UninstallInternetExplorer {
