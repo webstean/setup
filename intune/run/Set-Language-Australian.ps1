@@ -49,13 +49,6 @@ function EnableAustralianLanguagePack {
 		## Set-Culture -CultureInfo de-DE
 		Set-Culture -CultureInfo $Language 
 
-		## Install the language pack with UI, system, and input preferences
-		$job = Install-Language -Language $Language -CopyToSettings -ErrorAction SilentlyContinue
-		# Wait until the installation completes
-		$job | Wait-Job
-		Receive-Job $job -ErrorAction SilentlyContinue
-		Write-Host "✅ Language installation completed."
-		
 		## Get-WindowsCapability -Online | Where-Object Name -like '*en-AU*'
 		$capabilities = @(
 			"Language.Basic~~~$Language~0.0.1.0",
@@ -72,7 +65,14 @@ function EnableAustralianLanguagePack {
 			}
 		}
 	
-	    # sets a user-preferred display language to be used for the Windows user interface (UI).
+		## Install the language pack with UI, system, and input preferences
+		$job = Install-Language -Language $Language -CopyToSettings -ErrorAction SilentlyContinue
+		# Wait until the installation completes
+		$job | Wait-Job
+		Receive-Job $job -ErrorAction SilentlyContinue
+		Write-Host "✅ Language installation completed."
+
+		# sets a user-preferred display language to be used for the Windows user interface (UI).
 		# Log off and loging back on is required for changes to take place.
 		Set-WinUILanguageOverride -Language $Language
 		Set-Culture -CultureInfo $Language
@@ -109,4 +109,4 @@ function EnableAustralianLanguagePack {
 	return
 }
 SetAustraliaLocation
-#EnableAustralianLanguagePack
+EnableAustralianLanguagePack
