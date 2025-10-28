@@ -129,7 +129,7 @@ function Set-MSTerminalSetting {
         [string]$scheme = "Campbell Powershell"
     )
     
-    f ($PSVersionTable.PSEdition -eq 'Desktop') {
+    if ($PSVersionTable.PSEdition -eq 'Desktop') {
         return ## This is Windows PowerShell - exit because ConvertTo-Json does not support enough depth
     }
     
