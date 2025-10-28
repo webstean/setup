@@ -276,6 +276,10 @@ if ($env:STARSHIP_CONFIG -and (Test-Path "$starshipConfig" -PathType Leaf)) {
     & ([ScriptBlock]::Create((oh-my-posh init pwsh --config $ompConfig --print) -join "`n"))
 } else {
     Write-Host "Starting default prompt..."
+    if ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15) {
+        Set-PSReadLineOption -HistoryNoDuplicates
+        Set-PSReadLineOption -EditMode Windows
+    }
 }
 
 ## Test Nerd Fonts
@@ -557,10 +561,3 @@ if ($IsLanguagePermissive) {
     }
 }
 
-if ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15) {
-    Set-PSReadLineOption -PredictionViewStyle ListView
-    Set-PSReadLineOption -PredictionViewStyle InlineView
-    Set-PSReadLineOption -EditMode Windows
-    Set-PSReadLineOption -PredictionSource HistoryAndPlugin -ErrorAction SilentlyContinue
-    Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction SilentlyContinue
-}
