@@ -201,7 +201,20 @@ function Invoke-AzBlobDownload {
                 # Optional header helps some environments; harmless otherwise
                 $headers = @{ 'x-ms-version' = '2020-10-02' }
                 Invoke-WebRequest -Uri $uri -OutFile $fileDestination -UseBasicParsing -Headers $headers -ErrorAction Stop
-
+                $downloaded = $true
+            }
+            catch {
+                if ($attempt -ge $MaxRetries) {
+                    Write-Warning "Failed to download '$file' after $MaxRetries attempt(s). Error: $($_.Exception.Message)"
+                } else {
+                    $sleep = $RetryDelaySeconds * $attempt
+                    Write-Output "Retry $attempt/$MaxRetries in ${sleep}s for '$file'..."
+                    Start-Sleep -Seconds $sleep
+                }
+            }
+        }
+    }
+}
 
 function Invoke-ScriptReliably {
     [CmdletBinding()]
