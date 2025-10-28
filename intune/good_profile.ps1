@@ -123,6 +123,9 @@ if ($IsAdmin) {
     Write-Output "Non-Admin Shell - limited functionality"
     Set-MSTerminalBackground -BackgroundColor "#000000"
 }
+    if ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15) {
+        Set-PSReadLineOption -EditMode Windows
+    }
 
 #use PSReadLine only for PowerShell and VS Code
 if ($host.Name -eq 'ConsoleHost' -or $host.Name -eq 'Visual Studio Code Host' ) {
@@ -130,6 +133,9 @@ if ($host.Name -eq 'ConsoleHost' -or $host.Name -eq 'Visual Studio Code Host' ) 
     Import-Module PSReadline -RequiredVersion 2.2.0
     #ListView currently works only with -EditMode Windows properly
     Set-PSReadLineOption -EditMode Windows
+    Set-PSReadLineOption -BellStyle None
+    Set-PSReadLineOption -HistoryNoDuplicates
+
     if ($host.Version.Major -eq 7){
         #only PS 7 supports HistoryAndPlugin
         Set-PSReadLineOption -PredictionSource HistoryAndPlugin
@@ -141,7 +147,7 @@ if ($host.Name -eq 'ConsoleHost' -or $host.Name -eq 'Visual Studio Code Host' ) 
     #add background color to the prediction preview
     Set-PSReadLineOption -Colors @{InlinePrediction = "$([char]0x1b)[36;7;238m]"}
     #change the key to accept suggestions (default is right arrow)
-    Set-PSReadLineKeyHandler -Function AcceptSuggestion -Key 'ALT+r'
+    #Set-PSReadLineKeyHandler -Function AcceptSuggestion -Key 'ALT+r'
 }
 
 if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
@@ -295,8 +301,7 @@ if ($env:STARSHIP_CONFIG -and (Test-Path "$starshipConfig" -PathType Leaf)) {
     & ([ScriptBlock]::Create((oh-my-posh init pwsh --config $ompConfig --print) -join "`n"))
 } else {
     if ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15) {
-        Set-PSReadLineOption -HistoryNoDuplicates
-        Set-PSReadLineOption -EditMode Windows
+        ## Set stuff here
     }
 }
 
