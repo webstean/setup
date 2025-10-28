@@ -111,13 +111,13 @@ function Set-MSTerminalBackground {
 }
 
 # The following code should be outside the function
-if ($IsAdmin) {
-    Write-Output "Admin Shell - be careful!"
-    Set-MSTerminalBackground -BackgroundColor "#993755"
-} else {
-    Write-Output "Non-Admin Shell - limited functionality"
-    Set-MSTerminalBackground -BackgroundColor "#000000"
-}
+#if ($IsAdmin) {
+#    Write-Output "Admin Shell - be careful!"
+#    Set-MSTerminalBackground -BackgroundColor "#993755"
+#} else {
+#    Write-Output "Non-Admin Shell - limited functionality"
+#    Set-MSTerminalBackground -BackgroundColor "#000000"
+#}
 
 if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
     Set-Alias -Name docker -Value podman
