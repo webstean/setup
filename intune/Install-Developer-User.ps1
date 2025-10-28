@@ -800,7 +800,7 @@ function Setup-Podman {
             if (-not $haveDistro) {
                 Write-Step "No WSL distro detected; installing Ubuntu (this may take a while)"
                 if ($PSCmdlet.ShouldProcess("Ubuntu (WSL)","Install")) {
-                    wsl --install -d Ubuntu ## this is interactive - it prompts
+                    wsl --install -d Ubuntu --no-launch 
                     Write-Host "A reboot may be required to finish Ubuntu installation." -ForegroundColor Yellow
                 }
             }
