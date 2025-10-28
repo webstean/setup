@@ -150,8 +150,10 @@ style = "blue bold"
     }
 }
 
-Write-Host ("Setting PowerShell to UTF-8 output encoding...")
-[console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
+if ($IsLanguagePermissive) {
+    Write-Host ("Setting PowerShell to UTF-8 output encoding...")
+    [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
+}
 
 Set-PSReadLineKeyHandler -Key Ctrl+Shift+b `
     -BriefDescription BuildCurrentDirectory `
@@ -166,8 +168,49 @@ function Invoke-Starship-TransientFunction {
     &starship module character
 }
 
+function Install-OrUpdateModule {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$ModuleName,
+
+        [switch]$Prerelease          # Optional: install prerelease versions
+    )
+
+    # Check if PSResourceGet is available
+    if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
+        Write-Host "PSResourceGet not found. Installing it first..." -ForegroundColor Yellow
+        Install-Module -Name Microsoft.PowerShell.PSResourceGet -Scope $InstallScope -Force
+        Import-Module Microsoft.PowerShell.PSResourceGet
+    }
+
+    # Check if module is already installed
+    $installed = Get-PSResource -Name $ModuleName -ErrorAction SilentlyContinue -Scope $Installscope
+
+    try {
+        if ($null -eq $installed) {
+            Write-Host "Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
+            Install-PSResource -Name $ModuleName  -Prerelease $Prerelease -AcceptLicense $true -Confirm $false -ErrorAction Stop -Scope $Installscope
+        }
+        else {
+            Write-Host "Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
+            Update-PSResource -Name $ModuleName  -Prerelease $Prerelease -AcceptLicense $true -Confirm $false -ErrorAction Stop
+        }
+        # Optional: import after install/update
+        Import-Module $ModuleName -Force
+        Write-Host "✅ '$ModuleName' is installed (and up to date.)" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "❌ Failed to install or update '$ModuleName': $_" -ForegroundColor Red
+    }
+}
+
+
+
 #Only works for Powershell naked (no starship,Oh My Posh etc..)
 function prompt {
+    if -not ($IsLanguagePermissive) { return }
+
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = [Security.Principal.WindowsPrincipal] $identity
     $adminRole = [Security.Principal.WindowsBuiltInRole]::Administrator
@@ -209,21 +252,8 @@ elseif ($env:POSH_THEMES_PATH -and (Test-Path "$ompConfig" -Pathtype Leaf)) {
 }
 else {
     Write-Host "Starting default prompt..."
-    if (-not (Get-Module -Name Terminal-Icons -ListAvailable)) {
-        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-        if (-not (Get-Module -Name PowerShellGet -ListAvailable)) {
-            Install-Module -Name PowerShellGet -Scope CurrentUser -Force
-        }
-        if (-not (Get-Module -Name PackageManagement -ListAvailable)) {
-            Install-Module -Name PackageManagement -Scope CurrentUser -Force
-        }
-        Install-Module -Name Terminal-Icons -Scope CurrentUser
-        Import-Module -Name Terminal-Icons
-    }
-    #    if (-not (Get-Module -Name PSReadLine -ListAvailable)) {
-    #        Install-Module -Name PSReadLine -Scope CurrentUser
-    #        Import-Module -Name PSReadLine
-    #    }
+    Install-OrUpdateModule Terminal-Icons
+    Install-OrUpdateModule PackageManagement
     #    if ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15) {
     #        Set-PSReadLineOption -PredictionViewStyle ListView
     #        Set-PSReadLineOption -PredictionViewStyle InlineView
@@ -232,9 +262,11 @@ else {
 }
 
 ## Test Nerd Fonts
-$char = [System.Text.Encoding]::UTF8.GetString([byte[]](0xF0, 0x9F, 0x90, 0x8D))
-if ([string]::IsNullOrEmpty($char)) {
-    Write-Host -ForegroundColor "Yellow" "Warning: Nerd Fonts are not installed!" 
+if ($IsLanguagePermissive) {
+    $char = [System.Text.Encoding]::UTF8.GetString([byte[]](0xF0, 0x9F, 0x90, 0x8D))
+    if ([string]::IsNullOrEmpty($char)) {
+        Write-Host -ForegroundColor "Yellow" "Warning: Nerd Fonts are not installed!" 
+    }
 }
 
 function Get-OsInfo {
@@ -245,43 +277,6 @@ function Get-OsInfo {
     Build       = [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuildNumber
     UBR         = [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').UBR
   }
-}
-
-function Install-OrUpdateModule {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        [string]$ModuleName,
-
-        [switch]$Prerelease          # Optional: install prerelease versions
-    )
-
-    # Check if PSResourceGet is available
-    if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
-        Write-Host "PSResourceGet not found. Installing it first..." -ForegroundColor Yellow
-        Install-Module -Name Microsoft.PowerShell.PSResourceGet -Scope $InstallScope -Force
-        Import-Module Microsoft.PowerShell.PSResourceGet
-    }
-
-    # Check if module is already installed
-    $installed = Get-PSResource -Name $ModuleName -ErrorAction SilentlyContinue -Scope $Installscope
-
-    try {
-        if ($null -eq $installed) {
-            Write-Host "Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
-            Install-PSResource -Name $ModuleName  -Prerelease $Prerelease -AcceptLicense $true -Confirm $false -ErrorAction Stop -Scope $Installscope
-        }
-        else {
-            Write-Host "Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
-            Update-PSResource -Name $ModuleName  -Prerelease $Prerelease -AcceptLicense $true -Confirm $false -ErrorAction Stop
-        }
-        # Optional: import after install/update
-        Import-Module $ModuleName -Force
-        Write-Host "✅ '$ModuleName' is installed (and up to date.)" -ForegroundColor Green
-    }
-    catch {
-        Write-Host "❌ Failed to install or update '$ModuleName': $_" -ForegroundColor Red
-    }
 }
 
 ## Linux touch 
@@ -540,7 +535,7 @@ if ( $drives ) {
     $drives
 }
 
-Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue
-Set-PSReadLineOption -PredictionSource HistoryAndPlugin -ErrorAction SilentlyContinue
-Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction SilentlyContinue
-
+if (Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue) {
+    Set-PSReadLineOption -PredictionSource HistoryAndPlugin -ErrorAction SilentlyContinue
+    Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction SilentlyContinue
+}
