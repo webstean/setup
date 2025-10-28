@@ -392,7 +392,7 @@ function Install-OrUpdateModule {
 
 #Only works for Powershell naked (no starship,Oh My Posh etc..)
 function prompt {
-    if (-not ($IsLanguagePermissive)) { return  }
+    # if (-not ($IsLanguagePermissive)) { return  }
 
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = [Security.Principal.WindowsPrincipal] $identity
@@ -673,6 +673,7 @@ function Restore-Terminal {
         Restores normal console input/echo if Windows Terminal or PowerShell
         gets stuck in "secure input mode" (dots instead of pasted text).
     #>
+    if ( -not ($IsLanguagePermissive)) { return } 
 
     try {
         # Reset Ctrl+C handling
