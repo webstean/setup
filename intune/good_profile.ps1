@@ -555,9 +555,5 @@ if ($IsLanguagePermissive) {
     foreach ($CLSID in $CLSIDs.PSPath) {
         $drives += (Get-ItemProperty $CLSID)."(default)"
     }
-    if ( $drives ) {
-        Write-Output "These are the local drives redirected to this Remote Desktop session:`n"
-        $drives
-    }
 }
 
