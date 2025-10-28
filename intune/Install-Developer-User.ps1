@@ -322,6 +322,61 @@ if ( [string]::IsNullOrWhiteSpace($env:STRONGPASSWORD)) {
 }
 
 Write-Output ("Setting Environment Variables for Developers...") 
+
+function Set-EnvironmentVariable {
+    <#
+    .SYNOPSIS
+        Sets environment variables at User or Machine scope.
+
+    .PARAMETER Name
+        The name of the environment variable.
+
+    .PARAMETER Value
+        The value to set.
+
+    .PARAMETER Scope
+        The scope for the variable: 'User' or 'Machine'. Defaults to User.
+
+    .PARAMETER Refresh
+        If set, updates the current PowerShell session’s environment immediately.
+
+    .EXAMPLE
+        Set-EnvironmentVariable -Name "MY_VAR" -Value "hello" -Scope User -Refresh
+
+    .EXAMPLE
+        Set-EnvironmentVariable -Name "APP_PATH" -Value "C:\Tools" -Scope Machine
+    #>
+
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name,
+
+        [Parameter(Mandatory)]
+        [string]$Value,
+
+        [ValidateSet('User','Machine')]
+        [string]$Scope = 'User',
+
+        [switch]$Refresh
+    )
+
+    try {
+        [System.Environment]::SetEnvironmentVariable($Name, $Value, $Scope)
+        Write-Output "✅ Environment variable '$Name' set at $Scope scope to '$Value'."
+
+        if ($Refresh) {
+            $env:$Name = $Value
+            Write-Output "🔄 Session environment updated."
+        }
+    }
+    catch {
+        Write-Error "❌ Failed to set environment variable '$Name': $($_.Exception.Message)"
+    }
+}
+
+
+
 ## Get UPN (User Principal)
 $getupn = @(whoami /upn)
 if ( -not ([string]::IsNullOrWhiteSpace($getupn))) {
