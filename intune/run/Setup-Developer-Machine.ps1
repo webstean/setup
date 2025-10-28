@@ -298,8 +298,8 @@ try {
         Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
     
         $csw = [System.Diagnostics.Stopwatch]::StartNew()
-        #Invoke-IfFileExists "$destination\Install-Developer-User.ps1"
-        Invoke-ScriptReliably "$destination\Install-Developer-User.ps1"
+        Invoke-IfFileExists "$destination\Install-Developer-User.ps1"
+        #Invoke-ScriptReliably "$destination\Install-Developer-User.ps1"
         $csw.Stop()
         Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
     }
