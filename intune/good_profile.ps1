@@ -392,31 +392,16 @@ function Install-OrUpdateModule {
 
 #Only works for Powershell naked (no starship,Oh My Posh etc..)
 function prompt {
-    # if (-not ($IsLanguagePermissive)) { return  }
 
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = [Security.Principal.WindowsPrincipal] $identity
-    $adminRole = [Security.Principal.WindowsBuiltInRole]::Administrator
-
-    if ($principal.IsInRole($adminRole)) {
+    if ( $IsAdmin ) {
         $color = "Red"
         Write-Host ("PS (Admin) " + $(Get-Location) + ">") -NoNewline -ForegroundColor $Color
-    }
-    else {
+    } else {
         $color = "Green"    
         Write-Host ("PS " + $(Get-Location) + ">") -NoNewline -ForegroundColor $Color
     }
     return "`n> "
 }
-
-#function prompt {
-#    $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-#    $path = (Get-Location).Path
-#
-#    Write-Host "[$user]" -ForegroundColor Cyan -NoNewline
-#    Write-Host " $path" -ForegroundColor Yellow -NoNewline
-#    return "`n> "
-#}
 
 if ($env:IsDevBox -eq "True" ) {
     if ($env:UPN) {
