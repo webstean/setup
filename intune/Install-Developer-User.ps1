@@ -184,7 +184,11 @@ function Set-MSTerminalSetting {
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.historySize" -Value 50000
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.snapOnInput" -Value $true
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.bellStyle" -Value "none"
-   
+
+    if ( Test-Path "$BackgroundImage" ) {
+        Set-JsonValue -JsonObject $json -Path "profiles.defaults.startingDirectory" -Value "c:\\workspaces\\"
+    }
+    
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.useAcrylic" -Value $true
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.useAcrylicInTabRow" -Value $true
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.acrylicOpacity" -Value 0.75
