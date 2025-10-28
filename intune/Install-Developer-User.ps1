@@ -185,8 +185,9 @@ function Set-MSTerminalSetting {
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.snapOnInput" -Value $true
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.bellStyle" -Value "none"
 
-    if ( Test-Path "$BackgroundImage" ) {
-        Set-JsonValue -JsonObject $json -Path "profiles.defaults.startingDirectory" -Value "c:\\workspaces\\"
+    $Workspace = "$env:SystemDrive\WORKSPACES"
+    if ( Test-Path "${Workspace}" ) {
+        Set-JsonValue -JsonObject $json -Path "profiles.defaults.startingDirectory" -Value "${Workspace}"
     }
     
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.useAcrylic" -Value $true
