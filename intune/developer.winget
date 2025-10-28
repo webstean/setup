@@ -140,7 +140,7 @@ properties:
           $wallpaperlocation = "${location}\${wallpaper}"
           if (Test-Path "$wallpaperlocation" ) {          
             Set-ItemProperty -Path $regPath -Name $regName -Value $wallpaperlocation
-            Write-Host "Set LOCK Wallpaper"
+            Write-Host "Set LOGON Wallpaper"
           }
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
