@@ -2,14 +2,6 @@ function Set-StarshipAdminIndicator {
     <#
     .SYNOPSIS
         Adds Starship custom modules that change colour based on elevation (Admin vs User).
-
-    .DESCRIPTION
-        - Creates/updates ~/.config/starship.toml with:
-            [custom.admin] -> red icon when elevated
-            [custom.user]  -> green icon when not elevated
-        - Ensures the modules appear in the prompt format.
-        - Optionally appends 'Invoke-Expression (&starship init powershell)' to $PROFILE.
-        - Idempotent: re-running updates sections without duplicating them.
     #>
     [CmdletBinding()]
     param(
@@ -35,10 +27,10 @@ function Set-StarshipAdminIndicator {
     $result.ConfigPath = $starshipToml
 
     # Ensure dirs/files
-    if (-not (Test-Path $configDir))  { New-Item -ItemType Directory -Path $configDir  -Force | Out-Null }
-    if (-not (Test-Path $starshipToml)) { New-Item -ItemType File      -Path $starshipToml -Force | Out-Null }
+    if (-not (Test-Path $configDir))   { New-Item -ItemType Directory -Path $configDir   -Force | Out-Null }
+    if (-not (Test-Path $starshipToml)){ New-Item -ItemType File      -Path $starshipToml -Force | Out-Null }
 
-    # --- TOML blocks (use single-quoted here-strings to avoid $ expansion) ---
+    # Use single-quoted here-strings so $ stays literal inside TOML
     $adminBlock = @'
 [custom.admin]
 command = 'powershell -NoProfile -Command "if (([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { Write-Output \"__ADMIN_ICON__\" }"'
@@ -57,11 +49,11 @@ format = "[$output]($style) "
 style = "__USER_STYLE__"
 '@
 
-    # Inject chosen styles/icons
+    # Inject chosen styles/icons (NO space before .Replace)
     $adminBlock = $adminBlock.Replace('__ADMIN_STYLE__', $AdminStyle).Replace('__ADMIN_ICON__', $AdminIcon)
-    $userBlock  = $userBlock .Replace('__USER_STYLE__' , $UserStyle ).Replace('__USER_ICON__' , $UserIcon )
+    $userBlock  = $userBlock.Replace('__USER_STYLE__',  $UserStyle).Replace('__USER_ICON__',  $UserIcon)
 
-    # Default format (single-quoted so $custom.* stays literal)
+    # Default format (single-quoted so $custom.* is literal)
     $defaultFormat = @'
 format = """
 $custom.admin\
@@ -73,7 +65,7 @@ $character
 """
 '@
 
-    # Helper: upsert a TOML section (replace existing section content or append)
+    # Helper: upsert a TOML section
     function _Set-TomlSection {
         param(
             [Parameter(Mandatory)][string]$Path,
@@ -83,7 +75,7 @@ $character
         $content = Get-Content -Path $Path -Raw -ErrorAction Stop
         if ($content -match $SectionHeaderRegex) {
             $pattern = "(?ms)$SectionHeaderRegex.*?(?=^\[|\Z)"
-            $new = [regex]::Replace($content, $pattern, $BlockText + "`r`n")
+            $new     = [regex]::Replace($content, $pattern, $BlockText + "`r`n")
             if ($new -ne $content) {
                 Set-Content -Path $Path -Value $new -Encoding UTF8
                 return $true
@@ -105,10 +97,10 @@ $character
         Add-Content -Path $starshipToml -Value ("`r`n" + $defaultFormat + "`r`n")
         $result.FormatUpdated = $true
     } else {
-        # Prepend our two module lines if missing (escape $ so TOML sees $custom.* literally)
+        # Prepend our two module lines if missing (escape $ so TOML keeps it)
         $pattern = '(?ms)^\s*format\s*=\s*"""(.*?)"""'
         if ($content -match $pattern) {
-            $inner = $Matches[1]
+            $inner      = $Matches[1]
             $needsAdmin = ($inner -notmatch '\$custom\.admin')
             $needsUser  = ($inner -notmatch '\$custom\.user')
             if ($needsAdmin -or $needsUser) {
