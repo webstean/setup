@@ -158,3 +158,4 @@ $character
 
     $result
 }
+Set-StarshipAdminIndicator
