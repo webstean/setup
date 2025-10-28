@@ -120,15 +120,6 @@ function Set-MSTerminalBackground {
     }
 }
 
-# The following code should be outside the function
-if ($IsAdmin) {
-    Write-Output "Admin Shell - be careful!"
-    #Set-MSTerminalBackground -BackgroundColor "#993755"
-} else {
-    Write-Output "Non-Admin Shell - limited functionality"
-    #Set-MSTerminalBackground -BackgroundColor "#000000"
-}
-
 #use only for PowerShell and VS Code
 #if ($host.Name -eq 'ConsoleHost' -or $host.Name -eq 'Visual Studio Code Host' ) {
 function Initialize-PSReadLineSmart {
@@ -401,7 +392,7 @@ function Install-OrUpdateModule {
 
 #Only works for Powershell naked (no starship,Oh My Posh etc..)
 function prompt {
-    #if (-not ($IsLanguagePermissive)) { return  }
+    if (-not ($IsLanguagePermissive)) { return  }
 
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = [Security.Principal.WindowsPrincipal] $identity
@@ -426,7 +417,6 @@ function prompt {
 #    Write-Host " $path" -ForegroundColor Yellow -NoNewline
 #    return "`n> "
 #}
-
 
 if ($env:IsDevBox -eq "True" ) {
     if ($env:UPN) {
