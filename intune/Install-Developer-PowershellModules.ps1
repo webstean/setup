@@ -52,18 +52,19 @@ if ((Get-PSResourceRepository -Name PSGallery).IsAllowedByPolicy -ne $true) {
     Set-PSResourceRepository -Name 'PSGallery' -IsAllowedByPolicy $true -ErrorAction SilentlyContinue
 }
 
+### powershell -NoProfile -Command "Install-Module PSReadLine -AllowClobber -Force; Pause"
+## New options
+#Set-PSReadLineOption -PredictionSource History
+#Set-PSReadLineOption -PredictionViewStyle InlineView
+
 ### Container Registry - BTW: PSResourceGet expects a NuGet v2 or v3 feed, not a pure OCI registry.
 #Register-PSResourceRepository -Name ACR -Uri https://mycompanyregistry.azurecr.io/nuget/v2 -Trusted -ApiVersion ContainerRegistry
-
-Find-PSResource -Repository PSGallery -name PackageManagement
 
 ## Cleanup User Scope
 ## Get-PSResource -Scope 'CurrentUser' | Uninstall-PSResource -SkipDependencyCheck
 
 ## Delete everything and start again
 ## Get-PSResource -Scope 'AllUsers' | Uninstall-PSResource -SkipDependencyCheck
-
-
 
 function Install-OrUpdateModule {
     [CmdletBinding()]
