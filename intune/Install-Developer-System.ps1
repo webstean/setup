@@ -580,7 +580,7 @@ function Get-GitHubDirectory {
         [Parameter(Mandatory)][string]$Destination,
         [string]$Branch = 'main',
         [string]$Token,
-        [switch]$Recursive = $true,
+        [switch]$Recursive = $false,
         [switch]$Overwrite = $true,
         [string[]]$Include,
         [string[]]$Exclude,
@@ -673,8 +673,8 @@ if (-Not (Test-Path -Path "${Bin}" -PathType Container -ErrorAction SilentlyCont
     Write-Output "Directory ${Bin} already exists." 
 }
 
-# Download an entire folder (and subfolders) from a public repo
-Get-GitHubDirectory -Owner 'webstean' -Repo 'setup' -Path 'intune/bin' -Destination "${BIN}"
+# Download the contents of an entire folder from a public repo in C:\BIN
+Get-GitHubDirectory -Owner 'webstean' -Repo 'setup' -Branch 'main' -Path 'intune/bin' -Destination "${BIN}"
 
 ## Scripts - not in the path
 $Scripts = "$env:SystemDrive\SCRIPTS"
