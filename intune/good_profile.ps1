@@ -399,8 +399,13 @@ if ($env:IsDevBox -eq "True" ) {
     else {
         Write-Host -ForegroundColor Cyan "Welcome to your Dev Box"
     }
-    devbox metadata get list-all
-    devbox ai status
+    if ( [bool](Get-Command jq.exe -ErrorAction SilentlyContinue )) {
+        devbox metadata get list-all | jq
+        devbox ai status | jq
+    } else {
+        devbox metadata get list-all
+        devbox ai status
+    }
 }
 
 $ompConfig = "$env:POSH_THEMES_PATH\cloud-native-azure.omp.json"
