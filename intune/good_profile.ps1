@@ -304,7 +304,7 @@ function Find-ProgramInPath {
 }
 
 # Check for Starship
-if ([bool]Get-Command -ErrorAction SilentlyContinue starship.exe).Source) {
+if ((Get-Command -ErrorAction SilentlyContinue starship.exe).Source) {
     if (-not $env:STARSHIP_CONFIG) {
         $env:STARSHIP_CONFIG = "$env:OneDriveCommercial\starship.toml"
         $env:STARSHIP_CACHE  = "$HOME\AppData\Local\Temp"
