@@ -15,10 +15,10 @@ function Update-Profile-Force {
     }
 
     # Download and overwrite the profile
-    $response = Invoke-WebRequest -Uri $uri -OutFile $PROFILE -ContentType "text/plan"
+    $response = Invoke-WebRequest -Uri $url -ContentType "text/plan" -UseBasicParsing
+    $response.Content | Out-File -FilePath $PROFILE -Encoding ASCII
 
-    Invoke-WebRequest -Uri $url -OutFile $PROFILE -UseBasicParsing
-    Write-Host "✅ PowerShell Profile updated at $PROFILE"
+    Write-Host "✅ PowerShell Profile updated at $PROFILE ($response)"
 }
 #Update-Profile-Force
 
