@@ -516,21 +516,171 @@ Get-WindowsOptionalFeature -Online | Select-Object FeatureName, State | Format-T
 ## NFS example (or use WSL)
 # mount -o anon \\10.1.1.211\mnt\vms Z:
 
+function Get-GitHubDirectory {
+    <#
+    .SYNOPSIS
+        Download all files from a directory in a GitHub repository.
+
+    .DESCRIPTION
+        Uses the GitHub Contents API to list items in a path, recurses into subfolders,
+        and downloads files via their download_url. Works for public and private repos
+        (provide a PAT token or set $env:GITHUB_TOKEN). Preserves subdirectory structure.
+
+    .PARAMETER Owner
+        Repository owner (e.g., 'microsoft').
+
+    .PARAMETER Repo
+        Repository name (e.g., 'PowerToys').
+
+    .PARAMETER Path
+        Path within the repo to download (e.g., 'docs/images'). Use '' for repo root.
+
+    .PARAMETER Destination
+        Local folder to save files into. Will be created if missing.
+
+    .PARAMETER Branch
+        Branch or ref to use (e.g., 'main', 'develop', or a tag). Default: 'main'.
+
+    .PARAMETER Token
+        GitHub Personal Access Token for private repos or higher rate limits.
+        If omitted, uses $env:GITHUB_TOKEN when present.
+
+    .PARAMETER Recursive
+        Recurse into child directories. Default: on.
+
+    .PARAMETER Overwrite
+        Overwrite existing files. Default: on.
+
+    .PARAMETER Include
+        One or more wildcard filters (e.g., '*.ps1','*.md'). If not set, downloads all.
+
+    .PARAMETER Exclude
+        One or more wildcard filters to skip (e.g., '*.png','temp*').
+
+    .PARAMETER ApiBase
+        GitHub API base. Default: 'https://api.github.com'. For GHE: 'https://github.myco.com/api/v3'.
+
+    .EXAMPLE
+        Get-GitHubDirectory -Owner microsoft -Repo winget-pkgs -Path 'manifests' `
+            -Destination 'C:\Downloads\winget-manifests'
+
+    .EXAMPLE
+        Get-GitHubDirectory -Owner webstean -Repo myrepo -Path 'scripts' -Branch develop `
+            -Destination "$HOME\repo-scripts" -Include '*.ps1' -Exclude '*test*' -Token $env:GITHUB_TOKEN
+
+    .NOTES
+        • Rate limits: unauthenticated ~60 req/hr; with token much higher.
+        • LFS: download_url returns the current file contents (including LFS pointer for large files).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Owner,
+        [Parameter(Mandatory)][string]$Repo,
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$Destination,
+        [string]$Branch = 'main',
+        [string]$Token,
+        [switch]$Recursive = $true,
+        [switch]$Overwrite = $true,
+        [string[]]$Include,
+        [string[]]$Exclude,
+        [string]$ApiBase = 'https://api.github.com'
+    )
+
+    begin {
+        $ErrorActionPreference = 'Stop'
+        if (-not $Token -and $env:GITHUB_TOKEN) { $Token = $env:GITHUB_TOKEN }
+
+        if (-not (Test-Path $Destination)) {
+            New-Item -ItemType Directory -Path $Destination | Out-Null
+        }
+
+        $commonHeaders = @{
+            'User-Agent' = 'PowerShell-GitHub-Downloader'
+            'Accept'     = 'application/vnd.github+json'
+        }
+        if ($Token) { $commonHeaders['Authorization'] = "Bearer $Token" }
+
+        function Test-Match {
+            param([string]$Name,[string[]]$Include,[string[]]$Exclude)
+            if ($Include -and -not ($Include | Where-Object { $Name -like $_ })) { return $false }
+            if ($Exclude -and  ($Exclude | Where-Object { $Name -like $_ }))     { return $false }
+            return $true
+        }
+
+        function Get-Contents($owner,$repo,$path,$ref) {
+            $uri = '{0}/repos/{1}/{2}/contents/{3}?ref={4}' -f $ApiBase,$owner,$repo,$path,$ref
+            try {
+                Invoke-RestMethod -Method GET -Uri $uri -Headers $commonHeaders
+            } catch {
+                if ($_.Exception.Response -and $_.Exception.Response.StatusCode.Value__ -eq 403) {
+                    Write-Error "403 Forbidden / rate limit. Provide a token via -Token or set GITHUB_TOKEN."
+                }
+                throw
+            }
+        }
+
+        function Download-File($url,$destFile) {
+            $destDir = Split-Path $destFile -Parent
+            if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir | Out-Null }
+            if ((-not (Test-Path $destFile)) -or $Overwrite) {
+                Invoke-WebRequest -Uri $url -OutFile $destFile -UseBasicParsing
+            }
+        }
+
+        function Walk($owner,$repo,$path,$ref,$rootDest) {
+            $items = Get-Contents $owner $repo $path $ref
+            foreach ($it in $items) {
+                switch ($it.type) {
+                    'file' {
+                        $name = $it.name
+                        if (-not (Test-Match -Name $name -Include $Include -Exclude $Exclude)) { continue }
+                        # Build local relative path based on API 'path' (full path within repo)
+                        $relative = $it.path -replace '^[\\/]*',''   # e.g. 'dir/file.txt'
+                        $destFile = Join-Path $rootDest $relative
+                        Write-Host "↓ $relative" -ForegroundColor Cyan
+                        Download-File -url $it.download_url -destFile $destFile
+                    }
+                    'dir' {
+                        if ($Recursive) {
+                            Walk $owner $repo $it.path $ref $rootDest
+                        }
+                    }
+                    'symlink' {
+                        # Optional: treat symlink target as file path; usually skip
+                        Write-Verbose "Skipping symlink: $($it.path)"
+                    }
+                    default {
+                        Write-Verbose "Skipping type '$($it.type)': $($it.path)"
+                    }
+                }
+            }
+        }
+    }
+
+    process {
+        # Normalize repo subpath: GitHub API expects empty path as '', not '.'
+        $normPath = $Path.TrimStart('/').TrimEnd('/')
+        Walk -owner $Owner -repo $Repo -path $normPath -ref $Branch -rootDest $Destination
+    }
+}
+
 ## Executables - goes into the PATH
 $Bin = "$env:SystemDrive\BIN"
 if (-Not (Test-Path -Path "${Bin}" -PathType Container -ErrorAction SilentlyContinue)) {
     New-Item -Path "${Bin}" -Type Container
+} else {
+    Write-Output "Directory ${Bin} already exists." 
 }
-else {
-    Write-Output "Directory $Bin already exists." 
-}
+
+# Download an entire folder (and subfolders) from a public repo
+Get-GitHubDirectory -Owner 'webstean' -Repo 'setup' -Path 'intune/bin' -Destination "${BIN}"
 
 ## Scripts - not in the path
 $Scripts = "$env:SystemDrive\SCRIPTS"
 if (-Not (Test-Path -Path "${Scripts}" -PathType Container -ErrorAction SilentlyContinue)) {
     New-Item -Path "${Scripts}" -Type Container
-}
-else {
+} else {
     Write-Output "Directory ${Scripts} already exists." 
 }
 
