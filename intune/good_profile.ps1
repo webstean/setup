@@ -389,7 +389,7 @@ function prompt {
         $color = "Green"    
         Write-Host ("PS " + $(Get-Location) + ">") -NoNewline -ForegroundColor $Color
     }
-    return "`n> "-ErrorAction SilentlyContinue
+    return "`n> "
 }
 
 if ($env:IsDevBox -eq "True" ) {
