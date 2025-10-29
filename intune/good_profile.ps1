@@ -22,13 +22,6 @@ function Update-Profile-Force {
 }
 #Update-Profile-Force
 
-
-## If Windows Powershell
-if ($PSVersionTable.PSEdition -eq 'Desktop') {
-    Write-Host "ℹ️ Exiting PowerShell Profile - as this is Windows PowerShell"
-    return $true | Out-Null
-}
-
 ## FullLanguage: No restrictions (default in most PowerShell sessions)
 ## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
 ## RestrictedLanguage: Very limited (e.g., only basic expressions)
@@ -71,6 +64,12 @@ if ($IsAdmin) {
     $InstallScope = 'AllUsers'
 } else {
     $InstallScope = 'CurrentUser'
+}
+
+## If Windows Powershell
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+    Write-Host "Exiting PowerShell Profile - as this is Windows PowerShell"
+    return $true | Out-Null
 }
 
 function Set-MSTerminalBackground {
