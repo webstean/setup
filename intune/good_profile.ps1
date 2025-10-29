@@ -149,7 +149,7 @@ function Initialize-PSReadLineSmart {
     [CmdletBinding()]
     param(
         [ValidateSet('Auto','Inline','List')]
-        [string]$ViewStyle = 'List',
+        [string]$ViewStyle = 'Auto',
         [bool]$UsePluginIfAvailable = $true
     )
 
@@ -708,9 +708,9 @@ if ($IsLanguagePermissive) {
         Import-Module Terminal-Icons -ErrorAction SilentlyContinue
     }
     $raw = $Host.UI.RawUI
-    $raw.BufferSize = New-Object System.Management.Automation.Host.Size(
-    [Math]::Max($raw.BufferSize.Width, 160),  # width
-    10000                                     # height
-    )
+    #$raw.BufferSize = New-Object System.Management.Automation.Host.Size(
+    #[Math]::Max($raw.BufferSize.Width, 160),  # width
+    #10000                                     # height
+    #)
 }
 
