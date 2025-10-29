@@ -677,6 +677,8 @@ if ($IsLanguagePermissive) {
     if ( -not (Get-Module -ListAvailable -Name Terminal-Icons | Out-Null )) {
         Import-Module Terminal-Icons -ErrorAction SilentlyContinue
     }
+    # $Host.UI.RawUI.WindowTitle = "Andrew"
+    
     #$raw = $Host.UI.RawUI
     #$raw.BufferSize = New-Object System.Management.Automation.Host.Size(
     #[Math]::Max($raw.BufferSize.Width, 160),  # width
