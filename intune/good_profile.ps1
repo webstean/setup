@@ -18,7 +18,7 @@ function Update-Profile-Force {
     $response = Invoke-WebRequest -Uri $url -ContentType "text/plan" -UseBasicParsing
     $response.Content | Out-File -FilePath $PROFILE -Encoding ASCII
 
-    Write-Host "✅ PowerShell Profile updated at $PROFILE ($response)"
+    Write-Host "✅ PowerShell Profile updated at $PROFILE"
 }
 #Update-Profile-Force
 
