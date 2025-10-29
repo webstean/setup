@@ -415,12 +415,14 @@ if ($env:STARSHIP_CONFIG -and (Test-Path "$starshipConfig" -PathType Leaf)) {
     Write-Host "ℹ️ Found Starship shell...so starting it..."
     Invoke-Expression (&starship init powershell)
     Enable-TransientPrompt
+    $Host.UI.RawUI.WindowTitle = "PowerShell - Starship"
 } elseif ($env:POSH_THEMES_PATH -and (Test-Path "$ompConfig" -Pathtype Leaf)) {
     Write-Host "ℹ️ Found Oh-My-Posh shell...so starting it..."
     & ([ScriptBlock]::Create((oh-my-posh init pwsh --config $ompConfig --print) -join "`n"))
+    $Host.UI.RawUI.WindowTitle = "PowerShell - Oh-My-Posh"
 } else {
     if ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15) {
-        ## Set stuff here
+        $Host.UI.RawUI.WindowTitle = "PowerShell"
     }
 }
 
@@ -682,6 +684,10 @@ if ($IsLanguagePermissive) {
     if ( -not (Get-Module -ListAvailable -Name Terminal-Icons | Out-Null )) {
         Import-Module Terminal-Icons -ErrorAction SilentlyContinue
     }
+    # (Get-AzSubscription -ErrorAction SilentlyContinue).Id
+    # (Get-AzTenant -ErrorAction SilentlyContinue).Id
+    # (Get-AzTenant -ErrorAction SilentlyContinue).Name
+    
     # $Host.UI.RawUI.WindowTitle = "Andrew"
     
     #$raw = $Host.UI.RawUI
