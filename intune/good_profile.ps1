@@ -33,11 +33,11 @@ $IsLanguagePermissive = $currentMode -in $acceptableModes
 
 $UTF8 = $false
 if ($IsLanguagePermissive) {
-    Write-Host ("ℹ️ Setting PowerShell to UTF-8 output encoding...")
     [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
     #$UTF8 = $true
 } 
 if ((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage').ACP -eq '65001') { 
+    Write-Host ("ℹ️ PowerShell SET to UTF-8 output encoding...")
     $UTF8 = $true
 }
 
