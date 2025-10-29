@@ -78,7 +78,7 @@ function Set-MSTerminalBackground {
         [string]$BackgroundColor = "#993755" ## "#994755" "#506950ff" "#000000"
     )
 
-    ## Forget it, if this is Windows PowerShell, because ConvertFrom-Json does not support enough depth edit config file
+    ## Forget it, if this is Windows PowerShell, because ConvertFrom-Json does not support enough depth to successfu;;y edit the config file
     if ($PSVersionTable.PSEdition -eq 'Desktop') { return }
 
     $ErrorActionPreference = 'Ignore'
