@@ -398,6 +398,9 @@ if ( -not ([string]::IsNullOrWhiteSpace($getupn))) {
 ## AZD get rid of annoying update prompt
 [Environment]::SetEnvironmentVariable('AZD_SKIP_UPDATE_CHECK', 'true', 'User') ## opt-out of the telemetry being send to Microsoft
 
+## Azure PowerShell - suppress breaking change message
+Set-Item -Path Env:\SuppressAzurePowerShellBreakingChangeWarnings -Value $true
+
 ## .Net environment variables: https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-environment-variables
 ## Note: Generally speaking a value set in the project file or runtimeconfig.json has a higher priority than the environment variable.
 [Environment]::SetEnvironmentVariable('DOTNET_GENERATE_ASPNET_CERTIFICATE', 'false', 'User')
