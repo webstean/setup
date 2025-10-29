@@ -407,8 +407,7 @@ function Enable-DeveloperDevicePortal {
     ## Enable authentication (optional but recommended)
     if (Get-ItemProperty -Path $regPath -Name "Authentication" -ErrorAction SilentlyContinue) {
         Set-ItemProperty -Path $regPath -Name "Authentication" -Value 0
-    }
-    else {
+    } else {
         New-ItemProperty -Path $regPath -Name "Authentication" -PropertyType DWORD -Value 0
     }
 
@@ -694,14 +693,12 @@ if (-not (Test-Path -Path "HKLM:\Software\Sysinternals")) {
 
 if (Get-ItemProperty -Path "HKCU:\Software\Sysinternals" -Name "EulaAccepted" -ErrorAction SilentlyContinue) {
     Set-ItemProperty -Path "HKCU:\Software\Sysinternals" -Name "EulaAccepted" -Value 1
-}
-else {
+} else {
     New-ItemProperty -Path "HKCU:\Software\Sysinternals" -Name "EulaAccepted" -PropertyType DWORD -Value 1
 }
 if (Get-ItemProperty -Path "HKLM:\Software\Sysinternals" -Name "EulaAccepted" -ErrorAction SilentlyContinue) {
     Set-ItemProperty -Path "HKLM:\Software\Sysinternals" -Name "EulaAccepted" -Value 1
-}
-else {
+} else {
     New-ItemProperty -Path "HKLM:\Software\Sysinternals" -Name "EulaAccepted" -PropertyType DWORD -Value 1
 }
 
