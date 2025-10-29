@@ -918,7 +918,7 @@ function Set-Podman {
             $exists = [bool]$target
 
             if (-not $exists) {
-                $args = @("machine","init","--name",$MachineName,"--cpus",$Cpus,"--memory",$MemoryMB,"--disk-size",$DiskGB)
+                $args = @("machine","init","--cpus",$Cpus,"--memory",$MemoryMB,"--disk-size",$DiskGB,"--now")
                 if ($PSCmdlet.ShouldProcess("Podman $MachineName","Initialize")) {
                     podman @args | Out-Null
                 }
