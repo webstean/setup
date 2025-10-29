@@ -277,7 +277,7 @@ function Initialize-PSReadLineSmart {
 
     return $result
 }
-Initialize-PSReadLineSmart
+#Initialize-PSReadLineSmart
 
 if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
     Set-Alias -Name docker -Value podman
