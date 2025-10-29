@@ -888,7 +888,7 @@ function Set-Podman {
             }
         }
         function Ensure-PodmanMachine {
-            Write-Step "Ensuring Podman machine exists and is configured"
+            Write-Host "Ensuring Podman machine exists and is configured"
             $existing = podman machine list 2>$null
             $exists = $false
             if ($existing) {
