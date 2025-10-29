@@ -1,5 +1,7 @@
 
+
 ## https://raw.githubusercontent.com/lscph1929/scripts/refs/heads/main/profile/good_profile.ps1
+## This FILE is ASCiI encoded, for compability with Windows Powershell, so any Unicode characters need to be eliminated
 
 #Set-ExecutionPolicy Unrestricted -Scope Process
 #Set-ExecutionPolicy Unrestricted -Scope CurrentUser
@@ -18,7 +20,7 @@ function Update-Profile-Force {
     $response = Invoke-WebRequest -Uri $url -ContentType "text/plan" -UseBasicParsing
     $response.Content | Out-File -FilePath $PROFILE -Encoding ASCII
 
-    Write-Host "✅ PowerShell Profile updated at $PROFILE"
+    Write-Host "PowerShell Profile updated at $PROFILE"
 }
 #Update-Profile-Force
 
@@ -37,24 +39,16 @@ if ($IsLanguagePermissive) {
     #$UTF8 = $true
 } 
 if ((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage').ACP -eq '65001') { 
-    Write-Host ("ℹ️ PowerShell SET to UTF-8 output encoding...")
+    Write-Host ("PowerShell SET to UTF-8 output encoding...")
     $UTF8 = $true
 }
 
 # Get the current language mode
 if ($IsLanguagePermissive) {
-    if ($UTF8) {
-        Write-Host "✅ PowerShell Language Mode is: $currentMode"
-    } else {
-        Write-Host "PowerShell Language Mode is: $currentMode"
-    }
+    Write-Host "PowerShell Language Mode is: $currentMode"
     $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 } else {
-    if ($UTF8) {
-        Write-Host "❌ PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
-    } else {
-        Write-Host "PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
-    }
+    Write-Host "PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
     $IsAdmin = (whoami /groups | Select-String "S-1-5-32-544") -ne $null
 }
 
@@ -119,7 +113,7 @@ function Set-MSTerminalBackground {
         $json | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsfile -Encoding UTF8
     }
     catch {
-        Write-Host "❌ Error updating settings: $_"
+        Write-Host "Error updating settings: $_"
         return $false
     }
 }
@@ -175,14 +169,14 @@ function Initialize-PSReadLineSmart {
     # 1) Load newest PSReadLine available (quietly)
     $rl = Get-Module PSReadLine -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1
     if (-not $rl) {
-        $result.Notes += "❌ PSReadLine not installed; skipping configuration."
+        $result.Notes += "PSReadLine not installed; skipping configuration."
         return $result
     }
     try {
         Import-Module $rl -ErrorAction Stop
         $result.PSReadLineVersion = (Get-Module PSReadLine).Version.ToString()
     } catch {
-        $result.Notes += "❌ Failed to import PSReadLine: $($_.Exception.Message)"
+        $result.Notes += "Failed to import PSReadLine: $($_.Exception.Message)"
         return $result
     }
 
@@ -376,10 +370,10 @@ function Install-OrUpdateModule {
         }
         # Optional: import after install/update
         Import-Module $ModuleName -Force
-        Write-Host "✅ '$ModuleName' is installed (and up to date.)" -ForegroundColor Green
+        Write-Host "'$ModuleName' is installed (and up to date.)" -ForegroundColor Green
     }
     catch {
-        Write-Host "❌ Failed to install or update '$ModuleName': $_" -ForegroundColor Red
+        Write-Host "Failed to install or update '$ModuleName': $_" -ForegroundColor Red
     }
 }
 
@@ -419,12 +413,12 @@ $ompConfig = "$env:POSH_THEMES_PATH\cloud-native-azure.omp.json"
 
 ## Check for Starship
 if ($env:STARSHIP_CONFIG -and (Test-Path "$starshipConfig" -PathType Leaf)) {
-    Write-Host "ℹ️ Found Starship shell...so starting it..."
+    Write-Host "Found Starship shell...so starting it..."
     Invoke-Expression (&starship init powershell)
     Enable-TransientPrompt
     $Host.UI.RawUI.WindowTitle = "PowerShell - Starship"
 } elseif ($env:POSH_THEMES_PATH -and (Test-Path "$ompConfig" -Pathtype Leaf)) {
-    Write-Host "ℹ️ Found Oh-My-Posh shell...so starting it..."
+    Write-Host "Found Oh-My-Posh shell...so starting it..."
     & ([ScriptBlock]::Create((oh-my-posh init pwsh --config $ompConfig --print) -join "`n"))
     $Host.UI.RawUI.WindowTitle = "PowerShell - Oh-My-Posh"
 } else {
@@ -476,7 +470,7 @@ function Reset-GitBranch {
 
     # Check Git availability
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        Write-Error "❌ Git is not installed or not available in PATH."
+        Write-Error "Git is not installed or not available in PATH."
         return
     }
 
@@ -484,16 +478,16 @@ function Reset-GitBranch {
     try {
         $branch = git rev-parse --abbrev-ref HEAD 2>$null
     } catch {
-        Write-Error "❌ Not a Git repository."
+        Write-Error "Not a Git repository."
         return
     }
 
     if (-not $branch) {
-        Write-Error "❌ Unable to determine current branch."
+        Write-Error "Unable to determine current branch."
         return
     }
 
-    Write-Host "ℹ️ You are on branch: $branch" -ForegroundColor Cyan
+    Write-Host "You are on branch: $branch" -ForegroundColor Cyan
 
     Write-Host "`nFetching latest changes from origin..." -ForegroundColor Cyan
     git fetch origin
@@ -504,7 +498,7 @@ function Reset-GitBranch {
     Write-Host "Cleaning untracked files and directories..." -ForegroundColor Red
     git clean -fd
 
-    Write-Host "`n✅ Local branch '$branch' is now identical to origin/$branch." -ForegroundColor Green
+    Write-Host "`nLocal branch '$branch' is now identical to origin/$branch." -ForegroundColor Green
 }
 
 # Alias management
@@ -670,10 +664,10 @@ function Restore-Terminal {
         # Ensure echo is on
         [System.Console]::Echo = $true
 
-        Write-Host "✅ Console input reset. You should now be able to paste normally."
+        Write-Host "Console input reset. You should now be able to paste normally."
     }
     catch {
-        Write-Warning "⚠️ Could not reset console state. Try closing and reopening the terminal."
+        Write-Warning "Could not reset console state. Try closing and reopening the terminal."
     }
 }
 
