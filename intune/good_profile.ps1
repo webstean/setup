@@ -698,7 +698,7 @@ if ($IsLanguagePermissive) {
     #)
     ## Alternative
     #$Host.UI.RawUI.BufferSize.Width = 120
-    $Host.UI.RawUI.BufferSize.Height = 5000
-    $Host.UI.RawUI.WindowTop = 0
+    #$Host.UI.RawUI.BufferSize.Height = 5000
+    #$Host.UI.RawUI.WindowTop = 0
 }
 
