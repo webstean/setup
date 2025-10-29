@@ -21,8 +21,8 @@ function Update-Profile-Force {
     $response.Content | Out-File -FilePath $PROFILE -Encoding ASCII
 
     Write-Host -ForegroundColor DarkGreen "PowerShell Profile updated at $PROFILE"
-    Write-Host -ForegroundColor DarkRed 
-    Write-Host -ForegroundColor DarkYellow
+    #Write-Host -ForegroundColor DarkRed 
+    #Write-Host -ForegroundColor DarkYellow
 }
 #Update-Profile-Force
 
