@@ -91,10 +91,13 @@ function Install-WinRM {
     #Winrm get http://schemas.microsoft.com/wbem/wsman/1/config
     #Get-ChildItem -path WSMAN:\localhost\MaxEnvelopeSizeKb
     ## default is 500, 8192 would be better for performance
-    Set-Item -path WSMAN:\localhost\MaxEnvelopeSizeKb 8192 -Force
-    Set-Item  WSMan:\localhost\Client\TrustedHosts -Value * -Force  ## $env:COMPUTERNAME -Force
+    Set-Item -Path WSMAN:\localhost\MaxEnvelopeSizeKb 8192 -Force
+    Set-Item -Path WSMan:\localhost\Client\TrustedHosts -Value * -Force  ## $env:COMPUTERNAME -Force
     Set-Item -Path WSMan:\localhost\Client\Auth\Kerberos -Value $false
+    Set-Item -Path WSMan:\localhost\Client\AllowUnencrypted -Value $true
     Set-Item -Path WSMan:\localhost\Service\Auth\Kerberos -Value $false
+    Set-Item -Path WSMan:\localhost\Service\AllowUnencrypted -Value $true
+    Set-Service -Name WinRM -StartupType Automatic
     Restart-Service WinRM
     winrm get winrm/config/client
     winrm get winrm/config/service
