@@ -687,6 +687,7 @@ if ($IsLanguagePermissive) {
     # (Get-AzSubscription -ErrorAction SilentlyContinue).Id
     # (Get-AzTenant -ErrorAction SilentlyContinue).Id
     # (Get-AzTenant -ErrorAction SilentlyContinue).Name
+    # Set-AzContext -Subscription (Get-AzSubscription -ErrorAction SilentlyContinue).Id
     
     # $Host.UI.RawUI.WindowTitle = "Andrew"
     
