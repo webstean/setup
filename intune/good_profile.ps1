@@ -20,7 +20,9 @@ function Update-Profile-Force {
     $response = Invoke-WebRequest -Uri $url -ContentType "text/plan" -UseBasicParsing
     $response.Content | Out-File -FilePath $PROFILE -Encoding ASCII
 
-    Write-Host "PowerShell Profile updated at $PROFILE"
+    Write-Host -ForegroundColor DarkGreen "PowerShell Profile updated at $PROFILE"
+    Write-Host -ForegroundColor DarkRed 
+    Write-Host -ForegroundColor DarkYellow
 }
 #Update-Profile-Force
 
@@ -45,10 +47,10 @@ if ((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage').ACP
 
 # Get the current language mode
 if ($IsLanguagePermissive) {
-    Write-Host "PowerShell Language Mode is: $currentMode"
+    Write-Host -ForegroundColor DarkGreen "PowerShell Language Mode is: $currentMode"
     $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 } else {
-    Write-Host "PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
+    Write-Host -ForegroundColor DarkYellow "PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
     $IsAdmin = (whoami /groups | Select-String "S-1-5-32-544") -ne $null
 }
 
@@ -62,7 +64,7 @@ if ($IsAdmin) {
 
 ## If Windows Powershell
 if ($PSVersionTable.PSEdition -eq 'Desktop') {
-    Write-Host "Exiting PowerShell Profile - as this is Windows PowerShell"
+    Write-Host -ForegroundColor DarkYellow "Exiting PowerShell Profile - as this is Windows PowerShell"
     return $true | Out-Null
 }
 
