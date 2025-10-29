@@ -680,7 +680,10 @@ if ($IsLanguagePermissive) {
     #$raw = $Host.UI.RawUI
     #$raw.BufferSize = New-Object System.Management.Automation.Host.Size(
     #[Math]::Max($raw.BufferSize.Width, 160),  # width
-    #10000                                     # height
+    #5000                                      # height
     #)
+    ## Alternative
+    #$Host.UI.RawUI.BufferSize.Width = 120
+    $Host.UI.RawUI.BufferSize.Height = 5000
 }
 
