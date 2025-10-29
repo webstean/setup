@@ -13,7 +13,7 @@ function Update-Profile-Force {
 
     # Download and overwrite the profile
     Invoke-WebRequest -Uri $url -OutFile $PROFILE -UseBasicParsing
-    Write-Host "✅ Profile updated at $PROFILE"
+    Write-Host "✅ PowerShell Profile updated at $PROFILE"
 }
 #Update-Profile-Force
 
