@@ -328,17 +328,6 @@ style = "blue bold"
     }
 }
 
-#if ($IsLanguagePermissive) {
-#    Set-PSReadLineKeyHandler -Key Ctrl+Shift+b `
-#        -BriefDescription BuildCurrentDirectory `
-#        -LongDescription "DotNet Build the current directory" `
-#        -ScriptBlock {
-#        [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
-#        [Microsoft.PowerShell.PSConsoleReadLine]::Insert("dotnet build")
-#        [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
-#    }
-#}
-
 function Invoke-Starship-TransientFunction {
     &starship module character
 }
@@ -673,25 +662,6 @@ function Restore-Terminal {
         Write-Warning "⚠️ Could not reset console state. Try closing and reopening the terminal."
     }
 }
-
-# Function to normalize clipboard text (LF → CRLF)
-#function Get-NormalizedClipboard {
-#    if (Get-Clipboard -Format Text -ErrorAction SilentlyContinue) {
-#        $text = Get-Clipboard -Raw -Format Text
-#        # Replace lone LF with CRLF
-#        $normalized = $text -replace "(?<!`r)`n","`r`n"
-#        return $normalized
-#    }
-#    return ""
-#}
-
-# Override the default Paste (Ctrl+V) behavior
-#Set-PSReadLineKeyHandler -Key Ctrl+V -BriefDescription "Paste normalized text" -ScriptBlock {
-#    $clip = Get-NormalizedClipboard
-#    if ($clip) {
-#        [Microsoft.PowerShell.PSConsoleReadLine]::Paste($clip)
-#    }
-#}
 
 if ($IsLanguagePermissive) {
     $CLSIDs = @()
