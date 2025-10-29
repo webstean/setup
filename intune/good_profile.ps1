@@ -20,7 +20,7 @@ function Update-Profile-Force {
 
 ## If Windows Powershell
 if ($PSVersionTable.PSEdition -eq 'Desktop') {
-    Write-Host "Ignoring Profile - as this is Windows PowerShell"
+    Write-Host "ℹ️ Exiting PowerShell Profile - as this is Windows PowerShell"
     return $true | Out-Null
 }
 
@@ -35,7 +35,7 @@ $IsLanguagePermissive = $currentMode -in $acceptableModes
 
 $UTF8 = $false
 if ($IsLanguagePermissive) {
-    Write-Host ("Setting PowerShell to UTF-8 output encoding...")
+    Write-Host ("ℹ️ Setting PowerShell to UTF-8 output encoding...")
     [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
     #$UTF8 = $true
 } 
@@ -115,7 +115,7 @@ function Set-MSTerminalBackground {
         $json | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsfile -Encoding UTF8
     }
     catch {
-        Write-Host "Error updating settings: $_"
+        Write-Host "❌ Error updating settings: $_"
         return $false
     }
 }
@@ -171,14 +171,14 @@ function Initialize-PSReadLineSmart {
     # 1) Load newest PSReadLine available (quietly)
     $rl = Get-Module PSReadLine -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1
     if (-not $rl) {
-        $result.Notes += "PSReadLine not installed; skipping configuration."
+        $result.Notes += "❌ PSReadLine not installed; skipping configuration."
         return $result
     }
     try {
         Import-Module $rl -ErrorAction Stop
         $result.PSReadLineVersion = (Get-Module PSReadLine).Version.ToString()
     } catch {
-        $result.Notes += "Failed to import PSReadLine: $($_.Exception.Message)"
+        $result.Notes += "❌ Failed to import PSReadLine: $($_.Exception.Message)"
         return $result
     }
 
@@ -307,7 +307,7 @@ function Find-ProgramInPath {
 if (Find-ProgramInPath -ProgramName starship.exe) {
     if (-not $env:STARSHIP_CONFIG) {
         $env:STARSHIP_CONFIG = "$env:OneDriveCommercial\starship.toml"
-        $env:STARSHIP_CACHE = "$HOME\AppData\Local\Temp"
+        $env:STARSHIP_CACHE  = "$HOME\AppData\Local\Temp"
     }
     $starshipConfig = "$env:STARSHIP_CONFIG"
     if (-not (Test-Path "$starshipConfig" -PathType Leaf)) {
@@ -407,11 +407,11 @@ $ompConfig = "$env:POSH_THEMES_PATH\cloud-native-azure.omp.json"
 
 ## Check for Starship
 if ($env:STARSHIP_CONFIG -and (Test-Path "$starshipConfig" -PathType Leaf)) {
-    Write-Host "Found Starship shell...so starting it..."
+    Write-Host "ℹ️ Found Starship shell...so starting it..."
     Invoke-Expression (&starship init powershell)
     Enable-TransientPrompt
 } elseif ($env:POSH_THEMES_PATH -and (Test-Path "$ompConfig" -Pathtype Leaf)) {
-    Write-Host "Found Oh-My-Posh shell...so starting it..."
+    Write-Host "ℹ️ Found Oh-My-Posh shell...so starting it..."
     & ([ScriptBlock]::Create((oh-my-posh init pwsh --config $ompConfig --print) -join "`n"))
 } else {
     if ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15) {
@@ -462,7 +462,7 @@ function Reset-GitBranch {
 
     # Check Git availability
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        Write-Error "Git is not installed or not available in PATH."
+        Write-Error "❌ Git is not installed or not available in PATH."
         return
     }
 
@@ -470,16 +470,16 @@ function Reset-GitBranch {
     try {
         $branch = git rev-parse --abbrev-ref HEAD 2>$null
     } catch {
-        Write-Error "Not a Git repository."
+        Write-Error "❌ Not a Git repository."
         return
     }
 
     if (-not $branch) {
-        Write-Error "Unable to determine current branch."
+        Write-Error "❌ Unable to determine current branch."
         return
     }
 
-    Write-Host "You are on branch: $branch" -ForegroundColor Cyan
+    Write-Host "ℹ️ You are on branch: $branch" -ForegroundColor Cyan
 
     Write-Host "`nFetching latest changes from origin..." -ForegroundColor Cyan
     git fetch origin
