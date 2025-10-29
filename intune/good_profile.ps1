@@ -344,7 +344,7 @@ function Install-OrUpdateModule {
     # Check if PSResourceGet is available
     if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
         Write-Host "PSResourceGet not found. Installing it first..." -ForegroundColor Yellow
-        Install-Module -Name Microsoft.PowerShell.PSResourceGet -Scope $InstallScope -Force
+        Install-Module -Name Microsoft.PowerShell.PSResourceGet -Scope $InstallScope -Force -ErrorAction SilentlyContinue
         Import-Module Microsoft.PowerShell.PSResourceGet
     }
 
@@ -389,7 +389,7 @@ function prompt {
         $color = "Green"    
         Write-Host ("PS " + $(Get-Location) + ">") -NoNewline -ForegroundColor $Color
     }
-    return "`n> "
+    return "`n> "-ErrorAction SilentlyContinue
 }
 
 if ($env:IsDevBox -eq "True" ) {
@@ -409,6 +409,9 @@ if ($env:IsDevBox -eq "True" ) {
 }
 
 $ompConfig = "$env:POSH_THEMES_PATH\cloud-native-azure.omp.json"
+
+## Check for Starship
+#(Get-Command -ErrorAction SilentlyContinue starship.exe).Source
 
 ## Check for Starship
 if ($env:STARSHIP_CONFIG -and (Test-Path "$starshipConfig" -PathType Leaf)) {
