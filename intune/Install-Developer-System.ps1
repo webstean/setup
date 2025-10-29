@@ -118,6 +118,7 @@ function Install-OrUpdate-DotNetTools {
         "IntuneCLI",                              ## intuneCLI (3rd party)
         "microsoft.powerapps.cli.tool",           ## powerapp tools
         "dotnet-reportgenerator-globaltool",      ## report generator
+        "Microsoft.OpenApi.Kiota",                ## code generator (openapi)
         "paket",                                  ## Paket dependency manager
         "Aspire.Cli", # --prerelease
         "upgrade-assistant"                       ## upgrade assistant
