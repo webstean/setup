@@ -1,6 +1,9 @@
 
 ## https://raw.githubusercontent.com/lscph1929/scripts/refs/heads/main/profile/good_profile.ps1
 
+#Set-ExecutionPolicy Unrestricted -Scope Process
+#Set-ExecutionPolicy Unrestricted -Scope CurrentUser
+
 function Update-Profile-Force {
     # Define the remote URL
     $url = 'https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/good_profile.ps1'
