@@ -277,7 +277,7 @@ function Initialize-PSReadLineSmart {
 
     return $result
 }
-#Initialize-PSReadLineSmart
+Initialize-PSReadLineSmart
 
 if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
     Set-Alias -Name docker -Value podman
@@ -328,16 +328,16 @@ style = "blue bold"
     }
 }
 
-if ($IsLanguagePermissive) {
-    Set-PSReadLineKeyHandler -Key Ctrl+Shift+b `
-        -BriefDescription BuildCurrentDirectory `
-        -LongDescription "DotNet Build the current directory" `
-        -ScriptBlock {
-        [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
-        [Microsoft.PowerShell.PSConsoleReadLine]::Insert("dotnet build")
-        [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
-    }
-}
+#if ($IsLanguagePermissive) {
+#    Set-PSReadLineKeyHandler -Key Ctrl+Shift+b `
+#        -BriefDescription BuildCurrentDirectory `
+#        -LongDescription "DotNet Build the current directory" `
+#        -ScriptBlock {
+#        [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
+#        [Microsoft.PowerShell.PSConsoleReadLine]::Insert("dotnet build")
+#        [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
+#    }
+#}
 
 function Invoke-Starship-TransientFunction {
     &starship module character
