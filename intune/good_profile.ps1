@@ -149,7 +149,7 @@ function Initialize-PSReadLineSmart {
     [CmdletBinding()]
     param(
         [ValidateSet('Auto','Inline','List')]
-        [string]$ViewStyle = 'Auto',
+        [string]$ViewStyle = 'List',
         [bool]$UsePluginIfAvailable = $true
     )
 
