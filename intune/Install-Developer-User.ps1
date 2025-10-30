@@ -827,7 +827,7 @@ function Set-DockerDesktop {
 function Set-PodmanConfig {
     <#
     .SYNOPSIS
-        Configure Podman Desktop & engine defaults, and manage auto-launch at login.
+        Configure Podman Desktop & engine defaults, manage auto-launch, hide Docker extensions.
 
     .DESCRIPTION
         Updates:
@@ -836,7 +836,9 @@ function Set-PodmanConfig {
         Sets:
           • minimize on startup (default: true)
           • disables experimental feedback & telemetry (default)
-          • optionally manages Windows startup auto-launch
+          • optionally hides Docker Extensions in the dashboard (default: hide)
+          • optionally manages Windows startup auto-launch (default: enabled)
+          • optional silent mode for unattended scripts (default: off)
 
     .PARAMETER ShortNameMode
         Image short name resolution mode. Default: 'permissive'.
@@ -845,22 +847,27 @@ function Set-PodmanConfig {
         Events backend. Default: 'file'.
 
     .PARAMETER MinimiseOnLogin
-        Whether Podman Desktop should minimize on login/startup (default: $true).
+        Minimize Podman Desktop on login/startup. Default: $true.
 
     .PARAMETER ExperimentalFeedback
-        Whether experimental feedback should be enabled (default: $false).
+        Enable experimental feedback. Default: $false.
 
     .PARAMETER Telemetry
-        Whether telemetry should be enabled (default: $false).
+        Enable telemetry. Default: $false.
+
+    .PARAMETER HideDockerExtensions
+        Hide/disable Docker Extensions in the dashboard. Default: $true.
 
     .PARAMETER AutoLaunch
-        Add/remove Podman Desktop from Windows startup (default: $true).
+        Add/remove Podman Desktop from Windows startup (HKCU\...\Run). Default: $true.
+
+    .PARAMETER Silent
+        Suppress all console output (for login scripts). Default: $false.
 
     .EXAMPLE
         Set-PodmanConfig
-
     .EXAMPLE
-        Set-PodmanConfig -AutoLaunch:$false -MinimiseOnLogin:$false
+        Set-PodmanConfig -AutoLaunch:$false -Silent
     #>
 
     [CmdletBinding(SupportsShouldProcess)]
@@ -872,26 +879,31 @@ function Set-PodmanConfig {
         [bool]$MinimiseOnLogin = $true,
         [bool]$ExperimentalFeedback = $false,
         [bool]$Telemetry = $false,
-        [bool]$AutoLaunch = $true
+        [bool]$HideDockerExtensions = $true,
+        [bool]$AutoLaunch = $true,
+        [bool]$Silent = $false
     )
+
+    # Helper: Conditional write
+    function Out-Info([string]$msg, [ConsoleColor]$color = [ConsoleColor]::Gray) {
+        if (-not $Silent) { Write-Host $msg -ForegroundColor $color }
+    }
 
     # --- Paths ---
     $confRoot       = Join-Path $HOME ".config\containers"
     $containersFile = Join-Path $confRoot "containers.conf"
     $desktopConfig  = Join-Path $Env:APPDATA "Podman Desktop\config.json"
 
-    # Likely install locations
+    # Likely install locations (for autostart)
     $exeCandidates = @(
         Join-Path $Env:LOCALAPPDATA "Programs\Podman Desktop\Podman Desktop.exe",
-        Join-Path $Env:ProgramFiles "RedHat\Podman Desktop\Podman Desktop.exe"
+        Join-Path $Env:ProgramFiles   "RedHat\Podman Desktop\Podman Desktop.exe"
     )
     $podmanDesktopExe = $exeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 
-    # --- Helpers ---
-    function Ensure-Dir($p) {
-        if (-not (Test-Path $p)) {
-            New-Item -ItemType Directory -Path $p -Force | Out-Null
-        }
+    # --- Ensure dirs ---
+    foreach ($p in @($confRoot, (Split-Path $desktopConfig -Parent))) {
+        if (-not (Test-Path $p)) { New-Item -ItemType Directory -Path $p -Force | Out-Null }
     }
 
     # --- containers.conf ---
@@ -901,37 +913,33 @@ function Set-PodmanConfig {
         "events_logger = ""$EventsLogger"""
         "short_name_mode = ""$ShortNameMode"""
     )
-
-    Ensure-Dir $confRoot
     Set-Content -Path $containersFile -Value ($containersLines -join "`n") -Encoding UTF8
 
     # --- Podman Desktop config.json ---
-    Ensure-Dir (Split-Path $desktopConfig -Parent)
-
     if (Test-Path $desktopConfig) {
         try {
             $json = Get-Content $desktopConfig -Raw | ConvertFrom-Json -ErrorAction Stop
         } catch {
-            Write-Warning "Existing config.json invalid; recreating."
+            if (-not $Silent) { Write-Warning "Existing config.json invalid; recreating." }
             $json = @{}
         }
     } else {
         $json = @{}
     }
 
-    $json.minimizeOnStartup           = [bool]$MinimiseOnLogin
-    $json.experimentalFeedbackEnabled = [bool]$ExperimentalFeedback
-    $json.telemetryEnabled            = [bool]$Telemetry
+    $json.minimizeOnStartup               = [bool]$MinimiseOnLogin
+    $json.experimentalFeedbackEnabled     = [bool]$ExperimentalFeedback
+    $json.telemetryEnabled                = [bool]$Telemetry
+    $json.dockerExtensionsEnabled         = -not [bool]$HideDockerExtensions
+    $json.showDockerExtensionsInDashboard = -not [bool]$HideDockerExtensions
 
-    $json | ConvertTo-Json -Depth 4 | Set-Content -Path $desktopConfig -Encoding UTF8
+    $json | ConvertTo-Json -Depth 6 | Set-Content -Path $desktopConfig -Encoding UTF8
 
-    # --- Auto-launch management (HKCU Run) ---
+    # --- Auto-launch (HKCU Run) ---
     $runKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
     $runValueName = 'Podman Desktop'
     if ($AutoLaunch) {
-        if (-not $podmanDesktopExe) {
-            $podmanDesktopExe = $exeCandidates[0]
-        }
+        if (-not $podmanDesktopExe) { $podmanDesktopExe = $exeCandidates[0] }
         $quoted = '"' + $podmanDesktopExe + '"'
         New-Item -Path $runKeyPath -Force | Out-Null
         New-ItemProperty -Path $runKeyPath -Name $runValueName -Value $quoted -PropertyType String -Force | Out-Null
@@ -942,15 +950,10 @@ function Set-PodmanConfig {
     }
 
     # --- Summary ---
-    Write-Host "`n✅ Podman configuration updated:" -ForegroundColor Green
-    Write-Host " - $containersFile"
-    Write-Host " - $desktopConfig (minimizeOnStartup=$MinimiseOnLogin, experimentalFeedbackEnabled=$ExperimentalFeedback, telemetryEnabled=$Telemetry)"
-    Write-Host " - Windows Startup: " -NoNewline
-    if ($AutoLaunch) {
-        Write-Host "Enabled" -ForegroundColor Green
-    } else {
-        Write-Host "Disabled" -ForegroundColor Yellow
-    }
+    Out-Info "`n✅ Podman configuration updated:" Green
+    Out-Info " - $containersFile"
+    Out-Info " - $desktopConfig (minimizeOnStartup=$MinimiseOnLogin, feedback=$ExperimentalFeedback, telemetry=$Telemetry, hideDockerExtensions=$HideDockerExtensions)"
+    Out-Info (" - Windows Startup: " + ($(if ($AutoLaunch) { "Enabled" } else { "Disabled" })))
 }
 function Enable-PodmanFirewallRules {
     <#
@@ -1210,6 +1213,6 @@ function Set-Podman {
 Set-PodMan
 # --- Stop Podman Desktop if running ---
 $proc = Get-Process -Name "Podman Desktop" -ErrorAction SilentlyContinue
-Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+if ($proc) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
 Set-PodmanConfig
 Enable-PodmanFirewallRules
