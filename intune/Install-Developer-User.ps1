@@ -1198,9 +1198,6 @@ function Set-Podman {
 
             $success = $true
             Write-Host "`n✅ Set-Podman completed successfully." -ForegroundColor Green
-            if ($ConfigureDockerShim) {
-                Write-Host "   DOCKER_HOST set at Machine scope; restart terminals to pick it up." -ForegroundColor Yellow
-            }
         }
         catch {
             Write-Error $_
