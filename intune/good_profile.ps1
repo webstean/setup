@@ -583,7 +583,7 @@ function Reset-GitBranch {
 
 # Alias management
 foreach ($alias in 't', 'tf', 'tv', 'ti' ) {
-    if (Get-Alias $alias -ErrorAction SilentlyContinue) { Remove-Alias $alias -ErrorAction SilentlyContinue }
+    if ([bool](Get-Alias $alias -ErrorAction SilentlyContinue)) { Remove-Item Alias:$alias -force }
 }
 
 function t { terraform.exe @args }
