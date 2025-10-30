@@ -13,7 +13,7 @@ $filesToDownload = @(
     "Install-Developer-PowershellModules.ps1",
     "Install-Developer-System.ps1",
     "Install-Developer-User.ps1",
-    "Install-Global-Secure-Access-Client.ps1",
+    ##"Install-Global-Secure-Access-Client.ps1",
     "Install-Windows-Admin-Centre.ps1",
     "Setup-StarShip-Shell.ps1",
     "logo.png",
