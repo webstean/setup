@@ -689,7 +689,10 @@ if ($IsLanguagePermissive) {
     if ( -not [bool](Get-Module -ListAvailable -Name Az.Tools.Predictor | Out-Null )) {
         Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue
     }
-    
+
+    if ($subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id ) {
+        env:AZURE_SUBSCRIPTION_ID = $subscription_id
+    }
     
     # (Get-AzSubscription -ErrorAction SilentlyContinue).Id
     # (Get-AzTenant -ErrorAction SilentlyContinue).Id
