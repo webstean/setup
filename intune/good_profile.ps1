@@ -691,9 +691,17 @@ if ($IsLanguagePermissive) {
     }
 
     if ($subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id ) {
-        env:AZURE_SUBSCRIPTION_ID = $subscription_id
+        Set-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Value $subscription_id
+    }
+    if ($tenant_id = (Get-AzTenant -ErrorAction SilentlyContinue).Id ) {
+        Set-Item -Path Env:\AZURE_TENANT_ID -Value $tenant_id
+    }
+    if ($tenant_name = (Get-AzTenant -ErrorAction SilentlyContinue).Name ) {
+        Set-Item -Path Env:\AZURE_TENANT_NAME -Value $tenant_name
     }
     
+    # (Get-AzTenant -ErrorAction SilentlyContinue).Id
+     
     # (Get-AzSubscription -ErrorAction SilentlyContinue).Id
     # (Get-AzTenant -ErrorAction SilentlyContinue).Id
     # (Get-AzTenant -ErrorAction SilentlyContinue).Name
