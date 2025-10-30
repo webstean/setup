@@ -260,6 +260,15 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Kubernetes.kubectl
+      directives:
+        description: Installing Kubernetes.kubectl
+        allowPrerelease: true
+      settings:
+        id: Kubernetes.kubectl
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Azure.VPN
       directives:
         description: Installing Azure VPN Client
