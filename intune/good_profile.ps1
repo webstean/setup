@@ -503,7 +503,7 @@ function Reset-GitBranch {
 }
 
 # Alias management
-foreach ($alias in 't', 'tf', 'tv') {
+foreach ($alias in 't', 'tf', 'tv', 'ti' ) {
     if (Get-Alias $alias -ErrorAction SilentlyContinue) { Remove-Alias $alias -ErrorAction SilentlyContinue }
 }
 
