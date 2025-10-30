@@ -506,11 +506,12 @@ function Reset-GitBranch {
 foreach ($alias in 't', 'tf', 'tv') {
     if (Get-Alias $alias -ErrorAction SilentlyContinue) { Remove-Alias $alias -ErrorAction SilentlyContinue }
 }
-#Set-Alias t terraform.exe
-function tf { terraform.exe fmt }
-function tv { terraform.exe validate }
-function ti { terraform.exe init -upgrade }
 
+function t { terraform.exe @args }
+function tf { terraform.exe fmt @args}
+function tv { terraform.exe validate @args }
+function ti { terraform.exe init -upgrade @args}
+ 
 function cdw { Set-Location c:\workspaces }
 
 function free {
