@@ -683,9 +683,14 @@ if ($IsLanguagePermissive) {
     foreach ($CLSID in $CLSIDs.PSPath) {
         $drives += (Get-ItemProperty $CLSID)."(default)"
     }
-    if ( -not (Get-Module -ListAvailable -Name Terminal-Icons | Out-Null )) {
+    if ( -not [bool](Get-Module -ListAvailable -Name Terminal-Icons | Out-Null )) {
         Import-Module Terminal-Icons -ErrorAction SilentlyContinue
     }
+    if ( -not [bool](Get-Module -ListAvailable -Name Az.Tools.Predictor | Out-Null )) {
+        Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue
+    }
+    
+    
     # (Get-AzSubscription -ErrorAction SilentlyContinue).Id
     # (Get-AzTenant -ErrorAction SilentlyContinue).Id
     # (Get-AzTenant -ErrorAction SilentlyContinue).Name
