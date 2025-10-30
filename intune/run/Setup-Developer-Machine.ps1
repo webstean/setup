@@ -356,6 +356,33 @@ try {
         #Copy-Item "logo.png" "$env:ALLUSERSPROFILE\logo.png" -Force -ErrorAction SilentlyContinue
         Copy-Item "$destination\logo.png" "$env:ALLUSERSPROFILE\logo.png" -Force -ErrorAction SilentlyContinue
     }
+    function Set-WslConfigNetworkingMode {
+    
+    # Ensure WSL networking mode is Mirror
+    $wslConfigPath = [System.IO.Path]::Combine($env:HOMEPATH, ".wslconfig")
+    # Check if the .wslconfig file exists
+    if (Test-Path $wslConfigPath) {
+        # Read the contents of the .wslconfig file
+        $wslConfigContent = Get-Content -Path $wslConfigPath -Raw
+        
+        # Check if 'networkingMode' is set to 'mirrored'
+        if ($wslConfigContent -notmatch "networkingMode\s*=\s*mirrored") {
+            # Add or update the networkingMode setting
+            $newConfig = $wslConfigContent -replace "(\[.*?\])", "`$1`r`nnetworkingMode = mirrored"
+            
+            # Write the updated content back to the file
+            Set-Content -Path $wslConfigPath -Value $newConfig -Force
+            Write-Host "Added 'networkingMode = mirrored' to .wslconfig"
+        } else {
+            Write-Host "'networkingMode = mirrored' is already set in .wslconfig"
+        }
+    } else {
+        # If .wslconfig doesn't exist, create it with the networkingMode setting
+        $configContent = "[network]" + "`r`n" + "networkingMode = mirrored"
+        Set-Content -Path $wslConfigPath -Value $configContent
+        Write-Host "Created .wslconfig with 'networkingMode = mirrored'"
+        }
+    }
    
     ### Normal Machine ###
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
