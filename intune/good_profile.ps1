@@ -786,13 +786,6 @@ if ($IsLanguagePermissive) {
         Remove-Item -Path Env:\AZURE_TENANT_NAME -Force
     }
     
-    # (Get-AzTenant -ErrorAction SilentlyContinue).Id
-     
-    # (Get-AzSubscription -ErrorAction SilentlyContinue).Id
-    # (Get-AzTenant -ErrorAction SilentlyContinue).Id
-    # (Get-AzTenant -ErrorAction SilentlyContinue).Name
-    # Set-AzContext -Subscription (Get-AzSubscription -ErrorAction SilentlyContinue).Id
-    
     # $Host.UI.RawUI.WindowTitle = "Andrew"
     
     #$raw = $Host.UI.RawUI
