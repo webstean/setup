@@ -896,8 +896,8 @@ function Set-PodmanConfig {
 
     # Likely install locations (for autostart)
     $exeCandidates = @(
-        Join-Path $Env:LOCALAPPDATA "Programs\Podman Desktop\Podman Desktop.exe",
-        Join-Path $Env:ProgramFiles   "RedHat\Podman Desktop\Podman Desktop.exe"
+        (Join-Path $Env:LOCALAPPDATA "Programs\Podman Desktop\Podman Desktop.exe"),
+        (Join-Path $Env:ProgramFiles  "RedHat\Podman Desktop\Podman Desktop.exe")
     )
     $podmanDesktopExe = $exeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 
