@@ -824,6 +824,69 @@ function Set-DockerDesktop {
 }
 #Set-DockerDesktop
 
+function Enable-PodmanFirewallRules {
+    <#
+    .SYNOPSIS
+        Enables or creates Windows Firewall rules for Podman Desktop.
+
+    .DESCRIPTION
+        This function finds and enables existing Podman, QEMU, and GVProxy firewall rules.
+        If none are found, it creates default inbound/outbound rules for the Podman Desktop executables.
+        Must be run with Administrator privileges.
+
+    .EXAMPLE
+        Enable-PodmanFirewallRules
+
+    .NOTES
+        Author: ChatGPT
+        Requires: Windows 10/11 with Podman Desktop installed
+    #>
+
+    # Verify admin privileges
+    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Write-Error "Please run PowerShell as Administrator."
+        return
+    }
+
+    Write-Host "Enabling Podman Desktop firewall rules..." -ForegroundColor Cyan
+
+    # Locate Podman executables
+    $podmanPaths = @(
+        "$Env:ProgramFiles\RedHat\Podman\podman.exe",
+        "$Env:ProgramFiles\RedHat\Podman Desktop\resources\app\bin\podman.exe",
+        "$Env:LOCALAPPDATA\Programs\Podman Desktop\resources\app\bin\podman.exe",
+        "$Env:ProgramFiles\RedHat\Podman Desktop\resources\app\bin\qemu-system-x86_64.exe",
+        "$Env:ProgramFiles\RedHat\Podman Desktop\resources\app\bin\gvproxy.exe"
+    ) | Where-Object { Test-Path $_ }
+
+    # Find existing firewall rules
+    $rules = Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object {
+        $_.DisplayName -match 'Podman' -or $_.DisplayName -match 'QEMU' -or $_.DisplayName -match 'GVProxy'
+    }
+
+    if ($rules) {
+        Write-Host "Found existing Podman-related rules. Ensuring they are enabled..." -ForegroundColor Yellow
+        $rules | ForEach-Object {
+            if ($_.Enabled -eq 'False') {
+                Write-Host "Enabling rule: $($_.DisplayName)" -ForegroundColor Green
+                Set-NetFirewallRule -Name $_.Name -Enabled True
+            }
+        }
+    } else {
+        Write-Host "No existing Podman firewall rules found. Creating new ones..." -ForegroundColor Yellow
+        foreach ($exe in $podmanPaths) {
+            $name = Split-Path $exe -Leaf
+            Write-Host "Creating firewall rules for $name" -ForegroundColor Green
+            New-NetFirewallRule -DisplayName "Podman - $name (Inbound)" -Direction Inbound -Program $exe -Action Allow -Profile Any -Protocol TCP | Out-Null
+            New-NetFirewallRule -DisplayName "Podman - $name (Outbound)" -Direction Outbound -Program $exe -Action Allow -Profile Any -Protocol TCP | Out-Null
+        }
+    }
+
+    Write-Host "✅ Podman Desktop firewall rules are now enabled and active." -ForegroundColor Green
+}
+
+
 function Set-Podman {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
@@ -1016,4 +1079,5 @@ function Set-Podman {
 
     end { return $success }
 }
+Enable-PodmanFirewallRules
 Set-PodMan
