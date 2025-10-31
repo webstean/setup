@@ -840,7 +840,7 @@ function Enable-PIMRole {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         # Default to Global Reader
-        [Parameter(ParameterSetName='ByName', Mandatory)]
+        [Parameter(ParameterSetName='ByName', Mandatory)] = "ByName",
         [string]$RoleName = "Global Reader",
 
         [Parameter(ParameterSetName='ById', Mandatory)]
@@ -992,3 +992,12 @@ function Enable-PIMRole {
 }
 ## Enable-PIMRole -ByName
 ## Connect-MgGraph -NoWelcome -Scopes "RoleManagement.ReadWrite.Directory, User.Read"
+## $user = Get-MgUserMe
+
+# Verify if the logged-in user is the expected user
+## if ($user.UserPrincipalName -eq $targetUserPrincipalName) {
+##    Write-Host "Successfully logged in as $($user.UserPrincipalName) in the correct tenant."
+## } else {
+##    Write-Host "Error: Logged in as $($user.UserPrincipalName), but expected $targetUserPrincipalName."
+##    Write-Host "Please log in as the correct user."
+## }
