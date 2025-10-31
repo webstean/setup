@@ -120,7 +120,8 @@ function Install-OrUpdate-DotNetTools {
         "Microsoft.DataApiBuilder",               ## dab
         "IntuneCLI",                              ## intuneCLI (3rd party)
         "microsoft.powerapps.cli.tool",           ## powerapp tools
-        "dotnet-reportgenerator-globaltool",      ## report generator
+
+  "Azure.Mcp", # Azure Mcp Server   "dotnet-reportgenerator-globaltool",      ## report generator
         "Microsoft.OpenApi.Kiota",                ## code generator (openapi)
         "paket",                                  ## Paket dependency manager
         "Aspire.Cli", # --prerelease
