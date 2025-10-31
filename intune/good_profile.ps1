@@ -62,6 +62,11 @@ function Set-WslNetConfig {
         Write-Host "Created new .wslconfig"
     }
 }
+if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
+    Set-Alias -Name docker -Value podman
+    Set-Item -Path Env:\ASPIRE_CONTAINER_RUNTIME -Value "podman"
+    Set-WslNetConfig
+}
 
 ## FullLanguage: No restrictions (default in most PowerShell sessions)
 ## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
@@ -341,11 +346,6 @@ function Initialize-PSReadLineSmart {
     return $result
 }
 Initialize-PSReadLineSmart
-
-if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
-    Set-Alias -Name docker -Value podman
-    [System.Environment]::SetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME", "podman", "User")
-}
 
 # Check for Starship
 if ([bool](Get-Command -ErrorAction SilentlyContinue starship.exe).Source) {
