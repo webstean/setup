@@ -1138,3 +1138,8 @@ $proc = Get-Process -Name "Podman Desktop" -ErrorAction SilentlyContinue
 if ($proc) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
 Set-PodmanConfig
 Enable-PodmanFirewallRules
+podman machine stop
+podman machine set --rootful
+podman machine start
+
+
