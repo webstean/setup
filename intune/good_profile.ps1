@@ -840,7 +840,7 @@ function Enable-PIMRole {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         # Default to Global Reader
-        [Parameter(ParameterSetName='ByName', Mandatory)] = "ByName",
+        [Parameter(ParameterSetName='ByName', Mandatory)] ### = "ByName",
         [string]$RoleName = "Global Reader",
 
         [Parameter(ParameterSetName='ById', Mandatory)]
