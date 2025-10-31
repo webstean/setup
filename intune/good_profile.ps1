@@ -805,8 +805,12 @@ function Import-EnvFile {
         [string]$Path
     )
 
-    if (-not (Test-Path $Path)) {
-        throw "File not found: $Path"
+    if (-not (Test-Path "$Path")) {
+        if (-not (Test-Path "$HOME\$Path")) {
+            throw "File not found: $Path or $Home\$Path"
+        } else
+            $Path = "$HOME\$Path"
+        }
     }
 
     Get-Content $Path | ForEach-Object {
