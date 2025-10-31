@@ -798,3 +798,163 @@ AZURE_USERNAME=$env:UPN
     #$Host.UI.RawUI.WindowTop = 0
 }
 
+function Enable-PIMRole {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        # Default to Global Reader
+        [Parameter(ParameterSetName='ByName', Mandatory)]
+        [string]$RoleName = "Global Reader",
+
+        [Parameter(ParameterSetName='ById', Mandatory)]
+        [string]$RoleDefinitionId,
+
+        [Parameter(Mandatory)]
+        [string]$Justification = "DA",
+
+        [Parameter()]
+        [object]$Duration = "08:00:00",
+
+        [Parameter()]
+        [string]$DirectoryScopeId = "/",
+
+        [Parameter()]
+        [string]$TicketNumber,
+
+        [Parameter()]
+        [string]$TicketSystem,
+
+        [switch]$Wait,
+
+        [int]$TimeoutSeconds = 120
+    )
+
+    # Known role IDs
+    $GlobalReaderId = 'f2ef992c-3afb-46b9-b7cf-a126ee74c451'  # Global Reader
+
+    function Convert-ToIso8601Duration([object]$ts) {
+        if ($ts -is [string]) { $ts = [System.TimeSpan]::Parse($ts) }
+        if ($ts -isnot [System.TimeSpan]) { throw "Duration must be a TimeSpan or 'HH:MM:SS' string." }
+        $h=[int][math]::Floor($ts.TotalHours); $m=$ts.Minutes; $s=$ts.Seconds
+        "PT" + ($(if($h){"$hH"})+$(if($m){"$mM"})+$(if($s -or (-not $h -and -not $m)){"$sS"}))
+    }
+
+    function Ensure-Graph() {
+        if (-not (Get-Module Microsoft.Graph -ListAvailable)) {
+            Install-Module Microsoft.Graph -Scope CurrentUser -Force -ErrorAction Stop
+        }
+        Import-Module Microsoft.Graph -ErrorAction Stop
+        $ctx = Get-MgContext
+        if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleManagement.ReadWrite.Directory")) {
+            if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
+            Connect-MgGraph -Scopes "RoleManagement.ReadWrite.Directory" -ErrorAction Stop | Out-Null
+        }
+    }
+
+    function Get-MyUserId() {
+        $ctx = Get-MgContext
+        if ($ctx -and $ctx.Account -and $ctx.Account.Id) { return $ctx.Account.Id }
+        (Get-MgUserMe).Id
+    }
+
+    try {
+        Ensure-Graph
+        $principalId = Get-MyUserId
+
+        # Pull eligibilities up-front (for name lookup and eligibility validation)
+        $eligible = Get-MgRoleManagementDirectoryRoleEligibilitySchedule -All |
+                    Where-Object { $_.PrincipalId -eq $principalId }
+
+        if (-not $eligible) {
+            throw "No PIM-eligible directory roles found for the signed-in user."
+        }
+
+        # ---- Resolve RoleDefinitionId --------------------------------------
+        if ($PSCmdlet.ParameterSetName -eq 'ByName') {
+            # Try case-insensitive match by display name
+            $match = $eligible | Where-Object { $_.RoleDefinitionDisplayName -ieq $RoleName } | Select-Object -First 1
+
+            if ($null -ne $match) {
+                $RoleDefinitionId = $match.RoleDefinitionId
+            }
+            elseif ($RoleName -ieq "Global Reader") {
+                # Fallback to known ID for Global Reader
+                $RoleDefinitionId = $GlobalReaderId
+            }
+            else {
+                $available = ($eligible.RoleDefinitionDisplayName | Sort-Object -Unique) -join ', '
+                throw "Role '$RoleName' not found among your eligible roles. Eligible: $available"
+            }
+
+            # Validate eligibility for the resolved ID
+            $eligibleForId = $eligible | Where-Object { $_.RoleDefinitionId -eq $RoleDefinitionId }
+            if (-not $eligibleForId) {
+                $available = ($eligible.RoleDefinitionDisplayName | Sort-Object -Unique) -join ', '
+                throw "You are not PIM-eligible for role '$RoleName' (RoleDefinitionId=$RoleDefinitionId). Eligible: $available"
+            }
+        }
+        else {
+            # ById path: also validate eligibility
+            $eligibleForId = $eligible | Where-Object { $_.RoleDefinitionId -eq $RoleDefinitionId }
+            if (-not $eligibleForId) {
+                $available = ($eligible.RoleDefinitionDisplayName | Sort-Object -Unique) -join ', '
+                throw "You are not PIM-eligible for RoleDefinitionId '$RoleDefinitionId'. Eligible: $available"
+            }
+        }
+
+        # ---- Build activation request --------------------------------------
+        $isoDur = Convert-ToIso8601Duration $Duration
+        $body = @{
+            action           = "selfActivate"
+            justification    = $Justification
+            directoryScopeId = $DirectoryScopeId
+            principalId      = $principalId
+            roleDefinitionId = $RoleDefinitionId
+            scheduleInfo     = @{
+                startDateTime = (Get-Date).ToUniversalTime()
+                expiration    = @{
+                    type     = "AfterDuration"
+                    duration = $isoDur
+                }
+            }
+        }
+
+        if ($TicketNumber -or $TicketSystem) {
+            $body.ticketInfo = @{
+                ticketNumber = ($TicketNumber  ? $TicketNumber  : "")
+                ticketSystem = ($TicketSystem  ? $TicketSystem  : "")
+            }
+        }
+
+        if ($PSCmdlet.ShouldProcess("RoleDefinitionId=$RoleDefinitionId for PrincipalId=$principalId", "PIM self-activate")) {
+            $req = New-MgRoleManagementDirectoryRoleAssignmentScheduleRequest -BodyParameter $body -ErrorAction Stop
+        }
+
+        if (-not $Wait) { return $req }
+
+        # ---- Poll until active (or timeout) --------------------------------
+        $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+        do {
+            Start-Sleep -Seconds 3
+            $active = Get-MgRoleManagementDirectoryRoleAssignmentSchedule -All `
+                      | Where-Object { $_.PrincipalId -eq $principalId -and $_.RoleDefinitionId -eq $RoleDefinitionId }
+        } while (-not $active -and (Get-Date) -lt $deadline)
+
+        if (-not $active) {
+            Write-Warning "Activation submitted (Id=$($req.Id)), but role did not appear active within $TimeoutSeconds seconds."
+            return $req
+        }
+
+        [pscustomobject]@{
+            RequestId        = $req.Id
+            RoleDefinitionId = $RoleDefinitionId
+            RoleName         = if ($PSCmdlet.ParameterSetName -eq 'ByName') { $RoleName } else { $active[0].RoleDefinitionDisplayName }
+            PrincipalId      = $principalId
+            ActiveAssignment = $active | Select-Object Id, StartDateTime, EndDateTime, Status, RoleDefinitionId, DirectoryScopeId
+        }
+    }
+    catch {
+        throw "Failed to activate PIM role: $($_.Exception.Message)"
+    }
+}
+
+
