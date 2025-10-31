@@ -829,6 +829,10 @@ function Import-EnvFile {
             Write-Verbose "Set `$Env:$key = '$val'"
         }
     }
+    if ($env:AZURE_USERNAME) {
+        Write-Host "Logon as: $env:AZURE_USERNAME"
+        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope "RoleManagement.ReadWrite.Directory,User.Read"
+    }
     ## [System.Environment]::UnSetEnvironmentVariable("AZURE_TENANT_NAME", 'Process')
 }
 
@@ -986,4 +990,5 @@ function Enable-PIMRole {
         throw "Failed to activate PIM role ($RoleName): $($_.Exception.Message)"
     }
 }
-## Connect-MgGraph -NoWelcome
+## Enable-PIMRole -ByName
+## Connect-MgGraph -NoWelcome -Scopes "RoleManagement.ReadWrite.Directory"
