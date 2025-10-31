@@ -26,6 +26,41 @@ function Update-Profile-Force {
 }
 #Update-Profile-Force
 
+function Set-WslNetConfig {
+    ## compatible with Podman
+    
+    # Ensure WSL networking mode is Mirror
+    # Ensure WSL autoproxy is off
+    $wslConfigPath = [System.IO.Path]::Combine($env:HOMEPATH, ".wslconfig")
+    # Check if the .wslconfig file exists
+    if (Test-Path $wslConfigPath) {
+        # Read the contents of the .wslconfig file
+        $wslConfigContent = Get-Content -Path $wslConfigPath -Raw
+        
+        # Check if 'networkingMode' is set to 'mirrored'
+        if ($wslConfigContent -notmatch "networkingMode\s*=\s*mirrored") {
+            # Add or update the networkingMode setting
+            $newConfig1 = $wslConfigContent -replace "(\[.*?\])", "`$1`r`nnetworkingMode = mirrored"
+            $newConfig2 = $wslConfigContent -replace "(\[.*?\])", "`$1`r`nautoProxy = false"
+            
+            # Write the updated content back to the file
+            Set-Content -Path $wslConfigPath -Value $newConfig1 -Force
+            Set-Content -Path $wslConfigPath -Value $newConfig2 -Force
+            Write-Host "Added 'networkingMode = mirrored' to .wslconfig"
+        } else {
+            Write-Host "Updated .wslconfig"
+        }
+    } else {
+        # If .wslconfig doesn't exist, create it with the networkingMode setting
+        $configContent = "[network]" + "`r`n" + "networkingMode = mirrored"
+        Set-Content -Path $wslConfigPath -Value $configContent
+        $configContent = "[network]" + "`r`n" + "autoProxy = false"
+        
+        Write-Host "Created .wslconfig"
+        }
+    }
+}
+
 ## FullLanguage: No restrictions (default in most PowerShell sessions)
 ## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
 ## RestrictedLanguage: Very limited (e.g., only basic expressions)
