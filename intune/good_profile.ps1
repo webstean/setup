@@ -829,6 +829,7 @@ function Import-EnvFile {
             Write-Verbose "Set `$Env:$key = '$val'"
         }
     }
+    ## [System.Environment]::UnSetEnvironmentVariable("AZURE_TENANT_NAME", 'Process')
 }
 
 function Enable-PIMRole {
