@@ -991,4 +991,4 @@ function Enable-PIMRole {
     }
 }
 ## Enable-PIMRole -ByName
-## Connect-MgGraph -NoWelcome -Scopes "RoleManagement.ReadWrite.Directory"
+## Connect-MgGraph -NoWelcome -Scopes "RoleManagement.ReadWrite.Directory, User.Read"
