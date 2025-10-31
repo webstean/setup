@@ -184,58 +184,6 @@ if ($PSVersionTable.PSEdition -eq 'Desktop') {
     return $true | Out-Null
 }
 
-function Set-MSTerminalBackground {
-    param (
-        [string]$settingsfile = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
-        [string]$backup_settingsfile = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.admin",
-        [string]$BackgroundColor = "#993755" ## "#994755" "#506950ff" "#000000"
-    )
-
-    ## Forget it, if this is Windows PowerShell, because ConvertFrom-Json does not support enough depth to successfu;;y edit the config file
-    if ($PSVersionTable.PSEdition -eq 'Desktop') { return }
-
-    $ErrorActionPreference = 'Ignore'
-    try {
-
-        ## Check if the settings file exists
-        if (-not (Test-Path $settingsfile  -PathType Leaf)) {
-            return $false
-        }
-
-        ## Read the settings
-        $json = Get-Content -Path $settingsfile -Raw | ConvertFrom-Json -Depth 10
-
-        ## Ensure the profiles object exists
-        if (-Not $json.profiles) {
-            $json.profiles = @{}
-        }
-
-        ## Ensure the profiles.defaults section exists
-        if (-Not $json.profiles.defaults) {
-            $json.profiles.defaults = @{}
-        }
-
-        if (-NOT $json.profiles.defaults.PSObject.Properties["background"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "background" -Value $BackgroundColor
-        }
-        else {
-            $json.profiles.defaults.background = $BackgroundColor
-        }
-        if (-NOT $json.profiles.defaults.PSObject.Properties["useAcrylic"]) {
-            $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name "useAcrylic" -Value $true
-        }
-        else {
-            $json.profiles.defaults.useAcrylic = $true
-        }
-        ## Save the updated JSON content back to the settings file
-        $json | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsfile -Encoding UTF8
-    }
-    catch {
-        Write-Host "Error updating settings: $_"
-        return $false
-    }
-}
-
 #use only for PowerShell and VS Code
 #if ($host.Name -eq 'ConsoleHost' -or $host.Name -eq 'Visual Studio Code Host' ) {
 function Initialize-PSReadLineSmart {
