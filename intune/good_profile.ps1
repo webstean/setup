@@ -783,6 +783,7 @@ AZURE_SUBSCRIPTION_ID=$env:AZURE_SUBSCRIPTION_ID
 AZURE_TENANT_ID=$env:AZURE_TENANT_ID
 AZURE_USERNAME=$env:UPN
 "@ | Out-File -Encoding UTF8 -FilePath "$HOME/.env-default"
+    Copy-Item "$HOME/.env-default" "$HOME/.env" -Force
     
     # $Host.UI.RawUI.WindowTitle = "Andrew"
     
