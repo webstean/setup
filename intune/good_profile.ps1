@@ -60,7 +60,6 @@ function Set-WslNetConfig {
         Set-Content -Path $wslConfigPath -Value $configContent2
         
         Write-Host "Created new .wslconfig"
-        }
     }
 }
 
