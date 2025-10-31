@@ -759,18 +759,30 @@ if ($IsLanguagePermissive) {
     if ($subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id ) {
         Set-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Value $subscription_id
     } else {
-        Remove-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Force
+        Remove-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Force -ErrorAction SilentlyContinue
     }
     if ($tenant_id = (Get-AzTenant -ErrorAction SilentlyContinue).Id ) {
         Set-Item -Path Env:\AZURE_TENANT_ID -Value $tenant_id
     } else {
-        Remove-Item -Path Env:\AZURE_TENANT_ID -Force
+        Remove-Item -Path Env:\AZURE_TENANT_ID -Force -ErrorAction SilentlyContinue
     }
     if ($tenant_name = (Get-AzTenant -ErrorAction SilentlyContinue).Name ) {
         Set-Item -Path Env:\AZURE_TENANT_NAME -Value $tenant_name
     } else {
-        Remove-Item -Path Env:\AZURE_TENANT_NAME -Force
+        Remove-Item -Path Env:\AZURE_TENANT_NAME -Force -ErrorAction SilentlyContinue
     }
+    if ($nul -neq $UPN ) {
+        Set-Item -Path Env:\AZURE_USERNAME -Value $UPN
+    } else {
+        Remove-Item -Path Env:\AZURE_TENANT_NAME -Force -ErrorAction SilentlyContinue
+    }
+    
+    @"
+# $env:AZURE_TENANT_NAME .env file
+AZURE_SUBSCRIPTION_ID=$env:AZURE_SUBSCRIPTION_ID
+AZURE_TENANT_ID=$env:AZURE_TENANT_ID
+AZURE_USERNAME=$env:UPN
+"@ | Out-File -Encoding UTF8 -FilePath "$HOME/.env-default"
     
     # $Host.UI.RawUI.WindowTitle = "Andrew"
     
