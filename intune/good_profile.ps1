@@ -62,9 +62,17 @@ function Set-WslNetConfig {
 }
 function Reset-Podman {
     ## Run as required
+    #podman machine reset --force
+    #podman machine init --rootful --timezone "Australia/Melbourne"
     podman machine stop
     podman machine set --rootful
     podman machine start
+    podman machine inspect | jq
+}
+function Reset-Podman2 {
+    ## Run as required
+    podman machine reset --force
+    podman machine init --rootful --timezone "Australia/Melbourne"
     podman machine inspect | jq
 }
 if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
