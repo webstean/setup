@@ -809,10 +809,10 @@ function Enable-PIMRole {
         [string]$RoleDefinitionId,
 
         [Parameter(Mandatory)]
-        [string]$Justification = "DA",
+        [string]$Justification,
 
         [Parameter()]
-        [object]$Duration = "08:00:00",
+        [object]$Duration = "01:00:00",
 
         [Parameter()]
         [string]$DirectoryScopeId = "/",
@@ -838,7 +838,7 @@ function Enable-PIMRole {
         "PT" + ($(if($h){"$hH"})+$(if($m){"$mM"})+$(if($s -or (-not $h -and -not $m)){"$sS"}))
     }
 
-    function Ensure-Graph() {
+    function Ensure-Graph {
         if (-not (Get-Module Microsoft.Graph -ListAvailable)) {
             Install-Module Microsoft.Graph -Scope CurrentUser -Force -ErrorAction Stop
         }
@@ -850,7 +850,7 @@ function Enable-PIMRole {
         }
     }
 
-    function Get-MyUserId() {
+    function Get-MyUserId {
         $ctx = Get-MgContext
         if ($ctx -and $ctx.Account -and $ctx.Account.Id) { return $ctx.Account.Id }
         (Get-MgUserMe).Id
@@ -860,7 +860,7 @@ function Enable-PIMRole {
         Ensure-Graph
         $principalId = Get-MyUserId
 
-        # Pull eligibilities up-front (for name lookup and eligibility validation)
+        # Pull eligibilities
         $eligible = Get-MgRoleManagementDirectoryRoleEligibilitySchedule -All |
                     Where-Object { $_.PrincipalId -eq $principalId }
 
@@ -870,14 +870,12 @@ function Enable-PIMRole {
 
         # ---- Resolve RoleDefinitionId --------------------------------------
         if ($PSCmdlet.ParameterSetName -eq 'ByName') {
-            # Try case-insensitive match by display name
             $match = $eligible | Where-Object { $_.RoleDefinitionDisplayName -ieq $RoleName } | Select-Object -First 1
 
             if ($null -ne $match) {
                 $RoleDefinitionId = $match.RoleDefinitionId
             }
             elseif ($RoleName -ieq "Global Reader") {
-                # Fallback to known ID for Global Reader
                 $RoleDefinitionId = $GlobalReaderId
             }
             else {
@@ -885,7 +883,6 @@ function Enable-PIMRole {
                 throw "Role '$RoleName' not found among your eligible roles. Eligible: $available"
             }
 
-            # Validate eligibility for the resolved ID
             $eligibleForId = $eligible | Where-Object { $_.RoleDefinitionId -eq $RoleDefinitionId }
             if (-not $eligibleForId) {
                 $available = ($eligible.RoleDefinitionDisplayName | Sort-Object -Unique) -join ', '
@@ -893,7 +890,6 @@ function Enable-PIMRole {
             }
         }
         else {
-            # ById path: also validate eligibility
             $eligibleForId = $eligible | Where-Object { $_.RoleDefinitionId -eq $RoleDefinitionId }
             if (-not $eligibleForId) {
                 $available = ($eligible.RoleDefinitionDisplayName | Sort-Object -Unique) -join ', '
@@ -919,9 +915,12 @@ function Enable-PIMRole {
         }
 
         if ($TicketNumber -or $TicketSystem) {
+            $tn = if ($TicketNumber) { $TicketNumber } else { "" }
+            $ts = if ($TicketSystem) { $TicketSystem } else { "" }
+
             $body.ticketInfo = @{
-                ticketNumber = ($TicketNumber  ? $TicketNumber  : "")
-                ticketSystem = ($TicketSystem  ? $TicketSystem  : "")
+                ticketNumber = $tn
+                ticketSystem = $ts
             }
         }
 
@@ -931,12 +930,12 @@ function Enable-PIMRole {
 
         if (-not $Wait) { return $req }
 
-        # ---- Poll until active (or timeout) --------------------------------
+        # ---- Poll until active --------------------------------------------
         $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
         do {
             Start-Sleep -Seconds 3
-            $active = Get-MgRoleManagementDirectoryRoleAssignmentSchedule -All `
-                      | Where-Object { $_.PrincipalId -eq $principalId -and $_.RoleDefinitionId -eq $RoleDefinitionId }
+            $active = Get-MgRoleManagementDirectoryRoleAssignmentSchedule -All |
+                      Where-Object { $_.PrincipalId -eq $principalId -and $_.RoleDefinitionId -eq $RoleDefinitionId }
         } while (-not $active -and (Get-Date) -lt $deadline)
 
         if (-not $active) {
@@ -956,5 +955,3 @@ function Enable-PIMRole {
         throw "Failed to activate PIM role: $($_.Exception.Message)"
     }
 }
-
-
