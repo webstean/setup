@@ -27,7 +27,9 @@ function Update-Profile-Force {
 #Update-Profile-Force
 
 function Set-WslNetConfig {
-    ## compatible with Podman
+    ## make WSL compatible with Podman, especially being able to access containers via loopback/127.0.0.1
+
+    if (-not ($IsLanguagePermissive)) { return }
     
     # Ensure WSL networking mode is Mirror
     # Ensure WSL autoproxy is off
@@ -48,15 +50,16 @@ function Set-WslNetConfig {
             Set-Content -Path $wslConfigPath -Value $newConfig2 -Force
             Write-Host "Added 'networkingMode = mirrored' to .wslconfig"
         } else {
-            Write-Host "Updated .wslconfig"
+            Write-Host "Updated existing .wslconfig"
         }
     } else {
         # If .wslconfig doesn't exist, create it with the networkingMode setting
-        $configContent = "[network]" + "`r`n" + "networkingMode = mirrored"
-        Set-Content -Path $wslConfigPath -Value $configContent
-        $configContent = "[network]" + "`r`n" + "autoProxy = false"
+        $configContent1 = "[network]" + "`r`n" + "networkingMode = mirrored"
+        Set-Content -Path $wslConfigPath -Value $configContent1
+        $configContent2 = "[network]" + "`r`n" + "autoProxy = false"
+        Set-Content -Path $wslConfigPath -Value $configContent2
         
-        Write-Host "Created .wslconfig"
+        Write-Host "Created new .wslconfig"
         }
     }
 }
