@@ -82,7 +82,7 @@ if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
     ## docker run -it mcr.microsoft.com/azure-cli:azurelinux3.0
     ## docker run -it mcr.microsoft.com/devcontainers/base:ubuntu
     ## docker run -it mcr.microsoft.com/azure-cloudshell
-    ## podman run -it --env AZURE_SUBSCRIPTION_ID=$env:AZURE_SUBSCRIPTION_ID --env AZURE_TENANT_ID=$env:AZURE_TENANT_ID --env AZURE_USER=$env:UPN mcr.microsoft.com/azure-cloudshell 
+    ## podman run -it --env AZURE_SUBSCRIPTION_ID=$env:AZURE_SUBSCRIPTION_ID --env AZURE_TENANT_ID=$env:AZURE_TENANT_ID --env AZURE_USERNAME=$env:AZURE_USERNAME mcr.microsoft.com/azure-cloudshell 
     ## docker run --rm -it ghcr.io/baresip/docker/baresip:latest
 }
 
