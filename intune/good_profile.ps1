@@ -831,7 +831,7 @@ function Import-EnvFile {
     }
     if ($env:AZURE_USERNAME) {
         Write-Host "Logon as: $env:AZURE_USERNAME"
-        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope "RoleManagement.ReadWrite.Directory,User.Read"
+        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID"' -Scope "RoleManagement.ReadWrite.Directory,User.Read"'
     }
     ## [System.Environment]::UnSetEnvironmentVariable("AZURE_TENANT_NAME", 'Process')
 }
