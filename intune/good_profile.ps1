@@ -60,6 +60,12 @@ function Set-WslNetConfig {
         Write-Host "Created new .wslconfig"
     }
 }
+function Reset-Podman {
+    ## Run as required
+    podman machine stop
+    podman machine set --rootful
+    podman machine start
+}
 if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
     Set-Alias -Name docker -Value podman
     Set-Item -Path Env:\ASPIRE_CONTAINER_RUNTIME -Value "podman"
