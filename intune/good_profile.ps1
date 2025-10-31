@@ -771,10 +771,10 @@ if ($IsLanguagePermissive) {
     } else {
         Remove-Item -Path Env:\AZURE_TENANT_NAME -Force -ErrorAction SilentlyContinue
     }
-    if ($nul -neq $UPN ) {
+    if (![string]::IsNullOrEmpty($UPN)) {
         Set-Item -Path Env:\AZURE_USERNAME -Value $UPN
     } else {
-        Remove-Item -Path Env:\AZURE_TENANT_NAME -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path Env:\AZURE_USERNAME -Force -ErrorAction SilentlyContinue
     }
     
     @"
