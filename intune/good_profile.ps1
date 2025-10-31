@@ -200,6 +200,19 @@ function Set-Developer-Variables {
 }
 Set-Developer-Variables
 
+#Only works for Powershell naked (no starship,Oh My Posh etc..)
+function prompt {
+
+    if ( $IsAdmin ) {
+        $color = "Red"
+        Write-Host ("PS (Admin) " + $(Get-Location) + ">") -NoNewline -ForegroundColor $Color
+    } else {
+        $color = "Green"    
+        Write-Host ("PS " + $(Get-Location) + ">") -NoNewline -ForegroundColor $Color
+    }
+    return "`n> "
+}
+
 ## If Windows Powershell
 if ($PSVersionTable.PSEdition -eq 'Desktop') {
     Write-Host -ForegroundColor DarkYellow "Exiting PowerShell Profile - as this is Windows PowerShell"
@@ -439,19 +452,6 @@ function Install-OrUpdateModule {
     catch {
         Write-Host "Failed to install or update '$ModuleName': $_" -ForegroundColor Red
     }
-}
-
-#Only works for Powershell naked (no starship,Oh My Posh etc..)
-function prompt {
-
-    if ( $IsAdmin ) {
-        $color = "Red"
-        Write-Host ("PS (Admin) " + $(Get-Location) + ">") -NoNewline -ForegroundColor $Color
-    } else {
-        $color = "Green"    
-        Write-Host ("PS " + $(Get-Location) + ">") -NoNewline -ForegroundColor $Color
-    }
-    return "`n> "
 }
 
 if ($env:IsDevBox -eq "True" ) {
