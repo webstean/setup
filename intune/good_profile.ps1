@@ -80,6 +80,8 @@ if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
     Set-Alias -Name docker -Value podman
     Set-Item -Path Env:\ASPIRE_CONTAINER_RUNTIME -Value "podman"
     Set-WslNetConfig
+    ## podman run -dt -p 8080:80/tcp docker.io/library/httpd:latest
+    ## docker run -it mcr.microsoft.com/azure-cli:azurelinux3.0
 }
 
 ## FullLanguage: No restrictions (default in most PowerShell sessions)
