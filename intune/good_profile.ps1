@@ -783,7 +783,8 @@ AZURE_SUBSCRIPTION_ID=$env:AZURE_SUBSCRIPTION_ID
 AZURE_TENANT_ID=$env:AZURE_TENANT_ID
 AZURE_USERNAME=$env:UPN
 "@ | Out-File -Encoding UTF8 -FilePath "$HOME/.env-default"
-    Copy-Item "$HOME/.env-default" "$HOME/.env" -Force
+    Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env-default" -Force
+    Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env" -Force
     
     # $Host.UI.RawUI.WindowTitle = "Andrew"
     
@@ -796,6 +797,38 @@ AZURE_USERNAME=$env:UPN
     #$Host.UI.RawUI.BufferSize.Width = 120
     #$Host.UI.RawUI.BufferSize.Height = 5000
     #$Host.UI.RawUI.WindowTop = 0
+}
+
+function Import-EnvFile {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path
+    )
+
+    if (-not (Test-Path $Path)) {
+        throw "File not found: $Path"
+    }
+
+    Get-Content $Path | ForEach-Object {
+        $line = $_.Trim()
+
+        # Skip blank lines and comments
+        if ($line -eq "" -or $line -match '^\s*#') { return }
+
+        # Split KEY=value — supports values with '=' inside quotes
+        if ($line -match '^\s*([^=]+?)\s*=\s*(.*)\s*$') {
+            $key = $matches[1].Trim()
+            $val = $matches[2].Trim()
+
+            # Remove optional surrounding quotes
+            if ($val -match '^"(.*)"$') { $val = $matches[1] }
+            elseif ($val -match "^'(.*)'$") { $val = $matches[1] }
+
+            # Set environment variable
+            [System.Environment]::SetEnvironmentVariable($key, $val, 'Process')
+            Write-Verbose "Set `$Env:$key = '$val'"
+        }
+    }
 }
 
 function Enable-PIMRole {
@@ -839,9 +872,6 @@ function Enable-PIMRole {
     }
 
     function Ensure-Graph {
-        if (-not (Get-Module Microsoft.Graph -ListAvailable)) {
-            Install-Module Microsoft.Graph -Scope CurrentUser -Force -ErrorAction Stop
-        }
         Import-Module Microsoft.Graph -ErrorAction Stop
         $ctx = Get-MgContext
         if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleManagement.ReadWrite.Directory")) {
