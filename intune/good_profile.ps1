@@ -85,10 +85,6 @@ if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
     ## docker run -it mcr.microsoft.com/devcontainers/base:ubuntu
     ## docker run -it mcr.microsoft.com/azure-cloudshell
     ## podman run -it --env AZURE_SUBSCRIPTION_ID=$env:AZURE_SUBSCRIPTION_ID --env AZURE_TENANT_ID=$env:AZURE_TENANT_ID --env AZURE_USER=$env:UPN mcr.microsoft.com/azure-cloudshell 
--e POSTGRES_ENV_DB_NAME='mysite_staging' \
--e POSTGRES_PORT_5432_TCP_ADDR='docker-db-1.hidden.us-east-1.rds.amazonaws.com' \
--e SITE_URL='staging.mysite.com' \
-    
     ## docker run --rm -it ghcr.io/baresip/docker/baresip:latest
 }
 
