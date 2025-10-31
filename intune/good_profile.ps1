@@ -982,6 +982,6 @@ function Enable-PIMRole {
         }
     }
     catch {
-        throw "Failed to activate PIM role: $($_.Exception.Message)"
+        throw "Failed to activate PIM role ($RoleName): $($_.Exception.Message)"
     }
 }
