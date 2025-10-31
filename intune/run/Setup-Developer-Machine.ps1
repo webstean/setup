@@ -125,7 +125,7 @@ function Invoke-GitHub-Download {
     }
 }
 
-function Invoke-AzBlobDownload {
+function Invoke-AzBlob-Download {
     <#
     .SYNOPSIS
         Download a list of blobs from Azure Blob Storage using a SAS token.
