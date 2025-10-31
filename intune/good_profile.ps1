@@ -65,6 +65,7 @@ function Reset-Podman {
     podman machine stop
     podman machine set --rootful
     podman machine start
+    podman machine inspect | jq
 }
 if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
     Set-Alias -Name docker -Value podman
