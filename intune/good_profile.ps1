@@ -347,25 +347,6 @@ if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
     [System.Environment]::SetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME", "podman", "User")
 }
 
-function Find-ProgramInPath {
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$ProgramName
-    )
-    $ErrorActionPreference = 'Ignore'
-    # Get the PATH environment variable and split it into directories
-    $PathDirs = [System.Environment]::GetEnvironmentVariable("PATH") -split ";"
-
-    # Search each directory for the program
-    foreach ($Dir in $PathDirs) {
-        $FullPath = Join-Path -Path $Dir -ChildPath $ProgramName
-        if (Test-Path $FullPath) {
-            return $true
-        }
-    }
-    return $false
-}
-
 # Check for Starship
 if ([bool](Get-Command -ErrorAction SilentlyContinue starship.exe).Source) {
     if (-not $env:STARSHIP_CONFIG) {
