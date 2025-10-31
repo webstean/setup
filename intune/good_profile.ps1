@@ -808,7 +808,7 @@ function Import-EnvFile {
     if (-not (Test-Path "$Path")) {
         if (-not (Test-Path "$HOME\$Path")) {
             throw "File not found: $Path or $Home\$Path"
-        } else
+        } else {
             $Path = "$HOME\$Path"
         }
     }
