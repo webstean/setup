@@ -985,3 +985,4 @@ function Enable-PIMRole {
         throw "Failed to activate PIM role ($RoleName): $($_.Exception.Message)"
     }
 }
+## Connect-MgGraph -NoWelcome
