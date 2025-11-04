@@ -881,9 +881,9 @@ function Enable-PIMRole {
     function Ensure-Graph {
         Import-Module Microsoft.Graph -ErrorAction Stop
         $ctx = Get-MgContext
-        if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleManagement.ReadWrite.Directory")) {
+        if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleAssignmentSchedule.ReadWrite.Directory")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
-            Connect-MgGraph -Scopes "RoleManagement.ReadWrite.Directory" -ErrorAction Stop | Out-Null
+            Connect-MgGraph -Scopes "RoleAssignmentSchedule.ReadWrite.Directory" -ErrorAction Stop | Out-Null
         }
     }
 
