@@ -1018,7 +1018,7 @@ function Enable-PIMRole {
         throw "Failed to activate PIM role ($RoleName): $($_.Exception.Message)"
     }
 }
-## Enable-PIMRole -ByName -Wait
+## Enable-PIMRole
 ## Connect-MgGraph -NoWelcome"
 ## $user = Get-MgUserMe
 
