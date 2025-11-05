@@ -891,10 +891,10 @@ function Enable-PIMRole {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         # Default to Global Reader
-        [Parameter(Mandatory)]
+        [Parameter()]
         [string]$RoleName = "Global Reader",
 
-        [Parameter(Mandatory)]
+        [Parameter()]
         [string]$Justification = "DA",
 
         [Parameter()]
