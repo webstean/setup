@@ -929,8 +929,7 @@ function Enable-PIMRole {
         Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
         Import-Module Microsoft.Graph.Users -ErrorAction Stop
         $ctx = Get-MgContext
-        $ctx.Scopes
-        if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "User.Read")) {
+                if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "User.Read")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
             Connect-MgGraph -NoWelcome -Scopes "User.Read" -ErrorAction Stop | Out-Null
         }
@@ -961,6 +960,7 @@ function Enable-PIMRole {
         $principalId = Get-MyUserId
 
         # Pull eligibilities
+        $ctx.roles
         $eligible = Get-MgRoleManagementDirectoryRoleEligibilitySchedule -All | Where-Object { $_.PrincipalId -eq $principalId }
 
         if (-not $eligible) {
