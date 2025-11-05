@@ -15,23 +15,23 @@ function Update-Profile-Force {
     }
 
     # Download and overwrite the profile
-    $newContent = Invoke-WebRequest -Uri $url -ContentType "text/plan" -UseBasicParsing
+    # Download the file content
+    $response = Invoke-WebRequest -Uri $url -ContentType "text/plain" -UseBasicParsing
+    $newContent = $response.Content
 
     # Check if file already exists
-    if (Test-Path $PROFILE  -ErrorAction SilentlyContinue) {
+    if (Test-Path $PROFILE -ErrorAction SilentlyContinue) {
         $oldContent = Get-Content -Path $PROFILE -Raw -Encoding ASCII
 
-        if ($oldContent -eq $newContent.Content ) {
+        if ($oldContent -eq $newContent) {
             Write-Host "The downloaded file is identical to the existing one - no update needed." -ForegroundColor Yellow
         } else {
-            $newContent.Content | Out-File -FilePath $PROFILE -Encoding ASCII
-##            $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
+            $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
             Write-Host "The downloaded file is an UPDATED version - existing file replaced." -ForegroundColor Green
         }
     } else {
-        $newContent.Content | Out-File -FilePath $PROFILE -Encoding ASCII
-        ## $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
-        Write-Host "No existing file found — new file created." -ForegroundColor Cyan
+        $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
+        Write-Host "No existing file found - new file created." -ForegroundColor Cyan
     }
 }
 #Update-Profile-Force
