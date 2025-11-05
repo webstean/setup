@@ -1073,25 +1073,18 @@ function Decode-Jwt {
     }
 }
 
-    function Get-MyToken { ## with Graph Modules
-        $params = @{
-            Method     = "GET"
-            Uri        = "https://graph.microsoft.com/v1.0/me"
-            OutputType = "HttpResponseMessage"
-        }
-        $response = Invoke-MgGraphRequest @params
-        $authHeader = $response.RequestMessage.Headers.Authorization
-        return ($authHeader.Parameter)   # <-- this is your access token stri.ng
+function Get-MyToken { ## with Graph Modules
+    $params = @{
+        Method     = "GET"
+        Uri        = "https://graph.microsoft.com/v1.0/me"
+        OutputType = "HttpResponseMessage"
     }
-    function Get-MyToken-Flow-Device {
-    <#.
-        .SYNOPSIS
-        Obtain a Microsoft Graph access token (device-code flow) with no external modules.
+    $response = Invoke-MgGraphRequest @params
+    $authHeader = $response.RequestMessage.Headers.Authorization
+    return ($authHeader.Parameter)   # <-- this is your access token stri.ng
+}
 
-        .EXAMPLE
-        $token = Get-MyToken -TenantId "contoso.onmicrosoft.com" -Scopes "User.Read.All Directory.Read.All"
-    #>
-
+function Get-MyToken-Flow-Device { ## without Graph Modules
     param(
         [Parameter(Mandatory)]
         [string]$TenantId = $env.AZURE_TENANT_ID,   # e.g. contoso.onmicrosoft.com or tenant GUID
@@ -1103,7 +1096,7 @@ function Decode-Jwt {
 
     Write-Host "Requesting Microsoft Graph device code for scopes: $Scopes" -ForegroundColor Cyan
 
-    # 1️⃣ Request a device code for the given scopes
+    # Request a device code for the given scopes
     $deviceCodeResponse = Invoke-RestMethod -Method POST `
         -Uri "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/devicecode" `
         -Body @{
@@ -1114,7 +1107,7 @@ function Decode-Jwt {
     Write-Host "`nGo to $($deviceCodeResponse.verification_uri) and enter code: $($deviceCodeResponse.user_code)" -ForegroundColor Yellow
     Write-Host "Waiting for sign-in and consent..." -ForegroundColor DarkGray
 
-    # 2️⃣ Poll until user signs in and token is issued
+    # Poll until user signs in and token is issued
     while ($true) {
         Start-Sleep -Seconds $deviceCodeResponse.interval
 
@@ -1142,14 +1135,14 @@ function Decode-Jwt {
             }
         }
     }
-    }
+}
 
-    function Show-MyToken {
-        $token = Get-MyToken
-        Install-OrUpdateModule JWTDetails
-        Import-Module JWTDetails
-        ## or goto: https://jwt-decoder.com/
-        ##          https://jwt.ms
-        JWTDetails $token
-    }
+function Show-MyToken {
+    $token = Get-MyToken
+    Install-OrUpdateModule JWTDetails
+    Import-Module JWTDetails
+    ## or goto: https://jwt-decoder.com/
+    ##          https://jwt.ms
+    JWTDetails $token
+}
 
