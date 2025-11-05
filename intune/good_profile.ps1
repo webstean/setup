@@ -125,8 +125,10 @@ if ($IsLanguagePermissive) {
 ## if ($IsAdmin -and $IsLanguagePermissive) {
 if ($IsAdmin) {
     $InstallScope = 'AllUsers'
+    Write-Host -ForegroundColor DarkGreen "User permisisons is        : ADMIN"
 } else {
     $InstallScope = 'CurrentUser'
+    Write-Host -ForegroundColor DarkGreen "User permisisons is        : USER"
 }
 
 function Set-Developer-Variables {
