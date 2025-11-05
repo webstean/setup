@@ -932,7 +932,7 @@ function Enable-PIMRole {
         $ctx.Scopes
         if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "User.Read")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
-            Connect-MgGraph -Scopes "User.Read.Basic" -ErrorAction Stop | Out-Null
+            Connect-MgGraph -Scopes "User.Read" -ErrorAction Stop | Out-Null
         }
         if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleAssignmentSchedule.Read.Directory")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
