@@ -21,7 +21,7 @@ function Update-Profile-Force {
     if (Test-Path $PROFILE  -ErrorAction SilentlyContinue) {
         $oldContent = Get-Content -Path $PROFILE -Raw -Encoding ASCII
 
-        if ($oldContent.Content -eq $newContent.Content ) {
+        if ($oldContent -eq $newContent.Content ) {
             Write-Host "The downloaded file is identical to the existing one - no update needed." -ForegroundColor Yellow
         } else {
             $newContent.Content | Out-File -FilePath $PROFILE -Encoding ASCII
