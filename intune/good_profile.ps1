@@ -890,11 +890,8 @@ function Enable-PIMRole {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         # Default to Global Reader
-        [Parameter(ParameterSetName='ByName', Mandatory)] ### = "ByName",
+        [Parameter(Mandatory)]
         [string]$RoleName = "Global Reader",
-
-        [Parameter(ParameterSetName='ById', Mandatory)]
-        [string]$RoleDefinitionId,
 
         [Parameter(Mandatory)]
         [string]$Justification = "DA",
@@ -910,8 +907,6 @@ function Enable-PIMRole {
 
         [Parameter()]
         [string]$TicketSystem,
-
-        [switch]$Wait,
 
         [int]$TimeoutSeconds = 120
     )
@@ -961,32 +956,10 @@ function Enable-PIMRole {
         }
 
         # ---- Resolve RoleDefinitionId --------------------------------------
-        if ($PSCmdlet.ParameterSetName -eq 'ByName') {
-            $match = $eligible | Where-Object { $_.RoleDefinitionDisplayName -ieq $RoleName } | Select-Object -First 1
-
-            if ($null -ne $match) {
-                $RoleDefinitionId = $match.RoleDefinitionId
-            }
-            elseif ($RoleName -ieq "Global Reader") {
-                $RoleDefinitionId = $GlobalReaderId
-            }
-            else {
-                $available = ($eligible.RoleDefinitionDisplayName | Sort-Object -Unique) -join ', '
-                throw "Role '$RoleName' not found among your eligible roles. Eligible: $available"
-            }
-
-            $eligibleForId = $eligible | Where-Object { $_.RoleDefinitionId -eq $RoleDefinitionId }
-            if (-not $eligibleForId) {
-                $available = ($eligible.RoleDefinitionDisplayName | Sort-Object -Unique) -join ', '
-                throw "You are not PIM-eligible for role '$RoleName' (RoleDefinitionId=$RoleDefinitionId). Eligible: $available"
-            }
-        }
-        else {
-            $eligibleForId = $eligible | Where-Object { $_.RoleDefinitionId -eq $RoleDefinitionId }
-            if (-not $eligibleForId) {
-                $available = ($eligible.RoleDefinitionDisplayName | Sort-Object -Unique) -join ', '
-                throw "You are not PIM-eligible for RoleDefinitionId '$RoleDefinitionId'. Eligible: $available"
-            }
+        $eligibleForId = $eligible | Where-Object { $_.RoleDefinitionId -eq $RoleDefinitionId }
+        if (-not $eligibleForId) {
+            $available = ($eligible.RoleDefinitionDisplayName | Sort-Object -Unique) -join ', '
+            throw "You are not PIM-eligible for RoleDefinitionId '$RoleDefinitionId'. Eligible: $available"
         }
 
         # ---- Build activation request --------------------------------------
@@ -1019,8 +992,6 @@ function Enable-PIMRole {
         if ($PSCmdlet.ShouldProcess("RoleDefinitionId=$RoleDefinitionId for PrincipalId=$principalId", "PIM self-activate")) {
             $req = New-MgRoleManagementDirectoryRoleAssignmentScheduleRequest -BodyParameter $body -ErrorAction Stop
         }
-
-        if (-not $Wait) { return $req }
 
         # ---- Poll until active --------------------------------------------
         $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
