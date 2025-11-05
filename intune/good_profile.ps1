@@ -911,10 +911,7 @@ function Enable-PIMRole {
         [int]$TimeoutSeconds = 120
     )
 
-    if ( -not ($IsLanguagePermissive)) { return } 
-
-    # Known role IDs
-    $GlobalReaderId = 'f2ef992c-3afb-46b9-b7cf-a126ee74c451'  # Global Reader
+    ## if ( -not ($IsLanguagePermissive)) { return } 
 
     function Convert-ToIso8601Duration([object]$ts) {
         if ($ts -is [string]) { $ts = [System.TimeSpan]::Parse($ts) }
@@ -948,18 +945,10 @@ function Enable-PIMRole {
         $principalId = Get-MyUserId
 
         # Pull eligibilities
-        $eligible = Get-MgRoleManagementDirectoryRoleEligibilitySchedule -All |
-                    Where-Object { $_.PrincipalId -eq $principalId }
+        $eligible = Get-MgRoleManagementDirectoryRoleEligibilitySchedule -All | Where-Object { $_.PrincipalId -eq $principalId }
 
         if (-not $eligible) {
             throw "No PIM-eligible directory roles found for the signed-in user."
-        }
-
-        # ---- Resolve RoleDefinitionId --------------------------------------
-        $eligibleForId = $eligible | Where-Object { $_.RoleDefinitionId -eq $RoleDefinitionId }
-        if (-not $eligibleForId) {
-            $available = ($eligible.RoleDefinitionDisplayName | Sort-Object -Unique) -join ', '
-            throw "You are not PIM-eligible for RoleDefinitionId '$RoleDefinitionId'. Eligible: $available"
         }
 
         # ---- Build activation request --------------------------------------
