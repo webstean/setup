@@ -953,6 +953,14 @@ function Enable-PIMRole {
         if ($ctx -and $ctx.Account -and $ctx.Account.Id) { return $ctx.Account.Id }
         return $false
     }
+    function Show-MyToken {
+        $token = Get-MyToken
+        Install-OrUpdateModule JWTDetails
+        Import-Module JWTDetails
+        ## or goto: https://jwt-decoder.com/
+        ##          https://jwt.ms
+        JWTDetails $token
+    }
 
     try {
         Write-Host "Trying to activate $RoleName..."
