@@ -120,11 +120,11 @@ function Install-OrUpdate-DotNetTools {
         "Microsoft.DataApiBuilder",               ## dab
         "IntuneCLI",                              ## intuneCLI (3rd party)
         "microsoft.powerapps.cli.tool",           ## powerapp tools
-
-  "Azure.Mcp", # Azure Mcp Server   "dotnet-reportgenerator-globaltool",      ## report generator
+        "Azure.Mcp",                              ## Azure Mcp Server
+        "dotnet-reportgenerator-globaltool",      ## report generator
         "Microsoft.OpenApi.Kiota",                ## code generator (openapi)
         "paket",                                  ## Paket dependency manager
-        "Aspire.Cli", # --prerelease
+        "Aspire.Cli",                             ## Aspire CLI # --prerelease
         "upgrade-assistant"                       ## upgrade assistant
     )
 
@@ -132,7 +132,7 @@ function Install-OrUpdate-DotNetTools {
         $installedTool = dotnet tool list --global | Where-Object { $_ -match $tool }
         if (-not $installedTool) {
             Write-Output "Installing $tool..." 
-            $Arguments = "tool install --ignore-failed-sources --global $tool"
+            $Arguments = "tool install --ignore-failed-sources --global $tool --prerelease"
             Start-Process -FilePath "dotnet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru
         } else {
             Write-Output "$tool is already installed." 
