@@ -1215,3 +1215,11 @@ function Show-MyToken {
     JWTDetails $token
 }
 
+function Get-EntraID-Info {
+    # Retrieve the OpenID Connect metadata (no modules required)
+    $openidConfig = Invoke-RestMethod -Uri "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration"
+
+    # Show top-level keys
+    $openidConfig | Format-List
+}
+
