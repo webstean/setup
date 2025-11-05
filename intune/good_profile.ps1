@@ -62,6 +62,10 @@ function Set-WslNetConfig {
 }
 function Reset-Podman {
     ## Run as required
+    if (-not ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" )) {
+        Write-Host "Podman was not found!"
+        return $false
+    }
     podman machine stop
     podman machine set --rootful
     podman machine start
@@ -69,6 +73,10 @@ function Reset-Podman {
 }
 function Reset-Podman2 {
     ## Run as required (bigger reset)
+    if (-not ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" )) {
+        Write-Host "Podman was not found!"
+        return $false
+    }
     podman machine reset --force
     podman machine init --rootful --timezone "Australia/Melbourne"
     podman machine start
@@ -211,12 +219,6 @@ function prompt {
         Write-Host ("PS " + $(Get-Location) + ">") -NoNewline -ForegroundColor $Color
     }
     return "`n> "
-}
-
-## If Windows Powershell
-if ($PSVersionTable.PSEdition -eq 'Desktop') {
-    Write-Host -ForegroundColor DarkYellow "Exiting PowerShell Profile - as this is Windows PowerShell"
-    return $true | Out-Null
 }
 
 #use only for PowerShell and VS Code
@@ -407,6 +409,26 @@ function Invoke-Starship-TransientFunction {
     &starship module character
 }
 
+## Test Nerd Fonts
+if ($IsLanguagePermissive) {
+    $char = [System.Text.Encoding]::UTF8.GetString([byte[]](0xF0, 0x9F, 0x90, 0x8D))
+    if ([string]::IsNullOrEmpty($char)) {
+        Write-Host -ForegroundColor "Yellow" "Warning: Nerd Fonts are NOT installed!" 
+    }
+}
+
+function Get-OsInfo {
+  [PSCustomObject]@{
+    ProductName = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').ProductName
+    ReleaseId   = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').ReleaseId
+    DisplayVer  = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).DisplayVersion
+    Build       = [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuildNumber
+    UBR         = [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').UBR
+  }
+}
+
+
+
 function Install-OrUpdateModule {
     [CmdletBinding()]
     param(
@@ -489,24 +511,6 @@ if ($env:STARSHIP_CONFIG -and (Test-Path "$starshipConfig" -PathType Leaf)) {
     if ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15) {
         $Host.UI.RawUI.WindowTitle = "PowerShell"
     }
-}
-
-## Test Nerd Fonts
-if ($IsLanguagePermissive) {
-    $char = [System.Text.Encoding]::UTF8.GetString([byte[]](0xF0, 0x9F, 0x90, 0x8D))
-    if ([string]::IsNullOrEmpty($char)) {
-        Write-Host -ForegroundColor "Yellow" "Warning: Nerd Fonts are NOT installed!" 
-    }
-}
-
-function Get-OsInfo {
-  [PSCustomObject]@{
-    ProductName = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').ProductName
-    ReleaseId   = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').ReleaseId
-    DisplayVer  = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).DisplayVersion
-    Build       = [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuildNumber
-    UBR         = [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').UBR
-  }
 }
 
 ## Linux touch 
