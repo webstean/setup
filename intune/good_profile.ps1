@@ -15,12 +15,24 @@ function Update-Profile-Force {
     }
 
     # Download and overwrite the profile
-    $response = Invoke-WebRequest -Uri $url -ContentType "text/plan" -UseBasicParsing
-    $response.Content | Out-File -FilePath $PROFILE -Encoding ASCII
+    $newContent = Invoke-WebRequest -Uri $url -ContentType "text/plan" -UseBasicParsing
 
-    Write-Host -ForegroundColor DarkGreen "PowerShell Profile updated at $PROFILE"
-    #Write-Host -ForegroundColor DarkRed 
-    #Write-Host -ForegroundColor DarkYellow
+    # Check if file already exists
+    if (Test-Path $PROFILE  -ErrorAction SilentlyContinue) {
+        $oldContent = Get-Content -Path $PROFILE -Raw -Encoding ASCII
+
+        if ($oldContent -eq $newContent) {
+            Write-Host "✔ The downloaded file is identical to the existing one — no update needed." -ForegroundColor Yellow
+        } else {
+            $newContent.Content | Out-File -FilePath $PROFILE -Encoding ASCII
+##            $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
+            Write-Host "✅ The downloaded file is an UPDATED version — existing file replaced." -ForegroundColor Green
+        }
+    } else {
+        $newContent.Content | Out-File -FilePath $PROFILE -Encoding ASCII
+        ## $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
+        Write-Host "📄 No existing file found — new file created." -ForegroundColor Cyan
+    }
 }
 #Update-Profile-Force
 
