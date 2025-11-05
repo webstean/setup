@@ -1020,7 +1020,11 @@ function Enable-PIMRole {
         }
     }
     catch {
-        throw "Failed to activate PIM role ($RoleName): $($_.Exception.Message)"
+        if ( -not ($IsLanguagePermissive)) { 
+            throw "Failed to activate PIM role ($RoleName): $($_.Exception.Message)"
+        } else {
+            throw "Error occured"
+        }
     }
 }
 ## Enable-PIMRole
