@@ -925,7 +925,7 @@ function Enable-PIMRole {
 
     ## 
     function Ensure-Graph {
-        Write-Host "Importing Microsoft Graph module..."
+        Write-Host "Importing Microsoft Graph modules..."
         Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
         Import-Module Microsoft.Graph.Users -ErrorAction Stop
         $ctx = Get-MgContext
@@ -933,6 +933,10 @@ function Enable-PIMRole {
         if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "User.Read")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
             Connect-MgGraph -Scopes "User.Read" -ErrorAction Stop | Out-Null
+        }
+        if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "User.ReadBasic.All")) {
+            if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
+            Connect-MgGraph -Scopes "User.ReadBasic.All" -ErrorAction Stop | Out-Null
         }
         if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleAssignmentSchedule.Read.Directory")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
