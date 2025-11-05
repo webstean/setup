@@ -397,7 +397,11 @@ function Initialize-PSReadLineSmart {
 }
 Initialize-PSReadLineSmart
 
-# Check for Starship
+# Run Starship if installed
+function Invoke-Starship-TransientFunction {
+    &starship module character
+}
+
 if ([bool](Get-Command -ErrorAction SilentlyContinue starship.exe).Source) {
     if (-not $env:STARSHIP_CONFIG) {
         $env:STARSHIP_CONFIG = "$env:OneDriveCommercial\starship.toml"
@@ -420,10 +424,6 @@ style = "blue bold"
         ## $azurecfg | Out-File -FilePath "$env:STARSHIP_CONFIG" -Encoding UTF8 -Append
         ## ~/.azure/azureProfile.json - created/manged via Azure CLI   
     }
-}
-
-function Invoke-Starship-TransientFunction {
-    &starship module character
 }
 
 ## Test Nerd Fonts
