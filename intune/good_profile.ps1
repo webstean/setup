@@ -22,16 +22,16 @@ function Update-Profile-Force {
         $oldContent = Get-Content -Path $PROFILE -Raw -Encoding ASCII
 
         if ($oldContent -eq $newContent) {
-            Write-Host "✔ The downloaded file is identical to the existing one — no update needed." -ForegroundColor Yellow
+            Write-Host "The downloaded file is identical to the existing one — no update needed." -ForegroundColor Yellow
         } else {
             $newContent.Content | Out-File -FilePath $PROFILE -Encoding ASCII
 ##            $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
-            Write-Host "✅ The downloaded file is an UPDATED version — existing file replaced." -ForegroundColor Green
+            Write-Host "The downloaded file is an UPDATED version — existing file replaced." -ForegroundColor Green
         }
     } else {
         $newContent.Content | Out-File -FilePath $PROFILE -Encoding ASCII
         ## $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
-        Write-Host "📄 No existing file found — new file created." -ForegroundColor Cyan
+        Write-Host "No existing file found — new file created." -ForegroundColor Cyan
     }
 }
 #Update-Profile-Force
@@ -137,10 +137,10 @@ if ($IsLanguagePermissive) {
 ## if ($IsAdmin -and $IsLanguagePermissive) {
 if ($IsAdmin) {
     $InstallScope = 'AllUsers'
-    Write-Host -ForegroundColor DarkGreen "User permisisons is        : ADMIN"
+    Write-Host -ForegroundColor DarkRed "User permisisons is        : ADMIN"
 } else {
     $InstallScope = 'CurrentUser'
-    Write-Host -ForegroundColor DarkGreen "User permisisons is        : USER"
+    Write-Host -ForegroundColor DarkYellow "User permisisons is        : USER"
 }
 
 function Set-Developer-Variables {
