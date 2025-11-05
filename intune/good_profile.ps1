@@ -953,14 +953,6 @@ function Enable-PIMRole {
         if ($ctx -and $ctx.Account -and $ctx.Account.Id) { return $ctx.Account.Id }
         return $false
     }
-    function Show-MyToken {
-        $token = Get-MyToken
-        Install-OrUpdateModule JWTDetails
-        Import-Module JWTDetails
-        ## or goto: https://jwt-decoder.com/
-        ##          https://jwt.ms
-        JWTDetails $token
-    }
 
     try {
         Write-Host "Trying to activate $RoleName..."
@@ -1081,4 +1073,83 @@ function Decode-Jwt {
     }
 }
 
+    function Get-MyToken { ## with Graph Modules
+        $params = @{
+            Method     = "GET"
+            Uri        = "https://graph.microsoft.com/v1.0/me"
+            OutputType = "HttpResponseMessage"
+        }
+        $response = Invoke-MgGraphRequest @params
+        $authHeader = $response.RequestMessage.Headers.Authorization
+        return ($authHeader.Parameter)   # <-- this is your access token stri.ng
+    }
+    function Get-MyToken-Flow-Device {
+    <#.
+        .SYNOPSIS
+        Obtain a Microsoft Graph access token (device-code flow) with no external modules.
+
+        .EXAMPLE
+        $token = Get-MyToken -TenantId "contoso.onmicrosoft.com" -Scopes "User.Read.All Directory.Read.All"
+    #>
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$TenantId = $env.AZURE_TENANT_ID,   # e.g. contoso.onmicrosoft.com or tenant GUID
+
+        [string]$ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46",  # Microsoft Graph PowerShell public client
+
+        [string]$Scopes = "User.Read"
+    )
+
+    Write-Host "Requesting Microsoft Graph device code for scopes: $Scopes" -ForegroundColor Cyan
+
+    # 1️⃣ Request a device code for the given scopes
+    $deviceCodeResponse = Invoke-RestMethod -Method POST `
+        -Uri "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/devicecode" `
+        -Body @{
+            client_id = $ClientId
+            scope     = $Scopes
+        }
+
+    Write-Host "`nGo to $($deviceCodeResponse.verification_uri) and enter code: $($deviceCodeResponse.user_code)" -ForegroundColor Yellow
+    Write-Host "Waiting for sign-in and consent..." -ForegroundColor DarkGray
+
+    # 2️⃣ Poll until user signs in and token is issued
+    while ($true) {
+        Start-Sleep -Seconds $deviceCodeResponse.interval
+
+        try {
+            $tokenResponse = Invoke-RestMethod -Method POST `
+                -Uri "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token" `
+                -Body @{
+                    grant_type  = "device_code"
+                    client_id   = $ClientId
+                    device_code = $deviceCodeResponse.device_code
+                }
+
+            if ($tokenResponse.access_token) {
+                Write-Host "✅ Token acquired successfully for: $Scopes" -ForegroundColor Green
+                return $tokenResponse
+            }
+        }
+        catch {
+            # AAD returns 'authorization_pending' until user completes login
+            $errorJson = $_.ErrorDetails.Message | ConvertFrom-Json -ErrorAction SilentlyContinue
+            $error = $errorJson.error
+            if ($error -ne "authorization_pending") {
+                Write-Warning "❌ Unexpected error: $($_.ErrorDetails.Message)"
+                break
+            }
+        }
+    }
+    }
+
+    function Show-MyToken {
+        $token = Get-MyToken
+        Install-OrUpdateModule JWTDetails
+        Import-Module JWTDetails
+        ## or goto: https://jwt-decoder.com/
+        ##          https://jwt.ms
+        JWTDetails $token
+    }
 
