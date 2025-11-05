@@ -427,15 +427,15 @@ function Get-OsInfo {
             UBR         = [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).UBR
       } 
     } else {
-        Write-Host "ProductName = " -NoNewline
+        Write-Host "ProductName : " -NoNewline
         (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).ProductName
-        Write-Host "ReleaseId   = " -NoNewline
+        Write-Host "ReleaseId   : " -NoNewline
         (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).ReleaseId
-        Write-Host "DisplayVer  = " -NoNewline
+        Write-Host "DisplayVer  : " -NoNewline
         (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).DisplayVersion
-        Write-Host "Build       = " -NoNewline
+        Write-Host "Build       : " -NoNewline
         [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).CurrentBuildNumber
-        Write-Host "UBR         = " -NoNewline
+        Write-Host "UBR         : " -NoNewline
         [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).UBR
     }
 }
