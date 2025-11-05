@@ -62,7 +62,7 @@ function Set-WslNetConfig {
 }
 function Reset-Podman {
     ## Run as required
-    if (-not ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" -ErrorAction SilentlyContinue )) {
+    if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
         Write-Host "Podman was not found!"
         return $false
     }
@@ -73,7 +73,7 @@ function Reset-Podman {
 }
 function Reset-Podman2 {
     ## Run as required (bigger reset)
-    if (-not ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" -ErrorAction SilentlyContinue )) {
+    if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
         Write-Host "Podman was not found!"
         return $false
     }
