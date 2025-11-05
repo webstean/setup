@@ -17,6 +17,8 @@ function Update-Profile-Force {
     # Download and overwrite the profile
     # Download the file content
     $response = Invoke-WebRequest -Uri $url -ContentType "text/plain" -UseBasicParsing
+    $response.StatusCode
+    
     $newContent = $response.Content
 
     # Check if file already exists
@@ -923,7 +925,8 @@ function Enable-PIMRole {
 
     ## 
     function Ensure-Graph {
-        Import-Module Microsoft.Graph -ErrorAction Stop
+        Write-Host "Importing Microsoft Graph module..."
+        Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
         $ctx = Get-MgContext
         if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleAssignmentSchedule.Read.Directory")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
