@@ -852,7 +852,7 @@ function Enable-PIMRole {
         [string]$Justification,
 
         [Parameter()]
-        [object]$Duration = "01:00:00",
+        [object]$Duration = "00:08:00",
 
         [Parameter()]
         [string]$DirectoryScopeId = "/",
@@ -878,9 +878,14 @@ function Enable-PIMRole {
         "PT" + ($(if($h){"$hH"})+$(if($m){"$mM"})+$(if($s -or (-not $h -and -not $m)){"$sS"}))
     }
 
+    ## 
     function Ensure-Graph {
         Import-Module Microsoft.Graph -ErrorAction Stop
         $ctx = Get-MgContext
+        if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleAssignmentSchedule.Read.Directory")) {
+            if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
+            Connect-MgGraph -Scopes "RoleAssignmentSchedule.Read.Directory" -ErrorAction Stop | Out-Null
+        }
         if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleAssignmentSchedule.ReadWrite.Directory")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
             Connect-MgGraph -Scopes "RoleAssignmentSchedule.ReadWrite.Directory" -ErrorAction Stop | Out-Null
