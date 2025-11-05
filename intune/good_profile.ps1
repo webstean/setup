@@ -932,15 +932,15 @@ function Enable-PIMRole {
         $ctx.Scopes
         if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "User.Read")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
-            Connect-MgGraph -Scopes "User.Read" -ErrorAction Stop | Out-Null
+            Connect-MgGraph -NoWelcome -Scopes "User.Read" -ErrorAction Stop | Out-Null
         }
         if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "User.ReadBasic.All")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
-            Connect-MgGraph -Scopes "User.ReadBasic.All" -ErrorAction Stop | Out-Null
+            Connect-MgGraph -NoWelcome -Scopes "User.ReadBasic.All" -ErrorAction Stop | Out-Null
         }
         if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleAssignmentSchedule.Read.Directory")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
-            Connect-MgGraph -Scopes "RoleAssignmentSchedule.Read.Directory" -ErrorAction Stop | Out-Null
+            Connect-MgGraph -NoWelcome -Scopes "RoleAssignmentSchedule.Read.Directory" -ErrorAction Stop | Out-Null
         }
         #if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleAssignmentSchedule.ReadWrite.Directory")) {
         #    if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
@@ -950,8 +950,9 @@ function Enable-PIMRole {
 
     function Get-MyUserId {
         $ctx = Get-MgContext
+        $ctx.account
         if ($ctx -and $ctx.Account -and $ctx.Account.Id) { return $ctx.Account.Id }
-        (Get-MgUserMe).Id
+        return $false
     }
 
     try {
