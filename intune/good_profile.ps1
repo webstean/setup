@@ -420,13 +420,16 @@ if ($IsLanguagePermissive) {
 function Get-OsInfo {
 
     $cv = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
-    $props = Get-ItemProperty -Path $cv
-    $major = $props.CurrentMajorVersionNumber
-    $minor = $props.CurrentMinorVersionNumber
-    $build = $props.CurrentBuildNumber
-    $ubr   = $props.UBR
-    $osVersion = "$major.$minor.$build.$ubr"
-
+    if ($cv) {
+        $props = Get-ItemProperty -Path $cv -ErrorAction SilentlyContinue
+        $major = $props.CurrentMajorVersionNumber
+        $minor = $props.CurrentMinorVersionNumber
+        $build = $props.CurrentBuildNumber
+        $ubr   = $props.UBR
+        $osVersion = "$major.$minor.$build.$ubr"
+    } else {
+        return 
+    }    
     if ($IsLanguagePermissive) {
         [PSCustomObject]@{
             ProductName = (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).ProductName
@@ -436,8 +439,7 @@ function Get-OsInfo {
             UBR         = [int]$ubr
             OSVersion   = $osVersion
             Type        = (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).InstallationType
-            
-      } 
+        } 
     } else {
         Write-Host "ProductName : " -NoNewline
         (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).ProductName
