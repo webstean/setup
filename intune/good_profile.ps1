@@ -418,29 +418,40 @@ if ($IsLanguagePermissive) {
 }
 
 function Get-OsInfo {
+
+    $cv = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+    $props = Get-ItemProperty -Path $cv
+    $major = $props.CurrentMajorVersionNumber
+    $minor = $props.CurrentMinorVersionNumber
+    $build = $props.CurrentBuildNumber
+    $ubr   = $props.UBR
+    $osVersion = "$major.$minor.$build.$ubr"
+
     if ($IsLanguagePermissive) {
         [PSCustomObject]@{
-            ProductName = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).ProductName
-            ReleaseId   = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).ReleaseId
-            DisplayVer  = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).DisplayVersion
-            Build       = [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).CurrentBuildNumber
-            UBR         = [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).UBR
-            Type        = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).InstallationType
+            ProductName = (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).ProductName
+            ReleaseId   = (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).ReleaseId
+            DisplayVer  = (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).DisplayVersion
+            Build       = [int](Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).CurrentBuildNumber
+            UBR         = [int]$ubr
+            OSVersion   = $osVersion
+            Type        = (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).InstallationType
             
       } 
     } else {
         Write-Host "ProductName : " -NoNewline
-        (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).ProductName
+        (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).ProductName
         Write-Host "ReleaseId   : " -NoNewline
-        (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).ReleaseId
+        (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).ReleaseId
         Write-Host "DisplayVer  : " -NoNewline
-        (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).DisplayVersion
+        (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).DisplayVersion
         Write-Host "Build       : " -NoNewline
-        [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).CurrentBuildNumber
+        [int](Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).CurrentBuildNumber
         Write-Host "UBR         : " -NoNewline
-        [int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).UBR
+        [int]$ubr
+        Write-Host "OSVersion   : $osVersion"
         Write-Host "Type        : " -NoNewline
-        (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue).InstallationType
+        (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).InstallationType
     }
 }
 
