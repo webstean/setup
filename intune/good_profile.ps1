@@ -94,7 +94,8 @@ function Reset-Podman2 {
     podman machine start
     podman machine inspect | jq
 }
-if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" -ErrorAction SilentlyContinue ) {
+
+if ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue )) {
     Set-Alias -Name docker -Value podman
     Set-Item -Path Env:\ASPIRE_CONTAINER_RUNTIME -Value "podman"
     Set-WslNetConfig
