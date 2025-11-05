@@ -509,7 +509,9 @@ if ($env:STARSHIP_CONFIG -and (Test-Path "$starshipConfig" -PathType Leaf)) {
     $Host.UI.RawUI.WindowTitle = "PowerShell - Oh-My-Posh"
 } else {
     if ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15) {
-        $Host.UI.RawUI.WindowTitle = "PowerShell"
+        if ($IsLanguagePermissive) {
+            $Host.UI.RawUI.WindowTitle = "PowerShell"
+        }
     }
 }
 
