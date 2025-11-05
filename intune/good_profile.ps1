@@ -22,11 +22,11 @@ function Update-Profile-Force {
         $oldContent = Get-Content -Path $PROFILE -Raw -Encoding ASCII
 
         if ($oldContent.Content -eq $newContent.Content ) {
-            Write-Host "The downloaded file is identical to the existing one — no update needed." -ForegroundColor Yellow
+            Write-Host "The downloaded file is identical to the existing one - no update needed." -ForegroundColor Yellow
         } else {
             $newContent.Content | Out-File -FilePath $PROFILE -Encoding ASCII
 ##            $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
-            Write-Host "The downloaded file is an UPDATED version — existing file replaced." -ForegroundColor Green
+            Write-Host "The downloaded file is an UPDATED version - existing file replaced." -ForegroundColor Green
         }
     } else {
         $newContent.Content | Out-File -FilePath $PROFILE -Encoding ASCII
