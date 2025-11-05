@@ -927,15 +927,20 @@ function Enable-PIMRole {
     function Ensure-Graph {
         Write-Host "Importing Microsoft Graph module..."
         Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
+        Import-Module Microsoft.Graph.Users -ErrorAction Stop
         $ctx = Get-MgContext
+        if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "User.Read.Basic")) {
+            if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
+            Connect-MgGraph -Scopes "User.Read.Basic" -ErrorAction Stop | Out-Null
+        }
         if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleAssignmentSchedule.Read.Directory")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
             Connect-MgGraph -Scopes "RoleAssignmentSchedule.Read.Directory" -ErrorAction Stop | Out-Null
         }
-        if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleAssignmentSchedule.ReadWrite.Directory")) {
-            if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
-            Connect-MgGraph -Scopes "RoleAssignmentSchedule.ReadWrite.Directory" -ErrorAction Stop | Out-Null
-        }
+        #if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleAssignmentSchedule.ReadWrite.Directory")) {
+        #    if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
+        #    Connect-MgGraph -Scopes "RoleAssignmentSchedule.ReadWrite.Directory" -ErrorAction Stop | Out-Null
+        #}
     }
 
     function Get-MyUserId {
