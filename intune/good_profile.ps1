@@ -1137,6 +1137,75 @@ function Get-MyToken-Flow-Device { ## without Graph Modules
     }
 }
 
+function Get-MyToken-Interactive {
+    <#
+        .SYNOPSIS
+        Interactive Microsoft Entra ID / Microsoft Graph login that works in
+        Constrained Language Mode (no .NET object creation).
+
+        .DESCRIPTION
+        Opens the Microsoft login URL for an Authorization Code Flow.
+        The user signs in and copies the `code` query-string parameter
+        from the browser redirect URL back into PowerShell.
+    #>
+
+    param(
+        [Parameter(Mandatory)]
+        [string]$TenantId,   # Tenant name or ID
+
+        [string]$ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46",
+
+        [string]$RedirectUri = "https://login.microsoftonline.com/common/oauth2/nativeclient",
+
+        [string]$Scopes = "User.Read"
+    )
+
+    # 1️⃣ Build the authorize URL
+    $authUrl = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/authorize" +
+               "?client_id=$ClientId" +
+               "&response_type=code" +
+               "&redirect_uri=$([uri]::EscapeDataString($RedirectUri))" +
+               "&response_mode=query" +
+               "&scope=$([uri]::EscapeDataString($Scopes))" +
+               "&state=12345"
+
+    Write-Host "Opening browser for Microsoft sign-in..." -ForegroundColor Cyan
+    Start-Process $authUrl
+
+    Write-Host "`nAfter you sign in, you'll be redirected to a URL similar to:`n"
+    Write-Host "$RedirectUri?code=YOUR_CODE_HERE&state=12345" -ForegroundColor Yellow
+    Write-Host "`nCopy the 'code' value from that URL and paste it below.`n"
+
+    # 2️⃣ Prompt user for authorization code
+    $authCode = Read-Host "Enter the authorization code"
+
+    if ([string]::IsNullOrWhiteSpace($authCode)) {
+        Write-Warning "No code entered. Aborting."
+        return
+    }
+
+    # 3️⃣ Exchange authorization code for access token
+    $body = @{
+        grant_type   = "authorization_code"
+        client_id    = $ClientId
+        code         = $authCode
+        redirect_uri = $RedirectUri
+        scope        = $Scopes
+    }
+
+    $tokenResponse = Invoke-RestMethod -Method POST `
+        -Uri "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token" `
+        -Body $body
+
+    if ($tokenResponse.access_token) {
+        Write-Host "✅ Token acquired successfully for scopes: $Scopes" -ForegroundColor Green
+        return $tokenResponse
+    } else {
+        Write-Warning "Failed to retrieve access token."
+    }
+}
+
+
 function Show-MyToken {
     $token = Get-MyToken
     Install-OrUpdateModule JWTDetails
