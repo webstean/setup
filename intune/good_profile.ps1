@@ -897,7 +897,7 @@ function Enable-PIMRole {
         [string]$RoleDefinitionId,
 
         [Parameter(Mandatory)]
-        [string]$Justification,
+        [string]$Justification = "DA",
 
         [Parameter()]
         [object]$Duration = "00:08:00",
