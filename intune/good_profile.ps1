@@ -62,7 +62,7 @@ function Set-WslNetConfig {
 }
 function Reset-Podman {
     ## Run as required
-    if (-not ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" )) {
+    if (-not ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" -ErrorAction SilentlyContinue )) {
         Write-Host "Podman was not found!"
         return $false
     }
@@ -73,7 +73,7 @@ function Reset-Podman {
 }
 function Reset-Podman2 {
     ## Run as required (bigger reset)
-    if (-not ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" )) {
+    if (-not ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" -ErrorAction SilentlyContinue )) {
         Write-Host "Podman was not found!"
         return $false
     }
@@ -82,7 +82,7 @@ function Reset-Podman2 {
     podman machine start
     podman machine inspect | jq
 }
-if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" ) {
+if ( Test-Path "C:\Program Files\RedHat\Podman\podman.exe" -ErrorAction SilentlyContinue ) {
     Set-Alias -Name docker -Value podman
     Set-Item -Path Env:\ASPIRE_CONTAINER_RUNTIME -Value "podman"
     Set-WslNetConfig
