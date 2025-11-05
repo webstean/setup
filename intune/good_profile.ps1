@@ -945,6 +945,7 @@ function Enable-PIMRole {
     }
 
     try {
+        Write-Host "Trying to activate $RoleName..."
         Ensure-Graph
         $principalId = Get-MyUserId
 
