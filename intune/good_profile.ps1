@@ -916,6 +916,8 @@ function Enable-PIMRole {
         [int]$TimeoutSeconds = 120
     )
 
+    if ( -not ($IsLanguagePermissive)) { return } 
+
     # Known role IDs
     $GlobalReaderId = 'f2ef992c-3afb-46b9-b7cf-a126ee74c451'  # Global Reader
 
@@ -1046,7 +1048,7 @@ function Enable-PIMRole {
     }
 }
 ## Enable-PIMRole -ByName
-## Connect-MgGraph -NoWelcome -Scopes "RoleManagement.ReadWrite.Directory, User.Read"
+## Connect-MgGraph -NoWelcome"
 ## $user = Get-MgUserMe
 
 # Verify if the logged-in user is the expected user
