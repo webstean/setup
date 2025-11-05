@@ -930,7 +930,7 @@ function Enable-PIMRole {
         Import-Module Microsoft.Graph.Users -ErrorAction Stop
         $ctx = Get-MgContext
         $ctx.Scopes
-        if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "User.Read.Basic")) {
+        if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "User.Read")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
             Connect-MgGraph -Scopes "User.Read.Basic" -ErrorAction Stop | Out-Null
         }
