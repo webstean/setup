@@ -87,7 +87,7 @@ function Install-OrUpdateModule {
 
     try {
         if ($null -eq $installed) {
-            Write-Host "Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
+            Write-Host "PowerShell Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
             if ($prerelease) {
                 Install-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
             } else {
@@ -96,7 +96,7 @@ function Install-OrUpdateModule {
             }
         }
         else {
-            Write-Host "Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
+            Write-Host "PowerShell Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
             ## Update-PSResource -Name PackageManagement -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue
             if ($prerelease) {
                 Update-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
@@ -106,7 +106,7 @@ function Install-OrUpdateModule {
         }
         # Optional: import after install/update
         Import-Module $ModuleName -Force
-        Write-Host "✅ '$ModuleName' is installed (and up to date.)" -ForegroundColor Green
+        Write-Host "✅ PowerShell '$ModuleName' is installed (and up to date.)" -ForegroundColor Green
     }
     catch {
         Write-Host "❌ Failed to install or update '$ModuleName': $_" -ForegroundColor Red
@@ -128,6 +128,7 @@ Install-OrUpdateModule Terminal-Icons
 Install-OrUpdateModule Az
 Install-OrUpdateModule Microsoft.WinGet.Client
 Install-OrUpdateModule Microsoft.WinGet.Configuration
+Install-OrUpdateModule Microsoft.WinGet.DSC
 Install-OrUpdateModule Microsoft.Graph
 Install-OrUpdateModule MicrosoftTeams
 #Install-OrUpdateModule VMware.PowerCLI ## VMware PowerCLI (its too big - as no longer used much)
