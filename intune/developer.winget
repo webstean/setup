@@ -154,6 +154,16 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.DotNet.SDK.8
+      directives:
+        description: Installing Microsoft.DotNet.SDK.8
+        allowPrerelease: true
+        securityContext: current
+      settings:
+        id: Microsoft.DotNet.SDK.8
+        source: winget
+
+- resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.DotNet.SDK.9
       directives:
         description: Installing Microsoft.DotNet.SDK.9
