@@ -439,15 +439,15 @@ properties:
 #       id: Microsoft.WindowsADK
 #       source: winget
  
-#  - resource: Microsoft.WinGet.DSC/WinGetPackage
-#    id: devproxy.devproxy
-#    directives:
-#      description: Installing devproxy.devproxy
-#      allowPrerelease: false
-#      securityContext: current
-#    settings:
-#      id: devproxy.devproxy
-#      source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: devproxy.devproxy
+      directives:
+        description: Installing devproxy.devproxy
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: devproxy.devproxy
+        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: LIGHTNINGUK.ImgBurn
