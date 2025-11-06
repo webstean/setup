@@ -274,6 +274,93 @@ function New-TempDirectories {
 # Call the function
 New-TempDirectories
 
+function Install-LatestPython {
+    <#
+    .SYNOPSIS
+        Installs the latest stable Python 3.x release on Windows (64-bit).
+
+    .DESCRIPTION
+        Automatically detects the latest version from python.org, downloads the
+        official installer, installs it silently for all users, and optionally
+        upgrades pip/setuptools/wheel.
+
+    .PARAMETER UpgradePip
+        If specified, upgrades pip, setuptools, and wheel after installation.
+
+    .EXAMPLE
+        Install-LatestPython
+        Installs latest Python silently.
+
+    .EXAMPLE
+        Install-LatestPython -UpgradePip
+        Installs latest Python and upgrades pip afterwards.
+    #>
+
+    param(
+        [switch]$UpgradePip
+    )
+
+    $ErrorActionPreference = "Stop"
+    $pythonBaseUrl = "https://www.python.org/ftp/python/"
+    $tempDir = "$env:TEMP\PythonInstall"
+    New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
+
+    Write-Host "📦 Retrieving latest Python version..." -ForegroundColor Cyan
+    try {
+        $html = Invoke-WebRequest -Uri $pythonBaseUrl -UseBasicParsing
+        $versions = ($html.Links | Where-Object { $_.href -match '^\d+\.\d+\.\d+/$' }).href -replace '/', ''
+        $latestVersion = ($versions | Sort-Object { [version]$_ } -Descending | Select-Object -First 1)
+    } catch {
+        Write-Error "❌ Could not determine latest Python version: $_"
+        return
+    }
+
+    if (-not $latestVersion) {
+        Write-Error "❌ Could not determine latest Python version."
+        return
+    }
+
+    Write-Host "🔹 Latest version detected: $latestVersion" -ForegroundColor Yellow
+
+    $installerName = "python-$latestVersion-amd64.exe"
+    $downloadUrl = "$pythonBaseUrl$latestVersion/$installerName"
+    $installerPath = Join-Path $tempDir $installerName
+
+    Write-Host "⬇️  Downloading $installerName ..."
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $installerPath -UseBasicParsing
+
+    Write-Host "⚙️  Installing Python $latestVersion ..."
+    & $installerPath /quiet InstallAllUsers=1 PrependPath=1 Include_test=0
+    $exitCode = $LASTEXITCODE
+
+    if ($exitCode -ne 0) {
+        Write-Error "❌ Python installer failed with exit code $exitCode"
+        return
+    }
+
+    Start-Sleep -Seconds 3
+
+    $pythonVersion = (& python --version 2>$null)
+    if ($pythonVersion) {
+        Write-Host "✅ Installed: $pythonVersion" -ForegroundColor Green
+    } else {
+        Write-Warning "⚠️ Could not verify installation — try restarting your shell."
+    }
+
+    if ($UpgradePip) {
+        Write-Host "🔄 Upgrading pip, setuptools, and wheel..." -ForegroundColor Cyan
+        try {
+            python -m pip install --upgrade pip setuptools wheel
+            Write-Host "✅ Pip and packages upgraded successfully." -ForegroundColor Green
+        } catch {
+            Write-Warning "⚠️ Failed to upgrade pip: $_"
+        }
+    }
+
+    Write-Host "🐍 Python installation completed." -ForegroundColor Green
+}
+Install-LatestPython -UpgradePip
+
 function Install-LatestWindowsSDK {
     <#
     .SYNOPSIS
