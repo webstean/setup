@@ -407,7 +407,7 @@ try {
     
     Write-Host "******************= All scripts executed =******************************"
     $elapsed.Stop()
-    Write-Host "⏳ All STEP completed in $($elapsed.Elapsed.Minutes) minutes."
+    Write-Host "⏳ All STEPS completed in $($elapsed.Elapsed.Minutes) minutes."
 }
 catch {
     Write-Error "Error executing: $_"
