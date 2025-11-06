@@ -805,21 +805,25 @@ if ($IsLanguagePermissive) {
         Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue
     }
 
-    if ([bool]$subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id ) {
+    $subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id
+    if (-not [string]::IsNullOrEmpty($subscription_id)) {
         Set-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Value $subscription_id
     } else {
         Remove-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Force -ErrorAction SilentlyContinue
     }
-    if ([bool]$tenant_id = (Get-AzTenant -ErrorAction SilentlyContinue).Id ) {
+    $tenant_id = (Get-AzTenant -ErrorAction SilentlyContinue).Id
+    if (-not [string]::IsNullOrEmpty($tenant_id)) {
         Set-Item -Path Env:\AZURE_TENANT_ID -Value $tenant_id
     } else {
         Remove-Item -Path Env:\AZURE_TENANT_ID -Force -ErrorAction SilentlyContinue
     }
-    if ([bool]$tenant_name = (Get-AzTenant -ErrorAction SilentlyContinue).Name ) {
+    $tenant_name = (Get-AzTenant -ErrorAction SilentlyContinue).Name
+    if (-not [string]::IsNullOrEmpty($tenant_name)) {
         Set-Item -Path Env:\AZURE_TENANT_NAME -Value $tenant_name
     } else {
         Remove-Item -Path Env:\AZURE_TENANT_NAME -Force -ErrorAction SilentlyContinue
     }
+    
     if (![string]::IsNullOrEmpty($UPN)) {
         Set-Item -Path Env:\AZURE_USERNAME -Value $UPN
     } else {
