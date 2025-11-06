@@ -184,6 +184,16 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Python.PythonInstallManager
+      directives:
+        description: Installing Python.PythonInstallManager
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Python.PythonInstallManager
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.AIShell
       directives:
         description: Install Microsoft.AIShell (aish)
