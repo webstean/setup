@@ -26,6 +26,12 @@ function Set-StarshipAdminIndicator {
     $starshipToml = Join-Path $configDir 'starship.toml'
     $result.ConfigPath = $starshipToml
 
+    # Download a config
+    $url = 'https://raw.githubusercontent.com/TaouMou/starship-presets/refs/heads/main/starship_pills.toml'
+    $response = Invoke-WebRequest -Uri $url -ContentType "text/plain" -UseBasicParsing
+    $response.Content | Out-File $HOME/.starship_pill.toml
+    Copy-Item $HOME/.starship_pill.toml $starshipToml
+    
     # Ensure dirs/files
     if (-not (Test-Path $configDir))   { New-Item -ItemType Directory -Path $configDir   -Force | Out-Null }
     if (-not (Test-Path $starshipToml)){ New-Item -ItemType File      -Path $starshipToml -Force | Out-Null }
