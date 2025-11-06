@@ -3,6 +3,7 @@
 
 #Set-ExecutionPolicy Unrestricted -Scope Process
 #Set-ExecutionPolicy Unrestricted -Scope CurrentUser
+#Set-ExecutionPolicy -ExecutionPolicy Unrestricted
 
 function Update-Profile-Force {
     # Define the remote URL
