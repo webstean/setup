@@ -194,7 +194,7 @@ Function EnableLocation {
 	Set-Service -Name lfsvc -StartupType Automatic -ErrorAction SilentlyContinue
 	Restart-Service lfsvc
 }
-EnableLocation
+#EnableLocation
 
 # Disable Feedback
 Function DisableFeedback {
