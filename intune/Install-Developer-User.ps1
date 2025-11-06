@@ -584,7 +584,8 @@ foreach ($name in $commands) {
 
 Write-Output ("Configuring Oh My Posh, if it isn't already installed...")
 ## Oh My Posh
-If (Get-Command aaaaoh-my-posh ) {
+If (Get-Command -ErrorAction SilentlyContinue aaaaoh-my-posh ) {
+    $config = (Get-Command -ErrorAction SilentlyContinue oh-my-posh).Source
     ### Winget install will set the POSH_THEMES_PATH variable
     ### FYI: Meslo is the default font for Windows Terminal
     ## $env:POSH_THEMES_PATH = [System.Environment]::GetEnvironmentVariable("POSH_THEMES_PATH","User")
