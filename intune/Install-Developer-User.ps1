@@ -574,8 +574,8 @@ Add-DirectoryToPath -Directory "${BIN}" -Scope "User"
 
 # List of commands you want to exclude from AV
 $commands = @(
-    $BIN,
-    'starship'
+    "$BIN",
+    'starship',
     'oh-my-posh'
 )
 
