@@ -841,7 +841,6 @@ function Enable-PodmanFirewallRules {
     Write-Host "✅ Podman Desktop firewall rules are now enabled and active." -ForegroundColor Green
 }
 
-
 function Set-Podman {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(
@@ -1031,15 +1030,14 @@ function Set-Podman {
 
     end { return $success }
 }
-Set-PodMan
-# --- Stop Podman Desktop if running ---
-$proc = Get-Process -Name "Podman Desktop" -ErrorAction SilentlyContinue
-if ($proc) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
-Set-PodmanConfig
-Enable-PodmanFirewallRules
-podman machine stop
-podman machine set --rootful
-podman machine start
+## --- Stop Podman Desktop if running ---
+#$proc = Get-Process -Name "Podman Desktop" -ErrorAction SilentlyContinue
+#if ($proc) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+#Set-PodmanConfig
+#Enable-PodmanFirewallRules
+#podman machine stop
+#podman machine set --rootful
+#podman machine start
 
 function Set-StarshipConfig {
     <#
