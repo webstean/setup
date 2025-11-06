@@ -46,15 +46,6 @@ properties:
 #      name: VirtualMachinePlatform
 #      ensure: Present
 
-  ### Install WSL
-#  - resource: xPSDesiredStateConfiguration/xWindowsFeature
-#    directives:
-#      description: Install WSL
-#      securityContext: elevated
-#    settings:
-#      name: Microsoft-Windows-Subsystem-Linux
-#      ensure: Present
-
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: installWSL
       directives:
