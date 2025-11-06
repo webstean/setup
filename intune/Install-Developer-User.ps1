@@ -570,16 +570,29 @@ function Set-CodeSigningCertificate {
 # Set-CodeSigningCertificate
 
 $BIN = "$env:SystemDrive\BIN"
-Add-MpPreference -ExclusionPath $BIN
 Add-DirectoryToPath -Directory "${BIN}" -Scope "User"
+
+# List of commands you want to exclude from AV
+$commands = @(
+    $BIN,
+    'starship'
+    'oh-my-posh'
+)
+
+foreach ($name in $commands) {
+    $cmd = Get-Command -ErrorAction SilentlyContinue $name
+
+    if ($null -ne $cmd -and $null -ne $cmd.Source) {
+        $path = Split-Path -Path $cmd.Source
+        Write-Host "Excluding $cmd in $path..."
+        Add-MpPreference -ExclusionPath $path
+    }
+}
 
 Write-Output ("Configuring Oh My Posh, if it isn't already installed...")
 ## Oh My Posh
 If (Test-Path -Path "$env:POSH_THEMES_PATH\jandedobbeleer.omp.json" -PathType Leaf ) {
-    if (!(Test-Path -Path $PROFILE.AllUsersAllHosts)) {
-        New-Item -ItemType File -Path $PROFILE.AllUsersAllHosts -Force -ErrorAction Ignore
-    }
-    ### Winget sets the POSH_THEMES_PATH variable
+    ### Winget install will set the POSH_THEMES_PATH variable
     ### FYI: Meslo is the default font for Windows Terminal
     ## $env:POSH_THEMES_PATH = [System.Environment]::GetEnvironmentVariable("POSH_THEMES_PATH","User")
     oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\cloud-native-azure.omp.json"
@@ -589,24 +602,10 @@ If (Test-Path -Path "$env:POSH_THEMES_PATH\jandedobbeleer.omp.json" -PathType Le
     ## Option #2
     #& ([ScriptBlock]::Create((oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\\cloud-native.omp.json" --print) -join "`n"))
     ## Create Profile
-    # Create Powershell Profile
-    if (!(Test-Path -Path $PROFILE.AllUsersAllHosts)) {
-        New-Item -ItemType File -Path $PROFILE.AllUsersAllHosts -Force -ErrorAction Ignore
-    }
-    #New-Item -Path $PROFILE -Type File -Force
-    #"& ([ScriptBlock]::Create((oh-my-posh init pwsh --config `"$env:POSH_THEMES_PATH\cloud-native.omp.json`" --print) -join `"`n`"))" | Out-File $PROFILE
-    ## exclude from Defender AV - Oh-My-Posh
-    $exclusion = [Environment]::GetFolderPath(“localapplicationdata”) + "\Programs\oh-my-posh"
-    Add-MpPreference -ExclusionPath $exclusion
-    $exclusion = [Environment]::GetFolderPath(“UserProfile”)
-    Add-MpPreference -ExclusionPath $exclusion
-    #### wt new-tab "cmd" `; split-pane -p "Windows PowerShell" `; split-pane -H wsl.exe
 }
 else {
     Write-Output("Skipping... Oh-My-Posh not found!")
 }
-
-Add-MpPreference -ExclusionPath 'C:\Program Files\starship\bin'
 
 ## Define the path for the .log extension and the program path
 $extensionKey = "HKCU:\Software\Classes\.log"
