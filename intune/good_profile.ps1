@@ -39,42 +39,6 @@ function Update-Profile-Force {
 }
 #Update-Profile-Force
 
-function Set-WslNetConfig {
-    ## make WSL compatible with Podman, especially being able to access containers via loopback/127.0.0.1
-
-    if (-not ($IsLanguagePermissive)) { return }
-    
-    # Ensure WSL networking mode is Mirror
-    # Ensure WSL autoproxy is off
-    $wslConfigPath = [System.IO.Path]::Combine($env:HOMEPATH, ".wslconfig")
-    # Check if the .wslconfig file exists
-    if (Test-Path $wslConfigPath) {
-        # Read the contents of the .wslconfig file
-        $wslConfigContent = Get-Content -Path $wslConfigPath -Raw
-        
-        # Check if 'networkingMode' is set to 'mirrored'
-        if ($wslConfigContent -notmatch "networkingMode\s*=\s*mirrored") {
-            # Add or update the networkingMode setting
-            $newConfig1 = $wslConfigContent -replace "(\[.*?\])", "`$1`r`nnetworkingMode = mirrored"
-            $newConfig2 = $wslConfigContent -replace "(\[.*?\])", "`$1`r`nautoProxy = false"
-            
-            # Write the updated content back to the file
-            Set-Content -Path $wslConfigPath -Value $newConfig1 -Force
-            Set-Content -Path $wslConfigPath -Value $newConfig2 -Force
-            Write-Host "Added 'networkingMode = mirrored' to .wslconfig"
-        } else {
-            Write-Host "Updated existing .wslconfig"
-        }
-    } else {
-        # If .wslconfig doesn't exist, create it with the networkingMode setting
-        $configContent1 = "[network]" + "`r`n" + "networkingMode = mirrored"
-        Set-Content -Path $wslConfigPath -Value $configContent1
-        $configContent2 = "[network]" + "`r`n" + "autoProxy = false"
-        Set-Content -Path $wslConfigPath -Value $configContent2
-        
-        Write-Host "Created new .wslconfig"
-    }
-}
 function Reset-Podman {
     ## Run as required
     if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
@@ -101,7 +65,7 @@ function Reset-Podman2 {
 if ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue )) {
     Set-Alias -Name docker -Value podman
     Set-Item -Path Env:\ASPIRE_CONTAINER_RUNTIME -Value "podman"
-    Set-WslNetConfig
+    #Set-WslNetConfig
     ## podman run -dt -p 8080:80/tcp docker.io/library/httpd:latest
     ## docker run -it mcr.microsoft.com/azure-cli:azurelinux3.0
     ## docker run -it mcr.microsoft.com/devcontainers/base:ubuntu
@@ -1161,7 +1125,7 @@ function Get-MyToken-Interactive {
 
     param(
         [Parameter(Mandatory)]
-        [string]$TenantId,   # Tenant name or ID
+        [string]$TenantId = $env:AZURE_TENANT_ID,   # Tenant name or ID
 
         [string]$ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46",
 
