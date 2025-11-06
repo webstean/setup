@@ -551,37 +551,35 @@ properties:
       settings:
         Name: esbenp.prettier-vscode
 
-#  - resource: xPSDesiredStateConfiguration/xWindowsFeature  ## only works on Servers
-#    id: WindowsSandbox
-#    directives:
-#      description: Ensure Windows Sandbox is enabled
-#      allowPrerelease: true
-#    settings:
-#      Name: Containers-DisposableClientVM
-#      Ensure: Present
+    - resource: PSDscResources/WindowsOptionalFeature
+      id: WindowsSandbox
+      directives:
+        description: Ensure Windows Sandbox is enabled
+      settings:
+        Name: Containers-DisposableClientVM
+        Ensure: Present
 
-#  - resource: Microsoft.WindowsSandbox.DSC/WindowsSandbox
-#    id: WindowsSandboxConfig
-#    dependsOn:
-#      - WindowsSandbox
-#    directives:
-#      description: Create Windows Sandbox with Winget installed
-#      allowPrerelease: true
-#      securityContext: current
-#    settings:
-#      Ensure: Present
-#      HostFolder: C:\Sandbox
-#      SandboxFolder: C:\Sandbox
-#      LogonCommand: >
-#          cmd /c start powershell -NoExit -Command "$progressPreference = 'silentlyContinue';
-#          Write-Host 'Setting execution policy to remote signed...' `n;
-#          Set-ExecutionPolicy RemoteSigned -Force;
-#          Write-Host "Installing WinGet PowerShell module from PSGallery...";
-#          Install-PackageProvider -Name NuGet -Force | Out-Null;
-#          Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery | Out-Null;
-#          Write-Host "Using Repair-WinGetPackageManager cmdlet to bootstrap WinGet...";
-#          Repair-WinGetPackageManager;
-#          Write-Host "Done.";  
+    - resource: Microsoft.WindowsSandbox.DSC/WindowsSandbox
+      dependsOn:
+        - WindowsSandbox
+      directives:
+        description: Create Windows Sandbox with Winget installed
+        allowPrerelease: true
+      settings:
+        Ensure: Present
+        HostFolder: C:\Sandbox
+        SandboxFolder: C:\Sandbox
+        LogonCommand: >
+          cmd /c start powershell -NoExit -Command "$progressPreference = 'silentlyContinue';
+          Write-Host 'Setting execution policy to remote signed...' `n;
+          Set-ExecutionPolicy RemoteSigned -Force;
+          Write-Host "Installing WinGet PowerShell module from PSGallery...";
+          Install-PackageProvider -Name NuGet -Force | Out-Null;
+          Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery | Out-Null;
+          Write-Host "Using Repair-WinGetPackageManager cmdlet to bootstrap WinGet...";
+          Repair-WinGetPackageManager;
+          Write-Host "Done.";
+
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.PowerToys
@@ -598,6 +596,7 @@ properties:
       - Microsoft.PowerToys
       directives:
         description: Configure PowerToys
+        allowPrerelease: true
       settings:
         ## https://learn.microsoft.com/en-us/windows/powertoys/dsc-configure
         GeneralSettings:
