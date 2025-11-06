@@ -490,8 +490,8 @@ function New-CodeSigningCertificate {
         
         ## Delete
         # $cert = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Subject -like "*$subject*" }
-        # Remove-Item Cert:\CurrentUser\My\$cert.Thumbprint
-
+        # Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)"
+        
         # Ensure output path exists
         if (-not (Test-Path $OutputPath)) {
             New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
@@ -512,7 +512,7 @@ function New-CodeSigningCertificate {
             -KeyLength 2048 `
             -HashAlgorithm SHA256
 
-        Write-Host "Created certificate with Thumbprint:" $cert.Thumbprint
+        Write-Host "Created code signing certificate with Thumbprint:" $cert.Thumbprint
 
         Write-Host "==> Exporting certificate..."
         Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $securePass | Out-Null
@@ -520,6 +520,7 @@ function New-CodeSigningCertificate {
         Write-Host "PFX exported to $pfxPath"
         Write-Host "CER exported to $cerPath"
 
+        Set-AuthenticodeSignature -Certificate $cert -IncludeChain All -FilePath aw.ps1  ## -TimestampServer "https://timestamp.fabrikam.com/scripts/timstamper.dll"
         #Write-Host "==> Importing certificate into Trusted Root..."
         #Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
     }
