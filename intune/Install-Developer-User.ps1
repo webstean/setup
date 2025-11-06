@@ -522,12 +522,16 @@ function New-CodeSigningCertificate {
 
         ## Add to Trusted Root store
         Write-Host "==> Importing certificate into Trusted Root..."
-        Import-Certificate -FilePath $certPath -CertStoreLocation Cert:\CurrentUser\Root | Out-Null ## This User
-        ## Import-Certificate -FilePath $certPath -CertStoreLocation Cert:\Localmachine\Root | Out-Null ## All Users
+        ## Import-Certificate -FilePath $cerPath -CertStoreLocation Cert:\CurrentUser\Root | Out-Null ## This User
+        Import-Certificate -FilePath $cerPath -CertStoreLocation Cert:\Localmachine\Root | Out-Null ## All Users
 
         ## How to sign something
         #$cert = (Get-ChildItem -Path Cert:\* -Recurse -CodeSigningCert)[0]
-        #Set-AuthenticodeSignature -Certificate $cert -FilePath aw.ps1  ## -TimestampServer "https://timestamp.fabrikam.com/scripts/timstamper.dll"
+        #Set-AuthenticodeSignature -Certificate $cert -FilePath .\aw.ps1  ## -TimestampServer "https://timestamp.fabrikam.com/scripts/timstamper.dll"
+        #Set-AuthenticodeSignature -Certificate $cert -FilePath .\aw.ps1 -HashAlgorithm "SHA256" -TimestampServer 'http://timestamp.verisign.com/scripts/timstamp.dll'
+
+        #(Get-AuthenticodeSignature .\aw.ps1).StatusMessage
+
     }
 
     catch {
