@@ -38,6 +38,113 @@ function Set-WslNetConfig {
 }
 Set-WslNetConfig
 
+function Set-VSCodeProtocolPolicy {
+    <#
+    .SYNOPSIS
+        Configure Microsoft Edge to auto-launch vscode:// links from vscode.dev (and optionally github.dev)
+        without showing the "wants to open this application" prompt.
+
+    .DESCRIPTION
+        Writes the AutoLaunchProtocolsFromOrigins policy for Microsoft Edge into the registry.
+        By default, applies machine-wide (HKLM) and allows vscode:// from:
+            - https://vscode.dev
+            - https://github.dev  (can be disabled)
+
+        Can also be removed via -Remove switch.
+
+    .PARAMETER Scope
+        Where to write the policy:
+            - Machine (default): HKLM:\SOFTWARE\Policies\Microsoft\Edge
+            - User:    HKCU:\SOFTWARE\Policies\Microsoft\Edge
+
+    .PARAMETER IncludeGithubDev
+        Include https://github.dev as an allowed origin in addition to https://vscode.dev.
+
+    .PARAMETER Remove
+        Remove the AutoLaunchProtocolsFromOrigins policy (for the chosen scope).
+
+    .EXAMPLE
+        Set-VSCodeProtocolPolicy
+        # Allows vscode:// from vscode.dev and github.dev (machine-wide).
+
+    .EXAMPLE
+        Set-VSCodeProtocolPolicy -Scope User
+        # Same, but only for current user.
+
+    .EXAMPLE
+        Set-VSCodeProtocolPolicy -IncludeGithubDev:$false
+        # Only vscode.dev is allowed as an origin.
+
+    .EXAMPLE
+        Set-VSCodeProtocolPolicy -Remove
+        # Removes the policy (machine-wide).
+    #>
+
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [ValidateSet("Machine", "User")]
+        [string]$Scope = "Machine",
+
+        [bool]$IncludeGithubDev = $true,
+
+        [switch]$Remove
+    )
+
+    # Determine registry path based on scope
+    $policyRoot = if ($Scope -eq "Machine") {
+        "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+    } else {
+        "HKCU:\SOFTWARE\Policies\Microsoft\Edge"
+    }
+
+    $name = "AutoLaunchProtocolsFromOrigins"
+
+    if ($Remove) {
+        if (Test-Path $policyRoot) {
+            if ($PSCmdlet.ShouldProcess("$policyRoot\$name", "Remove Edge VSCode protocol policy")) {
+                Remove-ItemProperty -Path $policyRoot -Name $name -ErrorAction SilentlyContinue
+                Write-Host "Removed $name from $policyRoot" -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host "No policy key at $policyRoot to remove." -ForegroundColor DarkYellow
+        }
+        return
+    }
+
+    # Build JSON value
+    $origins = @("https://vscode.dev")
+    if ($IncludeGithubDev) {
+        $origins += "https://github.dev"
+    }
+
+    $configObject = @(
+        [PSCustomObject]@{
+            allowed_origins = $origins
+            protocol        = "vscode"
+        }
+    )
+
+    $json = $configObject | ConvertTo-Json -Compress
+
+    # Ensure key exists
+    if (-not (Test-Path $policyRoot)) {
+        New-Item -Path $policyRoot -Force | Out-Null
+    }
+
+    if ($PSCmdlet.ShouldProcess("$policyRoot\$name", "Set Edge VSCode protocol policy")) {
+        New-ItemProperty -Path $policyRoot `
+                         -Name $name `
+                         -PropertyType String `
+                         -Value $json `
+                         -Force | Out-Null
+
+        Write-Host "Set $name on $policyRoot" -ForegroundColor Green
+        Write-Host "JSON: $json" -ForegroundColor DarkGray
+        Write-Host "Restart Edge and check edge://policy to confirm the policy is applied." -ForegroundColor Cyan
+    }
+}
+Set-VSCodeProtocolPolicy -IncludeGithubDev:$true
+
 ## Helper Function for JSON files
 function Set-JsonValue {
     <#
