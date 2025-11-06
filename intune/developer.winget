@@ -124,24 +124,24 @@ properties:
             Write-Host "Set LOGON Wallpaper"
           }
 
-    - resource: xPSDesiredStateConfiguration/xScript
-      id: Script.Set.Lock.Wallpaper
-      dependsOn:
-        - Script.Set.User.Wallpaper
-      description: Set Developer LOCK wallpaper
-      settings:
-        GetScript: return $false
-        TestScript: return $false
-        SetScript: |
-          $wallpaper = "default-wallpaper.jpg"
-          $regPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
-          $regName = "wallpaper"
-          $location = "$env:ALLUSERSPROFILE"
-          $wallpaperlocation = "${location}\${wallpaper}"
-          if (Test-Path "$wallpaperlocation" ) {          
-            Set-ItemProperty -Path $regPath -Name $regName -Value $wallpaperlocation
-            Write-Host "Set LOGON Wallpaper"
-          }
+#    - resource: xPSDesiredStateConfiguration/xScript
+#      id: Script.Set.Lock.Wallpaper
+#      dependsOn:
+#        - Script.Set.User.Wallpaper
+#      description: Set Developer LOCK wallpaper
+#      settings:
+#        GetScript: return $false
+#        TestScript: return $false
+#        SetScript: |
+#          $wallpaper = "default-wallpaper.jpg"
+#          $regPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
+#          $regName = "wallpaper"
+#          $location = "$env:ALLUSERSPROFILE"
+#          $wallpaperlocation = "${location}\${wallpaper}"
+#          if (Test-Path "$wallpaperlocation" ) {          
+#            Set-ItemProperty -Path $regPath -Name $regName -Value $wallpaperlocation
+#            Write-Host "Set LOGON Wallpaper"
+#          }
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.VisualStudioCode
