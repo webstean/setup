@@ -546,7 +546,7 @@ properties:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.Edit
       directives:
-        description: Modify Windows Explorer settings
+        description: Install Microsoft.Edit
         allowPrerelease: false
       settings:
         id: Microsoft.Edit
@@ -561,6 +561,17 @@ properties:
         allowPrerelease: true
       settings:
         Name: esbenp.prettier-vscode
+
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: GitHub.vscode-pull-request-github
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: GitHub.vscode-pull-request-github
+        allowPrerelease: true
+      settings:
+        Name: GitHub.vscode-pull-request-github
+
 
 #    - resource: PSDscResources/WindowsOptionalFeature
 #      id: WindowsSandboxInstall
@@ -648,7 +659,15 @@ properties:
         #  Enabled: false
         #TextExtractor:
         #  Enabled: true
-       
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Git.Git
+      directives:
+        description: Install Git.Git
+        allowPrerelease: false
+      settings:
+        id: Git.Git
+        source: winget
 
 #    - resource: GitDsc/GitClone
 #      id: github.com/lscph1929/lscph-azterraform.git
@@ -798,6 +817,7 @@ properties:
       id: GitHub.copilot
       dependsOn:
         - Microsoft.VisualStudioCode
+        - Git.Git
       directives:
         description: Install GitHub Copilot (PreRelease) extension
         allowPrerelease: true
@@ -810,6 +830,7 @@ properties:
       id: GitHub.copilot-chat
       dependsOn:
         - Microsoft.VisualStudioCode
+        - Git.Git
       directives:
         description: Install GitHub Copilot Chat (PreRelease) extension
         allowPrerelease: true
