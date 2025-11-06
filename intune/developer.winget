@@ -270,6 +270,9 @@ properties:
         id: RedHat.Podman-Desktop
         source: winget
 
+## containers.containerClient Podman
+## containers.orchestratorClient Podman Compose
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Kubernetes.kubectl
       directives:
