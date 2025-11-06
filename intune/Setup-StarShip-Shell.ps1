@@ -24,14 +24,14 @@ function Set-StarshipConfig {
     # Paths
     $configDir    = Join-Path $env:USERPROFILE '.config'
     $starshipToml = Join-Path $configDir 'starship.toml'
-    $result.ConfigPath = $starshipToml
-
+    $result.ConfigPath = $env:STARSHIP_CONFIG
+    
     # Download a config
     $url = 'https://raw.githubusercontent.com/TaouMou/starship-presets/refs/heads/main/starship_pills.toml'
     $url = 'https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/starship_pill.toml'
     $response = Invoke-WebRequest -Uri $url -ContentType "text/plain" -UseBasicParsing
     $response.Content | Out-File $HOME/.starship_pill.toml
-    Copy-Item $HOME/.starship_pill.toml $starshipToml
+    Copy-Item $HOME/.starship_pill.toml $result.ConfigPath
     
     # Ensure dirs/files
     if (-not (Test-Path $configDir))   { New-Item -ItemType Directory -Path $configDir   -Force | Out-Null }
