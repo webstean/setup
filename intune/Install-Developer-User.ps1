@@ -119,7 +119,8 @@ function Set-JsonValue {
 function Set-MSTerminalSetting {
     param (
         [string]$settingsfile,
-        [string]$BackgroundColor = "#335bc8", ## Default blue background
+        [string]$BackgroundColor = "#000000", ## Black background
+        #[string]$BackgroundColor = "#335bc8", ## Default blue background
         [string]$ForegroundColor = "#FFFFFF", ## Default white text
         [int]$opacity = 97, ## Default opacity
         [string]$BackgroundImage = "$env:ALLUSERSPROFILE\logo.png", # "ms-appdata:///Roaming/terminal_cat.jpg", ## background image
