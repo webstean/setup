@@ -520,9 +520,14 @@ function New-CodeSigningCertificate {
         Write-Host "PFX exported to $pfxPath"
         Write-Host "CER exported to $cerPath"
 
-        Set-AuthenticodeSignature -Certificate $cert -IncludeChain All -FilePath aw.ps1  ## -TimestampServer "https://timestamp.fabrikam.com/scripts/timstamper.dll"
-        #Write-Host "==> Importing certificate into Trusted Root..."
-        #Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
+        ## Add to Trusted Root store
+        Write-Host "==> Importing certificate into Trusted Root..."
+        Import-Certificate -FilePath $certPath -CertStoreLocation Cert:\CurrentUser\Root | Out-Null ## This User
+        ## Import-Certificate -FilePath $certPath -CertStoreLocation Cert:\Localmachine\Root | Out-Null ## All Users
+
+        ## How to sign something
+        #$cert = (Get-ChildItem -Path Cert:\* -Recurse -CodeSigningCert)[0]
+        #Set-AuthenticodeSignature -Certificate $cert -FilePath aw.ps1  ## -TimestampServer "https://timestamp.fabrikam.com/scripts/timstamper.dll"
     }
 
     catch {
@@ -533,26 +538,6 @@ function New-CodeSigningCertificate {
     }
 }
 
-function New-CodeSigningCertificate {
-    try {
-
-        Write-Host "==> Signing script: $ScriptPath"
-        $signingCert = Get-ChildItem Cert:\CurrentUser\My\$($cert.Thumbprint)
-        Set-AuthenticodeSignature -FilePath $ScriptPath -Certificate $signingCert | Out-Null
-
-        $signature = Get-AuthenticodeSignature -FilePath $ScriptPath
-        Write-Host "Signature status: $($signature.Status)"
-
-        ## Uncomment the following line to sign a script file
-        ## Set-AuthenticodeSignature -FilePath <FilePath> -Certificate $env:CodeSigningCertificate
-    }
-    catch {
-        Write-Output "An exception occurred: $_" 
-        Write-Output "Exception Type: $($_.Exception.GetType().FullName)" 
-        Write-Output "Exception Message: $($_.Exception.Message)" 
-        Write-Output "Stack Trace: $($_.Exception.StackTrace)" 
-    }
-}
 function Set-CodeSigningCertificate {
     ## List of Code Signing Certificates
     $NumberCodeSigningCertificates = (Get-ChildItem -Path Cert:\* -Recurse -CodeSigningCert | Measure-Object).Count
@@ -660,98 +645,6 @@ Set-ItemProperty -Path $assocKey -Name "UserChoice" -Value @{
 #dotnet tool install -g dotnet-aspnet-codegenerator
 #npm install -g @azure/static-web-apps-cli
 #swa --version
-
-function Set-DockerDesktopBestPractices {
-    $configPath = "$env:APPDATA\Docker\settings.json"
-    if (-Not (Test-Path $configPath)) {
-        Write-Host "Creating new Docker Desktop settings file..."
-        New-Item -Path $configPath -ItemType File -Force | Out-Null
-        $currentConfig = @{}
-    }
-    else {
-        Write-Host "Loading existing Docker Desktop settings..."
-        $currentConfig = Get-Content $configPath | ConvertFrom-Json
-    }
-
-    # Docker Best Practices configuration
-    $defaultConfig = @{
-        "version"              = 3
-        "cpuCount"             = 4
-        "memoryMiB"            = 8192
-        "swapMiB"              = 1024
-        "diskSizeMiB"          = 64000
-        "useProxy"             = $false
-        "httpProxy"            = ""
-        "httpsProxy"           = ""
-        "noProxy"              = ""
-        "exposeDockerAPIOnTCP2375" = $false      # Don’t expose insecure API
-        "hosts"                = @("npipe:////./pipe/docker_engine") # Local access only
-        "showTrayIcon"         = $true
-        "autoStart"            = $true
-        "hideDesktopIcon"      = $false
-        "wslIntegration"       = @{"docker-desktop" = $true }  # Adjust for installed WSL distros
-        "kubernetesEnabled"    = $false
-        "kubernetesVersion"    = ""
-        "telemetryEnabled"     = $true
-        "experimentalFeatures" = $false
-        "gpuSupport"           = $false
-        "sharedDirs"           = @("$env:HOME", "C:\Workspaces")
-        "resources"            = @{
-            "cpuCount"    = 4
-            "memoryMiB"   = 8192
-            "swapMiB"     = 1024
-            "diskSizeMiB" = 64000
-        }
-    }
-
-    # Merge user-provided config if any
-    if ($currentConfig) {
-        foreach ($key in $currentConfig.Keys) {
-            $defaultConfig[$key] = $currentConfig[$key]
-        }
-    }
-
-    # Save configuration to settings.json
-    $configPath = "$env:APPDATA\Docker\settings.json"
-    if (-Not (Test-Path $configPath)) {
-        New-Item -Path $configPath -ItemType File -Force | Out-Null
-    }
-
-    $defaultConfig | ConvertTo-Json -Depth 10 | Set-Content $configPath -Force
-    Write-Host "Docker Desktop configuration applied at $configPath"
-}
-#Set-DockerDesktopBestPractices
-
-function Set-DockerDesktop {
-
-    # Optionally enable WSL 2
-    $wslFeature = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
-    if ($wslFeature.State -ne "Enabled") {
-        Write-Host "Enabling WSL 2..."
-        wsl --install --no-distribution --no-launch
-    }
-
-    $dockerExe = (Get-Item Env:ProgramFiles).Value + "\Docker\Docker Desktop.exe"
-
-    if (-not (Test-Path $dockerEXE )) {
-        winget install docker.Desktop
-    }
-
-    # Add current user to docker-users group
-    Write-Host "Adding user $env:USERNAME to 'docker-users' group..."
-    # Check if 'docker-users' group exists before adding user
-    if (Get-LocalGroup -Name "docker-users" -ErrorAction SilentlyContinue) {
-        Add-LocalGroupMember -Group "docker-users" -Member $env:USERNAME -ErrorAction SilentlyContinue
-    }
-
-    if (Test-Path $dockerExe) {
-        Write-Host "Starting Docker Desktop service..."
-        Stop-Service com.docker.service
-        Set-Service -Name com.docker.service -StartupType Automatic
-        Start-Service com.docker.service
-    }
-}
-#Set-DockerDesktop
 
 function Set-PodmanConfig {
     <#
