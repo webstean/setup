@@ -16,6 +16,7 @@ $filesToDownload = @(
     ##"Install-Global-Secure-Access-Client.ps1",
     "Install-Windows-Admin-Centre.ps1",
     "Setup-StarShip-Shell.ps1",
+    "starship_pill.toml",
     "logo.png",
     "wallpaper.jpg"
     # Add more filenames as needed
