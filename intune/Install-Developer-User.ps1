@@ -119,15 +119,13 @@ function Set-JsonValue {
 function Set-MSTerminalSetting {
     param (
         [string]$settingsfile,
-        [string]$BackgroundColor = "#000000", ## Black background
-        #[string]$BackgroundColor = "#335bc8", ## Default blue background
         [string]$ForegroundColor = "#FFFFFF", ## Default white text
         [int]$opacity = 97, ## Default opacity
         [string]$BackgroundImage = "$env:ALLUSERSPROFILE\logo.png", # "ms-appdata:///Roaming/terminal_cat.jpg", ## background image
         [string]$TabColor = "#012456",
         [string]$face = "Cascadia Code NF", ## Default font
         [int]$FontSize = 12, ## Default font size
-        [string]$scheme = "Campbell Powershell"
+        [string]$scheme = "Campbell"
     )
     
     if ($PSVersionTable.PSEdition -eq 'Desktop') {
@@ -173,7 +171,6 @@ function Set-MSTerminalSetting {
     Set-JsonValue -JsonObject $json -Path "showMarksOnPaste" -Value $false
     Set-JsonValue -JsonObject $json -Path "bellStyle" -Value $false
     Set-JsonValue -JsonObject $json -Path "backgroundImageOpacity" -Value [float]"0.25"
-    Set-JsonValue -JsonObject $json -Path "background" -Value $BackgroundColor
     Set-JsonValue -JsonObject $json -Path "foreground" -Value $ForegroundColor
     Set-JsonValue -JsonObject $json -Path "opacity" -Value $opacity
     Set-JsonValue -JsonObject $json -Path "focusFollowMouse" -Value $true
