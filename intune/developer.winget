@@ -74,8 +74,8 @@ properties:
         allowPrerelease: true
         securityContext: elevated
       settings:
-        id:   Canonical.Ubuntu    
-        source: winget
+        id:   9PDXGNCFSCZV    
+        source: msstore
 
     - resource: xPSDesiredStateConfiguration/xScript
       id: variable.developer
