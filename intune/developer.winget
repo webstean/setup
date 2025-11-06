@@ -828,7 +828,19 @@ properties:
         securityContext: current
       settings:
         Name: ms-azuretools.vscode-azure-github-copilot
-      
+
+    # Extension: ms-vscode.vscode-node-azure-pack (Azure Tools)
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: ms-vscode.vscode-node-azure-pack
+      dependsOn:
+        - Microsoft.VisualStudioCode
+        - OpenJS.NodeJS
+      directives:
+        description: Install ms-vscode.vscode-node-azure-pack
+        securityContext: current
+      settings:
+        Name: ms-vscode.vscode-node-azure-pack
+
     # Java (open source)
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: ms-java-jdk
