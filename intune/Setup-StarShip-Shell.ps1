@@ -117,20 +117,6 @@ $character
         }
     }
 
-    # Optionally add Starship init to profile
-    if ($AddInitToProfile) {
-        $profilePath = $PROFILE
-        if (-not (Test-Path $profilePath)) { New-Item -ItemType File -Path $profilePath -Force | Out-Null }
-        $profileContent = Get-Content -Path $profilePath -Raw
-        $initLine = 'Invoke-Expression (&starship init powershell)'
-        if ($profileContent -notmatch [regex]::Escape($initLine)) {
-            Add-Content -Path $profilePath -Value "`r`n$initLine`r`n"
-            $result.ProfileUpdated = $true
-        } else {
-            $result.Notes += 'Starship init already present in $PROFILE.'
-        }
-    }
-
     $result
 }
 Set-StarshipAdminIndicator
