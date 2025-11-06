@@ -538,6 +538,7 @@ if ($env:IsDevBox -eq "True" ) {
 }
 
 $ompConfig = "$env:POSH_THEMES_PATH\cloud-native-azure.omp.json"
+$ompConfig = "C:\Program Files\WindowsApps\ohmyposh.cli_27.5.0.0_x64__96v55e8n804z4\themes\cloud-native-azure.omp.json"
 
 ## Check for Starship
 #(Get-Command -ErrorAction SilentlyContinue starship.exe).Source
