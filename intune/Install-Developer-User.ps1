@@ -476,16 +476,22 @@ Remove-MicrosoftStore-Taskbar-Icon
 
 function New-CodeSigningCertificate {
     param (
-        [Parameter(Mandatory = $true)]
-        [string]$ScriptPath,
-
         [string]$CertName = "MyCodeSigningCert",
         [Parameter()]
         [System.Security.SecureString]$PfxPassword = (ConvertTo-SecureString -String (Get-Item Env:STRONGPASSWORD).Value -AsPlainText -Force),
-        [string]$OutputPath = "$env:USERPROFILE\Desktop"
+        [string]$OutputPath = "$env:OneDriveCommercial"
     )
 
-    try {
+    try { 
+
+        $subject = "CN=$CertName"
+
+        if ( Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Subject -like "*$subject*" } ) { return } ## already exists
+        
+        ## Delete
+        # $cert = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Subject -like "*$subject*" }
+        # Remove-Item Cert:\CurrentUser\My\$cert.Thumbprint
+
         # Ensure output path exists
         if (-not (Test-Path $OutputPath)) {
             New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
@@ -496,16 +502,15 @@ function New-CodeSigningCertificate {
         $securePass = ConvertTo-SecureString -String $PfxPassword -Force -AsPlainText
 
         Write-Host "==> Creating self-signed code signing certificate..."
-        $cert = New-SelfSignedCertificate -Type CodeSigningCert `
-            -Subject "CN=MyCodeSigningCert" `
+        $cert = New-SelfSignedCertificate `
+            -Subject "$subject" `
             -KeyExportPolicy Exportable `
-            -CertStoreLocation "Cert:\LocalMachine\My" `
-            -KeyLength 2048 `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
             -NotAfter (Get-Date).AddYears(2) `
             -Type CodeSigningCert `
             -KeySpec Signature `
             -KeyLength 2048 `
-            -HashAlgorithm SHA256 `
+            -HashAlgorithm SHA256
 
         Write-Host "Created certificate with Thumbprint:" $cert.Thumbprint
 
