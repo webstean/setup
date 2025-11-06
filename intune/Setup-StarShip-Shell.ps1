@@ -1,4 +1,4 @@
-function Set-StarshipAdminIndicator {
+function Set-StarshipConfig {
     <#
     .SYNOPSIS
         Adds Starship custom modules that change colour based on elevation (Admin vs User).
@@ -28,6 +28,7 @@ function Set-StarshipAdminIndicator {
 
     # Download a config
     $url = 'https://raw.githubusercontent.com/TaouMou/starship-presets/refs/heads/main/starship_pills.toml'
+    $url = 'https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/starship_pill.toml'
     $response = Invoke-WebRequest -Uri $url -ContentType "text/plain" -UseBasicParsing
     $response.Content | Out-File $HOME/.starship_pill.toml
     Copy-Item $HOME/.starship_pill.toml $starshipToml
