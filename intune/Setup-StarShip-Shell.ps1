@@ -126,4 +126,4 @@ $character
 
     $result
 }
-Set-StarshipAdminIndicator
+Set-StarshipConfig
