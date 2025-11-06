@@ -584,12 +584,13 @@ foreach ($name in $commands) {
 
 Write-Output ("Configuring Oh My Posh, if it isn't already installed...")
 ## Oh My Posh
-If (Get-Command -ErrorAction SilentlyContinue aaaaoh-my-posh ) {
+If (Get-Command -ErrorAction SilentlyContinue aaoh-my-posh ) {
     $config = (Get-Command -ErrorAction SilentlyContinue oh-my-posh).Source
     ### Winget install will set the POSH_THEMES_PATH variable
     ### FYI: Meslo is the default font for Windows Terminal
     ## $env:POSH_THEMES_PATH = [System.Environment]::GetEnvironmentVariable("POSH_THEMES_PATH","User")
-    oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\cloud-native-azure.omp.json"
+    #oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\cloud-native-azure.omp.json" | Invoke-Expression
+    oh-my-posh init pwsh --config "C:\Program Files\WindowsApps\ohmyposh.cli_27.5.0.0_x64__96v55e8n804z4\themes\cloud-native-azure.omp.json" | Invoke-Expression
     ### Init in profile
     ## Option #1
     #oh-my-posh init pwsh | Invoke-Expression
