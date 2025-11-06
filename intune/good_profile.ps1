@@ -1227,3 +1227,23 @@ function Get-EntraID-Info {
     $openidConfig | Format-List
 }
 
+function Set-StarShip {
+    if ( $env:STARSHIP_CONFIG ) {
+        # Download a config
+        $url = 'https://raw.githubusercontent.com/TaouMou/starship-presets/refs/heads/main/starship_pills.toml'
+        $response = Invoke-WebRequest -Uri $url -ContentType "text/plain" -UseBasicParsing
+        $response.Content | Out-File $HOME/.starship_pill.toml
+        Copy-Item $HOME/.starship_pill.toml $env:STARSHIP_CONFIG
+        
+        ## Other options
+        #starship preset pastel-powerline -o $env:STARSHIP_CONFIG
+        #starship preset nerd-font-symbols -o $env:STARSHIP_CONFIG
+        #starship preset gruvbox-rainbow -o $env:STARSHIP_CONFIG
+        #starship preset plain-text-symbols -o $env:STARSHIP_CONFIG
+        #starship preset bracketed-segments -o $env:STARSHIP_CONFIG
+        
+        ## Implement 
+        Invoke-Expression (&starship init powershell -o $env:STARSHIP_CONFIG)
+    }
+}
+
