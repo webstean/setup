@@ -123,7 +123,6 @@ if (Get-Module -Name AzureAD.Standard.Preview -ListAvailable -ErrorAction Silent
 
 Install-OrUpdateModule PSWindowsUpdate
 Install-OrUpdateModule PackageManagement
-Install-OrUpdateModule ModernWorkplaceClientCenter
 Install-OrUpdateModule Terminal-Icons
 Install-OrUpdateModule Az
 Install-OrUpdateModule Microsoft.WinGet.Client
