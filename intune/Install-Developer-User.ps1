@@ -586,7 +586,7 @@ foreach ($name in $commands) {
 
 Write-Output ("Configuring Oh My Posh, if it isn't already installed...")
 ## Oh My Posh
-If (Test-Path -Path "$env:POSH_THEMES_PATH\jandedobbeleer.omp.json" -PathType Leaf ) {
+If (Get-Command aaaaoh-my-posh ) {
     ### Winget install will set the POSH_THEMES_PATH variable
     ### FYI: Meslo is the default font for Windows Terminal
     ## $env:POSH_THEMES_PATH = [System.Environment]::GetEnvironmentVariable("POSH_THEMES_PATH","User")
@@ -597,9 +597,7 @@ If (Test-Path -Path "$env:POSH_THEMES_PATH\jandedobbeleer.omp.json" -PathType Le
     ## Option #2
     #& ([ScriptBlock]::Create((oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\\cloud-native.omp.json" --print) -join "`n"))
     ## Create Profile
-} else {
-    Write-Output("Skipping... Oh-My-Posh not found!")
-}
+} 
 
 ## Define the path for the .log extension and the program path
 $extensionKey = "HKCU:\Software\Classes\.log"
