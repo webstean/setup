@@ -547,7 +547,7 @@ if ($env:STARSHIP_CONFIG -and (Test-Path "$starshipConfig" -PathType Leaf)) {
     Write-Host "Found Starship shell...so starting it..."
     Invoke-Expression (&starship init powershell)
     Enable-TransientPrompt
-    $Host.UI.RawUI.WindowTitle = "PowerShell - Starship"
+    if ( - not $IsAdmin ) { $Host.UI.RawUI.WindowTitle = "PowerShell - Starship" }
 } elseif ($env:POSH_THEMES_PATH -and (Test-Path "$ompConfig" -Pathtype Leaf)) {
     Write-Host "Found Oh-My-Posh shell...so starting it..."
     & ([ScriptBlock]::Create((oh-my-posh init pwsh --config $ompConfig --print) -join "`n"))
