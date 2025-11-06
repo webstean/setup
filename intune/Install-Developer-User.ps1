@@ -602,8 +602,7 @@ If (Test-Path -Path "$env:POSH_THEMES_PATH\jandedobbeleer.omp.json" -PathType Le
     ## Option #2
     #& ([ScriptBlock]::Create((oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\\cloud-native.omp.json" --print) -join "`n"))
     ## Create Profile
-}
-else {
+} else {
     Write-Output("Skipping... Oh-My-Posh not found!")
 }
 
