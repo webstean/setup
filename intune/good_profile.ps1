@@ -805,17 +805,17 @@ if ($IsLanguagePermissive) {
         Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue
     }
 
-    if ($subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id ) {
+    if ([bool]$subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id ) {
         Set-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Value $subscription_id
     } else {
         Remove-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Force -ErrorAction SilentlyContinue
     }
-    if ($tenant_id = (Get-AzTenant -ErrorAction SilentlyContinue).Id ) {
+    if ([bool]$tenant_id = (Get-AzTenant -ErrorAction SilentlyContinue).Id ) {
         Set-Item -Path Env:\AZURE_TENANT_ID -Value $tenant_id
     } else {
         Remove-Item -Path Env:\AZURE_TENANT_ID -Force -ErrorAction SilentlyContinue
     }
-    if ($tenant_name = (Get-AzTenant -ErrorAction SilentlyContinue).Name ) {
+    if ([bool]$tenant_name = (Get-AzTenant -ErrorAction SilentlyContinue).Name ) {
         Set-Item -Path Env:\AZURE_TENANT_NAME -Value $tenant_name
     } else {
         Remove-Item -Path Env:\AZURE_TENANT_NAME -Force -ErrorAction SilentlyContinue
