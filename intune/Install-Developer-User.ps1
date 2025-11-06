@@ -1,5 +1,43 @@
 ﻿#Requires -RunAsAdministrator
 
+function Set-WslNetConfig {
+    ## make WSL compatible with Podman, especially being able to access containers via loopback/127.0.0.1
+
+    if (-not ($IsLanguagePermissive)) { return }
+    
+    # Ensure WSL networking mode is Mirror
+    # Ensure WSL autoproxy is off
+    $wslConfigPath = [System.IO.Path]::Combine($env:HOMEPATH, ".wslconfig")
+    # Check if the .wslconfig file exists
+    if (Test-Path $wslConfigPath) {
+        # Read the contents of the .wslconfig file
+        $wslConfigContent = Get-Content -Path $wslConfigPath -Raw
+        
+        # Check if 'networkingMode' is set to 'mirrored'
+        if ($wslConfigContent -notmatch "networkingMode\s*=\s*mirrored") {
+            # Add or update the networkingMode setting
+            $newConfig1 = $wslConfigContent -replace "(\[.*?\])", "`$1`r`nnetworkingMode = mirrored"
+            $newConfig2 = $wslConfigContent -replace "(\[.*?\])", "`$1`r`nautoProxy = false"
+            
+            # Write the updated content back to the file
+            Set-Content -Path $wslConfigPath -Value $newConfig1 -Force
+            Set-Content -Path $wslConfigPath -Value $newConfig2 -Force
+            Write-Host "Added 'networkingMode = mirrored' to .wslconfig"
+        } else {
+            Write-Host "Updated existing .wslconfig"
+        }
+    } else {
+        # If .wslconfig doesn't exist, create it with the networkingMode setting
+        $configContent1 = "[network]" + "`r`n" + "networkingMode = mirrored"
+        Set-Content -Path $wslConfigPath -Value $configContent1
+        $configContent2 = "[network]" + "`r`n" + "autoProxy = false"
+        Set-Content -Path $wslConfigPath -Value $configContent2
+        
+        Write-Host "Created new .wslconfig"
+    }
+}
+Set-WslNetConfig
+
 ## Helper Function for JSON files
 function Set-JsonValue {
     <#
