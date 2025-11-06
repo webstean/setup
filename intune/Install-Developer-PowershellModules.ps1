@@ -134,7 +134,6 @@ Install-OrUpdateModule Az.Functions
 Install-OrUpdateModule Az.ContainerRegistry
 Install-OrUpdateModule Microsoft.WinGet.Client
 Install-OrUpdateModule Microsoft.WinGet.Configuration
-Install-OrUpdateModule Microsoft.WinGet.DSC
 Install-OrUpdateModule Microsoft.Graph.Authentication
 Install-OrUpdateModule Microsoft.Graph.Groups
 Install-OrUpdateModule Microsoft.Graph.Users
