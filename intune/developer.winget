@@ -848,3 +848,11 @@ properties:
         id: OpenJS.NodeJS
         source: winget
 
+    # Remove GitLens
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      directives:
+        description: Remove GitLens extension
+        allowPrerelease: true
+      settings:
+        Name: eamodio.gitlens
+        Exist: false
