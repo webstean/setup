@@ -763,7 +763,19 @@ properties:
         securityContext: current
       settings:
         Name: ms-dotnettools.csharp
-    
+
+    # VS Code .NET Development Extensions
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: 42Crunch.vscode-openapi
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install 42Crunch.vscode-openapi extension
+        allowPrerelease: true
+        securityContext: current
+      settings:
+        Name: 42Crunch.vscode-openapi
+
     # VS Code DotNet extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-dotnettools.vscode-dotnet-runtime
