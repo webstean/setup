@@ -333,7 +333,7 @@ Function HideMusicFromExplorer {
 	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\{a0c69a99-21c8-4671-8703-7934162fcf1d}\PropertyBag" -Name "ThisPCPolicy" -Type String -Value "Hide"
 	Set-ItemProperty -Path "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\{a0c69a99-21c8-4671-8703-7934162fcf1d}\PropertyBag" -Name "ThisPCPolicy" -Type String -Value "Hide"
 }
-HideMusicFromExplorer
+HideMusicFromExplorer ## does not work
 
 # Disable Internet Explorer warning when closing multiple tabs.
 Function DisableIEandEdgeWarnings {
@@ -516,7 +516,7 @@ Function DisableIEEnhancedSecurity {
 }
 DisableIEEnhancedSecurity
 
-Write-Output ("Uninstalling Microsoft Software Bloat...")
+Write-Output ("Uninstalling Microsoft application Bloat...")
 
 function Uninstall-AppxPackageAndWait {
     [CmdletBinding()]
@@ -616,7 +616,7 @@ UninstallMsftBloat
 
 # Uninstall default third party applications
 function UninstallThirdPartyBloat {
-	Write-Output ("Uninstalling 3rd Party Software Bloat...")
+	Write-Output ("Uninstalling 3rd Party application Bloat...")
 	## Import-Module Appx
 	Uninstall-AppxPackageAndWait "2414FC7A.Viber"
 	Uninstall-AppxPackageAndWait "41038Axilesoft.ACGMediaPlayer"
