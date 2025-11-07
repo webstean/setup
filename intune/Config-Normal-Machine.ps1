@@ -352,39 +352,78 @@ DisableIEandEdgeWarnings
 function Set-EdgeNoFirstRun {
     <#
     .SYNOPSIS
-        Configures Microsoft Edge to skip first run and import prompts.
+        Configures Microsoft Edge to skip first run, suppress import prompts,
+        and auto sign-in + sync without user prompts (where supported).
+
     .DESCRIPTION
-        Sets enterprise policy registry keys so Edge launches without asking to import or sign in.
+        Sets Microsoft Edge enterprise policy registry keys so:
+          - First run experience is hidden
+          - Import / add-profile / default-browser prompts are suppressed
+          - Browser sign-in is forced
+          - Automatic sign-in with the current account is enabled
+          - Sync is forced on and cannot be disabled by the user
+
+        Notes:
+        - Auto sign-in + sync assumes the device/account setup supports it
+          (e.g. Entra ID or AD with Seamless SSO / hybrid join).
+        - Policies are applied via HKLM, so they affect all users on the device.
     #>
 
     $edgePolicyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
 
-    # Create path if not exists
+    # Create policy path if not exists
     if (-not (Test-Path $edgePolicyPath)) {
         New-Item -Path $edgePolicyPath -Force | Out-Null
     }
 
-    # Set policy values
+    # Core "no first run" + profile/import prompts + auto sign-in + forced sync
     $policies = @{
-        "HideFirstRunExperience"       = 1
-        "ImportFavorites"              = 0
-        "AutoImportAtFirstRun"         = 0
-        "BrowserAddProfileEnabled"     = 0
-        "DefaultBrowserSettingEnabled" = 0
+        # Your original "no first run / no import" bits
+        "HideFirstRunExperience"       = 1  # Hide first-run UI
+        "ImportFavorites"              = 0  # Don't import favorites
+        "AutoImportAtFirstRun"         = 0  # No auto-import wizard
+        "BrowserAddProfileEnabled"     = 0  # Prevent add-profile prompts
+        "DefaultBrowserSettingEnabled" = 0  # Don't prompt to be default
+
+        # 🔐 Identity / sign-in / sync
+        # Allow/force browser sign-in so a profile is always signed in
+        # 0 = Disabled, 1 = Enabled, 2 = Force sign-in
+        "BrowserSignin" = 2
+
+        # Enable automatic sign-in from web/OS to browser
+        # These two must match and be 1 to enable auto sign-in
+        "WebToBrowserSignInEnabled"        = 1
+        "SeamlessWebToBrowserSignInEnabled" = 1
+
+        # Auto sign in with on-prem AD account when no Entra account
+        # (only applies in domain-joined scenarios)
+        "ConfigureOnPremisesAccountAutoSignIn" = 1
+
+        # Force sync on and prevent turning it off
+        "ForceSync" = 1
     }
 
     foreach ($policy in $policies.GetEnumerator()) {
-        New-ItemProperty -Path $edgePolicyPath -Name $policy.Key -Value $policy.Value -PropertyType DWord -Force | Out-Null
+        New-ItemProperty -Path $edgePolicyPath `
+                         -Name $policy.Key `
+                         -Value $policy.Value `
+                         -PropertyType DWord `
+                         -Force | Out-Null
     }
 
-    # Optional: user hive to suppress sign-in CTA
+    # Optional: user hive tweak to reduce sign-in CTA noise
     $userCtaPath = "HKCU:\Software\Microsoft\Edge\SignIn"
     if (-not (Test-Path $userCtaPath)) {
         New-Item -Path $userCtaPath -Force | Out-Null
     }
-    New-ItemProperty -Path $userCtaPath -Name "SignInCtaShownCount" -Value 1 -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $userCtaPath `
+                     -Name "SignInCtaShownCount" `
+                     -Value 1 `
+                     -PropertyType DWord `
+                     -Force | Out-Null
 
-    Write-Host "✅ Microsoft Edge configured to skip first run experience (config via Group Policy, MDM as required)."
+    Write-Host "✅ Microsoft Edge configured to skip first run, auto sign-in, and force sync (subject to device/account setup)."
+    Write-Host "   Restart Edge and check edge://policy to confirm policies are applied."
 }
 Set-EdgeNoFirstRun
 
