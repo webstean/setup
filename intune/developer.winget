@@ -843,6 +843,18 @@ properties:
       settings:
         Name: GitHub.copilot
 
+    # VS Code ms-playwright.playwright extension
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: ms-playwright.playwright
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install ms-playwright.playwright
+        allowPrerelease: true
+        securityContext: current
+      settings:
+        Name: ms-playwright.playwright
+
     # VS Code GitHub Copilot Chat extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: GitHub.copilot-chat
