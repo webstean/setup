@@ -135,17 +135,18 @@ properties:
 #          }
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.VisualStudioCode
+      id: Microsoft.VisualStudioCode.General
       directives:
         description: Installing Microsoft.VisualStudioCode
         allowPrerelease: false
         securityContext: current
+        ensure: Absent  ### Remove this one, use the Insiders Edition
       settings:
         id: Microsoft.VisualStudioCode
         source: winget
   
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.VisualStudioCode.Insiders
+      id: Microsoft.VisualStudioCode
       directives:
         description: Install Visual Studio Code Insiders
         securityContext: current
