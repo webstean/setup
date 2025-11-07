@@ -755,6 +755,21 @@ properties:
       settings:
         Name: ms-vscode-remote.remote-containers
 
+    # VS Code C# DEv Kit extension
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: ms-dotnettools.csdevkit
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install ms-dotnettools.csdevkit
+        allowPrerelease: true
+        securityContext: current
+      settings:
+        Name: ms-dotnettools.csdevkit
+
+
+
+
     # VS Code PowerShell extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-powershell
