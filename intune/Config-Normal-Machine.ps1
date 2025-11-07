@@ -463,6 +463,42 @@ function Set-EdgeNoFirstRun {
 }
 Set-EdgeNoFirstRun
 
+function Hide-WindowsSecurityFamilyOptions {
+    <#
+    .SYNOPSIS
+        Hides the "Family options" section in the Windows Security app.
+
+    .DESCRIPTION
+        Sets a registry value under
+        HKLM:\SOFTWARE\Microsoft\Windows Defender Security Center\Family options
+        to disable the "Family options" UI section.
+    #>
+
+    $keyPath = "HKLM:\SOFTWARE\Microsoft\Windows Defender Security Center\Family options"
+    $valueName = "UILockdown"
+
+    # Ensure running elevated
+    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+        ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Write-Warning "Run this function as Administrator to modify HKLM."
+        return
+    }
+
+    if (-not (Test-Path $keyPath)) {
+        New-Item -Path $keyPath -Force | Out-Null
+    }
+
+    New-ItemProperty -Path $keyPath `
+                     -Name $valueName `
+                     -Value 1 `
+                     -PropertyType DWord `
+                     -Force | Out-Null
+
+    Write-Host "✅ 'Family options' hidden in Windows Security app." -ForegroundColor Green
+    Write-Host "   Restart the Windows Security app if it’s open." -ForegroundColor Yellow
+}
+Hide-WindowsSecurityFamilyOptions
+
 # Disable Windows Media Player's media sharing feature
 Function DisableMediaSharing {
 	If (!(Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\WindowsMediaPlayer")) {
