@@ -194,6 +194,16 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: RicoSuter.NSwagStudio
+      directives:
+        description: Installing RicoSuter.NSwagStudio
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: RicoSuter.NSwagStudio
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Python.PythonInstallManager
       directives:
         description: Installing Python.PythonInstallManager
