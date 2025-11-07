@@ -815,7 +815,7 @@ properties:
 
     # VS Code golang.Go extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: golang.Go
+      id: golang.Go.extension
       dependsOn:
         - Microsoft.VisualStudioCode
         - GoLang.Go
