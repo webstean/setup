@@ -739,13 +739,26 @@ properties:
 #    settings:
 #      Name: mhutchie.git-graph
 
+
+    # VS Code ms-azuretools.vscode-apimanagement Extension
+#    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+#      id: ms-azuretools.vscode-apimanagement
+#      dependsOn:
+#        - Microsoft.VisualStudioCode
+#      directives:
+#        description: Install ms-azuretools.vscode-apimanagement extension
+#        allowPrerelease: true
+#        securityContext: current
+#      settings:
+#        Name: ms-azuretools.vscode-apimanagement
+
     # VS Code .NET Development Extensions
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-dotnettools.csharp
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install C#  (PreRelease) extension
+        description: Install C# (PreRelease) extension
         allowPrerelease: true
         securityContext: current
       settings:
