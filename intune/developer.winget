@@ -504,6 +504,16 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: GoLang.Go
+      directives:
+        description: Installing GoLang.Go
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: GoLang.Go
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: RaspberryPiFoundation.RaspberryPiImager
       directives:
         description: Installing RaspberryPiFoundation.RaspberryPiImager
@@ -767,8 +777,18 @@ properties:
       settings:
         Name: ms-dotnettools.csdevkit
 
-
-
+    # VS Code golang.Go extension
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: golang.Go
+      dependsOn:
+        - Microsoft.VisualStudioCode
+        - GoLang.Go
+      directives:
+        description: Install Go Lang extension
+        allowPrerelease: true
+        securityContext: current
+      settings:
+        Name: golang.Go
 
     # VS Code PowerShell extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
