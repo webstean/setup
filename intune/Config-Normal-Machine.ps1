@@ -330,8 +330,33 @@ ShowThisPCOnDesktop
 
 # Hide Music icon from Explorer namespace - Hides the icon also from personal folders and open/save dialogs
 Function HideMusicFromExplorer {
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\{a0c69a99-21c8-4671-8703-7934162fcf1d}\PropertyBag" -Name "ThisPCPolicy" -Type String -Value "Hide"
-	Set-ItemProperty -Path "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\{a0c69a99-21c8-4671-8703-7934162fcf1d}\PropertyBag" -Name "ThisPCPolicy" -Type String -Value "Hide"
+   # Require admin rights
+    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+        ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Write-Warning "Run this function from an elevated PowerShell session (Run as Administrator)."
+        return
+    }
+
+	$musicGuid = "{a0c69a99-21c8-4671-8703-7934162fcf1d}"
+	
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\$musicGuid\PropertyBag" -Name "ThisPCPolicy" -Type String -Value "Hide"
+	Set-ItemProperty -Path "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\$musicGuid\PropertyBag" -Name "ThisPCPolicy" -Type String -Value "Hide"
+    $propertyBagKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\$musicGuid\PropertyBag"
+    $valueName = "ThisPCPolicy"
+ 
+    # Ensure the PropertyBag key exists
+    if (-not (Test-Path $propertyBagKey)) {
+        New-Item -Path $propertyBagKey -Force | Out-Null
+    }
+
+    # Set ThisPCPolicy=Hide
+    New-ItemProperty -Path $propertyBagKey `
+                     -Name $valueName `
+                     -Value "Hide" `
+                     -PropertyType String `
+                     -Force | Out-Null
+
+    Write-Host "🎵 Music folder will be hidden from 'This PC' permanently." -ForegroundColor Green
 }
 HideMusicFromExplorer ## does not work
 
