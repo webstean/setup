@@ -164,7 +164,6 @@ function Disable-MsnFeedsAndWidgets {
 }
 Disable-MsnFeedsAndWidgets
 
-
 # Enable location on Windows 10/11
 Function EnableLocation {
 	Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors" -Name "DisableLocation" -ErrorAction SilentlyContinue
