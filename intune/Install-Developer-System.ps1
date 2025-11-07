@@ -520,6 +520,15 @@ Get-WindowsOptionalFeature -Online | Select-Object FeatureName, State | Format-T
 ## NFS example (or use WSL)
 # mount -o anon \\10.1.1.211\mnt\vms Z:
 
+
+New-Item -Path "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" -Force | Out-Null
+New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" `
+    -Name "IsContinuousInnovationOptedIn" `
+    -PropertyType DWord `
+    -Value 1 `
+    -Force | Out-Null
+Write-Host "✅ Enabled: 'Get the latest updates as soon as they’re available'." -ForegroundColor Green
+
 function Get-GitHubDirectory {
     <#
     .SYNOPSIS
