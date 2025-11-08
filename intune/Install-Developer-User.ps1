@@ -1,42 +1,5 @@
 ﻿#Requires -RunAsAdministrator
 
-function Set-WslNetConfig {
-    ## make WSL compatible with Podman, especially being able to access containers via loopback/127.0.0.1
-
-    if (-not ($IsLanguagePermissive)) { return }
-    
-    # Ensure WSL networking mode is Mirror
-    # Ensure WSL autoproxy is off
-    $wslConfigPath = [System.IO.Path]::Combine($env:HOMEPATH, ".wslconfig")
-    # Check if the .wslconfig file exists
-    if (Test-Path $wslConfigPath) {
-        # Read the contents of the .wslconfig file
-        $wslConfigContent = Get-Content -Path $wslConfigPath -Raw
-        
-        # Check if 'networkingMode' is set to 'mirrored'
-        if ($wslConfigContent -notmatch "networkingMode\s*=\s*mirrored") {
-            # Add or update the networkingMode setting
-            $newConfig1 = $wslConfigContent -replace "(\[.*?\])", "`$1`r`nnetworkingMode = mirrored"
-            $newConfig2 = $wslConfigContent -replace "(\[.*?\])", "`$1`r`nautoProxy = false"
-            
-            # Write the updated content back to the file
-            Set-Content -Path $wslConfigPath -Value $newConfig1 -Force
-            Set-Content -Path $wslConfigPath -Value $newConfig2 -Force
-            Write-Host "Added 'networkingMode = mirrored' to .wslconfig"
-        } else {
-            Write-Host "Updated existing .wslconfig"
-        }
-    } else {
-        # If .wslconfig doesn't exist, create it with the networkingMode setting
-        $configContent1 = "[network]" + "`r`n" + "networkingMode = mirrored"
-        Set-Content -Path $wslConfigPath -Value $configContent1
-        $configContent2 = "[network]" + "`r`n" + "autoProxy = false"
-        Set-Content -Path $wslConfigPath -Value $configContent2
-        
-        Write-Host "Created new .wslconfig"
-    }
-}
-Set-WslNetConfig
 
 function Set-VSCodeProtocolPolicy {
     <#
@@ -531,11 +494,54 @@ if ( -not ([string]::IsNullOrWhiteSpace($getupn))) {
 ## Share environment variables between Windows and WSL
 ## https://devblogs.microsoft.com/commandline/share-environment-vars-between-wsl-and-windows/
 [Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN', 'User')
+$env:WSLENV = [System.Environment]::GetEnvironmentVariable("WSLENV", "User")
 
+function Set-WslNetConfig {
+    ## make WSL compatible with Podman, especially being able to access containers via loopback/127.0.0.1
+
+    ## if (-not ($IsLanguagePermissive)) { return }
+    
+    # Ensure WSL networking mode is Mirror
+    # Ensure WSL autoproxy is off
+    $wslConfigPath = [System.IO.Path]::Combine($env:HOMEPATH, ".wslconfig")
+    # Check if the .wslconfig file exists
+    if (Test-Path $wslConfigPath) {
+        # Read the contents of the .wslconfig file
+        $wslConfigContent = Get-Content -Path $wslConfigPath -Raw
+        
+        # Check if 'networkingMode' is set to 'mirrored'
+        if ($wslConfigContent -notmatch "networkingMode\s*=\s*mirrored") {
+            # Add or update the networkingMode setting
+            $newConfig1 = $wslConfigContent -replace "(\[.*?\])", "`$1`r`nnetworkingMode = mirrored"
+            $newConfig2 = $wslConfigContent -replace "(\[.*?\])", "`$1`r`nautoProxy = false"
+            
+            # Write the updated content back to the file
+            Set-Content -Path $wslConfigPath -Value $newConfig1 -Force
+            Set-Content -Path $wslConfigPath -Value $newConfig2 -Force
+            Write-Host "Added 'networkingMode = mirrored' to .wslconfig"
+        } else {
+            Write-Host "Updated existing .wslconfig"
+        }
+    } else {
+        # If .wslconfig doesn't exist, create it with the networkingMode setting
+        $configContent1 = "[network]" + "`r`n" + "networkingMode = mirrored"
+        Set-Content -Path $wslConfigPath -Value $configContent1
+        $configContent2 = "[network]" + "`r`n" + "autoProxy = false"
+        Set-Content -Path $wslConfigPath -Value $configContent2
+        
+        Write-Host "Created new .wslconfig"
+    }
+}
+Set-WslNetConfig
 Write-Output ("Ensuring WSL is upto date...") 
 ## ensure WSL is upto date, can only be done per user (not system)
+Start-Process -FilePath "wsl" -ArgumentList "--install --no-launch" -NoNewWindow -Wait -PassThru
 Start-Process -FilePath "wsl" -ArgumentList "--status" -NoNewWindow -Wait -PassThru
 Start-Process -FilePath "wsl" -ArgumentList "--update" -NoNewWindow -Wait -PassThru
+## PreRelease version
+Start-Process -FilePath "wsl" -ArgumentList "--update --pre-release" -NoNewWindow -Wait -PassThru
+Start-Process -FilePath "wsl" -ArgumentList "--set-default-version 2" -NoNewWindow -Wait -PassThru
+## Should now be ready for Podman/Docker
 
 ## Azure CLI configuration
 try {
