@@ -47,14 +47,6 @@ properties:
         id: 9NCTDW2W1BH8
         source: msstore
 
-#   - resource: PSDscResources/WindowsOptionalFeature
-#    directives:
-#      description: Install VirtualMachinePlatform
-#      securityContext: elevated
-#    settings:
-#      name: VirtualMachinePlatform
-#      ensure: Present
-
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: installWSL
       directives:
@@ -146,14 +138,14 @@ properties:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.VisualStudioCode.General
       directives:
-        description: Installing Microsoft.VisualStudioCode
+        description: Removing Microsoft.VisualStudioCode   ### Remove this one, use the Insiders Edition
         allowPrerelease: false
         securityContext: current
-        ensure: Absent  ### Remove this one, use the Insiders Edition
       settings:
         id: Microsoft.VisualStudioCode
         source: winget
-  
+        ensure: Absent
+    
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.VisualStudioCode
       directives:
