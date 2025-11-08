@@ -171,10 +171,19 @@ Install-OrUpdateModule Microsoft.Graph.Applications
 Install-OrUpdateModule Microsoft.Graph.DeviceManagement
 Install-OrUpdateModule Microsoft.Graph.Files
 Install-OrUpdateModule Microsoft.Online.SharePoint.PowerShell
-Install-OrUpdateModule PnP.PowerShell
 Install-OrUpdateModule MicrosoftTeams
 #Install-OrUpdateModule VMware.PowerCLI ## VMware PowerCLI (its too big - as no longer used much)
 Install-OrUpdateModule Microsoft.PowerApps.Administration.PowerShell
+
+if (Get-Module PnP.PowerShell -ErrorAction SilentlyContinue ) {
+    Update-Module PnP.PowerShell
+} else {
+    Install-Module Pnp.Powershell
+}
+Get-Command -Module PnP.PowerShell
+
+
+
 ## Add-PowerAppsAccount -Endpoint prod
 
 # Example PowerApp environment creation (commented out):
