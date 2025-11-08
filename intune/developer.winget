@@ -611,6 +611,7 @@ properties:
         description: Install Prettier for code formatting
         allowPrerelease: true
       settings:
+        Edition: Stable
         Name: esbenp.prettier-vscode
 
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
@@ -621,17 +622,19 @@ properties:
         description: ms-azuretools.vscode-azure-mcp-server
         allowPrerelease: true
       settings:
-        Name: ms-azuretools.vscode-azure-mcp-server
+         Edition: Stable
+         Name: ms-azuretools.vscode-azure-mcp-server
 
-    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: GitHub.vscode-pull-request-github
-      dependsOn:
-        - Microsoft.VisualStudioCode
-      directives:
-        description: GitHub.vscode-pull-request-github
-        allowPrerelease: true
-      settings:
-        Name: GitHub.vscode-pull-request-github
+     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+       id: GitHub.vscode-pull-request-github
+       dependsOn:
+         - Microsoft.VisualStudioCode
+       directives:
+         description: GitHub.vscode-pull-request-github
+         allowPrerelease: true
+       settings:
+         Edition: Stable
+         Name: GitHub.vscode-pull-request-github
 
 
 #    - resource: PSDscResources/WindowsOptionalFeature
@@ -640,6 +643,7 @@ properties:
 #        description: Ensure Windows Sandbox is enabled
 #      settings:
 #        Name: Containers-DisposableClientVM
+#        Edition: Stable
 #        Ensure: Present
 
 #    - resource: Microsoft.WindowsSandbox.DSC/WindowsSandbox
@@ -775,6 +779,7 @@ properties:
 #      description: Install Git Graph for visual Git history
 #      allowPrerelease: true
 #    settings:
+#      Edition: Stable
 #      Name: mhutchie.git-graph
 
 
@@ -788,6 +793,7 @@ properties:
 #        allowPrerelease: true
 #        securityContext: current
 #      settings:
+#        Edition: Stable
 #        Name: ms-azuretools.vscode-apimanagement
 
     # VS Code .NET Development Extensions
@@ -800,6 +806,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
+        Edition: Stable
         Name: ms-dotnettools.csharp
 
     # VS Code .NET Development Extensions
@@ -812,6 +819,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
+        Edition: Stable
         Name: 42Crunch.vscode-openapi
 
     # VS Code DotNet extension
@@ -824,6 +832,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
+         Edition: Stable
         Name: ms-dotnettools.vscode-dotnet-runtime
 
     # VS Code DotNet extension
@@ -836,6 +845,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
+         Edition: Stable
         Name: ms-vscode-remote.remote-containers
 
     # VS Code C# DEv Kit extension
@@ -848,6 +858,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
+         Edition: Stable
         Name: ms-dotnettools.csdevkit
 
     # VS Code golang.Go extension
@@ -861,6 +872,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
+         Edition: Stable
         Name: golang.Go
 
     # VS Code PowerShell extension
@@ -873,6 +885,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
+         Edition: Stable
         Name: ms-vscode.powershell
     
     # VS Code Azure Docker tools
@@ -885,6 +898,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
+         Edition: Stable
         Name: ms-azuretools.vscode-docker
 
     # VS Code Terraform extension
@@ -909,6 +923,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
+         Edition: Stable
         Name: ms-azuretools.vscode-azureterraform
 
     # VS Code RedHat YML extension
@@ -921,6 +936,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
+         Edition: Stable
         Name: redhat.vscode-yaml
 
     # VS Code GitHub Copilot extension
@@ -934,6 +950,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
+         Edition: Stable
         Name: GitHub.copilot
 
     # VS Code ms-playwright.playwright extension
@@ -946,6 +963,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
+         Edition: Stable
         Name: ms-playwright.playwright
 
     # VS Code GitHub Copilot Chat extension
@@ -959,6 +977,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
+         Edition: Stable
         Name: GitHub.copilot-chat
 
     # VS Code
@@ -971,6 +990,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
+         Edition: Stable
         Name: ms-azuretools.vscode-azure-github-copilot
 
     # Extension: ms-vscode.vscode-node-azure-pack (Azure Tools)
@@ -983,6 +1003,7 @@ properties:
         description: Install ms-vscode.vscode-node-azure-pack
         securityContext: current
       settings:
+         Edition: Stable
         Name: ms-vscode.vscode-node-azure-pack
 
     # Java (open source)
@@ -1021,5 +1042,6 @@ properties:
         description: Remove GitLens extension
         allowPrerelease: true
       settings:
+         Edition: Stable
         Name: eamodio.gitlens
         Exist: false
