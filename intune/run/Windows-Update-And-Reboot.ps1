@@ -1,8 +1,12 @@
 #Requires -RunAsAdministrator
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+## Make sure we don't get prompts
 if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
     Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction SilentlyContinue
+}
+if ((Get-PSResourceRepository -Name PSGallery).Trusted -ne $true) {
+    Set-PSResourceRepository -Name 'PSGallery' -Trusted -ErrorAction SilentlyContinue
 }
 # Check if module is already installed
 $installed = Get-PSResource -Name PSWindowsUpdate -ErrorAction SilentlyContinue
