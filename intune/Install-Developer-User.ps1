@@ -741,7 +741,8 @@ Add-DirectoryToPath -Directory "${BIN}" -Scope "User"
 $commands = @(
     "$BIN",
     'starship',
-    'oh-my-posh'
+    'oh-my-posh',
+    "$PROFILE"
 )
 
 foreach ($name in $commands) {
