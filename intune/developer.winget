@@ -144,7 +144,7 @@ properties:
       settings:
         id: Microsoft.VisualStudioCode
         source: winget
-        ensure: Absent
+        ## ensure: Absent  ## needs to be installed otherwise extensions do not install
     
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.VisualStudioCode
