@@ -573,7 +573,8 @@ function Get-GitHubDirectory {
     .DESCRIPTION
         Uses the GitHub Contents API to list items in a path, recurses into subfolders,
         and downloads files via their download_url. Works for public and private repos
-        (provide a PAT token or set $env:GITHUB_TOKEN). Preserves subdirectory structure.
+        (provide a PAT token or set $env:GITHUB_TOKEN).
+        Files are saved directly into the Destination folder (no subfolders preserved).
 
     .PARAMETER Owner
         Repository owner (e.g., 'microsoft').
@@ -595,7 +596,7 @@ function Get-GitHubDirectory {
         If omitted, uses $env:GITHUB_TOKEN when present.
 
     .PARAMETER Recursive
-        Recurse into child directories. Default: on.
+        Recurse into child directories.
 
     .PARAMETER Overwrite
         Overwrite existing files. Default: on.
@@ -608,18 +609,6 @@ function Get-GitHubDirectory {
 
     .PARAMETER ApiBase
         GitHub API base. Default: 'https://api.github.com'. For GHE: 'https://github.myco.com/api/v3'.
-
-    .EXAMPLE
-        Get-GitHubDirectory -Owner microsoft -Repo winget-pkgs -Path 'manifests' `
-            -Destination 'C:\Downloads\winget-manifests'
-
-    .EXAMPLE
-        Get-GitHubDirectory -Owner webstean -Repo myrepo -Path 'scripts' -Branch develop `
-            -Destination "$HOME\repo-scripts" -Include '*.ps1' -Exclude '*test*' -Token $env:GITHUB_TOKEN
-
-    .NOTES
-        • Rate limits: unauthenticated ~60 req/hr; with token much higher.
-        • LFS: download_url returns the current file contents (including LFS pointer for large files).
     #>
     [CmdletBinding()]
     param(
@@ -684,10 +673,10 @@ function Get-GitHubDirectory {
                     'file' {
                         $name = $it.name
                         if (-not (Test-Match -Name $name -Include $Include -Exclude $Exclude)) { continue }
-                        # Build local relative path based on API 'path' (full path within repo)
-                        $relative = $it.path -replace '^[\\/]*',''   # e.g. 'dir/file.txt'
-                        $destFile = Join-Path $rootDest $relative
-                        Write-Host "↓ $relative" -ForegroundColor Cyan
+
+                        # ↓↓↓ CHANGE HERE: put file directly in $Destination, no repo subfolders
+                        $destFile = Join-Path $rootDest $name
+                        Write-Host "↓ $name" -ForegroundColor Cyan
                         Download-File -url $it.download_url -destFile $destFile
                     }
                     'dir' {
@@ -696,7 +685,6 @@ function Get-GitHubDirectory {
                         }
                     }
                     'symlink' {
-                        # Optional: treat symlink target as file path; usually skip
                         Write-Verbose "Skipping symlink: $($it.path)"
                     }
                     default {
