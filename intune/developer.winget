@@ -282,6 +282,36 @@ properties:
         id: RedHat.Podman-Desktop
         source: winget
 
+    - resource: xPSDesiredStateConfiguration/xScript
+      id: RedHat.Podman-Desktop-variable
+      dependson:
+        - RedHat.Podman-Desktop
+      directives:
+        description: Tell DotNet to use Prodmnan, rather the Docker
+      settings:
+        GetScript: return $false
+        TestScript: return $false
+        SetScript: |
+          [System.Environment]::SetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME","podman","Machine")
+          #[System.Environment]::SetEnvironmentVariable("DOCKER_HOST",'npipe:////./pipe/docker_engine',"Machine")
+
+    - resource: xPSDesiredStateConfiguration/xScript
+      id: RedHat.Podman-Machine-Step
+      dependson:
+        - RedHat.Podman-Desktop
+      directives:
+        description: Fully enable Podman
+      settings:
+        GetScript: return $false
+        TestScript: return $false
+        SetScript: |
+          podman machine stop
+          podman machine rm --force
+          podman machine init --timezone "Australia/Melbourne"
+          podman machine set --rootful
+          podman machine start
+          #podman machine ssh podman-machine-default "sudo systemctl enable podman.socket --now"
+
 ## containers.containerClient Podman
 ## containers.orchestratorClient Podman Compose
 
