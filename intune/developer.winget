@@ -614,6 +614,16 @@ properties:
         Name: esbenp.prettier-vscode
 
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: ms-azuretools.vscode-azure-mcp-server
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: ms-azuretools.vscode-azure-mcp-server
+        allowPrerelease: true
+      settings:
+        Name: ms-azuretools.vscode-azure-mcp-server
+
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: GitHub.vscode-pull-request-github
       dependsOn:
         - Microsoft.VisualStudioCode
