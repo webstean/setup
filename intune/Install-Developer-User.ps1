@@ -843,6 +843,26 @@ function Set-PodmanConfig {
         Set-PodmanConfig
     .EXAMPLE
         Set-PodmanConfig -AutoLaunch:$false -Silent
+
+         podman machine stop
+          podman machine rm --force
+          podman machine init --timezone "Australia/Melbourne"
+          podman machine set --rootful
+          podman machine start
+          #podman machine ssh podman-machine-default "sudo systemctl enable podman.socket --now"
+          wslconfig /setdefault Ubuntu
+          podman machine ls
+\            Write-Host "Conducting container test (quay.io/podman/hello)"
+            if ($PSCmdlet.ShouldProcess("quay.io/podman/hello","Pull & Run")) {
+                podman pull quay.io/podman/hello | Out-Null
+                podman run --rm quay.io/podman/hello
+                Write-Host "Smoke test completed." -ForegroundColor Green
+                return $true
+            }
+            return $false
+
+
+        
     #>
 
     [CmdletBinding(SupportsShouldProcess)]
