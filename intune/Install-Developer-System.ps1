@@ -3,8 +3,9 @@
 function Set-RdpQueryDirPrefetch {
     <#
     .SYNOPSIS
-        Sets the RDP registry value fAllowQueryDirPrefetch to 1.
-
+        Sets the RDP registry value fAllowQueryDirPrefetch to 1 to improve performance
+        See: https://learn.microsoft.com/en-us/azure/virtual-desktop/redirection-configure-drives-storage?tabs=intune&pivots=dev-box#improve-performance-of-enumerating-files-and-folders-on-redirected-drives
+        
     .DESCRIPTION
         This function ensures the key:
             HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp
