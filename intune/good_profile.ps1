@@ -1,5 +1,5 @@
 
-## Note: This FILE is ASCII encoded, for compability with Windows Powershell, so any Unicode characters need to be eliminated
+## Note: This FILE is ASCII encoded, for compatibility with Windows Powershell, so any Unicode characters need to be eliminated
 
 #Set-ExecutionPolicy Unrestricted -Scope Process
 #Set-ExecutionPolicy Unrestricted -Scope CurrentUser
@@ -37,7 +37,7 @@ function Update-Profile-Force {
         Write-Host "No existing file found - new file created." -ForegroundColor Cyan
     }
 }
-#Update-Profile-Force
+# Update-Profile-Force
 
 function Reset-Podman {
     ## Run as required
@@ -50,6 +50,7 @@ function Reset-Podman {
     podman machine start
     podman machine inspect | jq
 }
+
 function Reset-Podman2 {
     ## Run as required (bigger reset)
     if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {

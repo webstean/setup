@@ -7,7 +7,7 @@ if ($IsLanguagePermissive) {
     $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 } else {
     # Check language mode — must not be ConstrainedLanguage for method invocation
-    $IsAdmin = (whoami /groups | Select-String "S-1-5-32-544") -ne $null
+    $IsAdmin = $null -ne (whoami /groups | Select-String "S-1-5-32-544")
 }
 
 # Set install scope variable based on elevation
@@ -20,21 +20,21 @@ if ($IsAdmin) {
 
 Write-Host "InstallScope = $InstallScope"
 
-#winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.NuGet
+# winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.NuGet
 winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.9
-$env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' +
-            [System.Environment]::GetEnvironmentVariable('Path','User')
+$env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+            [System.Environment]::GetEnvironmentVariable('Path', 'User')
 ${INSTALLED_DOTNET_VERSION} = dotnet --version
 Write-Host "Installed .NET SDK version: ${INSTALLED_DOTNET_VERSION}"
 ## dotnet new globaljson --sdk-version ${INSTALLED_VERSION} --force --roll-forward "latestPatch, latestFeature"
 ## curl -sSL https://dot.net/v1/dotnet-install.sh | bash -- --version $(jq -r '.sdk.version' global.json)
-#winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.10
+# winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.10
 winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.Preview
 
 ## Provider: nuget
 Write-Output "Enabling nuget..."
 if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
-  Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$true | Out-Null
+    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$true | Out-Null
 }
 Find-PackageProvider -ForceBootstrap
 Set-PackageSource -Name "nuget.org" -Trusted -ErrorAction SilentlyContinue

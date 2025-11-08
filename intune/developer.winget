@@ -66,7 +66,7 @@ properties:
         allowPrerelease: true
         securityContext: elevated
       settings:
-        id:   9PDXGNCFSCZV    
+        id: 9PDXGNCFSCZV
         source: msstore
 
     - resource: xPSDesiredStateConfiguration/xScript
@@ -283,7 +283,7 @@ properties:
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: RedHat.Podman-Desktop
-      dependson:
+      dependsOn:
         - RedHat.Podman
       directives:
         description: Installing RedHat.Podman-Desktop
@@ -294,7 +294,7 @@ properties:
 
     - resource: xPSDesiredStateConfiguration/xScript
       id: RedHat.Podman-Desktop-variable
-      dependson:
+      dependsOn:
         - RedHat.Podman-Desktop
       directives:
         description: Tell DotNet to use Prodmnan, rather the Docker
@@ -307,7 +307,7 @@ properties:
           # Docker API clients default to this address. You do not need to set DOCKER_HOST.
           #[System.Environment]::SetEnvironmentVariable("DOCKER_HOST",'npipe:////./pipe/docker_engine',"Machine")
           [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN', 'Machine')
- 
+
 ## containers.containerClient Podman
 ## containers.orchestratorClient Podman Compose
 
@@ -622,19 +622,19 @@ properties:
         description: ms-azuretools.vscode-azure-mcp-server
         allowPrerelease: true
       settings:
-         Edition: Stable
-         Name: ms-azuretools.vscode-azure-mcp-server
+        Edition: Stable
+        Name: ms-azuretools.vscode-azure-mcp-server
 
-     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-       id: GitHub.vscode-pull-request-github
-       dependsOn:
-         - Microsoft.VisualStudioCode
-       directives:
-         description: GitHub.vscode-pull-request-github
-         allowPrerelease: true
-       settings:
-         Edition: Stable
-         Name: GitHub.vscode-pull-request-github
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: GitHub.vscode-pull-request-github
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: GitHub.vscode-pull-request-github
+        allowPrerelease: true
+      settings:
+        Edition: Stable
+        Name: GitHub.vscode-pull-request-github
 
 
 #    - resource: PSDscResources/WindowsOptionalFeature
@@ -679,8 +679,8 @@ properties:
 
     - resource: PowerToysConfigure
       id: Microsoft.PowerToys.Configure
-      dependson:
-      - Microsoft.PowerToys
+      dependsOn:
+        - Microsoft.PowerToys
       directives:
         description: Configure PowerToys
         allowPrerelease: true
@@ -832,7 +832,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-         Edition: Stable
+        Edition: Stable
         Name: ms-dotnettools.vscode-dotnet-runtime
 
     # VS Code DotNet extension
@@ -845,7 +845,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-         Edition: Stable
+        Edition: Stable
         Name: ms-vscode-remote.remote-containers
 
     # VS Code C# DEv Kit extension
@@ -858,7 +858,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-         Edition: Stable
+        Edition: Stable
         Name: ms-dotnettools.csdevkit
 
     # VS Code golang.Go extension
@@ -872,7 +872,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-         Edition: Stable
+        Edition: Stable
         Name: golang.Go
 
     # VS Code PowerShell extension
@@ -885,7 +885,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-         Edition: Stable
+        Edition: Stable
         Name: ms-vscode.powershell
     
     # VS Code Azure Docker tools
@@ -898,7 +898,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-         Edition: Stable
+        Edition: Stable
         Name: ms-azuretools.vscode-docker
 
     # VS Code Terraform extension
@@ -923,7 +923,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-         Edition: Stable
+        Edition: Stable
         Name: ms-azuretools.vscode-azureterraform
 
     # VS Code RedHat YML extension
@@ -936,7 +936,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-         Edition: Stable
+        Edition: Stable
         Name: redhat.vscode-yaml
 
     # VS Code GitHub Copilot extension
@@ -950,7 +950,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-         Edition: Stable
+        Edition: Stable
         Name: GitHub.copilot
 
     # VS Code ms-playwright.playwright extension
@@ -963,7 +963,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-         Edition: Stable
+        Edition: Stable
         Name: ms-playwright.playwright
 
     # VS Code GitHub Copilot Chat extension
@@ -977,7 +977,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-         Edition: Stable
+        Edition: Stable
         Name: GitHub.copilot-chat
 
     # VS Code
@@ -990,7 +990,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-         Edition: Stable
+        Edition: Stable
         Name: ms-azuretools.vscode-azure-github-copilot
 
     # Extension: ms-vscode.vscode-node-azure-pack (Azure Tools)
@@ -1003,7 +1003,7 @@ properties:
         description: Install ms-vscode.vscode-node-azure-pack
         securityContext: current
       settings:
-         Edition: Stable
+        Edition: Stable
         Name: ms-vscode.vscode-node-azure-pack
 
     # Java (open source)
@@ -1042,6 +1042,6 @@ properties:
         description: Remove GitLens extension
         allowPrerelease: true
       settings:
-         Edition: Stable
+        Edition: Stable
         Name: eamodio.gitlens
         Exist: false

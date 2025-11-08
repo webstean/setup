@@ -20,19 +20,19 @@ function Install-Fonts {
     ## Extract the download URL for the latest release asset
     $latestRelease = $response.assets | Where-Object { $_.name -like "*$FontName*.zip" } | Select-Object -First 1
     $fontUrl = $latestRelease.browser_download_url
-    Write-Output ("Installing Font:$FontName from https://github.com/$Owner/$Repo...") 
-    Write-Output ("Download URL   :$fontUrl") 
+    Write-Output "Installing Font:$FontName from https://github.com/$Owner/$Repo..."
+    Write-Output "Download URL   :$fontUrl" 
 
     ## Define the extraction paths
     $fontZipPath = "$env:TEMP\$FontName.zip"
     $fontExtractPath = "$env:TEMP\$FontName"
 
     ## Download the font
-    Write-Output ("Font Zip       :$fontZipPath") 
+    Write-Output "Font Zip       :$fontZipPath"
     Invoke-WebRequest -Uri $fontUrl -OutFile $fontZipPath
 
     ## Extract the zip file
-    Write-Output ("Font Extract   :$fontExtractPath") 
+    Write-Output "Font Extract   :$fontExtractPath" 
     Expand-Archive -Path $fontZipPath -DestinationPath $fontExtractPath -Force
 
     ## Install the fonts (for all users, copy to the Fonts directory and update registry)
@@ -41,7 +41,7 @@ function Install-Fonts {
     foreach ($fontFile in $fontFiles) {
         $totalfonts++
     }
-    Write-Output "Total number of fonts to install: $totalfonts" 
+    Write-Output "Total number of fonts to install: $totalfonts"
     foreach ($fontFile in $fontFiles) {
         ## User
         #$fontDestinationUser = "$env:USERPROFILE\Documents\Fonts\$($fontFile.Name)"
@@ -54,17 +54,19 @@ function Install-Fonts {
         $fontRegistryPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
         New-ItemProperty -Path $fontRegistryPath -Name "$($fontFile.BaseName) (TrueType)" -Value $fontFile.Name -PropertyType String -Force
 
-        Write-Output ("Installed font: $($fontFile.Name)") 
+        Write-Output "Installed font: $($fontFile.Name)"
     }
 
     ## Clean up temporary font files
     Remove-Item $fontZipPath -Force
     Remove-Item $fontExtractPath -Recurse -Force
 }
+
 ## Font installs
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 Install-Fonts -FontName "CascadiaCode" -Owner "microsoft" -Repo "cascadia-code" -zipfilespec "ttf\*.ttf"
 Install-Fonts -FontName "FiraCode" -Owner "ryanoasis" -Repo "nerd-fonts" -zipfilespec "*.ttf"
-Write-Host ("Setting PowerShell to UTF-8 output encoding...")
+
+Write-Host "Setting PowerShell to UTF-8 output encoding..."
 [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
 

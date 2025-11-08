@@ -126,5 +126,6 @@ $character
 
     $result
 }
+
 Set-StarshipConfig
-#Invoke-Expression (&starship init powershell)
+# Invoke-Expression (&starship init powershell)
