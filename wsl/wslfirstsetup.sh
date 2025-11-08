@@ -27,60 +27,11 @@ if [ "$UNAME" == "linux" ]; then
 fi
 echo $DISTRO
 
-## Check if WSL2, enable systemd etc via wsl.conf, sort out sudo
-if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
-    if [ -f /etc/wsl.conf ] ; then sudo rm -f /etc/wsl.conf ; fi
-    sudo sh -c 'echo [boot]                     >>  /etc/wsl.conf'
-    ## enable systemd for compatiblity
-    sudo sh -c 'echo systemd=true               >>  /etc/wsl.conf'
-
-    sudo sh -c 'echo [automount]                >>  /etc/wsl.conf'
-    sudo sh -c 'echo enabled = true             >>  /etc/wsl.conf'
-    sudo sh -c 'echo root = \/mnt               >>  /etc/wsl.conf'
-    ## copy from: https://github.com/WhitewaterFoundry/Fedora-Remix-for-WSL/blob/master/linux_files/wsl.conf
-    sudo sh -c 'echo options = "metadata,uid=1000,gid=1000,umask=22,fmask=11,case=off" >>  /etc/wsl.conf'
-    sudo sh -c 'echo mountFsTab = true          >>  /etc/wsl.conf'
-
-    sudo sh -c 'echo [interop]                  >>  /etc/wsl.conf'
-    sudo sh -c 'echo enabled = true             >>  /etc/wsl.conf'
-    sudo sh -c 'echo appendWindowsPath = false  >>  /etc/wsl.conf'
-
-    sudo sh -c 'echo [network]                  >>  /etc/wsl.conf'
-    ## unlike WSL1 - let WSL manage this itself - it will be a lot more reliable
-    ## still need to be customised if using a proxy via /etc/profile.d/web-proxy.sh'
-    sudo sh -c 'echo generateResolvConf = true  >>  /etc/wsl.conf'
-    sudo sh -c 'echo generateHosts = true       >>  /etc/wsl.conf'
-    sudo sh -c 'echo dnsTunneling	= true     >>  /etc/wsl.conf'
-    
-    ## tell wsl which user to use
-    echo "USERNAME = [${USERNAME}]"
-    echo "Setting default WSL user as: $USERNAME"
-    sh -c 'echo [user]                     >>  /etc/wsl.conf'
-    sh -c 'echo default = ${USERNAME}      >>  /etc/wsl.conf'
-    
-    echo "Setting up [$USERNAME]"
-    ## quietly add a user without password
-    if [ ${DISTRO} == "Ubuntu" ] ; then
-        ## Ubuntu
-        adduser --gecos "" --force-badname --disabled-password --shell /bin/bash ${USERNAME}
-    else
-        ## RHEL
-        adduser --badname --shell /bin/bash --password ${STRONGPASSWORD} ${USERNAME}
-    fi
-    
-    ## if sudo group exists - add
-    if (grep sudo /etc/group) ; then
-        usermod -a -G sudo ${USERNAME}
-    fi
-    ## if docker group exists - add
-    if (grep docker /etc/group) ; then
-        usermod -a -G docker ${USERNAME}
-    fi
-    
-else
+if [[ ! $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     echo "Sorry, only supports WSL2 (not WSL1)"
     exit 1
 fi
+
 
 ## Template: Environment Variables for proxy support
 sh -c 'echo "## Web Proxy Setup - edit as required"                               >  /etc/profile.d/web-proxy.sh'
@@ -114,3 +65,42 @@ sh -c 'echo "## uncomment for authenticated proxy ##"                           
 sh -c 'echo "# auth_web-proxy()"                                                  >> /etc/profile.d/web-proxy.sh'
 sh -c 'echo "export extaddr=\$(curl -s ifconfig.me)"                              >> /etc/profile.d/web-proxy.sh'
 
+exit 0
+
+## Check if WSL2, enable systemd etc via wsl.conf, sort out sudo
+if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
+    if [ -f /etc/wsl.conf ] ; then sudo rm -f /etc/wsl.conf ; fi
+    sudo sh -c 'echo [boot]                     >>  /etc/wsl.conf'
+    ## enable systemd for compatiblity
+    sudo sh -c 'echo systemd=true               >>  /etc/wsl.conf'
+
+    sudo sh -c 'echo [automount]                >>  /etc/wsl.conf'
+    sudo sh -c 'echo enabled = true             >>  /etc/wsl.conf'
+    sudo sh -c 'echo root = \/mnt               >>  /etc/wsl.conf'
+    ## copy from: https://github.com/WhitewaterFoundry/Fedora-Remix-for-WSL/blob/master/linux_files/wsl.conf
+    sudo sh -c 'echo options = "metadata,uid=1000,gid=1000,umask=22,fmask=11,case=off" >>  /etc/wsl.conf'
+    sudo sh -c 'echo mountFsTab = true          >>  /etc/wsl.conf'
+
+    sudo sh -c 'echo [interop]                  >>  /etc/wsl.conf'
+    sudo sh -c 'echo enabled = true             >>  /etc/wsl.conf'
+    sudo sh -c 'echo appendWindowsPath = false  >>  /etc/wsl.conf'
+
+    sudo sh -c 'echo [network]                  >>  /etc/wsl.conf'
+    ## unlike WSL1 - let WSL manage this itself - it will be a lot more reliable
+    ## still need to be customised if using a proxy via /etc/profile.d/web-proxy.sh'
+    sudo sh -c 'echo generateResolvConf = true  >>  /etc/wsl.conf'
+    sudo sh -c 'echo generateHosts = true       >>  /etc/wsl.conf'
+   
+    ## if sudo group exists - add
+    if (grep sudo /etc/group) ; then
+        usermod -a -G sudo ${USERNAME}
+    fi
+    ## if docker group exists - add
+    if (grep docker /etc/group) ; then
+        usermod -a -G docker ${USERNAME}
+    fi
+   
+else
+    echo "Sorry, only supports WSL2 (not WSL1)"
+    exit 1
+fi
