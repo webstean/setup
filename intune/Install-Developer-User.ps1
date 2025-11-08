@@ -491,57 +491,78 @@ if ( -not ([string]::IsNullOrWhiteSpace($getupn))) {
     [Environment]::SetEnvironmentVariable('UPN', "$getupn", 'User')
     $env:UPN = [System.Environment]::GetEnvironmentVariable("UPN", "User")
 }
-## Share environment variables between Windows and WSL
-## https://devblogs.microsoft.com/commandline/share-environment-vars-between-wsl-and-windows/
-[Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN', 'User')
-$env:WSLENV = [System.Environment]::GetEnvironmentVariable("WSLENV", "User")
 
-function Set-WslNetConfig {
-    ## make WSL compatible with Podman, especially being able to access containers via loopback/127.0.0.1
+## Installing Ubuntu
+$Distro = "Ubuntu"
 
-    ## if (-not ($IsLanguagePermissive)) { return }
-    
-    # Ensure WSL networking mode is Mirror
-    # Ensure WSL autoproxy is off
-    $wslConfigPath = [System.IO.Path]::Combine($env:HOMEPATH, ".wslconfig")
-    # Check if the .wslconfig file exists
+function Enable-WSL {
+
+    ## Share environment variables between Windows and WSL
+    ## https://devblogs.microsoft.com/commandline/share-environment-vars-between-wsl-and-windows/
+    [Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN', 'User')
+    $env:WSLENV = [System.Environment]::GetEnvironmentVariable("WSLENV", "User")
+
+    Write-Output ("Ensuring WSL is install and upto date...") 
+    ## ensure WSL is upto date, can only be done per user (not system)
+    Start-Process -FilePath 'wsl' -ArgumentList '--install --no-launch' -NoNewWindow -Wait -PassThru | Out-Null
+    Start-Process -FilePath 'wsl' -ArgumentList '--status' -NoNewWindow -Wait -PassThru | Out-Null
+    Start-Process -FilePath 'wsl' -ArgumentList '--update' -NoNewWindow -Wait -PassThru | Out-Null
+    ## PreRelease version
+    Start-Process -FilePath "wsl" -ArgumentList "--update --pre-release" -NoNewWindow -Wait -PassThru | Out-Null
+    Start-Process -FilePath "wsl" -ArgumentList "--set-default-version 2" -NoNewWindow -Wait -PassThru | Out-Null
+
+    ## clean up
+    ## wsl --terminate $Distro
+    ## wsl --unregister $Distro
+
+    ## Install quietly
+    Start-Process -FilePath 'wsl' -ArgumentList "--install -d $Distro --no-launch" -NoNewWindow -Wait -PassThru | Out-Null
+    ## Preseed user
+    wsl -d $Distro --user root bash -c @"
+useradd -m -s /bin/bash $env:UserName
+"@
+    Start-Process -FilePath 'wsl' -ArgumentList "--manage $Distro --set-default-user $env:UserName" -NoNewWindow -Wait -PassThru | Out-Null
+    Start-Process -FilePath 'wsl' -ArgumentList "--set-default $Distro" -NoNewWindow -Wait -PassThru | Out-Null
+    Start-Process -FilePath 'wsl' -ArgumentList "--terminate $Distro" -NoNewWindow -Wait -PassThru | Out-Null
+    $wslConfigPath = [System.IO.Path]::Combine($env:USERPROFILE, ".wslconfig")
     if (Test-Path $wslConfigPath) {
-        # Read the contents of the .wslconfig file
-        $wslConfigContent = Get-Content -Path $wslConfigPath -Raw
-        
-        # Check if 'networkingMode' is set to 'mirrored'
-        if ($wslConfigContent -notmatch "networkingMode\s*=\s*mirrored") {
-            # Add or update the networkingMode setting
-            $newConfig1 = $wslConfigContent -replace "(\[.*?\])", "`$1`r`nnetworkingMode = mirrored"
-            $newConfig2 = $wslConfigContent -replace "(\[.*?\])", "`$1`r`nautoProxy = false"
-            
-            # Write the updated content back to the file
-            Set-Content -Path $wslConfigPath -Value $newConfig1 -Force
-            Set-Content -Path $wslConfigPath -Value $newConfig2 -Force
-            Write-Host "Added 'networkingMode = mirrored' to .wslconfig"
-        } else {
-            Write-Host "Updated existing .wslconfig"
-        }
-    } else {
-        # If .wslconfig doesn't exist, create it with the networkingMode setting
-        $configContent1 = "[network]" + "`r`n" + "networkingMode = mirrored"
-        Set-Content -Path $wslConfigPath -Value $configContent1
-        $configContent2 = "[network]" + "`r`n" + "autoProxy = false"
-        Set-Content -Path $wslConfigPath -Value $configContent2
-        
-        Write-Host "Created new .wslconfig"
+        Remove-Item -Force $wslConfigPath
     }
+    New-Item -Path $wslConfigPath -ItemType File -Force | Out-Null
+    # Define config content as an array (each item = one line)
+    $content = @('
+[wsl2]
+networkingMode=Mirrored
+
+[experimental]
+hostAddressLoopback=true
+
+')
+    # Write all lines at once
+    Set-Content -Path $wslConfigPath -Value $content ## -Encoding UTF8
+    Get-Content -Path $wslConfigPath
 }
-Write-Output ("Ensuring WSL is upto date...") 
-## ensure WSL is upto date, can only be done per user (not system)
-Start-Process -FilePath "wsl" -ArgumentList "--install --no-launch" -NoNewWindow -Wait -PassThru
-Start-Process -FilePath "wsl" -ArgumentList "--status" -NoNewWindow -Wait -PassThru
-Start-Process -FilePath "wsl" -ArgumentList "--update" -NoNewWindow -Wait -PassThru
-## PreRelease version
-Start-Process -FilePath "wsl" -ArgumentList "--update --pre-release" -NoNewWindow -Wait -PassThru
-Start-Process -FilePath "wsl" -ArgumentList "--set-default-version 2" -NoNewWindow -Wait -PassThru
-Set-WslNetConfig
-## Should now be ready for Podman/Docker
+Enable-WSL
+
+function Set-WSLConfig {
+
+    ## Initial
+    $wslinitalsetup = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh').Content -replace "`r", ''
+    $wslinitalsetup | wsl --user root --distribution ${Distro} --
+
+    ## sudo
+    $wslinitalsetup = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup-pre.sh').Content -replace "`r", ''
+    $wslinitalsetup | wsl --user root --distribution ${Distro} --
+
+    ## Setup
+    $wslsetup1 = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh').Content -replace "`r", ''
+    $wslsetup1 | wsl --user root --distribution ${Distro} --
+
+    $wslsetup2 = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh').Content -replace "`r", ''
+    $wslsetup2 | wsl --user root --distribution ${Distro} --
+
+}
+
 
 ## Azure CLI configuration
 try {
