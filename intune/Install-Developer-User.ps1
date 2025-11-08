@@ -883,6 +883,18 @@ function Set-PodmanConfig {
             }
             return $false
 
+    ## other good images
+    ## Azure CLI
+    sudo docker pull mcr.microsoft.com/azure-cli:latest
+    ## Azure API Management Gateway
+    sudo docker pull mcr.microsoft.com/azure-api-management/gateway:latest
+    ## Powershell
+    sudo docker docker pull mcr.microsoft.com/azure-powershell:latest
+
+    ## try Spark Workbook
+    docker run -it -p 8888:8888 -e ACCEPT_EULA=yes mcr.microsoft.com/mmlspark/release
+    
+
 
         
     #>
