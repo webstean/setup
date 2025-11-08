@@ -21,6 +21,15 @@ properties:
         source: msstore
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.PowerShell
+      directives:
+        description: Install Microsoft.PowerShell
+        allowPrerelease: false
+      settings:
+        id: Microsoft.PowerShell
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.Company.Portal
       directives:
         description: Install Microsoft.Company.Portal
