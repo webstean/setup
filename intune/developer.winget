@@ -10,15 +10,15 @@ properties:
         MinVersion: '10.0.22000'
 
   resources:
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: DesiredStateConfiguration
-      directives:
-        description: Install DesiredStateConfiguration
-        allowPrerelease: false
-        securityContext: elevated
-      settings:
-        id: 9NVTPZWRC6KQ
-        source: msstore
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: DesiredStateConfiguration
+#      directives:
+#        description: Install DesiredStateConfiguration
+#        allowPrerelease: false
+#        securityContext: elevated
+#      settings:
+#        id: 9NVTPZWRC6KQ
+#        source: msstore
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.PowerShell
