@@ -21,15 +21,43 @@ if ($IsAdmin) {
 Write-Host "InstallScope = $InstallScope"
 
 # winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.NuGet
-winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.9
+Write-Host "Installing .NET SDK 9..."
+try {
+    winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.9
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✅ .NET SDK 9 installed successfully" -ForegroundColor Green
+    }
+}
+catch {
+    Write-Warning "Failed to install .NET SDK 9: $($_.Exception.Message)"
+}
+
 $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
             [System.Environment]::GetEnvironmentVariable('Path', 'User')
-${INSTALLED_DOTNET_VERSION} = dotnet --version
-Write-Host "Installed .NET SDK version: ${INSTALLED_DOTNET_VERSION}"
+try {
+    ${INSTALLED_DOTNET_VERSION} = dotnet --version
+    if ($?) {
+        Write-Host "Installed .NET SDK version: ${INSTALLED_DOTNET_VERSION}" -ForegroundColor Green
+    }
+}
+catch {
+    Write-Warning "Failed to get .NET SDK version: $($_.Exception.Message)"
+}
+
 ## dotnet new globaljson --sdk-version ${INSTALLED_VERSION} --force --roll-forward "latestPatch, latestFeature"
 ## curl -sSL https://dot.net/v1/dotnet-install.sh | bash -- --version $(jq -r '.sdk.version' global.json)
 # winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.10
-winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.Preview
+
+Write-Host "Installing .NET SDK Preview..."
+try {
+    winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.Preview
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✅ .NET SDK Preview installed successfully" -ForegroundColor Green
+    }
+}
+catch {
+    Write-Warning "Failed to install .NET SDK Preview: $($_.Exception.Message)"
+}
 
 ## Provider: nuget
 Write-Output "Enabling nuget..."
@@ -83,25 +111,25 @@ function Install-OrUpdateModule {
     }
 
     # Check if module is already installed
-    $installed = Get-PSResource -Name $ModuleName -ErrorAction SilentlyContinue -Scope $Installscope
+    $installed = Get-PSResource -Name $ModuleName -ErrorAction SilentlyContinue -Scope $InstallScope
 
     try {
         if ($null -eq $installed) {
             Write-Host "PowerShell Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
             if ($prerelease) {
-                Install-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+                Install-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope
             } else {
-                ## Install-PSResource -Name PackageManagement -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
-                Install-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+                ## Install-PSResource -Name PackageManagement -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope
+                Install-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope
             }
         }
         else {
             Write-Host "PowerShell Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
             ## Update-PSResource -Name PackageManagement -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue
             if ($prerelease) {
-                Update-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+                Update-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope
             } else {
-                Update-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+                Update-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope
             }
         }
         # Optional: import after install/update
@@ -113,7 +141,7 @@ function Install-OrUpdateModule {
     }
 }
 
-## Get rid of depreciated modules
+## Get rid of deprecated modules
 if (Get-Module -Name AzureAD -ListAvailable -ErrorAction SilentlyContinue) {
     Uninstall-Module AzureAD -Force -ErrorAction SilentlyContinue
 }
@@ -148,17 +176,19 @@ Install-OrUpdateModule MicrosoftTeams
 #Install-OrUpdateModule VMware.PowerCLI ## VMware PowerCLI (its too big - as no longer used much)
 Install-OrUpdateModule Microsoft.PowerApps.Administration.PowerShell
 ## Add-PowerAppsAccount -Endpoint prod
-$jsonObject= @" 
-{ 
- "PostProvisioningPackages": 
- [ 
- { 
-    "applicationUniqueName": "msdyn_FinanceAndOperationsProvisioningAppAnchor", 
-    "parameters": "DevToolsEnabled=true|DemoDataEnabled=true" 
- } 
- ] 
-} 
-"@ | ConvertFrom-Json
+
+# Example PowerApp environment creation (commented out):
+# $jsonObject = @" 
+# { 
+#  "PostProvisioningPackages": 
+#  [ 
+#  { 
+#     "applicationUniqueName": "msdyn_FinanceAndOperationsProvisioningAppAnchor", 
+#     "parameters": "DevToolsEnabled=true|DemoDataEnabled=true" 
+#  } 
+#  ] 
+# } 
+# "@ | ConvertFrom-Json
 # To kick off new PowerApp environment
 # IMPORTANT - This has to be a single line, after the copy & paste the command
 # New-AdminPowerAppEnvironment -DisplayName "MyUniqueNameHere" -EnvironmentSku Sandbox -Templates "D365_FinOps_Finance" -TemplateMetadata $jsonObject -LocationName "Australia" -ProvisionDatabase
@@ -261,7 +291,7 @@ function Connect-AzAccountSilentAuto {
     #>
     [CmdletBinding()]
     param(
-        [switch]$PreferManagedIdentity = $true  # MI first by default
+        [switch]$PreferManagedIdentity  # MI first by default
     )
 
     # Make WAM preferred in this process so cached Windows SSO can be reused (still no UI).
@@ -280,8 +310,8 @@ function Connect-AzAccountSilentAuto {
         }
     }
 
-    # Optionally try Managed Identity first (always silent)
-    if ($PreferManagedIdentity) {
+    # Try Managed Identity first if preferred (always silent)
+    if ($PreferManagedIdentity.IsPresent) {
         try {
             Connect-AzAccount -Identity -ErrorAction Stop | Out-Null
             $ctx = Get-AzContext -ErrorAction Stop
