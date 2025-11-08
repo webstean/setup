@@ -888,8 +888,12 @@ function Set-PodmanConfig {
     sudo docker pull mcr.microsoft.com/azure-cli:latest
     ## Azure API Management Gateway
     sudo docker pull mcr.microsoft.com/azure-api-management/gateway:latest
+    podman run -it mcr.microsoft.com/azure-api-management/gateway:latest /bin/bash
+    podman run -it --entrypoint /bin/bash mcr.microsoft.com/azure-api-management/gateway:latest
+
     ## Powershell
     sudo docker docker pull mcr.microsoft.com/azure-powershell:latest
+    podman run -it mcr.microsoft.com/azure-powershell:latest pwsh
 
     ## try Spark Workbook
     docker run -it -p 8888:8888 -e ACCEPT_EULA=yes mcr.microsoft.com/mmlspark/release

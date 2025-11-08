@@ -12,9 +12,9 @@ set -x
 #if [ ! -d /opt ] ; then sudo mkdir -p /opt ; sudo chmod 755 /opt ; fi 
 
 ## get everything upto date
-${CMD_UPDATE}
-${CMD_UPGRADE}
-
+sudo apt-get update -y
+sudo apt-get upgrade -y
+    
 ## Set Timezone - includes keeping the machine to the right time but not sure how?
 ## WSL Error: System has not been booted with systemd as init system (PID 1). Can't operate.
 ##          : unless you edit /etc/wsl.conf to enable systemd
@@ -25,63 +25,55 @@ source ~/.bashrc
 
 ## Add Microsoft Repos and Applications
 ## https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt
-if [ -f /usr/bin/apt && ! grep packages.microsoft.com /etc/apt/sources.list ] ; then
+if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     ## make sure prereqs are installs
     ${CMD_INSTALL} apt-transport-https ca-certificates curl software-properties-common
     
-    ## Import the public repository GPG keys (depreciated)
-    ## Note: Instead of using this command a keyring should be placed directly in the 
-    ## /etc/apt/trusted.gpg.d/ directory with a descriptive name and either "gpg" or "asc" 
-    ## as file extension.
-    curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+    ## Create the keyring directory if not present
+    sudo install -m 0755 -d /etc/apt/keyrings
 
-    ## Register the Microsoft Ubuntu repository
-    repo=https://packages.microsoft.com/$(lsb_release -s -i)/$(lsb_release -sr)/prod
-    ## convert to lowercase
-    repo=${repo,,}
-    echo $repo
-    sudo apt-add-repository --yes $repo
-    
-    ## Update the list of products
-    ${CMD_UPDATE}
-    
+    ## Download and convert Microsoft’s GPG key
+    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc |
+    sudo gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg
+ 
+    ## Set appropriate permissions
+    sudo chmod 644 /etc/apt/keyrings/microsoft.gpg
+    gpg --show-keys /etc/apt/keyrings/microsoft.gpg
+
+    ## add a Microsoft repository 
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft.gpg] \
+https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" \
+  | sudo tee /etc/apt/sources.list.d/microsoft-prod.list > /dev/null
+
     ## Install WSL Utilities
-    sudo add-apt-repository ppa:wslutilities/wslu
-    sudo apt update
-    sudo apt install wslu
+    sudo apt-get install -y wslu
     
-    ## Skip EULA prompt
-    echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
-    echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
-    echo msodbcsql18 msodbcsql/ACCEPT_EULA boolean true | sudo debconf-set-selections
-    echo mssql-tools mssql-tools/ACCEPT_EULA boolean true | sudo debconf-set-selections
-    echo "servicefabric servicefabric/accepted-eula-ga select true" | sudo debconf-set-selections
-    echo "servicefabricsdkcommon servicefabricsdkcommon/accepted-eula-ga select true" | sudo debconf-set-selections
-    export ACCEPT_EULA=y
-
     ## Install Microsoft tools
-    ${CMD_INSTALL} ttf-mscorefonts-installer
-    ${CMD_INSTALL} azure-functions-core-tools
-    ${CMD_INSTALL} mssql-tools 
-    ${CMD_INSTALL} sqlcmd
-    ${CMD_INSTALL} powershell
+    echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
+    export ACCEPT_EULA=Y && apt-get install -y ttf-mscorefonts-installer
+
+    apt-get install -y azure-functions-core-tools
+    export ACCEPT_EULA=Y && apt-get install -y mssql-tools18
+    apt-get install -y powershell
     
     ## Powershell
     if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
     if (which pwsh) ; then 
-        sudo sh -c 'echo   echo \"Powershell \(pwsh\) found!\"     >>  /etc/profile.d/microsoft-powershell.sh'
+        sudo sh -c 'echo   if \(which pwsh\) \; then > /etc/profile.d/microsoft-powershell.sh'
+        sudo sh -c 'echo   echo \"PowerShell \(pwsh\) found!\"     >>  /etc/profile.d/microsoft-powershell.sh'
+        sudo sh -c 'echo   fi >> /etc/profile.d/microsoft-powershell.sh'
     fi
     
     ## Install Java from Microsoft -  only if java not installed already
     if (! which java) ; then
-        ${CMD_INSTALL} msopenjdk-17
-        ${CMD_INSTALL} default-jre
+        apt-get install -y msopenjdk-17
+        apt-get install -y default-jre
     fi
 fi
 
 ## Azure IOTEdge
 if (1) ; then
-    sudo apt-get -y update;   sudo apt-get -y install moby-engine  
+    sudo apt-get -y update; sudo apt-get -y install moby-engine  
     if [ -f /etc/docker/daemon.json ] ; then
         sudo sh -c "{                                >  ~/config-docker-for-iotedge.sh"
         sudo sh -c "    \"log-driver\": \"local\"    >> ~/config-docker-for-iotedge.sh"
@@ -104,21 +96,17 @@ fi
 ## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     if ! [ -x /usr/bin/sqlitebrowser ] ; then
-        ${CMD_INSTALL} xscreensaver
-        ${CMD_INSTALL} x11-apps
+        #apt-get install -y xscreensaver
+        apt-get install -y x11-apps
         echo $DISPLAY
         ## Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
-        ## xeyes &
-        ## Install browser for sqlite
-        ${CMD_INSTALL} sqlitebrowser
-        # sqlitebrowser &
+        xeyes &
     fi
-    ${CMD_INSTALL} wslu
     # export WINHOME=$(wslpath "$(wslvar USERPROFILE)")
 fi
 
 ## install and config sysstat
-$CMD_INSTALL sysstat
+apt-get install -y sysstat
 sudo sh -c 'echo ENABLED="true" >  /etc/default/sysstat'
 sudo systemctl --no-pager stop sysstat 
 sudo systemctl --no-pager enable sysstat 
@@ -130,9 +118,6 @@ sudo systemctl --no-pager status sysstat
 sudo systemctl --no-pager enable systemd-timesyncd.service
 sudo systemctl --no-pager status systemd-timesyncd.service
 
-    ## set controlable via Docker Desktop (docker on docker)
-    #sudo sh -c 'echo "export DOCKER_HOST=tcp://localhost:2375" > /etc/profile.d/docker.sh'
-
 ## install WASM
 curl https://get.wasmer.io -sSfL | sh
 ## example
@@ -142,6 +127,7 @@ curl https://get.wasmer.io -sSfL | sh
 ${CMD_INSTALL} git
 if [ -x /usr/bin/git ]; then
     git config --global color.ui true
+    git config --global --add safe.directory '*'
     git config --global user.name "Andrew Webster"
     if [ ! ${UPN} == '' ]; then 
         git config --global user.email "${UPN}"
@@ -155,9 +141,10 @@ fi
 ## Install Oracle Database Instant Client via permanent OTN link
 oracleinstantclientinstall() {
     # Dependencies for Oracle Client
-    ${CMD_INSTALL} libaio 
-    ${CMD_INSTALL} libaio2 
-    ${CMD_INSTALL} unzip
+    apt-get install -y libaio1
+    apt-get install -y libaio1t64
+    #apt-get install -y libaio2 
+    apt-get install -y unzip
     if [ ! -f /usr/lib/x86_64-linux-gnu/libaio.so.1 ] ; then
         sudo ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
     fi
@@ -339,11 +326,24 @@ ${CMD_INSTALL} python3-pip
 if [ -d /usr/local/src ] ; then sudo rm -rf /usr/local/src ; fi
 sudo mkdir -p /usr/local/src && sudo chown ${USER} /usr/local/src && chmod 744 /usr/local/src 
 ${CMD_INSTALL} build-essential pkg-config intltool libtool autoconf
-## sqllite
-${CMD_INSTALL} sqlite3 libsqlite3-dev
-## create database test.db
-# sqlite test.db
-# sqlite3 -batch test.db "create table n (id INTEGER PRIMARY KEY,f TEXT,l TEXT);"
+
+install-sqlite() {
+    ## sqllite
+    apt-get install -y sqlite3 sqlite3-tools libsqlite3-dev
+    if (which sqlite3 ) ; then
+        ## Install browser (X11) for sqlite
+        apt-get install -y sqlitebrowser
+    fi
+    if (which sqlitebrowserxxxx ) ; then
+        ## Run SQLite browser (X11) for sqlite
+        sqlitebrowser &
+    fi
+    ## Create
+    ## create database test.db
+    # sqlite test.db
+    # sqlite3 -batch test.db "create table n (id INTEGER PRIMARY KEY,f TEXT,l TEXT);"
+}
+install-sqlite 
 
 ## Handle SSH Agent - at logon
 sudo sh -c 'echo "## ssh-agent.sh - start ssh agent" > /etc/profile.d/ssh-agent.sh'
@@ -374,9 +374,6 @@ sudo sh -c 'echo export HISTCONTROL=ignoreboth                         >>  /etc/
 sudo sh -c 'echo "# Append to the history file, dont overwrite it."    >>  /etc/profile.d/bash.sh'
 sudo sh -c 'echo shopt -s histappend                                   >>  /etc/profile.d/bash.sh'
 
-sudo sh -c 'echo "# Enable bash completion."                           >>  /etc/profile.d/bash.sh'
-sudo sh -c "echo [ -f /etc/bash_completion ] \&\& . /etc/bash_completion >>  /etc/profile.d/bash.sh"
-
 sudo sh -c 'echo "# Improve output of less for binary files."          >> /etc/profile.d/bash.sh'
 sudo sh -c 'echo [ -x /usr/bin/lesspipe ] \&\& eval "\$(SHELL=/bin/sh lesspipe)"   >>  /etc/profile.d/bash.sh'
 
@@ -385,20 +382,23 @@ sudo sh -c 'echo "alias distribution=\". /etc/os-release;echo \$ID\$VERSION_ID\"
 
 ## Azure environment
 sudo sh -c 'echo "# Setup Azure environment up - if it exists"            >  /etc/profile.d/azure.sh'
-sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/azure/azuresp.sh\" ] ; then " >> /etc/profile.d/azure.sh'
-sudo sh -c 'echo "    source \"\${OneDriveCommercial}/azure/azuresp.sh\""   >> /etc/profile.d/azure.sh'
+sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/env-azure.sh\" ] ; then " >> /etc/profile.d/azure.sh'
+sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""         >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-azure.sh\""   >> /etc/profile.d/azure.sh'
 sudo sh -c 'echo "fi"                                                     >> /etc/profile.d/azure.sh'
 
 ## AWS environment
 sudo sh -c 'echo "# Setup AWS environment up - if it exists"             > /etc/profile.d/aws.sh'
-sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/aws/awssp.sh\" ] ; then " >> /etc/profile.d/aws.sh'
-sudo sh -c 'echo "    source \"\${OneDriveCommercial}/aws/awsp.sh\""     >> /etc/profile.d/aws.sh'
+sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/env-aws.sh\" ] ; then " >> /etc/profile.d/aws.sh'
+sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""         >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-aws.sh\""     >> /etc/profile.d/aws.sh'
 sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/aws.sh'
 
 ## Google Cloud environment
 sudo sh -c 'echo "# Setup Google GCP environment up - if it exists"      >  /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/gcp/gcpsp.sh\" ] ; then " >> /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "    source \"\${OneDriveCommercial}/gcp/gcpsp.sh\""    >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/env-gcp.sh\" ] ; then " >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""         >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-gcp.sh\""    >> /etc/profile.d/gcp.sh'
 sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/gcp.sh'
 
 ## Docker on Docker
@@ -484,24 +484,76 @@ sudo snap install go --classic
 # cat ~/.ssh/id_rsa.pub | clip.exe
 
 ## Oh-My-Posh - Colourful Commandline Prompt
-sudo wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-linux-amd64 -O /usr/local/bin/oh-my-posh
-sudo chmod +x /usr/local/bin/oh-my-posh
-if [ ! -d ~/.poshthemes ] ; then
-    mkdir ~/.poshthemes
-    wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/themes.zip -O ~/.poshthemes/themes.zip
-    unzip -qo ~/.poshthemes/themes.zip -d ~/.poshthemes
-    chmod u+rw ~/.poshthemes/*.omp.*
-    rm ~/.poshthemes/themes.zip
-fi
-set -x
-oh-my-posh get shell
-# eval "$(oh-my-posh init bash)"
-eval "$(oh-my-posh init `oh-my-posh get shell`)"
-oh-my-posh notice
-## themes can be found in ~/.poshthemes/ for example: dracula.omp.json
-## oh-my-posh init `oh-my-posh get shell` -c  ~/.poshthemes/dracula.omp.json
-## Eg:-
-## eval "$(oh-my-posh init `oh-my-posh get shell` -c dracula.omp.json`)"
+setup-oh-my-posh() {
+    sudo wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/posh-linux-amd64 -O /usr/local/bin/oh-my-posh
+    sudo chmod +x /usr/local/bin/oh-my-posh
+    if [ ! -d ~/.poshthemes ] ; then
+        mkdir ~/.poshthemes
+        wget https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/themes.zip -O ~/.poshthemes/themes.zip
+        unzip -qo ~/.poshthemes/themes.zip -d ~/.poshthemes
+        chmod u+rw ~/.poshthemes/*.omp.*
+        rm ~/.poshthemes/themes.zip
+    fi
+    set -x
+    oh-my-posh get shell
+    # eval "$(oh-my-posh init bash)"
+    eval "$(oh-my-posh init `oh-my-posh get shell`)"
+    oh-my-posh notice
+    ## themes can be found in ~/.poshthemes/ for example: dracula.omp.json
+    ## oh-my-posh init `oh-my-posh get shell` -c  ~/.poshthemes/dracula.omp.json
+    ## Eg:-
+    ## eval "$(oh-my-posh init `oh-my-posh get shell` -c dracula.omp.json`)"
+}
+#setup-oh-my-posh
+
+setup-starship() {
+    ## Starship - cross shell prompt
+    ## https://starship.rs/
+   
+    sudo apt install -y fonts-firacode
+   
+    ## wants to be installed posis sh, not bash
+    curl -fsSL https://starship.rs/install.sh | /bin/sh -s -- -y
+
+    if [ -f /etc/profile.d/starship.sh ] ; then sudo rm -f /etc/profile.d/starship.sh ; fi
+    sudo sh -c 'echo "# Starship Prompt"                       >  /etc/profile.d/starship.sh'
+    sudo sh -c 'echo "if (which starship) ; then"              >>  /etc/profile.d/starship.sh'
+    sudo sh -c 'echo "    eval \"\$(starship init bash)\" "    >>  /etc/profile.d/starship.sh'
+    sudo sh -c 'echo "fi"                                      >>  /etc/profile.d/starship.sh' 
+
+    # Detect shell
+    USER_SHELL=$(basename "$SHELL")
+
+    case "$USER_SHELL" in
+        bash)
+            SHELL_RC="$HOME/.bashrc"
+            INIT_CMD='eval "$(starship init bash)"'
+            ;;
+        zsh)
+            SHELL_RC="$HOME/.zshrc"
+            INIT_CMD='eval "$(starship init zsh)"'
+            ;;
+        fish)
+            SHELL_RC="$HOME/.config/fish/config.fish"
+            INIT_CMD='starship init fish | source'
+            ;;
+        *)
+        ;;
+    esac
+
+    ## Append the init command if not already present
+    if ! grep -Fq "$INIT_CMD" "$SHELL_RC"; then
+        echo "" >> "$SHELL_RC"
+        echo "# Initialize Starship prompt" >> "$SHELL_RC"
+        echo "$INIT_CMD" >> "$SHELL_RC"
+        echo "Added Starship init command to $SHELL_RC"
+    else
+        echo "Starship init command already present in $SHELL_RC"
+    fi
+}
+#setup-starship
+
+
 
 ## Generate
 ## https://textkool.com/en/ascii-art-generator
