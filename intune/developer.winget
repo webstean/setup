@@ -299,7 +299,7 @@ properties:
           [Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN', 'User')
 
     - resource: xPSDesiredStateConfiguration/xScript
-      id: RedHat.Podman-Machine-Step
+      id: RedHat.Podman-Machine-Setup
       dependson:
         - RedHat.Podman-Desktop
       directives:
@@ -314,6 +314,24 @@ properties:
           podman machine set --rootful
           podman machine start
           #podman machine ssh podman-machine-default "sudo systemctl enable podman.socket --now"
+          wslconfig /setdefault Ubuntu
+
+    - resource: xPSDesiredStateConfiguration/xScript
+      id: RedHat.Podman-Test
+      dependson:
+        - RedHat.Podman-Machine-Setup
+      directives:
+        description: Test for Podman
+      settings:
+        GetScript: return $false
+        TestScript: return $false
+        SetScript: |
+            Write-Step "Conducting container test (quay.io/podman/hello)"
+            if ($PSCmdlet.ShouldProcess("quay.io/podman/hello","Pull & Run")) {
+                podman pull quay.io/podman/hello | Out-Null
+                podman run --rm quay.io/podman/hello
+                Write-Host "Smoke test completed." -ForegroundColor Green
+            }
 
 ## containers.containerClient Podman
 ## containers.orchestratorClient Podman Compose
