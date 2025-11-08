@@ -315,6 +315,7 @@ properties:
           podman machine start
           #podman machine ssh podman-machine-default "sudo systemctl enable podman.socket --now"
           wslconfig /setdefault Ubuntu
+          return $true
 
     - resource: xPSDesiredStateConfiguration/xScript
       id: RedHat.Podman-Test
@@ -326,12 +327,14 @@ properties:
         GetScript: return $false
         TestScript: return $false
         SetScript: |
-            Write-Step "Conducting container test (quay.io/podman/hello)"
+            Write-Host "Conducting container test (quay.io/podman/hello)"
             if ($PSCmdlet.ShouldProcess("quay.io/podman/hello","Pull & Run")) {
                 podman pull quay.io/podman/hello | Out-Null
                 podman run --rm quay.io/podman/hello
                 Write-Host "Smoke test completed." -ForegroundColor Green
+                return $true
             }
+            return $false
 
 ## containers.containerClient Podman
 ## containers.orchestratorClient Podman Compose
