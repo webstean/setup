@@ -532,7 +532,6 @@ function Set-WslNetConfig {
         Write-Host "Created new .wslconfig"
     }
 }
-Set-WslNetConfig
 Write-Output ("Ensuring WSL is upto date...") 
 ## ensure WSL is upto date, can only be done per user (not system)
 Start-Process -FilePath "wsl" -ArgumentList "--install --no-launch" -NoNewWindow -Wait -PassThru
@@ -541,6 +540,7 @@ Start-Process -FilePath "wsl" -ArgumentList "--update" -NoNewWindow -Wait -PassT
 ## PreRelease version
 Start-Process -FilePath "wsl" -ArgumentList "--update --pre-release" -NoNewWindow -Wait -PassThru
 Start-Process -FilePath "wsl" -ArgumentList "--set-default-version 2" -NoNewWindow -Wait -PassThru
+Set-WslNetConfig
 ## Should now be ready for Podman/Docker
 
 ## Azure CLI configuration
