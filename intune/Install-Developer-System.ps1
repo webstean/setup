@@ -489,37 +489,72 @@ $features_to_disable | ForEach-Object {
     }
 }
 
-## Check system resources before enabling Containers-DisposableClientVM
-try {
-    $cpuCores = (Get-WmiObject -Class Win32_Processor).NumberOfLogicalProcessors
-    $ramGB = [math]::Round((Get-WmiObject -Class Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
+function Enable-WindowsSandboxIfCapable {
+    <#
+    .SYNOPSIS
+        Enables Windows Sandbox (Containers-DisposableClientVM) if the system has sufficient resources.
+    .DESCRIPTION
+        Checks CPU core count and total physical memory before enabling the Windows Sandbox feature.
+        Installs or removes WindowsSandboxTools accordingly.
+    .PARAMETER MinCores
+        Minimum number of logical CPU cores required. Default is 4.
+    .PARAMETER MinMemoryGB
+        Minimum memory (in GB) required. Default is 16 GB.
+    .EXAMPLE
+        Enable-WindowsSandboxIfCapable
+    .EXAMPLE
+        Enable-WindowsSandboxIfCapable -MinCores 8 -MinMemoryGB 32
+    .NOTES
+        Requires administrative privileges.
+        References:
+        - https://github.com/jdhitsolutions/WindowsSandboxTools
+        - https://github.com/HarmVeenstra/Powershellisfun/blob/main/Create%20a%20development%20Windows%20Sandbox/AW_Sandbox.ps1
+    #>
 
-    if ($cpuCores -ge 4 -and $ramGB -ge 16) {
-        Write-Output "Enabling Windows Sandbox (disposable VM)"
-        Enable-WindowsOptionalFeature -FeatureName "Containers-DisposableClientVM" -All -Online -NoRestart
-        ## https://github.com/jdhitsolutions/WindowsSandboxTools
-        Install-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
-        Update-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
-        ## https://github.com/HarmVeenstra/Powershellisfun/blob/main/Create%20a%20development%20Windows%20Sandbox/AW_Sandbox.ps1
-    } else {
-        Write-Output "Insufficient resources to enable Windows Sandbox - require at least 4 CPU cores and 16GB of RAM." 
-        Disable-WindowsOptionalFeature -FeatureName "Containers-DisposableClientVM" -Online -NoRestart
-        UnInstall-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
+    param(
+        [int]$MinCores = 4,
+        [int]$MinMemoryGB = 16
+    )
+
+    try {
+        Write-Verbose "Checking system resources..."
+        $cpuCores = (Get-CimInstance -ClassName Win32_Processor).NumberOfLogicalProcessors
+        $ramGB = [math]::Round((Get-CimInstance -ClassName Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
+
+        Write-Output "Detected $cpuCores logical CPU cores and $ramGB GB RAM."
+
+        if ($cpuCores -ge $MinCores -and $ramGB -ge $MinMemoryGB) {
+            Write-Output "✅ System meets requirements. Enabling Windows Sandbox..."
+            Enable-WindowsOptionalFeature -FeatureName "Containers-DisposableClientVM" -All -Online -NoRestart -ErrorAction Stop
+
+            # Install / Update WindowsSandboxTools
+            Write-Output "Installing or updating WindowsSandboxTools module..."
+            Install-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
+            Update-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
+        } 
+        else {
+            Write-Warning "❌ Insufficient resources — requires at least $MinCores CPU cores and $MinMemoryGB GB RAM."
+            Disable-WindowsOptionalFeature -FeatureName "Containers-DisposableClientVM" -Online -NoRestart -ErrorAction SilentlyContinue
+            Uninstall-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
+        }
+    }
+    catch {
+        Write-Error "An exception occurred: $($_.Exception.Message)"
+        Write-Verbose "Type: $($_.Exception.GetType().FullName)"
+        Write-Verbose "Stack Trace:`n$($_.Exception.StackTrace)"
+    }
+    finally {
+        Write-Output "`n=== Windows Optional Features ==="
+        Get-WindowsOptionalFeature -Online |
+            Select-Object FeatureName, State |
+            Sort-Object FeatureName |
+            Format-Table -AutoSize
     }
 }
-catch {
-    Write-Output "An exception occurred: $_" 
-    Write-Output "Exception Type: $($_.Exception.GetType().FullName)" 
-    Write-Output "Exception Message: $($_.Exception.Message)" 
-    Write-Output "Stack Trace: $($_.Exception.StackTrace)" 
-}
-
-## Show features for transcript
-Get-WindowsOptionalFeature -Online | Select-Object FeatureName, State | Format-Table -AutoSize
+# Enable-WindowsSandboxIfCapable
 
 ## NFS example (or use WSL)
 # mount -o anon \\10.1.1.211\mnt\vms Z:
-
 
 New-Item -Path "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" -Force | Out-Null
 New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" `
