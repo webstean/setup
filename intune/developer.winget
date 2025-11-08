@@ -293,14 +293,17 @@ properties:
         TestScript: return $false
         SetScript: |
           [System.Environment]::SetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME","podman","Machine")
+          # Not required API forwarding listening on: npipe:////./pipe/docker_engine
+          # Docker API clients default to this address. You do not need to set DOCKER_HOST.
           #[System.Environment]::SetEnvironmentVariable("DOCKER_HOST",'npipe:////./pipe/docker_engine',"Machine")
+          [Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN', 'User')
 
     - resource: xPSDesiredStateConfiguration/xScript
       id: RedHat.Podman-Machine-Step
       dependson:
         - RedHat.Podman-Desktop
       directives:
-        description: Fully enable Podman
+        description: Create WSL machine for Podman
       settings:
         GetScript: return $false
         TestScript: return $false
