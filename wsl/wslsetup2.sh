@@ -82,10 +82,10 @@ https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs)
     export ACCEPT_EULA=Y && sudo apt-get install -y mssql-tools18
 
     ## Install Powershell
-    sudo snap install powershell --classic
+    sudo apt-get install -y powershell
     if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
-    if (which pwsh) ; then 
-        sudo sh -c 'echo   if \(which pwsh\) \; then > /etc/profile.d/microsoft-powershell.sh'
+    if (which -s pwsh) ; then 
+        sudo sh -c 'echo   if \(which -s pwsh\) \; then > /etc/profile.d/microsoft-powershell.sh'
         sudo sh -c 'echo   echo \"PowerShell \(pwsh\) found!\"     >>  /etc/profile.d/microsoft-powershell.sh'
         sudo sh -c 'echo   fi >> /etc/profile.d/microsoft-powershell.sh'
     fi
@@ -415,29 +415,12 @@ sudo sh -c 'echo "fi"                                                    >> /etc
 ## shortcut to Windows home directory
 sudo sh -c 'echo "export WINHOME=\$(wslpath \"\$(wslvar USERPROFILE)\")"   > /etc/profile.d/winhome.sh'
 
-## Install Node through Node Version Manager (nvm)
-## https://github.com/nvm-sh/nvm
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
-## The script clones the nvm repository to ~/.nvm, and attempts to add the source lines from the snippet below
-## to the correct profile file (~/.bash_profile, ~/.zshrc, ~/.profile, or ~/.bashrc).
-source ~/.bashrc
-
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | \
-  sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-
-NODE_MAJOR=22
-echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] \
-https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | \
-  sudo tee /etc/apt/sources.list.d/nodesource.list
-
-# 3. Install Node.js + npm
-sudo apt update
+## Install Node.js + npm
 sudo apt install -y nodejs
 
 if [ -f /etc/profile.d/nodejs.sh ] ; then sudo rm -f /etc/profile.d/nodejs.sh ; fi
-if (which node) ; then 
-    sudo sh -c 'echo if \(which node\) ; then           >>  /etc/profile.d/nodejs.sh'
+if (which -s node) ; then 
+    sudo sh -c 'echo if \(which -s node\) \; then           >  /etc/profile.d/nodejs.sh'
     sudo sh -c 'echo   echo \"Node JS \(node\) found -  use nvm to manage!\"  >>  /etc/profile.d/nodejs.sh'
     sudo sh -c 'echo fi >>  /etc/profile.d/nodejs.sh'
 fi
