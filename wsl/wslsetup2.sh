@@ -57,6 +57,8 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
 https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" \
   | sudo tee /etc/apt/sources.list.d/microsoft-prod.list > /dev/null
 
+    sudo apt update -y
+    
     ## Install WSL Utilities
     ## https://wslu.wedotstud.io/wslu/
     ## 
@@ -80,7 +82,7 @@ https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs)
     export ACCEPT_EULA=Y && sudo apt-get install -y mssql-tools18
 
     ## Install Powershell
-    sudo apt-get install -y powershell
+    sudo snap install powershell --classic
     if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
     if (which pwsh) ; then 
         sudo sh -c 'echo   if \(which pwsh\) \; then > /etc/profile.d/microsoft-powershell.sh'
@@ -537,19 +539,19 @@ setup-starship
 ## Generate
 ## https://textkool.com/en/ascii-art-generator
 ## note: any ` needs to be escaped with \
-cat >> $HOME/.logo <<EOF
+
+sudo tee /etc/.logo >/dev/null <<'EOF'
                      _                   
      /\             | |                  
     /  \   _ __   __| |_ __ _____      __
-   / /\ \ | '_ \ / _\` | '__/ _ \ \ /\ / /
+   / /\ \ | '_ \ / _` | '__/ _ \ \ /\ / /
   / ____ \| | | | (_| | | |  __/\ V  V / 
  /_/    \_\_| |_|\__,_|_|  \___| \_/\_/  
                                          
  WSL Development Environment
- 
 EOF
-sudo sh -c 'echo if [ -f  $HOME/.logo ] \; then >  /etc/profile.d/zlogo.sh'
-sudo sh -c 'echo    cat $HOME/.logo >>  /etc/profile.d/zlogo.sh'
+sudo sh -c 'echo if [ -f  /etc/.logo ] \; then >  /etc/profile.d/zlogo.sh'
+sudo sh -c 'echo    cat /etc/.logo >>  /etc/profile.d/zlogo.sh'
 sudo sh -c 'echo fi >>  /etc/profile.d/zlogo.sh'
 
 touch $HOME/.hushlogin
