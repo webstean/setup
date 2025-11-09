@@ -97,6 +97,10 @@ https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs)
     fi
 fi
 
+sudo apt install -y podman-remote
+sudo sh -c "echo 'export WIN_PODMAN_PIPE=//./pipe/podman-machine-default' > /etc/profile.d/podman.sh"
+sudo sh -c "echo 'export CONTAINER_HOST=//./pipe/podman-machine-default' > /etc/profile.d/podman.sh"
+
 ## Azure IOTEdge
 setup-iotedge() {
     if (true) ; then
