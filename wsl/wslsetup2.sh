@@ -158,8 +158,8 @@ fi
 ## Install Oracle Database Instant Client via permanent OTN link
 oracleinstantclientinstall() {
     # Dependencies for Oracle Client
-    apt-get install -y libaio1
-    apt-get install -y libaio1t64
+    sudo apt-get install -y libaio1
+    sudo apt-get install -y libaio1t64
     #apt-get install -y libaio2 
     apt-get install -y unzip
     if [ ! -f /usr/lib/x86_64-linux-gnu/libaio.so.1 ] ; then
@@ -168,9 +168,9 @@ oracleinstantclientinstall() {
     # Permanent Link (latest version) - Instant Client - Basic (x86 64 bit) - you need this for anything else to work
     # Note: there is no Instant Client for the ARM processor, Intel/AMD x86 only
     tmpdir=$(mktemp -d)
-    wget https://download.oracle.com/otn_software/linux/instantclient/instantclient-basic-linuxx64.zip -nc --directory-prefix=${tmpdir}
-    wget https://download.oracle.com/otn_software/linux/instantclient/instantclient-sqlplus-linuxx64.zip -nc --directory-prefix=${tmpdir}
-    wget https://download.oracle.com/otn_software/linux/instantclient/instantclient-tools-linuxx64.zip -nc --directory-prefix=${tmpdir}
+    sudo wget https://download.oracle.com/otn_software/linux/instantclient/instantclient-basic-linuxx64.zip -nc --directory-prefix=${tmpdir}
+    sudo wget https://download.oracle.com/otn_software/linux/instantclient/instantclient-sqlplus-linuxx64.zip -nc --directory-prefix=${tmpdir}
+    sudo wget https://download.oracle.com/otn_software/linux/instantclient/instantclient-tools-linuxx64.zip -nc --directory-prefix=${tmpdir}
 
     if [   -d /opt/oracle ] ; then sudo rm -rf /opt/oracle ; fi 
     if [ ! -d /opt/oracle ] ; then sudo mkdir -p /opt/oracle ; sudo chmod 755 /opt/oracle ; fi 
@@ -282,7 +282,7 @@ joinactivedirectory() {
     FULLJOINACC = '${JOINACC}@${USERDNSDOMAIN}'
         
     ## Dependencies for AD Join
-    apt-get install -y realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
+    sudo apt-get install -y realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
     #apt-get install -y cifs-utils
     ## Info on Domain
     echo "Join AD domain: ${USERDNSDOMAIN}"
@@ -440,7 +440,7 @@ if (which node) ; then
     sudo sh -c 'echo fi >>  /etc/profile.d/nodejs.sh'
 fi
     
-apt-get install -y golang
+sudo apt-get install -y golang
 #if ! [ -x ~.go/bin/go ] ; then
 #    wget -q -O - https://git.io/vQhTU | bash
     sudo sh -c 'echo "if ! [ -x \~.go/bin/go ] ; then"  >   /etc/profile.d/golang.sh'
