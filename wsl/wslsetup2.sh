@@ -322,19 +322,7 @@ mountazurefiles() {
 }
 
 ## essentials
-${CMD_INSTALL} apt-transport-https
-${CMD_INSTALL} ca-certificates
-${CMD_INSTALL} software-properties-common
-${CMD_INSTALL} screenfetch
-${CMD_INSTALL} unzip
-${CMD_INSTALL} git
-${CMD_INSTALL} curl
-${CMD_INSTALL} wget
-${CMD_INSTALL} jq
-${CMD_INSTALL} dos2unix
-${CMD_INSTALL} gnupg2
-${CMD_INSTALL} python3
-${CMD_INSTALL} python3-pip
+apt-get install -y apt-transport-https ca-certificates software-properties-common screenfetch unzip git curl wget jq dos2unix gnupg2 python3 python3-pip
 
 ## build/development dependencies
 if [ -d /usr/local/src ] ; then sudo rm -rf /usr/local/src ; fi
