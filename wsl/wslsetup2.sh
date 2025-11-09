@@ -14,6 +14,18 @@ set -x
 ## get everything upto date
 sudo apt-get update -y
 sudo apt-get upgrade -y
+
+## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff
+if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
+    if ! [ -x /usr/bin/sqlitebrowser ] ; then
+        #apt-get install -y xscreensaver
+        apt-get install -y x11-apps
+        echo $DISPLAY
+        ## Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
+        xeyes &
+    fi
+    # export WINHOME=$(wslpath "$(wslvar USERPROFILE)")
+fi
     
 ## Set Timezone - includes keeping the machine to the right time but not sure how?
 ## WSL Error: System has not been booted with systemd as init system (PID 1). Can't operate.
@@ -46,7 +58,10 @@ https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs)
   | sudo tee /etc/apt/sources.list.d/microsoft-prod.list > /dev/null
 
     ## Install WSL Utilities
+    ## https://wslu.wedotstud.io/wslu/
+    ## 
     sudo apt-get install -y wslu
+    #wslsys
 
     ## Microsoft Defender for Endpoint
     sudo apt-get install -y mdatp
@@ -106,18 +121,6 @@ setup-iotedge() {
         sudo iotedge list
     fi
 }
-
-## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff
-if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
-    if ! [ -x /usr/bin/sqlitebrowser ] ; then
-        #apt-get install -y xscreensaver
-        apt-get install -y x11-apps
-        echo $DISPLAY
-        ## Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
-        xeyes &
-    fi
-    # export WINHOME=$(wslpath "$(wslvar USERPROFILE)")
-fi
 
 ## install and config sysstat
 apt-get install -y sysstat
@@ -279,8 +282,8 @@ joinactivedirectory() {
     FULLJOINACC = '${JOINACC}@${USERDNSDOMAIN}'
         
     ## Dependencies for AD Join
-    echo ${CMD_INSTALL} realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
-    echo ${CMD_INSTALL} cifs-utils
+    apt-get install -y realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
+    #apt-get install -y cifs-utils
     ## Info on Domain
     echo "Join AD domain: ${USERDNSDOMAIN}"
     if (sudo realm discover ${USERDNSDOMAIN}) ; then
@@ -327,7 +330,7 @@ apt-get install -y apt-transport-https ca-certificates software-properties-commo
 ## build/development dependencies
 if [ -d /usr/local/src ] ; then sudo rm -rf /usr/local/src ; fi
 sudo mkdir -p /usr/local/src && sudo chown ${USER} /usr/local/src && chmod 744 /usr/local/src 
-${CMD_INSTALL} build-essential pkg-config intltool libtool autoconf
+apt-get install -y build-essential pkg-config intltool libtool autoconf
 
 install-sqlite() {
     ## sqllite
@@ -416,19 +419,20 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
 ## The script clones the nvm repository to ~/.nvm, and attempts to add the source lines from the snippet below
 ## to the correct profile file (~/.bash_profile, ~/.zshrc, ~/.profile, or ~/.bashrc).
 source ~/.bashrc
-if (command -v nvm ) ; then
-    nvm --version
-    ## install late node
-    # nvm install 13.10.1 # Specific minor release
-    # nvm install 14 # Specify major release only
-    ## install latest
-    nvm install node
-    ## install Active Long Term Support (LTS)
-    # nvm install --lts
-    nvm ls
-    ## install OpenAI Node API Library - as an example
-    npm install --save openai
-fi
+
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | \
+  sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+
+NODE_MAJOR=22
+echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] \
+https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | \
+  sudo tee /etc/apt/sources.list.d/nodesource.list
+
+# 3. Install Node.js + npm
+sudo apt update
+sudo apt install -y nodejs
+
 if [ -f /etc/profile.d/nodejs.sh ] ; then sudo rm -f /etc/profile.d/nodejs.sh ; fi
 if (which node) ; then 
     sudo sh -c 'echo if \(which node\) ; then           >>  /etc/profile.d/nodejs.sh'
@@ -436,32 +440,7 @@ if (which node) ; then
     sudo sh -c 'echo fi >>  /etc/profile.d/nodejs.sh'
 fi
     
-## Install Terraform (global)
-sudo snap install terraform --classic
-#curl "https://releases.hashicorp.com/terraform/0.12.26/terraform_0.12.26_linux_amd64.zip" -o "terraform.zip" \
-#   && unzip -qo terraform.zip && chmod +x terraform \
-#   && sudo mv terraform /usr/local/bin && rm terraform.zip
-
-## Install AWS CLI (global)
-#cd ~
-#curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-#unzip -qo awscliv2.zip
-#sudo ~/./aws/install
-#rm awscliv2.zip
-
-## Install Azure CLI (global) - much better to run inside a docker container (installer/updates are very buggy)
-#curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash && az version
-## automatic upgrade enabled
-#az config set auto-upgrade.enable=yes --only-show-errors  # automatic upgrade enabled
-# dont prompt
-##az config set auto-upgrade.prompt=no  --only-show-errors # dont prompt
-##az version
-##if [ -f  /etc/profile.d/azurecli.sh  ] ; then sudo rm -f /etc/profile.d/azurecli.sh ; fi
-##sudo sh -c 'echo echo \"Azure CLI \(az\) found!\"     >>  /etc/profile.d/azurecli.sh'
-##sudo sh -c 'echo # az account show --output table >>  /etc/profile.d/azurecli.sh'
-
-## Install GoLang - current user
-sudo snap install go --classic
+apt-get install -y golang
 #if ! [ -x ~.go/bin/go ] ; then
 #    wget -q -O - https://git.io/vQhTU | bash
     sudo sh -c 'echo "if ! [ -x \~.go/bin/go ] ; then"  >   /etc/profile.d/golang.sh'
@@ -553,15 +532,12 @@ setup-starship() {
         echo "Starship init command already present in $SHELL_RC"
     fi
 }
-#setup-starship
-
-
+setup-starship
 
 ## Generate
 ## https://textkool.com/en/ascii-art-generator
 ## note: any ` needs to be escaped with \
-if [ -f  /etc/logo  ] ; then rm -f /etc/logo ; fi
-cat >> /etc/logo <<EOF
+cat >> $HOME/.logo <<EOF
                      _                   
      /\             | |                  
     /  \   _ __   __| |_ __ _____      __
@@ -572,21 +548,10 @@ cat >> /etc/logo <<EOF
  WSL Development Environment
  
 EOF
-sudo sh -c 'echo if [ -f  /etc/logo ] \; then >  /etc/profile.d/zlogo.sh'
-sudo sh -c 'echo    cat /etc/logo >>  /etc/profile.d/zlogo.sh'
+sudo sh -c 'echo if [ -f  $HOME/.logo ] \; then >  /etc/profile.d/zlogo.sh'
+sudo sh -c 'echo    cat $HOME/.logo >>  /etc/profile.d/zlogo.sh'
 sudo sh -c 'echo fi >>  /etc/profile.d/zlogo.sh'
-
-echo ${CMD_CLEAN}
 
 touch $HOME/.hushlogin
 
- ## if java is installed, install maven build system
- ## Maven is a build automation tool used primarily for Java projects
- if [ -x "$(command -v java)" ] ; then
-    ${CMD_INSTALL} maven
- fi
-
-export CMD_INSTALL=
-export CMD_UPGRADE=
-export CMD_UPDATE=
-export CMD_CLEAN=
+ 
