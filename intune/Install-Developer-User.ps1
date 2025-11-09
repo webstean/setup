@@ -519,10 +519,22 @@ function Enable-WSL {
     Start-Process -FilePath 'wsl' -ArgumentList "--install -d $Distro --no-launch" -NoNewWindow -Wait -PassThru | Out-Null
     ## Preseed user
     wsl -d $Distro --user root bash -c @"
-useradd -m -s /bin/bash $env:UserName
+useradd -m -s /bin/bash -G sudo $env:UserName
 "@
     Start-Process -FilePath 'wsl' -ArgumentList "--manage $Distro --set-default-user $env:UserName" -NoNewWindow -Wait -PassThru | Out-Null
     Start-Process -FilePath 'wsl' -ArgumentList "--set-default $Distro" -NoNewWindow -Wait -PassThru | Out-Null
+
+    wsl -d $Distro --user root bash -c @"
+if ! (sudo grep NOPASSWD:ALL /etc/sudoers  > /dev/null 2>&1 ) ; then 
+    # Everyone
+    bash -c "echo '#Everyone - WSL' | sudo EDITOR='tee -a' visudo"
+    bash -c "echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
+    # Entra ID
+    bash -c "echo '#Azure AD - WSL' | sudo EDITOR='tee -a' visudo"
+    bash -c "echo '%sudo aad_admins=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
+fi
+"@
+
     $wslConfigPath = [System.IO.Path]::Combine($env:USERPROFILE, ".wslconfig")
     if (Test-Path $wslConfigPath) {
         Remove-Item -Force $wslConfigPath
@@ -550,21 +562,20 @@ sh -c 'echo appendWindowsPath = false  >>  /etc/wsl.conf'
 }
 Enable-WSL
 
-function Set-WSLConfig {
+function Set-WSLConfig-Ubuntu {
 
     ## Initial
     #$wslinitalsetup = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh').Content -replace "`r", ''
     #$wslinitalsetup | wsl --user root --distribution ${Distro} --
 
     ## BIG Setup
-    $wslsetuppre = (Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup-pre.sh ).Content -replace "`r", ''
     $wslsetup1   = (Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh).Content -replace "`r", ''
     $wslsetup2   = (Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh).Content -replace "`r", ''
-    $wslsetuppre + $wslsetup1 | wsl --user root --distribution ${DistroName} --
-    wsl --terminate ${DistroName}
-    $wslsetuppre + $wslsetup2 | wsl --user root --distribution ${DistroName} --
+    $wslsetup1 | wsl --user root --distribution ${Distro} --
+    wsl --terminate ${Distro}
+    $wslsetup2 | wsl --user root --distribution ${Distro} --
 }
-
+#Set-WSLConfig-Ubuntu
 
 ## Azure CLI configuration
 try {
