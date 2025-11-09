@@ -523,7 +523,6 @@ useradd -m -s /bin/bash $env:UserName
 "@
     Start-Process -FilePath 'wsl' -ArgumentList "--manage $Distro --set-default-user $env:UserName" -NoNewWindow -Wait -PassThru | Out-Null
     Start-Process -FilePath 'wsl' -ArgumentList "--set-default $Distro" -NoNewWindow -Wait -PassThru | Out-Null
-    Start-Process -FilePath 'wsl' -ArgumentList "--terminate $Distro" -NoNewWindow -Wait -PassThru | Out-Null
     $wslConfigPath = [System.IO.Path]::Combine($env:USERPROFILE, ".wslconfig")
     if (Test-Path $wslConfigPath) {
         Remove-Item -Force $wslConfigPath
@@ -541,26 +540,29 @@ hostAddressLoopback=true
     # Write all lines at once
     Set-Content -Path $wslConfigPath -Value $content ## -Encoding UTF8
     Get-Content -Path $wslConfigPath
+
+    # Turn of Windows PATH inside Linux
+    wsl -d $Distro --user root bash -c @"
+sh -c 'echo [interop]                  >>  /etc/wsl.conf'
+sh -c 'echo appendWindowsPath = false  >>  /etc/wsl.conf'
+"@
+    Start-Process -FilePath 'wsl' -ArgumentList "--terminate $Distro" -NoNewWindow -Wait -PassThru | Out-Null
 }
 Enable-WSL
 
 function Set-WSLConfig {
 
     ## Initial
-    $wslinitalsetup = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh').Content -replace "`r", ''
-    $wslinitalsetup | wsl --user root --distribution ${Distro} --
+    #$wslinitalsetup = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh').Content -replace "`r", ''
+    #$wslinitalsetup | wsl --user root --distribution ${Distro} --
 
-    ## sudo
-    $wslinitalsetup = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup-pre.sh').Content -replace "`r", ''
-    $wslinitalsetup | wsl --user root --distribution ${Distro} --
-
-    ## Setup
-    $wslsetup1 = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh').Content -replace "`r", ''
-    $wslsetup1 | wsl --user root --distribution ${Distro} --
-
-    $wslsetup2 = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh').Content -replace "`r", ''
-    $wslsetup2 | wsl --user root --distribution ${Distro} --
-
+    ## BIG Setup
+    $wslsetuppre = (Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup-pre.sh ).Content -replace "`r", ''
+    $wslsetup1   = (Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh).Content -replace "`r", ''
+    $wslsetup2   = (Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh).Content -replace "`r", ''
+    $wslsetuppre + $wslsetup1 | wsl --user root --distribution ${DistroName} --
+    wsl --terminate ${DistroName}
+    $wslsetuppre + $wslsetup2 | wsl --user root --distribution ${DistroName} --
 }
 
 

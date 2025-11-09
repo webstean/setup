@@ -47,16 +47,25 @@ https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs)
 
     ## Install WSL Utilities
     sudo apt-get install -y wslu
-    
-    ## Install Microsoft tools
+
+    ## Microsoft Defender for Endpoint
+    sudo apt-get install -y mdatp
+    #mdatp --version
+    #sudo mdatp health
+    #sudo mdatp health --field real_time_protection_enabled
+
+    ## Install Microsoft fonts
     echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
     export ACCEPT_EULA=Y && apt-get install -y ttf-mscorefonts-installer
 
-    apt-get install -y azure-functions-core-tools
-    export ACCEPT_EULA=Y && apt-get install -y mssql-tools18
-    apt-get install -y powershell
-    
-    ## Powershell
+    ## Install Azure Function Toolkit
+    sudo apt-get install -y azure-functions-core-tools
+
+    ## Install Microsoft SQL Server Command-Line Tools
+    export ACCEPT_EULA=Y && sudo apt-get install -y mssql-tools18
+
+    ## Install Powershell
+    sudo apt-get install -y powershell
     if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
     if (which pwsh) ; then 
         sudo sh -c 'echo   if \(which pwsh\) \; then > /etc/profile.d/microsoft-powershell.sh'
@@ -64,34 +73,39 @@ https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs)
         sudo sh -c 'echo   fi >> /etc/profile.d/microsoft-powershell.sh'
     fi
     
-    ## Install Java from Microsoft -  only if java not installed already
+    ## Install Java from Microsoft - but only if java not installed already
     if (! which java) ; then
-        apt-get install -y msopenjdk-17
-        apt-get install -y default-jre
+        sudo apt-get install -y msopenjdk-17
+        sudo apt-get install -y default-jre
     fi
 fi
 
 ## Azure IOTEdge
-if (1) ; then
-    sudo apt-get -y update; sudo apt-get -y install moby-engine  
-    if [ -f /etc/docker/daemon.json ] ; then
-        sudo sh -c "{                                >  ~/config-docker-for-iotedge.sh"
-        sudo sh -c "    \"log-driver\": \"local\"    >> ~/config-docker-for-iotedge.sh"
-        sudo sh -c "}                                >> ~/config-docker-for-iotedge.sh"
+setup-iotedge() {
+    if (true) ; then
+        sudo apt-get -y update; sudo apt-get -y install moby-engine  
+        if [ -f /etc/docker/daemon.json ] ; then
+            sudo sh -c "{                                >  ~/config-docker-for-iotedge.sh"
+            sudo sh -c "    \"log-driver\": \"local\"    >> ~/config-docker-for-iotedge.sh"
+            sudo sh -c "}                                >> ~/config-docker-for-iotedge.sh"
+        fi
+        curl -ssl https://raw.githubusercontent.com/moby/moby/master/contrib/check-config.sh -o check-config.sh
+        chmod +x check-config.sh
+        ./check-config.sh
+
+        #sudo apt-get -y install aziot-edge defender-iot-micro-agent-edge
+        #sudo apt-get -y install aziot-edge defender-iot-micro-agent-edge
+
+        sudo apt-get -y install aziot-edge aziot-identity-service
+        ## sudo iotedge config mp --connection-string 'PASTE_DEVICE_CONNECTION_STRING_HERE'
+        ## sudo iotedge config apply -c '/etc/aziot/config.toml'
+        sudo iotedge system status
+        sudo iotedge system logs
+        sudo iotedge check
+        sudo iotedge check --verbose
+        sudo iotedge list
     fi
-    curl -ssl https://raw.githubusercontent.com/moby/moby/master/contrib/check-config.sh -o check-config.sh
-    chmod +x check-config.sh
-    ./check-config.sh
-    sudo apt-get -y install aziot-edge defender-iot-micro-agent-edge
-    sudo apt-get -y install aziot-edge defender-iot-micro-agent-edge
-    ## sudo iotedge config mp --connection-string 'PASTE_DEVICE_CONNECTION_STRING_HERE'
-    ## sudo iotedge config apply -c '/etc/aziot/config.toml'
-    sudo iotedge system status
-    sudo iotedge system logs
-    sudo iotedge check
-    sudo iotedge check --verbose
-    sudo iotedge list
-fi
+}
 
 ## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
