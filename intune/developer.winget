@@ -73,6 +73,7 @@ properties:
       id: variable.developer
       directives:
         description: Set a system-wide environment variable
+        securityContext: elevated
       settings:
         GetScript: return $false
         TestScript: return $false
@@ -91,7 +92,9 @@ properties:
 
     - resource: xPSDesiredStateConfiguration/xScript
       id: Script.Set.User.Wallpaper
-      description: Set Developer USER wallpaper
+      directives:
+        description: Set Developer USER wallpaper
+        securityContext: elevated
       settings:
         GetScript: return $false
         TestScript: return $false
@@ -109,9 +112,11 @@ properties:
 
     - resource: xPSDesiredStateConfiguration/xScript
       id: Script.Set.Logon.Wallpaper
+      directives:
+        description: Set Developer LOGON wallpaper
+        securityContext: elevated
       dependsOn:
         - Script.Set.User.Wallpaper
-      description: Set Developer LOGON wallpaper
       settings:
         GetScript: return $false
         TestScript: return $false
@@ -128,9 +133,11 @@ properties:
 
 #    - resource: xPSDesiredStateConfiguration/xScript
 #      id: Script.Set.Lock.Wallpaper
+#      directives:
+#        description: Set Developer LOCK wallpaper
+#        securityContext: elevated
 #      dependsOn:
 #        - Script.Set.User.Wallpaper
-#      description: Set Developer LOCK wallpaper
 #      settings:
 #        GetScript: return $false
 #        TestScript: return $false
