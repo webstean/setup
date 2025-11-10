@@ -845,7 +845,7 @@ properties:
       settings:
         Name: microsoft-aspire.aspire-vscode
 
-# VS Code Aspire Extension
+    # VS Code Aspire Extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: insider.microsoft-aspire.aspire-vscode
       dependsOn:
@@ -854,7 +854,7 @@ properties:
         description: Install microsoft-aspire.aspire-vscode extension (needs aspire cli installed)
         allowPrerelease: true
         securityContext: current
-        edition: stable
+        edition: insider
       settings:
         Name: microsoft-aspire.aspire-vscode
 
