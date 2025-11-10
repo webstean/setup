@@ -973,7 +973,7 @@ properties:
         allowPrerelease: false
         securityContext: current
         edition: stable
-     settings:
+      settings:
         Name: ms-azuretools.vscode-azureterraform
 
     # VS Code RedHat YML extension
