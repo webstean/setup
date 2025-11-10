@@ -845,18 +845,19 @@ properties:
       settings:
         Name: microsoft-aspire.aspire-vscode
 
-    # VS Code Aspire Extension
-    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: insider.microsoft-aspire.aspire-vscode
-      dependsOn:
-        - Microsoft.VisualStudioCode
-      directives:
-        description: Install microsoft-aspire.aspire-vscode extension (needs aspire cli installed)
-        allowPrerelease: true
-        securityContext: current
-        edition: insider
-      settings:
-        Name: microsoft-aspire.aspire-vscode
+# DOES NOT WORK
+## VS Code Aspire Extension
+#    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+#      id: insider.microsoft-aspire.aspire-vscode
+#      dependsOn:
+#        - Microsoft.VisualStudioCode
+#      directives:
+#        description: Install microsoft-aspire.aspire-vscode extension (needs aspire cli installed)
+#        allowPrerelease: true
+#        securityContext: current
+#        edition: insider
+#      settings:
+#        Name: microsoft-aspire.aspire-vscode
 
     # VS Code .NET Development Extensions
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
