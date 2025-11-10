@@ -864,6 +864,6 @@ Add-WSLShortcutToDesktop
 ##     "srv*C:\Symbols*https://msdl.microsoft.com/download/symbols",
 
 
-
+dotnet new install Aspire.ProjectTemplates
 
 
