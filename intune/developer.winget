@@ -828,8 +828,8 @@ properties:
         description: Install C# extension
         allowPrerelease: false
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: ms-dotnettools.csharp
 
     # VS Code Aspire Extension
