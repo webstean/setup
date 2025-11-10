@@ -602,6 +602,7 @@ properties:
         ItemCheckBoxes: Show # [KeepCurrentValue, Hide]
         RestartExplorer: False # Use caution when setting `RestartExplorer: true` as this will force explorer to close. Required for all WindowsExplorer settings.
 
+    # Install Microsoft.Edit
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.Edit
       directives:
@@ -611,39 +612,23 @@ properties:
         id: Microsoft.Edit
         source: winget
 
-    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.vscode-esbenp.prettier-vscode
-      dependsOn:
-        - Microsoft.VisualStudioCode
+    # Install VS Code extensions
+    - resource: Microsoft.WinGet.DSC/VSCodeExtension
+      id: vscode.extensions
       directives:
-        description: Install Prettier for code formatting
-        allowPrerelease: false
+         description: Install VS Code extensions
       settings:
-        Edition: Stable
-        Name: esbenp.prettier-vscode
-
-    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.ms-azuretools.vscode-azure-mcp-server
-      dependsOn:
-        - Microsoft.VisualStudioCode
-      directives:
-        description: ms-azuretools.vscode-azure-mcp-server
-        allowPrerelease: false
-      settings:
-        Edition: Stable
-        Name: ms-azuretools.vscode-azure-mcp-server
-
-    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.GitHub.vscode-pull-request-github
-      dependsOn:
-        - Microsoft.VisualStudioCode
-      directives:
-        description: GitHub.vscode-pull-request-github
-        allowPrerelease: false
-      settings:
-        Edition: Stable
-        Name: GitHub.vscode-pull-request-github
-
+         edition: stable ## insiders
+         extensions:
+        - ms-python.python
+        - ms-dotnettools.csharp
+        - ms-vscode.powershell
+        - dbaeumer.vscode-eslint
+        - ms-azuretools.vscode-azure-mcp-server
+        - ms-azuretools.vscode-docker
+        - github.copilot
+        - hashicorp.terraform
+        - GitHub.vscode-pull-request-github
 
 #    - resource: PSDscResources/WindowsOptionalFeature
 #      id: WindowsSandboxInstall
