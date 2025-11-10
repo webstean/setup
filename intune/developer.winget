@@ -618,7 +618,7 @@ properties:
       directives:
          description: Install VS Code extensions
       settings:
-         edition: stable ## insiders
+         #edition: stable ## insiders
          ensure: Present
          extensions:
            - ms-python.python
