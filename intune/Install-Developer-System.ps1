@@ -866,4 +866,9 @@ Add-WSLShortcutToDesktop
 
 dotnet new install Aspire.ProjectTemplates
 
+# Enable file-based AppHost ("apphost.cs") support
+aspire config set features.singlefileAppHostEnabled true
+# Disable the minimum SDK version check
+#aspire config set features.minimumSdkCheckEnabled false
+
 
