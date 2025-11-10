@@ -620,15 +620,15 @@ properties:
       settings:
          edition: stable ## insiders
          extensions:
-        - ms-python.python
-        - ms-dotnettools.csharp
-        - ms-vscode.powershell
-        - dbaeumer.vscode-eslint
-        - ms-azuretools.vscode-azure-mcp-server
-        - ms-azuretools.vscode-docker
-        - github.copilot
-        - hashicorp.terraform
-        - GitHub.vscode-pull-request-github
+           - ms-python.python
+           - ms-dotnettools.csharp
+           - ms-vscode.powershell
+           - dbaeumer.vscode-eslint
+           - ms-azuretools.vscode-azure-mcp-server
+           - ms-azuretools.vscode-docker
+           - github.copilot
+           - hashicorp.terraform
+           - GitHub.vscode-pull-request-github
 
 #    - resource: PSDscResources/WindowsOptionalFeature
 #      id: WindowsSandboxInstall
