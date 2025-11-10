@@ -604,34 +604,34 @@ properties:
         source: winget
 
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: vscode-esbenp.prettier-vscode
+      id: stable.vscode-esbenp.prettier-vscode
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
         description: Install Prettier for code formatting
-        allowPrerelease: true
+        allowPrerelease: false
       settings:
         Edition: Stable
         Name: esbenp.prettier-vscode
 
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: ms-azuretools.vscode-azure-mcp-server
+      id: stable.ms-azuretools.vscode-azure-mcp-server
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
         description: ms-azuretools.vscode-azure-mcp-server
-        allowPrerelease: true
+        allowPrerelease: false
       settings:
         Edition: Stable
         Name: ms-azuretools.vscode-azure-mcp-server
 
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: GitHub.vscode-pull-request-github
+      id: stable.GitHub.vscode-pull-request-github
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
         description: GitHub.vscode-pull-request-github
-        allowPrerelease: true
+        allowPrerelease: false
       settings:
         Edition: Stable
         Name: GitHub.vscode-pull-request-github
@@ -738,7 +738,7 @@ properties:
 #      id: github.com/lscph1929/lscph-azterraform.git
 #      directives:
 #        description: Clone the lscph1929/lscph-azterraform private repository
-#        allowPrerelease: true
+#        allowPrerelease: false
 #        securityContext: current
 #      settings:
 #        HttpsUrl: https://github.com/lscph1929/lscph-azterraform.git
@@ -748,7 +748,7 @@ properties:
 #      id: github.com/stomble/stm-cloud-scaffold.git
 #      directives:
 #        description: Clone the stomble/stm-cloud-scaffold private repository
-#        allowPrerelease: true
+#        allowPrerelease: false
 #        securityContext: current
 #      settings:
 #        HttpsUrl: https://github.com/stomble/stm-cloud-scaffold.git
@@ -758,7 +758,7 @@ properties:
 #      id: github.com/lscph1929/scripts.git
 #      directives:
 #        description: Clone the lscph1929/scripts private repository
-#        allowPrerelease: true
+#        allowPrerelease: false
 #        securityContext: current
 #      settings:
 #        HttpsUrl: https://github.com/lscph1929/scripts.git
@@ -768,16 +768,17 @@ properties:
       id: github.com/webstean/setup
       directives:
         description: Clone the webstean/scripts public repository
-        allowPrerelease: true
+        allowPrerelease: false
         securityContext: current
       settings:
         HttpsUrl: https://github.com/webstean/setup
         RootDirectory: "C:/WorkSpaces"
 
 #  - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+#    id: stable.mhutchie.git-graph
 #    directives:
 #      description: Install Git Graph for visual Git history
-#      allowPrerelease: true
+#      allowPrerelease: false
 #    settings:
 #      Edition: Stable
 #      Name: mhutchie.git-graph
@@ -796,27 +797,53 @@ properties:
 #        Edition: Stable
 #        Name: ms-azuretools.vscode-apimanagement
 
-    # VS Code .NET Development Extensions
+    # VS Code .NET Development Extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: vscode-ms-dotnettools.csharp
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install C# (PreRelease) extension
-        allowPrerelease: true
+        description: Install C# extension
+        allowPrerelease: false
         securityContext: current
       settings:
         Edition: Stable
         Name: ms-dotnettools.csharp
 
+    # VS Code Aspire Extension
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.microsoft-aspire.aspire-vscode
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install microsoft-aspire.aspire-vscode extension
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        Edition: Stable
+        Name: microsoft-aspire.aspire-vscode
+
+# VS Code Aspire Extension
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: insider.microsoft-aspire.aspire-vscode
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install microsoft-aspire.aspire-vscode extension
+        allowPrerelease: true
+        securityContext: current
+      settings:
+        Edition: Insider
+        Name: microsoft-aspire.aspire-vscode
+
     # VS Code .NET Development Extensions
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: 42Crunch.vscode-openapi
+      id: stable.42Crunch.vscode-openapi
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
         description: Install 42Crunch.vscode-openapi extension
-        allowPrerelease: true
+        allowPrerelease: false
         securityContext: current
       settings:
         Edition: Stable
@@ -824,12 +851,12 @@ properties:
 
     # VS Code DotNet extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: vscode-ms-dotnettools.vscode-dotnet-runtime
+      id: stable.vscode-ms-dotnettools.vscode-dotnet-runtime
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: .NET Install Tool (PreRelease) extension
-        allowPrerelease: true
+        description: .NET Install Tool extension
+        allowPrerelease: false
         securityContext: current
       settings:
         Edition: Stable
@@ -837,11 +864,11 @@ properties:
 
     # VS Code DotNet extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: ms-vscode-remote.remote-containers
+      id: stable.ms-vscode-remote.remote-containers
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Dev Containers (PreRelease) extension
+        description: Dev Containers extension
         allowPrerelease: true
         securityContext: current
       settings:
@@ -850,7 +877,7 @@ properties:
 
     # VS Code C# DEv Kit extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: ms-dotnettools.csdevkit
+      id: stable.ms-dotnettools.csdevkit
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
@@ -863,7 +890,7 @@ properties:
 
     # VS Code golang.Go extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: golang.Go.extension
+      id: stable.golang.Go.extension
       dependsOn:
         - Microsoft.VisualStudioCode
         - GoLang.Go
@@ -877,11 +904,11 @@ properties:
 
     # VS Code PowerShell extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: vscode-ms-powershell
+      id: stable.vscode-ms-powershell
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install PowerShell  (PreRelease) extension
+        description: Install PowerShell extension
         allowPrerelease: true
         securityContext: current
       settings:
@@ -890,11 +917,11 @@ properties:
     
     # VS Code Azure Docker tools
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: vscode-ms-azuretools.vscode-docker
+      id: stable.vscode-ms-azuretools.vscode-docker
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install Docker  (PreRelease) extension
+        description: Install Docker extension
         allowPrerelease: true
         securityContext: current
       settings:
@@ -903,24 +930,24 @@ properties:
 
     # VS Code Terraform extension
 #    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-#      id: vscode-hashicorp.terraform
+#      id: stable.vscode-hashicorp.terraform
 #      dependsOn:
 #        - Microsoft.VisualStudioCode
 #      directives:
-#        description: Install HashiCorp Terraform (PreRelease) extension
-#        allowPrerelease: true
+#        description: Install HashiCorp Terraform extension
+#        allowPrerelease: false
 #        securityContext: current
 #      settings:
 #        Name: hashicorp.terraform
 
     # VS Code Microsoft Terraform extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: vscode-ms-azuretools.vscode-azureterraform
+      id: stable.vscode-ms-azuretools.vscode-azureterraform
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install Microsoft Terraform (PreRelease) extension
-        allowPrerelease: true
+        description: Install Microsoft Terraform extension
+        allowPrerelease: false
         securityContext: current
       settings:
         Edition: Stable
@@ -928,12 +955,12 @@ properties:
 
     # VS Code RedHat YML extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: redhat.vscode-yaml
+      id: stable.redhat.vscode-yaml
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install Red Hat YAML (PreRelease) extension
-        allowPrerelease: true
+        description: Install Red Hat YAML extension
+        allowPrerelease: false
         securityContext: current
       settings:
         Edition: Stable
@@ -941,13 +968,13 @@ properties:
 
     # VS Code GitHub Copilot extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: GitHub.copilot
+      id: stable.GitHub.copilot
       dependsOn:
         - Microsoft.VisualStudioCode
         - Git.Git
       directives:
         description: Install GitHub Copilot (PreRelease) extension
-        allowPrerelease: true
+        allowPrerelease: false
         securityContext: current
       settings:
         Edition: Stable
@@ -955,12 +982,12 @@ properties:
 
     # VS Code ms-playwright.playwright extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: ms-playwright.playwright
+      id: stable.ms-playwright.playwright
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
         description: Install ms-playwright.playwright
-        allowPrerelease: true
+        allowPrerelease: false
         securityContext: current
       settings:
         Edition: Stable
@@ -968,13 +995,13 @@ properties:
 
     # VS Code GitHub Copilot Chat extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: GitHub.copilot-chat
+      id: stable.GitHub.copilot-chat
       dependsOn:
         - Microsoft.VisualStudioCode
         - Git.Git
       directives:
         description: Install GitHub Copilot Chat (PreRelease) extension
-        allowPrerelease: true
+        allowPrerelease: false
         securityContext: current
       settings:
         Edition: Stable
@@ -982,12 +1009,12 @@ properties:
 
     # VS Code
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: ms-azuretools.vscode-azure-github-copilot
+      id: stable.ms-azuretools.vscode-azure-github-copilot
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
         description: Install GitHub Copilot Chat (PreRelease) extension
-        allowPrerelease: true
+        allowPrerelease: false
         securityContext: current
       settings:
         Edition: Stable
@@ -995,12 +1022,13 @@ properties:
 
     # Extension: ms-vscode.vscode-node-azure-pack (Azure Tools)
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: ms-vscode.vscode-node-azure-pack
+      id: stable.ms-vscode.vscode-node-azure-pack
       dependsOn:
         - Microsoft.VisualStudioCode
         - OpenJS.NodeJS
       directives:
         description: Install ms-vscode.vscode-node-azure-pack
+        allowPrerelease: false
         securityContext: current
       settings:
         Edition: Stable
@@ -1028,7 +1056,7 @@ properties:
 
     # NodeJS
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: OpenJS.NodeJS
+      id: stable.OpenJS.NodeJS
       directives:
         description: Install OpenJS.NodeJS (dependency for many VS Code extensions)
         securityContext: current
@@ -1038,9 +1066,11 @@ properties:
 
     # Remove GitLens
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.eamodio.gitlens
       directives:
         description: Remove GitLens extension
         allowPrerelease: true
+        allowPrerelease: false
       settings:
         Edition: Stable
         Name: eamodio.gitlens
