@@ -816,7 +816,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install microsoft-aspire.aspire-vscode extension
+        description: Install microsoft-aspire.aspire-vscode extension (needs aspire cli installed)
         allowPrerelease: true
         securityContext: current
       settings:
@@ -829,7 +829,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install microsoft-aspire.aspire-vscode extension
+        description: Install microsoft-aspire.aspire-vscode extension (needs aspire cli installed)
         allowPrerelease: true
         securityContext: current
       settings:
