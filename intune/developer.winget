@@ -1056,7 +1056,7 @@ properties:
 
     # NodeJS
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: stable.OpenJS.NodeJS
+      id: OpenJS.NodeJS
       directives:
         description: Install OpenJS.NodeJS (dependency for many VS Code extensions)
         securityContext: current
