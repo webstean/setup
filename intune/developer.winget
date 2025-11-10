@@ -1069,7 +1069,6 @@ properties:
       id: stable.eamodio.gitlens
       directives:
         description: Remove GitLens extension
-        allowPrerelease: true
         allowPrerelease: false
       settings:
         Edition: Stable
