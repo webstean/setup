@@ -613,12 +613,13 @@ properties:
         source: winget
 
     # Install VS Code extensions
-    - resource: Microsoft.WinGet.DSC/VSCodeExtension
+    - resource: vscode/VSCodeExtension
       id: vscode.extensions
       directives:
          description: Install VS Code extensions
       settings:
          edition: stable ## insiders
+         ensure: Present
          extensions:
            - ms-python.python
            - ms-dotnettools.csharp
