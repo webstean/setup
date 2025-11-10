@@ -420,12 +420,12 @@ sudo sh -c 'echo "fi"                                                    >> /etc
 sudo sh -c 'echo "export WINHOME=\$(wslpath \"\$(wslvar USERPROFILE)\")"   > /etc/profile.d/winhome.sh'
 
 ## Install Node.js + npm
-sudo apt install -y nodejs
+sudo apt install -y nodejs npm
 
 if [ -f /etc/profile.d/nodejs.sh ] ; then sudo rm -f /etc/profile.d/nodejs.sh ; fi
 if (which -s node) ; then 
     sudo sh -c 'echo if \(which -s node\) \; then           >  /etc/profile.d/nodejs.sh'
-    sudo sh -c 'echo   echo \"Node JS \(node\) found -  use nvm to manage!\"  >>  /etc/profile.d/nodejs.sh'
+    sudo sh -c 'echo   echo \"Node JS \(node\) found -  use nvm/npx to manage!\"  >>  /etc/profile.d/nodejs.sh'
     sudo sh -c 'echo fi >>  /etc/profile.d/nodejs.sh'
 fi
     
