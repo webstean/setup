@@ -817,7 +817,7 @@ properties:
         - Microsoft.VisualStudioCode
       directives:
         description: Install microsoft-aspire.aspire-vscode extension
-        allowPrerelease: false
+        allowPrerelease: true
         securityContext: current
       settings:
         Edition: Stable
