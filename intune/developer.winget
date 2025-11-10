@@ -47,27 +47,27 @@ properties:
         id: 9NCTDW2W1BH8
         source: msstore
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: installWSL
-      directives:
-        description: Ensure WSL is installed
-        allowPrerelease: false
-        securityContext: elevated
-      settings:
-        id: Microsoft.WSL
-        source: winget
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: installWSL
+#      directives:
+#        description: Ensure WSL is installed
+#        allowPrerelease: false
+#        securityContext: elevated
+#      settings:
+#        id: Microsoft.WSL
+#        source: winget
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Install.Ubuntu
-      dependsOn:
-        - installWSL
-      directives:
-        description: Install Ubuntu for WSL
-        allowPrerelease: true
-        securityContext: elevated
-      settings:
-        id: 9PDXGNCFSCZV
-        source: msstore
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Install.Ubuntu
+#      dependsOn:
+#        - installWSL
+#      directives:
+#        description: Install Ubuntu for WSL
+#        allowPrerelease: true
+#        securityContext: elevated
+#      settings:
+#        id: 9PDXGNCFSCZV
+#        source: msstore
 
     - resource: xPSDesiredStateConfiguration/xScript
       id: variable.developer
@@ -841,8 +841,8 @@ properties:
         description: Install microsoft-aspire.aspire-vscode extension (needs aspire cli installed)
         allowPrerelease: true
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: microsoft-aspire.aspire-vscode
 
 # VS Code Aspire Extension
@@ -854,8 +854,8 @@ properties:
         description: Install microsoft-aspire.aspire-vscode extension (needs aspire cli installed)
         allowPrerelease: true
         securityContext: current
+        edition: stable
       settings:
-        Edition: insider
         Name: microsoft-aspire.aspire-vscode
 
     # VS Code .NET Development Extensions
@@ -867,8 +867,8 @@ properties:
         description: Install 42Crunch.vscode-openapi extension
         allowPrerelease: false
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: 42Crunch.vscode-openapi
 
     # VS Code DotNet extension
@@ -880,8 +880,8 @@ properties:
         description: .NET Install Tool extension
         allowPrerelease: false
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: ms-dotnettools.vscode-dotnet-runtime
 
     # VS Code DotNet extension
@@ -893,8 +893,8 @@ properties:
         description: Dev Containers extension
         allowPrerelease: true
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: ms-vscode-remote.remote-containers
 
     # VS Code C# DEv Kit extension
@@ -906,8 +906,8 @@ properties:
         description: Install ms-dotnettools.csdevkit
         allowPrerelease: true
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: ms-dotnettools.csdevkit
 
     # VS Code golang.Go extension
@@ -920,8 +920,8 @@ properties:
         description: Install Go Lang extension
         allowPrerelease: true
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: golang.Go
 
     # VS Code PowerShell extension
@@ -933,8 +933,8 @@ properties:
         description: Install PowerShell extension
         allowPrerelease: true
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: ms-vscode.powershell
     
     # VS Code Azure Docker tools
@@ -946,8 +946,8 @@ properties:
         description: Install Docker extension
         allowPrerelease: true
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: ms-azuretools.vscode-docker
 
     # VS Code Terraform extension
@@ -959,6 +959,7 @@ properties:
 #        description: Install HashiCorp Terraform extension
 #        allowPrerelease: false
 #        securityContext: current
+#        edition: stable
 #      settings:
 #        Name: hashicorp.terraform
 
@@ -971,8 +972,8 @@ properties:
         description: Install Microsoft Terraform extension
         allowPrerelease: false
         securityContext: current
-      settings:
-        Edition: stable
+        edition: stable
+     settings:
         Name: ms-azuretools.vscode-azureterraform
 
     # VS Code RedHat YML extension
@@ -984,8 +985,8 @@ properties:
         description: Install Red Hat YAML extension
         allowPrerelease: false
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: redhat.vscode-yaml
 
     # VS Code GitHub Copilot extension
@@ -998,8 +999,8 @@ properties:
         description: Install GitHub Copilot (PreRelease) extension
         allowPrerelease: false
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: GitHub.copilot
 
     # VS Code ms-playwright.playwright extension
@@ -1011,8 +1012,8 @@ properties:
         description: Install ms-playwright.playwright
         allowPrerelease: false
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: ms-playwright.playwright
 
     # VS Code GitHub Copilot Chat extension
@@ -1025,8 +1026,8 @@ properties:
         description: Install GitHub Copilot Chat (PreRelease) extension
         allowPrerelease: false
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: GitHub.copilot-chat
 
     # VS Code
@@ -1038,8 +1039,8 @@ properties:
         description: Install GitHub Copilot Chat (PreRelease) extension
         allowPrerelease: false
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: ms-azuretools.vscode-azure-github-copilot
 
     # Extension: ms-vscode.vscode-node-azure-pack (Azure Tools)
@@ -1052,8 +1053,8 @@ properties:
         description: Install ms-vscode.vscode-node-azure-pack
         allowPrerelease: false
         securityContext: current
+        edition: stable
       settings:
-        Edition: stable
         Name: ms-vscode.vscode-node-azure-pack
 
     # Remove GitLens
@@ -1062,7 +1063,7 @@ properties:
       directives:
         description: Remove GitLens extension
         allowPrerelease: false
+        edition: stable
       settings:
-        Edition: Stable
         Name: eamodio.gitlens
         Exist: false
