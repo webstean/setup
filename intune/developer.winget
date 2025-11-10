@@ -304,7 +304,8 @@ properties:
       dependsOn:
         - RedHat.Podman-Desktop
       directives:
-        description: Tell DotNet to use Prodmnan, rather the Docker
+        description: Tell DotNet to use Prodman, rather than Docker
+        securityContext: elevated        
       settings:
         GetScript: return $false
         TestScript: return $false
