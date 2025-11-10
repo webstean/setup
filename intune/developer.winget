@@ -279,8 +279,8 @@ properties:
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: RedHat.Podman
-      dependsOn:
-        - installWSL
+#      dependsOn:
+#        - installWSL
       directives:
         description: Installing RedHat.Podman
         allowPrerelease: true
