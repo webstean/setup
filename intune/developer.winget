@@ -767,6 +767,35 @@ properties:
         HttpsUrl: https://github.com/webstean/setup
         RootDirectory: "C:/WorkSpaces"
 
+    # NDI Runtime
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: NDI.NDIRuntime
+      directives:
+        description: Install NDI.NDIRuntime
+        securityContext: current
+      settings:
+        id: NDI.NDIRuntime
+        source: winget
+
+    # NodeJS
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: OpenJS.NodeJS
+      directives:
+        description: Install OpenJS.NodeJS (dependency for many VS Code extensions)
+        securityContext: current
+      settings:
+        id: OpenJS.NodeJS
+        source: winget
+    # Java (open source)
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: ms-java-jdk
+      directives:
+        description: Install Microsoft Open JDK 21
+        securityContext: current
+      settings:
+        id: Microsoft.OpenJDK.21
+        source: winget
+
 #  - resource: Microsoft.VSCode.Dsc/VSCodeExtension
 #    id: stable.mhutchie.git-graph
 #    directives:
@@ -800,7 +829,7 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: ms-dotnettools.csharp
 
     # VS Code Aspire Extension
@@ -813,7 +842,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: microsoft-aspire.aspire-vscode
 
 # VS Code Aspire Extension
@@ -826,7 +855,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Insider
+        Edition: insider
         Name: microsoft-aspire.aspire-vscode
 
     # VS Code .NET Development Extensions
@@ -839,7 +868,7 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: 42Crunch.vscode-openapi
 
     # VS Code DotNet extension
@@ -852,7 +881,7 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: ms-dotnettools.vscode-dotnet-runtime
 
     # VS Code DotNet extension
@@ -865,7 +894,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: ms-vscode-remote.remote-containers
 
     # VS Code C# DEv Kit extension
@@ -878,7 +907,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: ms-dotnettools.csdevkit
 
     # VS Code golang.Go extension
@@ -892,7 +921,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: golang.Go
 
     # VS Code PowerShell extension
@@ -905,7 +934,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: ms-vscode.powershell
     
     # VS Code Azure Docker tools
@@ -918,7 +947,7 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: ms-azuretools.vscode-docker
 
     # VS Code Terraform extension
@@ -943,7 +972,7 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: ms-azuretools.vscode-azureterraform
 
     # VS Code RedHat YML extension
@@ -956,7 +985,7 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: redhat.vscode-yaml
 
     # VS Code GitHub Copilot extension
@@ -970,7 +999,7 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: GitHub.copilot
 
     # VS Code ms-playwright.playwright extension
@@ -983,7 +1012,7 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: ms-playwright.playwright
 
     # VS Code GitHub Copilot Chat extension
@@ -997,7 +1026,7 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: GitHub.copilot-chat
 
     # VS Code
@@ -1010,7 +1039,7 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: ms-azuretools.vscode-azure-github-copilot
 
     # Extension: ms-vscode.vscode-node-azure-pack (Azure Tools)
@@ -1024,38 +1053,8 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
+        Edition: stable
         Name: ms-vscode.vscode-node-azure-pack
-
-    # Java (open source)
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: ms-java-jdk
-      directives:
-        description: Install Microsoft Open JDK 21
-        securityContext: current
-      settings:
-        id: Microsoft.OpenJDK.21
-        source: winget
-
-    # NDI Runtime
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: NDI.NDIRuntime
-      directives:
-        description: Install NDI.NDIRuntime
-        securityContext: current
-      settings:
-        id: NDI.NDIRuntime
-        source: winget
-
-    # NodeJS
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: OpenJS.NodeJS
-      directives:
-        description: Install OpenJS.NodeJS (dependency for many VS Code extensions)
-        securityContext: current
-      settings:
-        id: OpenJS.NodeJS
-        source: winget
 
     # Remove GitLens
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
