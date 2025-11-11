@@ -1,6 +1,5 @@
 ﻿#Requires -RunAsAdministrator
 
-
 function Set-VSCodeProtocolPolicy {
     <#
     .SYNOPSIS
