@@ -549,15 +549,19 @@ networkingMode=Mirrored
 hostAddressLoopback=true
 
 ')
-    # Write all lines at once
+    ## Write all lines at once
     Set-Content -Path $wslConfigPath -Value $content ## -Encoding UTF8
     Get-Content -Path $wslConfigPath
 
-    # Turn of Windows PATH inside Linux
+    ## Turn of Windows PATH inside Linux
     wsl -d $Distro --user root bash -c @"
 sh -c 'echo [interop]                  >>  /etc/wsl.conf'
 sh -c 'echo appendWindowsPath = false  >>  /etc/wsl.conf'
 "@
+    ## Allow Inbound connections
+    Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
+    
+    ## Terminate the existing disitribution, so it restarts with new settings
     Start-Process -FilePath 'wsl' -ArgumentList "--terminate $Distro" -NoNewWindow -Wait -PassThru | Out-Null
 }
 Enable-WSL
