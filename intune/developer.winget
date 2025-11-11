@@ -469,6 +469,16 @@ properties:
 #        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.SQLServer.2022.Express
+      directives:
+        description: Installing Microsoft.SQLServer.2022.Express
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Microsoft.SQLServer.2022.Express
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.WindowsTerminal
       directives:
         description: Installing Microsoft.WindowsTerminal
