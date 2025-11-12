@@ -1109,16 +1109,24 @@ function Decode-Jwt {
 }
 
 function Get-Token { ## with Graph Modules
+    connect-mggraph -Scopes "Mail.ReadBasic, Mail.Read"
     $params = @{
         Method     = "GET"
         ## Uri        = "https://graph.microsoft.com/v1.0/me"
         Uri        = "https://graph.microsoft.com/v1.0/me/messages"
         OutputType = "HttpResponseMessage"
     }
-    $response = Invoke-MgGraphRequest @params
-    $authHeader = $response.RequestMessage.Headers.Authorization
-    Set-Item -Path Env:\ACCESS_TOKEN -Value $authHeader.Parameter
-    return ($authHeader.Parameter)   # <-- this is your access token stri.ng
+    try {
+         $response = Invoke-MgGraphRequest @params
+    }
+    catch {
+        throw "Get Token call failed. $_"
+    }
+    if ($authHeader = $(response.RequestMessage.Headers.Authorization).lengh -gt 0 ) {
+        Set-Item -Path Env:\ACCESS_TOKEN -Value $authHeader.Parameter
+        return ($authHeader.Parameter)   # <-- this is your access token stri.ng
+    }
+    Write-Host "Acces Denied"
 }
 
 function Test-Token { ## with Graph Modules
@@ -1134,7 +1142,7 @@ function Test-Token { ## with Graph Modules
         $response = Invoke-RestMethod @params -Headers @{ Authorization = "Bearer $env:ACCESS_TOKEN" } -ErrorAction Stop
     }
     catch {
-        throw "Graph call failed. $_"
+        throw "Get email failed. $_"
     }
     # Return a tidy list (Subject + Received)
     $response.value | Select-Object @{n='Received';e={[datetime]$_.receivedDateTime}}, @{n='Subject';e={$_.subject}}
