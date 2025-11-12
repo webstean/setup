@@ -822,6 +822,16 @@ AZURE_USERNAME=$env:UPN
     #$Host.UI.RawUI.WindowTop = 0
 }
 
+function Get-EnvFile {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path = "$env:OneDriveCommercial/.env-default"
+    )
+    if (Test-Path $Path ) {
+        Get-Item $Path
+    }
+}
+
 function Import-EnvFile {
     param(
         [Parameter(Mandatory)]
