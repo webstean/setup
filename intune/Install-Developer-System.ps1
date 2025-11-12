@@ -516,7 +516,7 @@ function Install-SqlLocalDBLatest {
     $filePath = Join-Path $DownloadFolder $fileName
 
     # Download if missing or force
-    if (Test-Path $filePath -and (-not $Force)) {
+    if ((Test-Path $filePath) -and (-not $Force)) {
         Write-Verbose "Installer already exists at $filePath. Skipping download."
     }
     else {
