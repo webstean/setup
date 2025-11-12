@@ -1119,6 +1119,7 @@ function Get-Token {  # with Graph Modules
         Connect-MgGraph -Scopes $Scopes -NoWelcome
     }
 
+    Write-Host "Im here"
     # Do a simple call; we only need it to capture the Authorization header
     $params = @{
         Method     = 'GET'
@@ -1137,7 +1138,8 @@ function Get-Token {  # with Graph Modules
     $authHeader = $response.RequestMessage.Headers.Authorization
     if ($authHeader -and $authHeader.Scheme -eq 'Bearer' -and $authHeader.Parameter) {
         $token = $authHeader.Parameter
-    } else {
+    }
+    else {
         # Fallback: some SDK versions expose the token on the MgContext
         $token = (Get-MgContext).AccessToken
     }
