@@ -5,6 +5,9 @@
 #Set-ExecutionPolicy Unrestricted -Scope CurrentUser
 #Set-ExecutionPolicy -ExecutionPolicy Unrestricted
 
+## Show verbose messages
+$VerbosePreference = 'Continue'
+
 function Update-Profile-Force {
     # Define the remote URL
     $url = 'https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/good_profile.ps1'
