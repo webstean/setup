@@ -1157,7 +1157,7 @@ function Get-Token {  # with Graph Modules
 
 function Test-Token { ## with Graph Modules
     $params = @{
-        Method     = "GET"
+        Method  = "GET"
         Uri = "https://graph.microsoft.com/v1.0/me/messages" +
            "?`$select=subject,receivedDateTime" +
            "&`$orderby=receivedDateTime%20desc" +
@@ -1170,8 +1170,16 @@ function Test-Token { ## with Graph Modules
     catch {
         throw "Get email failed. $_"
     }
-    # Return a tidy list (Subject + Received)
-    $response.value | Select-Object @{n='Received';e={[datetime]$_.receivedDateTime}}, @{n='Subject';e={$_.subject}}
+    ## Write-Verbose "OData Context:" $response.'@odata.context'
+    Write-Verbose ("OData Context: {0}" -f $response.'@odata.context')
+    $items = if ($response.PSObject.Properties.Name -contains 'value') { $response.value } else { @($response) }
+    $items
+    # Extract and process the message collection
+    $messages = $response.value | Select-Object `
+    @{n='ReceivedLocal';e={[datetime]$_.receivedDateTime.ToLocalTime()}},
+    @{n='Subject';e={$_.subject}}
+
+    $messages | Format-Table -AutoSize
 }
 
 
