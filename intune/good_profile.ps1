@@ -1114,6 +1114,8 @@ function Get-Token {  # with Graph Modules
         [string[]]$Scopes = @('Mail.ReadBasic','Mail.Read')
     )
 
+    preserve = $VerbosePreference
+    $VerbosePreference = 'Ignore'
     # Ensure we're connected with the scopes we need
     if (-not (Get-MgContext)) {
         Connect-MgGraph -Scopes $Scopes -NoWelcome
@@ -1148,11 +1150,13 @@ function Get-Token {  # with Graph Modules
         $env:ACCESS_TOKEN = $token              # save for this session
         $token | Set-Clipboard
         Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
+        $VerbosePreference = $preserve
         return $true
     }
 
     Write-Host "Access denied or token not available."
-    retunr $false
+    $VerbosePreference = $preserve
+    return $false
 }
 
 function Test-Token { ## with Graph Modules
