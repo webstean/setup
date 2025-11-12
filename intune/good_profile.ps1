@@ -1108,27 +1108,49 @@ function Decode-Jwt {
     }
 }
 
-function Get-Token { ## with Graph Modules
-    Connect-Mggraph -Scopes "Mail.ReadBasic, Mail.Read"
-    $params = @{
-        Method     = "GET"
-        ## Uri        = "https://graph.microsoft.com/v1.0/me"
-        Uri        = "https://graph.microsoft.com/v1.0/me/messages"
-        OutputType = "HttpResponseMessage"
+function Get-Token {  # with Graph Modules
+    [CmdletBinding()]
+    param(
+        [string[]]$Scopes = @('Mail.ReadBasic','Mail.Read')
+    )
+
+    # Ensure we're connected with the scopes we need
+    if (-not (Get-MgContext)) {
+        Connect-MgGraph -Scopes $Scopes -NoWelcome
     }
+
+    # Do a simple call; we only need it to capture the Authorization header
+    $params = @{
+        Method     = 'GET'
+        Uri        = 'https://graph.microsoft.com/v1.0/me/messages'
+        OutputType = 'HttpResponseMessage'
+    }
+
     try {
-         $response = Invoke-MgGraphRequest @params
+        $response = Invoke-MgGraphRequest @params
     }
     catch {
-        throw "Get Token call failed. $_"
+        throw "Get-Token call failed. $($_.Exception.Message)"
     }
-    if ($authHeader = $(response.RequestMessage.Headers.Authorization).lengh -gt 0 ) {
-        Set-Item -Path Env:\ACCESS_TOKEN -Value $authHeader.Parameter
-        response.RequestMessage.Headers.Authorization | Set-Clipboard
-        Write-Host "Access Token saved to the ACCESS_TOKEN environment variable and pasted on Clipboard"
-        return ($authHeader.Parameter)   # <-- this is your access token stri.ng
+
+    # Primary path: read the Bearer token from the *request* Authorization header
+    $authHeader = $response.RequestMessage.Headers.Authorization
+    if ($authHeader -and $authHeader.Scheme -eq 'Bearer' -and $authHeader.Parameter) {
+        $token = $authHeader.Parameter
     }
-    Write-Host "Acces Denied"
+    else {
+        # Fallback: some SDK versions expose the token on the MgContext
+        $token = (Get-MgContext).AccessToken
+    }
+
+    if ($token) {
+        $env:ACCESS_TOKEN = $token              # save for this session
+        $token | Set-Clipboard
+        Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
+        return $token
+    }
+
+    Write-Host "Access denied or token not available."
 }
 
 function Test-Token { ## with Graph Modules
