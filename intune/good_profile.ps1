@@ -1148,10 +1148,11 @@ function Get-Token {  # with Graph Modules
         $env:ACCESS_TOKEN = $token              # save for this session
         $token | Set-Clipboard
         Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
-        return $token
+        return $true
     }
 
     Write-Host "Access denied or token not available."
+    retunr $false
 }
 
 function Test-Token { ## with Graph Modules
