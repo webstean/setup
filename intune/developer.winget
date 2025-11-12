@@ -428,6 +428,26 @@ properties:
         id: Microsoft.Azure.StorageExplorer
         source: winget
 
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Oracle.SQLDeveloper
+#      directives:
+#        description: Installing Oracle.SQLDeveloper HUGE
+#        allowPrerelease: false
+#        securityContext: current
+#      settings:
+#        id: Oracle.SQLDeveloper
+#        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Oracle.OCI-CLI
+      directives:
+        description: Installing Oracle.OCI-CLI
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Oracle.OCI-CLI
+        source: winget
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: SQLite.SQLite
       directives:
@@ -449,26 +469,6 @@ properties:
         source: winget
 
 #    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: Oracle.SQLDeveloper
-#      directives:
-#        description: Installing Oracle.SQLDeveloper HUGE
-#        allowPrerelease: false
-#        securityContext: current
-#      settings:
-#        id: Oracle.SQLDeveloper
-#        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Oracle.OCI-CLI
-      directives:
-        description: Installing Oracle.OCI-CLI
-        allowPrerelease: false
-        securityContext: current
-      settings:
-        id: Oracle.OCI-CLI
-        source: winget
-
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
 #      id: Microsoft.SQLServerManagementStudio
 #      directives:
 #        description: Installing Microsoft.SQLServerManagementStudio
@@ -478,15 +478,16 @@ properties:
 #        id: Microsoft.SQLServerManagementStudio
 #        source: winget
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.SQLServer.2022.Express
-      directives:
-        description: Installing Microsoft.SQLServer.2022.Express 
-        allowPrerelease: false
-        securityContext: current
-      settings:
-        id: Microsoft.SQLServer.2022.Express
-        source: winget
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Microsoft.SQLServer.2022.Express
+#      directives:
+#        description: Installing Microsoft.SQLServer.2022.Express 
+#        allowPrerelease: false
+#        securityContext: current
+#      settings:
+#        id: Microsoft.SQLServer.2022.Express
+#        source: winget
+## Don't bother with express, install localdb instead
 ## localdb: sqlcmd -S "(localdb)\MSSQLLocalDB"
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
