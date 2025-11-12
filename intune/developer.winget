@@ -471,12 +471,13 @@ properties:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.SQLServer.2022.Express
       directives:
-        description: Installing Microsoft.SQLServer.2022.Express
+        description: Installing Microsoft.SQLServer.2022.Express 
         allowPrerelease: false
         securityContext: current
       settings:
         id: Microsoft.SQLServer.2022.Express
         source: winget
+## localdb: sqlcmd -S "(localdb)\MSSQLLocalDB"
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.WindowsTerminal
