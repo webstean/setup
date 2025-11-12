@@ -505,7 +505,7 @@ function Install-SqlLocalDBLatest {
 
     # Create download folder
     if (-not (Test-Path -Path $DownloadFolder)) {
-        Write-Verbose "Creating download folder: $DownloadFolder"
+        Write-Host "Creating download folder: $DownloadFolder"
         New-Item -ItemType Directory -Path $DownloadFolder | Out-Null
     }
 
@@ -517,10 +517,10 @@ function Install-SqlLocalDBLatest {
 
     # Download if missing or force
     if ((Test-Path $filePath) -and (-not $Force)) {
-        Write-Verbose "Installer already exists at $filePath. Skipping download."
+        Write-Host "Installer already exists at $filePath. Skipping download."
     }
     else {
-        Write-Verbose "Downloading SqlLocalDB installer from $url to $filePath"
+        Write-Host "Downloading SqlLocalDB installer from $url to $filePath"
         try {
             Invoke-WebRequest -Uri $url -OutFile $filePath -UseBasicParsing
         }
@@ -536,7 +536,6 @@ function Install-SqlLocalDBLatest {
     if ($process.ExitCode -ne 0) {
         Throw "SqlLocalDB.msi installation failed with exit code $($process.ExitCode)"
     }
-
     Write-Host "SQL Server Express LocalDB installation completed."
 }
 Install-SqlLocalDBLatest
