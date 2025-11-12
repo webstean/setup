@@ -916,8 +916,8 @@ function Import-EnvFile {
 }
 
 function Get-Logon {
-    $meta = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration"
-    $meta.authorization_endpoint 
+    $meta = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration" -ErrorAction Stop
+    $meta | Format-List authorization_endpoint, token_endpoint, issuer, jwks_uri
 }
 
 function Enable-PIMRole {
@@ -1108,16 +1108,39 @@ function Decode-Jwt {
     }
 }
 
-function Get-MyToken { ## with Graph Modules
+function Get-Token { ## with Graph Modules
     $params = @{
         Method     = "GET"
-        Uri        = "https://graph.microsoft.com/v1.0/me"
+        ## Uri        = "https://graph.microsoft.com/v1.0/me"
+        Uri        = "https://graph.microsoft.com/v1.0/me/messages"
         OutputType = "HttpResponseMessage"
     }
     $response = Invoke-MgGraphRequest @params
     $authHeader = $response.RequestMessage.Headers.Authorization
+    Set-Item -Path Env:\ACCESS_TOKEN -Value $authHeader.Parameter
     return ($authHeader.Parameter)   # <-- this is your access token stri.ng
 }
+
+function Test-Token { ## with Graph Modules
+    $params = @{
+        Method     = "GET"
+        Uri = "https://graph.microsoft.com/v1.0/me/messages" +
+           "?`$select=subject,receivedDateTime" +
+           "&`$orderby=receivedDateTime%20desc" +
+           "&`$top=5"
+        ## OutputType = "HttpResponseMessage"
+    }
+    try {
+        $response = Invoke-RestMethod @params -Headers @{ Authorization = "Bearer $env:ACCESS_TOKEN" } -ErrorAction Stop
+    }
+    catch {
+        throw "Graph call failed. $_"
+    }
+    # Return a tidy list (Subject + Received)
+    $response.value | Select-Object @{n='Received';e={[datetime]$_.receivedDateTime}}, @{n='Subject';e={$_.subject}}
+}
+
+
 
 function Get-MyToken-Flow-Device { ## without Graph Modules
     param(
