@@ -1109,7 +1109,7 @@ function Decode-Jwt {
 }
 
 function Get-Token { ## with Graph Modules
-    connect-mggraph -Scopes "Mail.ReadBasic, Mail.Read"
+    Connect-Mggraph -Scopes "Mail.ReadBasic, Mail.Read"
     $params = @{
         Method     = "GET"
         ## Uri        = "https://graph.microsoft.com/v1.0/me"
@@ -1124,6 +1124,8 @@ function Get-Token { ## with Graph Modules
     }
     if ($authHeader = $(response.RequestMessage.Headers.Authorization).lengh -gt 0 ) {
         Set-Item -Path Env:\ACCESS_TOKEN -Value $authHeader.Parameter
+        response.RequestMessage.Headers.Authorization | Set-Clipboard
+        Write-Host "Access Token saved to the ACCESS_TOKEN environment variable and pasted on Clipboard"
         return ($authHeader.Parameter)   # <-- this is your access token stri.ng
     }
     Write-Host "Acces Denied"
