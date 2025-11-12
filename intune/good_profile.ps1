@@ -823,13 +823,55 @@ AZURE_USERNAME=$env:UPN
 }
 
 function Get-EnvFile {
+    [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
-        [string]$Path = "$env:OneDriveCommercial/.env-default"
+        # Don't set a static default here—compute it at runtime instead
+        [Parameter(Mandatory = $false)]
+        [string]$Path
     )
-    if (Test-Path $Path ) {
-        Get-Item $Path
+
+    # Compute default path at call time if Path wasn't provided or is blank
+    if (-not $PSBoundParameters.ContainsKey('Path') -or [string]::IsNullOrWhiteSpace($Path)) {
+        if ($env:OneDriveCommercial) {
+            $Path = Join-Path $env:OneDriveCommercial ".env-default"
+        }
+        elseif ($env:OneDrive) {
+            $Path = Join-Path $env:OneDrive ".env-default"
+        }
+        else {
+            $Path = Join-Path $HOME ".env-default"
+        }
     }
+
+    if (-not (Test-Path -Path $Path)) {
+        Write-Error "The specified .env file was not found: $Path"
+        return $null
+    }
+
+    Write-Verbose "Loading environment variables from: $Path"
+
+    $envVars = @{}
+
+    foreach ($line in Get-Content -Path $Path) {
+        $trimmed = $line.Trim()
+
+        # Skip blanks and comments
+        if ([string]::IsNullOrWhiteSpace($trimmed) -or $trimmed.StartsWith('#')) { continue }
+
+        # Split on the first '=' only
+        $parts = $trimmed -split '=', 2
+        if ($parts.Count -lt 2) { continue }
+
+        $key = $parts[0].Trim()
+        $value = $parts[1].Trim()
+
+        # Strip optional wrapping quotes
+        if ($value -match '^(["''])?(.*?)(\1)?$') { $value = $matches[2] }
+
+        $envVars[$key] = $value
+    }
+
+    return $envVars
 }
 
 function Import-EnvFile {
