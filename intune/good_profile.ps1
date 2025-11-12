@@ -548,7 +548,7 @@ function touch {
 }
 
 function which {
-    Get-Command
+    Get-Command @args
 }
 
 function Reset-GitBranch {
