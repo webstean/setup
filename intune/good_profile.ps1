@@ -1125,7 +1125,7 @@ function Get-Token {  # with Graph Modules
     )
 
     ## Turn off verbose
-    preserve = $VerbosePreference
+    $preserve = $VerbosePreference
     $VerbosePreference = 'Ignore'
 
     # Ensure we're connected with the scopes we need
@@ -1171,7 +1171,7 @@ function Get-Token {  # with Graph Modules
 function Test-Token { ## with Graph Modules
 
     ## Turn off verbose
-    preserve = $VerbosePreference
+    $preserve = $VerbosePreference
     $VerbosePreference = 'Ignore'
 
     $params = @{
