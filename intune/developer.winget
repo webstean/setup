@@ -193,6 +193,16 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.DotNet.SDK.10
+      directives:
+        description: Installing Microsoft.DotNet.SDK.10
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        id: Microsoft.DotNet.SDK.10
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.DotNet.SDK.Preview
       directives:
         description: Installing Microsoft.DotNet.SDK.Preview
