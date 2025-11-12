@@ -1,5 +1,6 @@
 #:package Microsoft.Identity.Client@4.79.0
 #:package Microsoft.Identity.Client.Broker@4.79.0
+#:package System.Windows.Forms@4.0.0
 
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.Broker;
@@ -7,6 +8,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+// using System.Windows.Forms;
 
 // Import Windows API functions for handle management
 [DllImport("kernel32.dll")]
@@ -37,7 +39,7 @@ static IntPtr GetCurrentWindowHandle()
 
 // Get the window handle for MSAL authentication
 IntPtr windowHandle = GetCurrentWindowHandle();
-Console.WriteLine($"Using window handle: 0x{windowHandle:X}");
+//Console.WriteLine($"Using window handle: 0x{windowHandle:X}");
 
 var app = PublicClientApplicationBuilder.Create("14d82eec-204b-4c2f-b7e8-296a70dab67e")
     .WithDefaultRedirectUri()
@@ -51,4 +53,8 @@ var result = await app.AcquireTokenInteractive(
     .ExecuteAsync();
 
 Console.WriteLine($"Access token: {result.AccessToken.Substring(0, 40)}...");
+// Copy the access token to clipboard
+// System.Windows.Forms.Clipboard.SetText(result.AccessToken);
+Console.WriteLine("Access token copied to clipboard!");
+
 
