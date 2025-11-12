@@ -1,3 +1,5 @@
+#:package Microsoft.Identity.Client@9.3.0
+
 using Microsoft.Identity.Client;
 using System;
 using System.Threading.Tasks;
