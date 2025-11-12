@@ -915,6 +915,11 @@ function Import-EnvFile {
     ## [System.Environment]::UnSetEnvironmentVariable("AZURE_TENANT_NAME", 'Process')
 }
 
+Get-Logon {
+    $meta = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration"
+    $meta.authorization_endpoint 
+}
+
 function Enable-PIMRole {
     [CmdletBinding(SupportsShouldProcess)]
     param(
