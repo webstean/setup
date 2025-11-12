@@ -1273,7 +1273,7 @@ function Get-MyToken-Interactive {
 
     param(
         [Parameter(Mandatory)]
-        [string]$TenantId = $env:AZURE_TENANT_ID,   # Tenant name or ID
+        [string]$TenantId = "$env:AZURE_TENANT_ID",   # Tenant name or ID
 
         [string]$ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46",
 
