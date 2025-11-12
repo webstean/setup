@@ -490,6 +490,57 @@ $features_to_disable | ForEach-Object {
     }
 }
 
+function Install-SqlLocalDBLatest {
+    [CmdletBinding()]
+    param(
+        [string]$DownloadFolder = "$env:TEMP\SqlLocalDBInstall",
+        [switch]$Force = $true
+    )
+
+    # Ensure we run elevated
+    if (-not ([bool]([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
+                       ).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))) {
+        Throw "This function must be run as Administrator."
+    }
+
+    # Create download folder
+    if (-not (Test-Path -Path $DownloadFolder)) {
+        Write-Verbose "Creating download folder: $DownloadFolder"
+        New-Item -ItemType Directory -Path $DownloadFolder | Out-Null
+    }
+
+    # Define download URL for SqlLocalDB.msi
+    # Note: This is for SQL Server 2022 English en-US. Adjust if you need a different locale or newer version.
+    $url = "https://download.microsoft.com/download/3/8/d/38de7036-2433-4207-8eae-06e247e17b25/SqlLocalDB.msi"  
+    $fileName = "SqlLocalDB.msi"
+    $filePath = Join-Path $DownloadFolder $fileName
+
+    # Download if missing or force
+    if (Test-Path $filePath -and (-not $Force)) {
+        Write-Verbose "Installer already exists at $filePath. Skipping download."
+    }
+    else {
+        Write-Verbose "Downloading SqlLocalDB installer from $url to $filePath"
+        try {
+            Invoke-WebRequest -Uri $url -OutFile $filePath -UseBasicParsing
+        }
+        catch {
+            Throw "Download failed: $_"
+        }
+    }
+
+    # Perform silent install
+    $msiArgs = "/i `"$filePath`" /qn IACCEPTSQLLOCALDBLICENSETERMS=YES"
+    Write-Verbose "Installing LocalDB silently: msiexec.exe $msiArgs"
+    $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        Throw "SqlLocalDB.msi installation failed with exit code $($process.ExitCode)"
+    }
+
+    Write-Host "SQL Server Express LocalDB installation completed."
+}
+Install-SqlLocalDBLatest
+
 function Enable-WindowsSandboxIfCapable {
     <#
     .SYNOPSIS
