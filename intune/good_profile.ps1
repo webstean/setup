@@ -6,7 +6,7 @@
 #Set-ExecutionPolicy -ExecutionPolicy Unrestricted
 
 ## Show verbose messages
-$VerbosePreference = 'Continue'
+#$VerbosePreference = 'Continue'
 
 function Update-Profile-Force {
     # Define the remote URL
@@ -1224,3 +1224,7 @@ function Set-StarShip {
 if (Get-Command azd -ErrorAction SilentlyContinue) {
     azd auth login --check-status
 }
+## Show verbose messages
+$VerbosePreference = 'Continue'
+
+
