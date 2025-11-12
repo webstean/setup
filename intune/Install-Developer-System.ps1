@@ -921,4 +921,11 @@ aspire config set features.singlefileAppHostEnabled true
 # Disable the minimum SDK version check
 #aspire config set features.minimumSdkCheckEnabled false
 
-
+$wauConfig = "C:\ProgramData\Winget-AutoUpdate\Winget-AutoUpdate.json"
+if (Test-Path $wauConfig) {
+    $json = Get-Content $wauConfig | ConvertFrom-Json
+    $json.ToastNotification = $false
+    $json.ShowInstallerResults = $false
+    $json.ShowUpdatesFound = $false
+    $json | ConvertTo-Json -Depth 4 | Set-Content $wauConfig -Encoding UTF8
+}
