@@ -42,6 +42,16 @@ function Update-Profile-Force {
 }
 # Update-Profile-Force
 
+function Search {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string]$Filter
+    )
+
+    Get-ChildItem -Path 'C:\' -Recurse -ErrorAction SilentlyContinue -Filter $Filter
+}
+
 function Reset-Podman {
     ## Run as required
     if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
@@ -1114,8 +1124,10 @@ function Get-Token {  # with Graph Modules
         [string[]]$Scopes = @('Mail.ReadBasic','Mail.Read')
     )
 
+    ## Turn off verbose
     preserve = $VerbosePreference
     $VerbosePreference = 'Ignore'
+
     # Ensure we're connected with the scopes we need
     if (-not (Get-MgContext)) {
         Connect-MgGraph -Scopes $Scopes -NoWelcome
@@ -1157,21 +1169,30 @@ function Get-Token {  # with Graph Modules
 }
 
 function Test-Token { ## with Graph Modules
+
+    ## Turn off verbose
+    preserve = $VerbosePreference
+    $VerbosePreference = 'Ignore'
+
     $params = @{
         Method  = "GET"
         Uri = "https://graph.microsoft.com/v1.0/me/messages" +
            "?`$select=subject,receivedDateTime" +
            "&`$orderby=receivedDateTime%20desc" +
            "&`$top=5"
-        ## OutputType = "HttpResponseMessage"
     }
     try {
-        $response = Invoke-RestMethod @params -Headers @{ Authorization = "Bearer $env:ACCESS_TOKEN" } -ErrorAction Stop
+        $response = Invoke-RestMethod @params `
+        -Headers @{
+            Authorization = "Bearer $env:ACCESS_TOKEN"
+            Prefer        = "outlook.body-content-type='text'"
+        } -ErrorAction Stop
     }
     catch {
         throw "Get email failed. $_"
     }
     ## Write-Verbose "OData Context:" $response.'@odata.context'
+    $Response.Headers
     Write-Verbose ("OData Context: {0}" -f $response.'@odata.context')
     $items = if ($response.PSObject.Properties.Name -contains 'value') { $response.value } else { @($response) }
     $items
