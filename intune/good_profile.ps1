@@ -1380,7 +1380,7 @@ function Set-StarShip {
     }
 }
 
-if (Get-Command azd -ErrorAction SilentlyContinue) {
+if (Get-Command 'azd' -ErrorAction SilentlyContinue) {
     azd auth login --check-status
 }
 ## Show verbose messages
