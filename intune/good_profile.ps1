@@ -1124,7 +1124,7 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     }
 
     if ($token) {
-        $env:ACCESS_TOKEN = $token              # save for this session
+        Set-Item -Path Env:\ACCESS_TOKEN -Value $token
         $token | Set-Clipboard
         Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
         $VerbosePreference = $preserve
@@ -1195,7 +1195,7 @@ function Get-Token-Device-Flow { ## without Graph Modules
 
             if ($tokenResponse.access_token) {
                 Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
-                $env:ACCESS_TOKEN = $tokenResponse.access_token              # save for this session
+                Set-Item -Path Env:\ACCESS_TOKEN -Value $tokenResponse.access_token 
                 $tokenResponse.access_token | Set-Clipboard
                 $VerbosePreference = $preserve
                 return $true
@@ -1301,7 +1301,7 @@ function Get-Token-Interactive {
 
     if ($tokenResponse.access_token) {
         Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
-        $env:ACCESS_TOKEN = $tokenResponse.access_token              # save for this session
+        Set-Item -Path Env:\ACCESS_TOKEN -Value $tokenResponse.access_token 
         $tokenResponse.access_token | Set-Clipboard
         $VerbosePreference = $preserve
         return $true
@@ -1387,7 +1387,7 @@ function Show-Token {
     Import-Module JWTDetails
     ## or goto: https://jwt-decoder.com/
     ##          https://jwt.ms
-    JWTDetails.Decode-JWT $env:ACCESS_TOKEN
+    (JWTDetails $env:ACCESS_TOKEN).upn
     ## JWTDetails.Show-JWTDetails $env:ACCESS_TOKEN
 }
 
