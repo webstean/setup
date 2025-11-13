@@ -1206,11 +1206,12 @@ function Test-Token { ## with Graph Modules
 
 function Get-MyToken-Flow-Device { ## without Graph Modules
     param(
-        # Provide if you want; otherwise we'll pick it up from env vars
+        ## Provide if you want; otherwise we'll pick it up from env vars
         [ValidateNotNullOrEmpty()]
         [string]$TenantId,
         
-        [string]$ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46",  # Microsoft Graph PowerShell public client
+        ## [string]$ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46",  # Microsoft Graph PowerShell public client
+        [string]$ClientId = "263a42c4-78c3-4407-8200-3387c284c303",  # DTP PnP
 
         [string]$Scopes = "User.Read"
     )
@@ -1224,12 +1225,15 @@ function Get-MyToken-Flow-Device { ## without Graph Modules
         $env:ARM_TENANT_ID,    # Terraform/ARM conventions
         $env:AAD_TENANT_ID     # some orgs use this
     ) | Where-Object { $_ -and $_.Trim() -ne '' }
-    # Request a device code for the given scopes
-     if (-not $TenantId) {
+    $TenantId = $tenantCandidates | Select-Object -First 1
+    if (-not $TenantId) {
         throw "TenantId not provided and no environment variable (AZURE_TENANT_ID/ARM_TENANT_ID/AAD_TENANT_ID) was found."
     }
     Write-Verbose "Using TenantId: $TenantId"
+    Write-Verbose "Using ClientId: $ClientId"
+    Write-Verbose "Using Scopes  : $Scopes"
         
+    # Request a device code for the given scopes
     $deviceCodeResponse = Invoke-RestMethod -Method POST `
         -Uri "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/devicecode" `
         -Body @{
@@ -1259,7 +1263,7 @@ function Get-MyToken-Flow-Device { ## without Graph Modules
             }
         }
         catch {
-            # AAD returns 'authorization_pending' until user completes login
+            # Entra ID returns 'authorization_pending' until user completes login
             $errorJson = $_.ErrorDetails.Message | ConvertFrom-Json -ErrorAction SilentlyContinue
             $error = $errorJson.error
             if ($error -ne "authorization_pending") {
