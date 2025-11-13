@@ -1120,7 +1120,7 @@ function Decode-Jwt {
     }
 }
 
-function Get-Token {  # with Graph Modules
+function Get-Token-Graph {  ## with Graph PowerShell Modules
     [CmdletBinding()]
     param(
         [string[]]$Scopes = @('Mail.ReadBasic','Mail.Read')
@@ -1129,6 +1129,8 @@ function Get-Token {  # with Graph Modules
     ## Turn off verbose
     $preserve = $VerbosePreference
     $VerbosePreference = 'Ignore'
+
+    Write-Host "Requesting Access Token via Microsoft Graph PowerShell modules for scopes: $Scopes" -ForegroundColor Cyan
 
     # Ensure we're connected with the scopes we need
     if (-not (Get-MgContext)) {
@@ -1170,43 +1172,7 @@ function Get-Token {  # with Graph Modules
     return $false
 }
 
-function Test-Token { ## with Graph Modules
-
-    ## Turn off verbose
-    $preserve = $VerbosePreference
-    $VerbosePreference = 'Ignore'
-
-    $params = @{
-        Method  = "GET"
-        Uri = "https://graph.microsoft.com/v1.0/me/messages" +
-           "?`$select=subject,receivedDateTime" +
-           "&`$orderby=receivedDateTime%20desc" +
-           "&`$top=5"
-    }
-    try {
-        $response = Invoke-RestMethod @params `
-        -Headers @{
-            Authorization = "Bearer $env:ACCESS_TOKEN"
-            Prefer        = "outlook.body-content-type='text'"
-        } -ErrorAction Stop
-    }
-    catch {
-        throw "Get email failed. $_"
-    }
-    ## Write-Verbose "OData Context:" $response.'@odata.context'
-    $Response.Headers
-    Write-Verbose ("OData Context: {0}" -f $response.'@odata.context')
-    $items = if ($response.PSObject.Properties.Name -contains 'value') { $response.value } else { @($response) }
-    $items
-    # Extract and process the message collection
-    $messages = $response.value | Select-Object `
-    @{n='ReceivedLocal';e={[datetime]$_.receivedDateTime.ToLocalTime()}},
-    @{n='Subject';e={$_.subject}}
-
-    $messages | Format-Table -AutoSize
-}
-
-function Get-MyToken-Flow-Device { ## without Graph Modules
+function Get-MyToken-Device-Flow { ## without Graph Modules
     param(
         ## Provide if you want; otherwise we'll pick it up from env vars
         [ValidateNotNullOrEmpty()]
@@ -1215,10 +1181,14 @@ function Get-MyToken-Flow-Device { ## without Graph Modules
         ## [string]$ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46",  # Microsoft Graph PowerShell public client
         [string]$ClientId = "263a42c4-78c3-4407-8200-3387c284c303",  # DTP PnP
 
-        [string]$Scopes = "User.Read"
+        [string[]]$Scopes = @('Mail.ReadBasic','Mail.Read')
     )
 
-    Write-Host "Requesting Microsoft Graph device code for scopes: $Scopes" -ForegroundColor Cyan
+    ## Turn off verbose
+    $preserve = $VerbosePreference
+    $VerbosePreference = 'Ignore'
+
+    Write-Host "Requesting Access Token via Entra ID Device Code flow for scopes: $Scopes" -ForegroundColor Cyan
     
     ## Resolve TenantId in priority order: explicit param → common env vars
     $tenantCandidates = @(
@@ -1260,8 +1230,11 @@ function Get-MyToken-Flow-Device { ## without Graph Modules
                 }
 
             if ($tokenResponse.access_token) {
-                Write-Host "✅ Token acquired successfully for: $Scopes" -ForegroundColor Green
-                return $tokenResponse
+                Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
+                $env:ACCESS_TOKEN = $tokenResponse.access_token              # save for this session
+                $tokenResponse.access_token | Set-Clipboard
+                $VerbosePreference = $preserve
+                return $true
             }
         }
         catch {
@@ -1274,9 +1247,11 @@ function Get-MyToken-Flow-Device { ## without Graph Modules
             }
         }
     }
+    $VerbosePreference = $preserve
+    return $false
 }
 
-function Get-MyToken-Interactive {
+function Get-Token-Interactive {
     <#
         .SYNOPSIS
         Interactive Microsoft Entra ID / Microsoft Graph login that works in
@@ -1289,17 +1264,40 @@ function Get-MyToken-Interactive {
     #>
 
     param(
-        [Parameter(Mandatory)]
-        [string]$TenantId = "$env:AZURE_TENANT_ID",   # Tenant name or ID
+        ## Provide if you want; otherwise we'll pick it up from env vars
+        [ValidateNotNullOrEmpty()]
+        [string]$TenantId,
 
-        [string]$ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46",
+        ## [string]$ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46",  # Microsoft Graph PowerShell public client
+        [string]$ClientId = "263a42c4-78c3-4407-8200-3387c284c303",  # DTP PnP
 
         [string]$RedirectUri = "https://login.microsoftonline.com/common/oauth2/nativeclient",
 
-        [string]$Scopes = "User.Read"
+        [string[]]$Scopes = @('Mail.ReadBasic','Mail.Read')
     )
 
-    # 1️⃣ Build the authorize URL
+    ## Turn off verbose
+    $preserve = $VerbosePreference
+    $VerbosePreference = 'Ignore'
+
+    Write-Host "Requesting Access Token via Native Client flow: $Scopes" -ForegroundColor Cyan
+
+    ## Resolve TenantId in priority order: explicit param → common env vars
+    $tenantCandidates = @(
+        $TenantId,
+        $env:AZURE_TENANT_ID,  # Azure CLI / general
+        $env:ARM_TENANT_ID,    # Terraform/ARM conventions
+        $env:AAD_TENANT_ID     # some orgs use this
+    ) | Where-Object { $_ -and $_.Trim() -ne '' }
+    $TenantId = $tenantCandidates | Select-Object -First 1
+    if (-not $TenantId) {
+        throw "TenantId not provided and no environment variable (AZURE_TENANT_ID/ARM_TENANT_ID/AAD_TENANT_ID) was found."
+    }
+    Write-Verbose "Using TenantId: $TenantId"
+    Write-Verbose "Using ClientId: $ClientId"
+    Write-Verbose "Using Scopes  : $Scopes"
+
+    # Build the authorize URL
     $authUrl = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/authorize" +
                "?client_id=$ClientId" +
                "&response_type=code" +
@@ -1337,12 +1335,54 @@ function Get-MyToken-Interactive {
         -Body $body
 
     if ($tokenResponse.access_token) {
-        Write-Host "✅ Token acquired successfully for scopes: $Scopes" -ForegroundColor Green
-        return $tokenResponse
+        Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
+        $env:ACCESS_TOKEN = $tokenResponse.access_token              # save for this session
+        $tokenResponse.access_token | Set-Clipboard
+        $VerbosePreference = $preserve
+        return $true
     } else {
         Write-Warning "Failed to retrieve access token."
+        $VerbosePreference = $preserve
+        return $false
     }
 }
+
+function Test-Token { ## with Graph Modules
+
+    ## Turn off verbose
+    $preserve = $VerbosePreference
+    $VerbosePreference = 'Ignore'
+
+    $params = @{
+        Method  = "GET"
+        Uri = "https://graph.microsoft.com/v1.0/me/messages" +
+           "?`$select=subject,receivedDateTime" +
+           "&`$orderby=receivedDateTime%20desc" +
+           "&`$top=5"
+    }
+    try {
+        $response = Invoke-RestMethod @params `
+        -Headers @{
+            Authorization = "Bearer $env:ACCESS_TOKEN"
+            Prefer        = "outlook.body-content-type='text'"
+        } -ErrorAction Stop
+    }
+    catch {
+        throw "Get email failed. $_"
+    }
+    ## Write-Verbose "OData Context:" $response.'@odata.context'
+    $Response.Headers
+    Write-Verbose ("OData Context: {0}" -f $response.'@odata.context')
+    $items = if ($response.PSObject.Properties.Name -contains 'value') { $response.value } else { @($response) }
+    $items
+    # Extract and process the message collection
+    $messages = $response.value | Select-Object `
+    @{n='ReceivedLocal';e={[datetime]$_.receivedDateTime.ToLocalTime()}},
+    @{n='Subject';e={$_.subject}}
+
+    $messages | Format-Table -AutoSize
+}
+
 
 
 function Show-MyToken {
