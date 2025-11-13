@@ -1204,21 +1204,32 @@ function Test-Token { ## with Graph Modules
     $messages | Format-Table -AutoSize
 }
 
-
-
 function Get-MyToken-Flow-Device { ## without Graph Modules
     param(
-        [Parameter(Mandatory)]
-        [string]$TenantId = $env.AZURE_TENANT_ID,   # e.g. contoso.onmicrosoft.com or tenant GUID
-
+        # Provide if you want; otherwise we'll pick it up from env vars
+        [ValidateNotNullOrEmpty()]
+        [string]$TenantId,
+        
         [string]$ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46",  # Microsoft Graph PowerShell public client
 
         [string]$Scopes = "User.Read"
     )
 
     Write-Host "Requesting Microsoft Graph device code for scopes: $Scopes" -ForegroundColor Cyan
-
+    
+    ## Resolve TenantId in priority order: explicit param → common env vars
+    $tenantCandidates = @(
+        $TenantId,
+        $env:AZURE_TENANT_ID,  # Azure CLI / general
+        $env:ARM_TENANT_ID,    # Terraform/ARM conventions
+        $env:AAD_TENANT_ID     # some orgs use this
+    ) | Where-Object { $_ -and $_.Trim() -ne '' }
     # Request a device code for the given scopes
+     if (-not $TenantId) {
+        throw "TenantId not provided and no environment variable (AZURE_TENANT_ID/ARM_TENANT_ID/AAD_TENANT_ID) was found."
+    }
+    Write-Verbose "Using TenantId: $TenantId"
+        
     $deviceCodeResponse = Invoke-RestMethod -Method POST `
         -Uri "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/devicecode" `
         -Body @{
