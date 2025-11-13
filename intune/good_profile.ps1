@@ -21,19 +21,20 @@ function Update-Profile-Force {
     # Download and overwrite the profile
     # Download the file content
     $response = Invoke-WebRequest -Uri $url -ContentType "text/plain" -UseBasicParsing
-    $response.StatusCode
+    $response.StatusDescription
     
     $newContent = $response.Content
+    $newContentLength = $response.RawContentLength
 
     # Check if file already exists
     if (Test-Path $PROFILE -ErrorAction SilentlyContinue) {
         $oldContent = Get-Content -Path $PROFILE -Raw -Encoding ASCII
 
-        if ($oldContent -eq $newContent.content) {
+        if ($oldContent.Trim().ToLower() -eq $newContent.Trim().ToLower()) {
             Write-Host "The downloaded file is identical to the existing one - no update needed." -ForegroundColor Yellow
         } else {
             $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
-            Write-Host "The downloaded file is an UPDATED version - existing file replaced." -ForegroundColor Green
+            Write-Host "The downloaded file is an UPDATED version - replacing..." -ForegroundColor Green
         }
     } else {
         $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
@@ -55,7 +56,7 @@ function Search {
 function Reset-Podman {
     ## Run as required
     if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
-        Write-Host "Podman was not found!"
+        Write-Host "Podman was not found/not installed!"
         return $false
     }
     podman machine stop
@@ -67,7 +68,7 @@ function Reset-Podman {
 function Reset-Podman2 {
     ## Run as required (bigger reset)
     if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
-        Write-Host "Podman was not found!"
+        Write-Host "Podman was not found/not installed!"
         return $false
     }
     podman machine reset --force
@@ -839,6 +840,9 @@ function Get-EnvFile {
         [Parameter(Mandatory = $false)]
         [string]$Path
     )
+    ## Turn off verbose
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
 
     # Compute default path at call time if Path wasn't provided or is blank
     if (-not $PSBoundParameters.ContainsKey('Path') -or [string]::IsNullOrWhiteSpace($Path)) {
@@ -881,6 +885,7 @@ function Get-EnvFile {
         $envVars[$key] = $value
     }
 
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
     return $envVars
 }
 
@@ -889,6 +894,9 @@ function Import-EnvFile {
         [Parameter(Mandatory)]
         [string]$Path
     )
+    ## Turn off verbose
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
 
     if (-not (Test-Path "$Path")) {
         if (-not (Test-Path "$HOME\$Path")) {
@@ -926,10 +934,14 @@ function Import-EnvFile {
             Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope User.Read"
         }
     }
-    ## [System.Environment]::UnSetEnvironmentVariable("AZURE_TENANT_NAME", 'Process')
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
 
 function Get-Logon {
+    ## Turn off verbose
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
+
     $meta = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration" -ErrorAction Stop
     $meta | Format-List authorization_endpoint, token_endpoint, issuer, jwks_uri
 }
@@ -958,6 +970,10 @@ function Enable-PIMRole {
 
         [int]$TimeoutSeconds = 120
     )
+    ## Turn off verbose
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
+
 
     ## if ( -not ($IsLanguagePermissive)) { return } 
 
@@ -1071,6 +1087,7 @@ function Enable-PIMRole {
             throw "Error occured trying to activate $RoleName"
         }
     }
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
 ## Enable-PIMRole
 ## Connect-MgGraph -NoWelcome
@@ -1089,10 +1106,9 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     param(
         [string[]]$Scopes = @('Mail.ReadBasic','Mail.Read')
     )
-
     ## Turn off verbose
-    $preserve = $VerbosePreference
-    $VerbosePreference = 'Ignore'
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
 
     Write-Host "Requesting Access Token via Microsoft Graph PowerShell modules for scopes: $Scopes" -ForegroundColor Cyan
 
@@ -1111,6 +1127,7 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
         $response = Invoke-MgGraphRequest @params
     }
     catch {
+        $PSDefaultParameterValues['*:Verbose']   = $preserve
         throw "Get-Token call failed. $($_.Exception.Message)"
     }
 
@@ -1127,12 +1144,12 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
         Set-Item -Path Env:\ACCESS_TOKEN -Value $token
         $token | Set-Clipboard
         Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
-        $VerbosePreference = $preserve
+        $PSDefaultParameterValues['*:Verbose']   = $preserve
         return $true
     }
 
     Write-Host "Access denied or token not available."
-    $VerbosePreference = $preserve
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
     return $false
 }
 
@@ -1147,10 +1164,9 @@ function Get-Token-Device-Flow { ## without Graph Modules
 
         [string[]]$Scopes = @('Mail.ReadBasic','Mail.Read')
     )
-
     ## Turn off verbose
-    $preserve = $VerbosePreference
-    $VerbosePreference = 'Ignore'
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
 
     Write-Host "Requesting Access Token via Entra ID Device Code flow for scopes: $Scopes" -ForegroundColor Cyan
     
@@ -1197,7 +1213,7 @@ function Get-Token-Device-Flow { ## without Graph Modules
                 Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
                 Set-Item -Path Env:\ACCESS_TOKEN -Value $tokenResponse.access_token 
                 $tokenResponse.access_token | Set-Clipboard
-                $VerbosePreference = $preserve
+                $PSDefaultParameterValues['*:Verbose']   = $preserve
                 return $true
             }
         }
@@ -1207,12 +1223,12 @@ function Get-Token-Device-Flow { ## without Graph Modules
             $errormsg = $errorJson.error
             if ($errormsg -ne "authorization_pending") {
                 Write-Warning "❌ Unexpected error: $($_.ErrorDetails.Message)"
-                $VerbosePreference = $preserve
+                $PSDefaultParameterValues['*:Verbose']   = $preserve
                 break
             }
         }
     }
-    $VerbosePreference = $preserve
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
     return $false
 }
 
@@ -1242,8 +1258,8 @@ function Get-Token-Interactive {
     )
 
     ## Turn off verbose
-    $preserve = $VerbosePreference
-    $VerbosePreference = 'Ignore'
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
 
     Write-Host "Requesting Access Token via Native Client flow: $Scopes" -ForegroundColor Cyan
 
@@ -1286,7 +1302,7 @@ function Get-Token-Interactive {
         return
     }
 
-    # 3️⃣ Exchange authorization code for access token
+    # Exchange authorization code for access token
     $body = @{
         grant_type   = "authorization_code"
         client_id    = $ClientId
@@ -1303,11 +1319,11 @@ function Get-Token-Interactive {
         Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
         Set-Item -Path Env:\ACCESS_TOKEN -Value $tokenResponse.access_token 
         $tokenResponse.access_token | Set-Clipboard
-        $VerbosePreference = $preserve
+        $PSDefaultParameterValues['*:Verbose']   = $preserve
         return $true
     } else {
         Write-Warning "Failed to retrieve access token."
-        $VerbosePreference = $preserve
+        $PSDefaultParameterValues['*:Verbose']   = $preserve
         return $false
     }
 }
@@ -1320,6 +1336,9 @@ function Get-EntraUserInfo {
         Uses the OAuth 2.0 /userinfo endpoint.
         Requires an already-acquired access token in $env:ACCESS_TOKEN.
     #>
+    ## Turn off verbose
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
 
     if (-not $env:ACCESS_TOKEN) {
         throw "No ACCESS_TOKEN found in environment variables."
@@ -1337,7 +1356,7 @@ function Get-EntraUserInfo {
             ErrorAction = "Stop"
         }
 
-        $response = Invoke-RestMethod @params
+        $PSDefaultParameterValues['*:Verbose']   = $preserve
         return $response
 ##    }
 ##    catch {
@@ -1346,10 +1365,9 @@ function Get-EntraUserInfo {
 }
 
 function Test-Token { ## with Graph Modules
-
     ## Turn off verbose
-    $preserve = $VerbosePreference
-    $VerbosePreference = 'Ignore'
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
 
     $params = @{
         Method  = "GET"
@@ -1379,10 +1397,10 @@ function Test-Token { ## with Graph Modules
     @{n='Subject';e={$_.subject}}
 
     $messages | Format-Table -AutoSize
-    $VerbosePreference = $preserve
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
 
-function Show-Token {
+function Get-Token-Info {
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
@@ -1397,8 +1415,10 @@ function Show-Token {
         $PSDefaultParameterValues['*:Verbose']   = $preserve
         return
     }
+    $jwt.name
     $jwt.upn
-    $jwt.aud
+    $jwt.app_displayname
+    #$jwt.aud
     $jwt.iss
     $jwt.tid
     ## exp should be a UNIX timestamp (seconds since epoch)
