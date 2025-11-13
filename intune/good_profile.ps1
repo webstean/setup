@@ -1346,15 +1346,13 @@ function Test-Token { ## with Graph Modules
     $messages | Format-Table -AutoSize
 }
 
-
-
-function Show-MyToken {
-    $token = Get-MyToken
+function Show-Token {
     Install-OrUpdateModule JWTDetails
     Import-Module JWTDetails
     ## or goto: https://jwt-decoder.com/
     ##          https://jwt.ms
-    JWTDetails $token
+    JWTDetails.Decode-JWT $env:ACCESS_TOKEN
+    ## JWTDetails.Show-JWTDetails $env:ACCESS_TOKEN
 }
 
 function Get-EntraID-Info {
