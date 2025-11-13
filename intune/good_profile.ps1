@@ -1105,7 +1105,7 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     param(
         [string[]]$Scopes = @('Mail.ReadBasic','Mail.Read')
     )
-   ## Turn off verbose
+    ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
 
@@ -1414,8 +1414,10 @@ function Get-Token-Info {
         $PSDefaultParameterValues['*:Verbose']   = $preserve
         return
     }
+    $jwt.name
     $jwt.upn
-    $jwt.aud
+    $jwt.app_displayname
+    #$jwt.aud
     $jwt.iss
     ## exp should be a UNIX timestamp (seconds since epoch)
     $expUnix = [long]$jwt.exp
