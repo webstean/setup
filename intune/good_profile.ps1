@@ -21,9 +21,10 @@ function Update-Profile-Force {
     # Download and overwrite the profile
     # Download the file content
     $response = Invoke-WebRequest -Uri $url -ContentType "text/plain" -UseBasicParsing
-    $response.StatusCode
+    $response.StatusDescription
     
     $newContent = $response.Content
+    $newContentLength = $response.RawContentLength
 
     # Check if file already exists
     if (Test-Path $PROFILE -ErrorAction SilentlyContinue) {
@@ -55,7 +56,7 @@ function Search {
 function Reset-Podman {
     ## Run as required
     if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
-        Write-Host "Podman was not found!"
+        Write-Host "Podman was not found/not installed!"
         return $false
     }
     podman machine stop
@@ -67,7 +68,7 @@ function Reset-Podman {
 function Reset-Podman2 {
     ## Run as required (bigger reset)
     if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
-        Write-Host "Podman was not found!"
+        Write-Host "Podman was not found/not installed!"
         return $false
     }
     podman machine reset --force
