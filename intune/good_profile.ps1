@@ -34,7 +34,7 @@ function Update-Profile-Force {
             Write-Host "The downloaded file is identical to the existing one - no update needed." -ForegroundColor Yellow
         } else {
             $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
-            Write-Host "The downloaded file is an UPDATED version - existing file replaced." -ForegroundColor Green
+            Write-Host "The downloaded file is an UPDATED version - replacing..." -ForegroundColor Green
         }
     } else {
         $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
