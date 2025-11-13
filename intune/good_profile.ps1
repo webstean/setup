@@ -1383,20 +1383,33 @@ function Test-Token { ## with Graph Modules
 }
 
 function Show-Token {
+    ## Turn off verbose
+    $preserve = $VerbosePreference
+    $VerbosePreference = 'Ignore'
+
     Install-OrUpdateModule JWTDetails
     Import-Module JWTDetails
     ## or goto: https://jwt-decoder.com/
     ##          https://jwt.ms
-    (JWTDetails $env:ACCESS_TOKEN).upn
-    ## JWTDetails.Show-JWTDetails $env:ACCESS_TOKEN
+    $tokendetails = Get-JWTDetails $env:ACCESS_TOKEN
+    $tokendetails.upn
+    $tokendetails.aud
+    $tokendetails.iss
+
+    $VerbosePreference = $preserve
 }
 
 function Get-EntraID-Info {
+    ## Turn off verbose
+    $preserve = $VerbosePreference
+    $VerbosePreference = 'Ignore'
+
     # Retrieve the OpenID Connect metadata (no modules required)
     $openidConfig = Invoke-RestMethod -Uri "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration"
 
     # Show top-level keys
     $openidConfig | Format-List
+    $VerbosePreference = $preserve
 }
 
 function Set-StarShip {
