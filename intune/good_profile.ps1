@@ -1384,19 +1384,29 @@ function Test-Token { ## with Graph Modules
 
 function Show-Token {
     ## Turn off verbose
-    $preserve = $VerbosePreference
-    $VerbosePreference = 'Ignore'
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
 
     Install-OrUpdateModule JWTDetails
     Import-Module JWTDetails
     ## or goto: https://jwt-decoder.com/
     ##          https://jwt.ms
-    $tokendetails = Get-JWTDetails $env:ACCESS_TOKEN
-    $tokendetails.upn
-    $tokendetails.aud
-    $tokendetails.iss
+    $jwt = Get-JWTDetails $env:ACCESS_TOKEN
+    $jwt.upn
+    $jwt.aud
+    $jwt.iss
+    ## exp should be a UNIX timestamp (seconds since epoch)
+    $expUnix = [long]$jwt.exp
 
-    $VerbosePreference = $preserve
+    ## Convert exp to local DateTime
+    $expiry = [DateTimeOffset]::FromUnixTimeSeconds($expUnix).ToLocalTime()
+
+    ## Compute difference
+    $now = Get-Date
+    $minutesRemaining = [math]::Round(($expiry - $now).TotalMinutes, 2)
+    Write-Host "Token expires in $minutesRemaining minutes"
+
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
 
 function Get-EntraID-Info {
