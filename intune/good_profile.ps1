@@ -1310,6 +1310,39 @@ function Get-Token-Interactive {
     }
 }
 
+function Get-EntraUserInfo {
+    <#
+    .SYNOPSIS
+        Retrieves userinfo from Entra ID using an existing access token.
+    .DESCRIPTION
+        Uses the OAuth 2.0 /userinfo endpoint.
+        Requires an already-acquired access token in $env:ACCESS_TOKEN.
+    #>
+
+    if (-not $env:ACCESS_TOKEN) {
+        throw "No ACCESS_TOKEN found in environment variables."
+    }
+
+    $endpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/userinfo"
+
+    try {
+        $params = @{
+            Method  = "GET"
+            Uri     = $endpoint
+            Headers = @{
+                "Authorization" = "Bearer $($env:ACCESS_TOKEN)"
+            }
+            ErrorAction = "Stop"
+        }
+
+        $response = Invoke-RestMethod @params
+        return $response
+    }
+    catch {
+        throw "Failed to retrieve userinfo: $($_.Exception.Message)"
+    }
+}
+
 function Test-Token { ## with Graph Modules
 
     ## Turn off verbose
