@@ -1159,8 +1159,7 @@ function Get-Token-Device-Flow { ## without Graph Modules
         [ValidateNotNullOrEmpty()]
         [string]$TenantId,
         
-        ## [string]$ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46",  # Microsoft Graph PowerShell public client
-        [string]$ClientId = "263a42c4-78c3-4407-8200-3387c284c303",  # DTP PnP
+        [string]$ClientId,
 
         [string[]]$Scopes = @('Mail.ReadBasic','Mail.Read')
     )
@@ -1180,6 +1179,16 @@ function Get-Token-Device-Flow { ## without Graph Modules
     $TenantId = $tenantCandidates | Select-Object -First 1
     if (-not $TenantId) {
         throw "TenantId not provided and no environment variable (AZURE_TENANT_ID/ARM_TENANT_ID/AAD_TENANT_ID) was found."
+    }
+    $clientCandidates = @(
+        $ClientId,
+        $env:AZURE_CLIENT_ID,  # Azure CLI / general
+        $env:ARM_CLIENT_ID,    # Terraform/ARM conventions
+        $env:AAD_CLIENT_ID     # some orgs use this
+    ) | Where-Object { $_ -and $_.Trim() -ne '' }
+    $ClientId = $clientCandidates | Select-Object -First 1
+    if (-not $ClientId) {
+        throw "ClientId not provided and no environment variable (AZURE_CLIENT_ID/ARM_CLIENT_ID/AAD_CLIENT_ID) was found."
     }
     Write-Verbose "Using TenantId: $TenantId"
     Write-Verbose "Using ClientId: $ClientId"
@@ -1249,8 +1258,8 @@ function Get-Token-Interactive {
         [ValidateNotNullOrEmpty()]
         [string]$TenantId,
 
-        ## [string]$ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46",  # Microsoft Graph PowerShell public client
-        [string]$ClientId = "263a42c4-78c3-4407-8200-3387c284c303",  # DTP PnP
+        [ValidateNotNullOrEmpty()]
+        [string]$ClientId,
 
         [string]$RedirectUri = "https://login.microsoftonline.com/common/oauth2/nativeclient",
 
@@ -1273,6 +1282,16 @@ function Get-Token-Interactive {
     $TenantId = $tenantCandidates | Select-Object -First 1
     if (-not $TenantId) {
         throw "TenantId not provided and no environment variable (AZURE_TENANT_ID/ARM_TENANT_ID/AAD_TENANT_ID) was found."
+    }
+    $clientCandidates = @(
+        $ClientId,
+        $env:AZURE_CLIENT_ID,  # Azure CLI / general
+        $env:ARM_CLIENT_ID,    # Terraform/ARM conventions
+        $env:AAD_CLIENT_ID     # some orgs use this
+    ) | Where-Object { $_ -and $_.Trim() -ne '' }
+    $ClientId = $clientCandidates | Select-Object -First 1
+    if (-not $ClientId) {
+        throw "ClientId not provided and no environment variable (AZURE_CLIENT_ID/ARM_CLIENT_ID/AAD_CLIENT_ID) was found."
     }
     Write-Verbose "Using TenantId: $TenantId"
     Write-Verbose "Using ClientId: $ClientId"
@@ -1344,9 +1363,9 @@ function Get-EntraUserInfo {
         throw "No ACCESS_TOKEN found in environment variables."
     }
 
-    $endpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/userinfo"
+    $endpoint = "https://graph.microsoft.com/oidc/userinfo"
 
-##    try {
+    try {
         $params = @{
             Method  = "GET"
             Uri     = $endpoint
@@ -1355,13 +1374,15 @@ function Get-EntraUserInfo {
             }
             ErrorAction = "Stop"
         }
-
+        
+        $response = Invoke-RestMethod @params
+        $response | Format-List
         $PSDefaultParameterValues['*:Verbose']   = $preserve
         return $response
-##    }
-##    catch {
-##        throw "Failed to retrieve userinfo: $($_.Exception.Message)"
-##    }
+    }
+    catch {
+        throw "Failed to retrieve userinfo: $($_.Exception.Message)"
+    }
 }
 
 function Test-Token { ## with Graph Modules
