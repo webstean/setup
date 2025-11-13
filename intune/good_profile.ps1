@@ -920,9 +920,11 @@ function Import-EnvFile {
     }
     if ($env:AZURE_USERNAME) {
         Write-Host "Logon as: $env:AZURE_USERNAME"
-        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope User.Read"
-        Write-Host "or"
-        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID --ClientId $env:AZURE_CLIENT_ID -Scope User.Read"
+        if ( $env:AZURE_CLIENT_ID ) {
+            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID --ClientId $env:AZURE_CLIENT_ID -Scope User.Read"
+        } else {
+            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope User.Read"
+        }
     }
     ## [System.Environment]::UnSetEnvironmentVariable("AZURE_TENANT_NAME", 'Process')
 }
@@ -1134,7 +1136,7 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     return $false
 }
 
-function Get-MyToken-Device-Flow { ## without Graph Modules
+function Get-Token-Device-Flow { ## without Graph Modules
     param(
         ## Provide if you want; otherwise we'll pick it up from env vars
         [ValidateNotNullOrEmpty()]
@@ -1325,7 +1327,7 @@ function Get-EntraUserInfo {
 
     $endpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/userinfo"
 
-    try {
+##    try {
         $params = @{
             Method  = "GET"
             Uri     = $endpoint
@@ -1337,10 +1339,10 @@ function Get-EntraUserInfo {
 
         $response = Invoke-RestMethod @params
         return $response
-    }
-    catch {
-        throw "Failed to retrieve userinfo: $($_.Exception.Message)"
-    }
+##    }
+##    catch {
+##        throw "Failed to retrieve userinfo: $($_.Exception.Message)"
+##    }
 }
 
 function Test-Token { ## with Graph Modules
