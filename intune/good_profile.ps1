@@ -920,7 +920,9 @@ function Import-EnvFile {
     }
     if ($env:AZURE_USERNAME) {
         Write-Host "Logon as: $env:AZURE_USERNAME"
-        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID"' -Scope "RoleManagement.ReadWrite.Directory,User.Read"'
+        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope User.Read"
+        Write-Host "or"
+        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID --ClientId $env:AZURE_CLIENT_ID -Scope User.Read"
     }
     ## [System.Environment]::UnSetEnvironmentVariable("AZURE_TENANT_NAME", 'Process')
 }
@@ -1069,7 +1071,7 @@ function Enable-PIMRole {
     }
 }
 ## Enable-PIMRole
-## Connect-MgGraph -NoWelcome"
+## Connect-MgGraph -NoWelcome
 ## $user = Get-MgUserMe
 
 # Verify if the logged-in user is the expected user
