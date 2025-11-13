@@ -112,7 +112,7 @@ if ($IsLanguagePermissive) {
     $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 } else {
     Write-Host -ForegroundColor DarkYellow "PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
-    $IsAdmin = (whoami /groups | Select-String "S-1-5-32-544") -ne $null
+    $IsAdmin = $null -ne (whoami /groups | Select-String "S-1-5-32-544")
 }
 
 # Set install scope variable based on elevation
@@ -967,7 +967,7 @@ function Enable-PIMRole {
     }
 
     ## 
-    function Ensure-Graph {
+    function Check-Graph {
         Write-Host "Importing Microsoft Graph modules..."
         Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
         Import-Module Microsoft.Graph.Users -ErrorAction Stop
@@ -999,7 +999,7 @@ function Enable-PIMRole {
 
     try {
         Write-Host "Trying to activate $RoleName..."
-        Ensure-Graph
+        Check-Graph
         $principalId = Get-MyUserId
 
         # Pull eligibilities
@@ -1081,44 +1081,6 @@ function Enable-PIMRole {
 ##    Write-Host "Error: Logged in as $($user.UserPrincipalName), but expected $targetUserPrincipalName."
 ##    Write-Host "Please log in as the correct user."
 ## }
-
-function Convert-FromBase64Url {
-    param([string]$Input)
-    # base64url -> base64
-    $s = $Input.Replace('-','+').Replace('_','/')
-    switch ($s.Length % 4) {
-        2 { $s += '==' }
-        3 { $s += '=' }
-        0 { } 
-        default { throw "Invalid base64url length" }
-    }
-    [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($s))
-}
-
-function Decode-Jwt {
-    [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$Jwt)
-
-    $parts = $Jwt.Split('.')
-    if ($parts.Count -lt 2) { throw "Not a JWT (expected at least 2 parts)" }
-
-    $headerJson  = Convert-FromBase64Url $parts[0]
-    $payloadJson = Convert-FromBase64Url $parts[1]
-    $signature   = if ($parts.Count -gt 2) { $parts[2] } else { $null }
-
-    # Try parse JSON, fall back to raw string if parse fails
-    $headerObj  = try { $headerJson  | ConvertFrom-Json -ErrorAction Stop } catch { $headerJson }
-    $payloadObj = try { $payloadJson | ConvertFrom-Json -ErrorAction Stop } catch { $payloadJson }
-
-    [PSCustomObject]@{
-        Raw         = $Jwt
-        HeaderJson  = $headerJson
-        Header      = $headerObj
-        PayloadJson = $payloadJson
-        Payload     = $payloadObj
-        Signature   = $signature
-    }
-}
 
 function Get-Token-Graph {  ## with Graph PowerShell Modules
     [CmdletBinding()]
@@ -1243,6 +1205,7 @@ function Get-MyToken-Device-Flow { ## without Graph Modules
             $error = $errorJson.error
             if ($error -ne "authorization_pending") {
                 Write-Warning "❌ Unexpected error: $($_.ErrorDetails.Message)"
+                $VerbosePreference = $preserve
                 break
             }
         }
