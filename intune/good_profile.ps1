@@ -1400,6 +1400,7 @@ function Show-Token {
     $jwt.upn
     $jwt.aud
     $jwt.iss
+    $jwt.tid
     ## exp should be a UNIX timestamp (seconds since epoch)
     $expUnix = [long]$jwt.exp
 
