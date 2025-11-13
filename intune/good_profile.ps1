@@ -1392,6 +1392,11 @@ function Show-Token {
     ## or goto: https://jwt-decoder.com/
     ##          https://jwt.ms
     $jwt = Get-JWTDetails $env:ACCESS_TOKEN
+    if ( -not ($jwt) ) {
+        Write-Host "Failed to decode token." -ForegroundColor Red
+        $PSDefaultParameterValues['*:Verbose']   = $preserve
+        return
+    }
     $jwt.upn
     $jwt.aud
     $jwt.iss
