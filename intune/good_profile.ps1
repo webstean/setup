@@ -1404,8 +1404,12 @@ function Show-Token {
     ## Compute difference
     $now = Get-Date
     $minutesRemaining = [math]::Round(($expiry - $now).TotalMinutes, 2)
-    Write-Host "Token expires in $minutesRemaining minutes"
-
+    if ($minutesRemaining -le 0) {
+        Write-Host "Token has already expired!" -ForegroundColor Red
+        Write-Host "Expired at: $expiry" -ForegroundColor Red                
+    } else {
+        Write-Host "Token expires in $minutesRemaining minutes"
+    }
     $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
 
