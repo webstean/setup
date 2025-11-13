@@ -770,7 +770,7 @@ function Restore-Terminal {
 if ($IsLanguagePermissive) {
     $CLSIDs = @()
     foreach($registryKey in (Get-ChildItem "Registry::HKEY_CLASSES_ROOT\CLSID" -Recurse -ErrorAction SilentlyContinue)){
-        If (($registryKey.GetValueNames() | %{$registryKey.GetValue($_)}) -eq "Drive or folder redirected using Remote Desktop") {
+        If (($registryKey.GetValueNames() | ForEach-Object {$registryKey.GetValue($_)}) -eq "Drive or folder redirected using Remote Desktop") {
             $CLSIDs += $registryKey
         }
     }
