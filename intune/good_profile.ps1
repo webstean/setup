@@ -1202,8 +1202,8 @@ function Get-MyToken-Device-Flow { ## without Graph Modules
         catch {
             # Entra ID returns 'authorization_pending' until user completes login
             $errorJson = $_.ErrorDetails.Message | ConvertFrom-Json -ErrorAction SilentlyContinue
-            $error = $errorJson.error
-            if ($error -ne "authorization_pending") {
+            $errormsg = $errorJson.error
+            if ($errormsg -ne "authorization_pending") {
                 Write-Warning "❌ Unexpected error: $($_.ErrorDetails.Message)"
                 $VerbosePreference = $preserve
                 break
@@ -1344,6 +1344,7 @@ function Test-Token { ## with Graph Modules
     @{n='Subject';e={$_.subject}}
 
     $messages | Format-Table -AutoSize
+    $VerbosePreference = $preserve
 }
 
 function Show-Token {
