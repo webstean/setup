@@ -324,7 +324,7 @@ properties:
           # Not required API forwarding listening on: npipe:////./pipe/docker_engine
           # Docker API clients default to this address. You do not need to set DOCKER_HOST.
           #[System.Environment]::SetEnvironmentVariable("DOCKER_HOST",'npipe:////./pipe/docker_engine',"Machine")
-          [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN', 'Machine')
+          [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:DOCKER_HOST', 'Machine')
 
 ## containers.containerClient Podman
 ## containers.orchestratorClient Podman Compose
