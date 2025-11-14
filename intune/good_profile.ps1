@@ -926,6 +926,7 @@ function Import-EnvFile {
             Write-Verbose "Set `$Env:$key = '$val'"
         }
     }
+    Write-Host "Portal Logon: https://entra.microsoft.com/?tenant=$env:AZURE_TENANT_ID"
 #    if ($env:AZURE_USERNAME) {
 #        Write-Host "Logon as: $env:AZURE_USERNAME"
 #        if ( $env:AZURE_CLIENT_ID ) {
