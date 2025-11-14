@@ -10,15 +10,15 @@ properties:
         MinVersion: '10.0.25000'
 
   resources:
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: DesiredStateConfiguration
-#      directives:
-#        description: Install DesiredStateConfiguration
-#        allowPrerelease: false
-#        securityContext: elevated
-#      settings:
-#        id: 9NVTPZWRC6KQ
-#        source: msstore
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: DesiredStateConfiguration
+      directives:
+        description: Install DesiredStateConfiguration
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: 9NVTPZWRC6KQ
+        source: msstore
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.PowerShell
@@ -324,7 +324,7 @@ properties:
           # Not required API forwarding listening on: npipe:////./pipe/docker_engine
           # Docker API clients default to this address. You do not need to set DOCKER_HOST.
           #[System.Environment]::SetEnvironmentVariable("DOCKER_HOST",'npipe:////./pipe/docker_engine',"Machine")
-          [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN', 'Machine')
+          [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:DOCKER_HOST', 'Machine')
 
 ## containers.containerClient Podman
 ## containers.orchestratorClient Podman Compose
@@ -648,7 +648,6 @@ properties:
            - ms-vscode.powershell
            - dbaeumer.vscode-eslint
            - ms-azuretools.vscode-azure-mcp-server
-           - ms-azuretools.vscode-docker
            - github.copilot
            - hashicorp.terraform
            - GitHub.vscode-pull-request-github
@@ -829,9 +828,22 @@ properties:
 #      Name: mhutchie.git-graph
 
 
+    # VS Code Icon Extension
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.vscode-icons-team.vscode-icons
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install vscode-icons-team.vscode-icons extension
+        allowPrerelease: false
+        securityContext: current
+        edition: stable
+      settings:
+        Name: vscode-icons-team.vscode-icons
+
     # VS Code ms-azuretools.vscode-apimanagement Extension
 #    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-#      id: ms-azuretools.vscode-apimanagement
+#      id: stable.ms-azuretools.vscode-apimanagement
 #      dependsOn:
 #        - Microsoft.VisualStudioCode
 #      directives:
@@ -844,7 +856,7 @@ properties:
 
     # VS Code .NET Development Extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: vscode-ms-dotnettools.csharp
+      id: stable.vscode-ms-dotnettools.csharp
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
@@ -960,19 +972,32 @@ properties:
         edition: stable
       settings:
         Name: ms-vscode.powershell
-    
-    # VS Code Azure Docker tools
+
+    # VS Code PowerShell extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.vscode-ms-azuretools.vscode-docker
+      id: stable.ironmansoftware.powershellprotools
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install Docker extension
+        description: Install ironmansoftware.powershellprotools extension
         allowPrerelease: true
         securityContext: current
         edition: stable
       settings:
-        Name: ms-azuretools.vscode-docker
+        Name: ironmansoftware.powershellprotools
+
+    # VS Code Containers tools extension
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.ms-azuretools.vscode-containers
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install Containers (Docker or Podman) extension
+        allowPrerelease: true
+        securityContext: current
+        edition: stable
+      settings:
+        Name: ms-azuretools.vscode-containers
 
     # VS Code Terraform extension
 #    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
