@@ -648,7 +648,6 @@ properties:
            - ms-vscode.powershell
            - dbaeumer.vscode-eslint
            - ms-azuretools.vscode-azure-mcp-server
-           - ms-azuretools.vscode-docker
            - github.copilot
            - hashicorp.terraform
            - GitHub.vscode-pull-request-github
@@ -961,18 +960,18 @@ properties:
       settings:
         Name: ms-vscode.powershell
     
-    # VS Code Azure Docker tools
+    # VS Code Containers tools
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.vscode-ms-azuretools.vscode-docker
+      id: stable.ms-azuretools.vscode-containers
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install Docker extension
+        description: Install Containers (Docker or Podman) extension
         allowPrerelease: true
         securityContext: current
         edition: stable
       settings:
-        Name: ms-azuretools.vscode-docker
+        Name: ms-azuretools.vscode-containers
 
     # VS Code Terraform extension
 #    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
