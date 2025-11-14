@@ -18,7 +18,6 @@ sudo apt-get upgrade -y
 ## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     if ! [ -x /usr/bin/sqlitebrowser ] ; then
-        #apt-get install -y xscreensaver
         apt-get install -y x11-apps
         echo $DISPLAY
         ## Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
@@ -66,7 +65,7 @@ https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs)
     #wslsys
 
     ## Microsoft Defender for Endpoint
-    sudo apt-get install -y mdatp
+    #sudo apt-get install -y mdatp
     #mdatp --version
     #sudo mdatp health
     #sudo mdatp health --field real_time_protection_enabled
@@ -191,6 +190,7 @@ oracleinstantclientinstall() {
     if [ ! -f /usr/lib/x86_64-linux-gnu/libaio.so.1 ] ; then
         sudo ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
     fi
+    sudo ldconfig
     # Permanent Link (latest version) - Instant Client - Basic (x86 64 bit) - you need this for anything else to work
     # Note: there is no Instant Client for the ARM processor, Intel/AMD x86 only
     tmpdir=$(mktemp -d)
