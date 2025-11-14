@@ -634,23 +634,23 @@ properties:
         id: Microsoft.Edit
         source: winget
 
-    # Install VS Code extensions
-    - resource: vscode/VSCodeExtension
-      id: vscode.extensions
-      directives:
-         description: Install VS Code extensions
-      settings:
-         #edition: stable ## insiders
-         ensure: Present
-         extensions:
-           - ms-python.python
-           - ms-dotnettools.csharp
-           - ms-vscode.powershell
-           - dbaeumer.vscode-eslint
-           - ms-azuretools.vscode-azure-mcp-server
-           - github.copilot
-           - hashicorp.terraform
-           - GitHub.vscode-pull-request-github
+#    # Install VS Code extensions
+#    - resource: vscode/VSCodeExtension
+#      id: vscode.extensions
+#      directives:
+#         description: Install VS Code extensions
+#      settings:
+#         #edition: stable ## insiders
+#         ensure: Present
+#         extensions:
+#           - ms-python.python
+#           - ms-dotnettools.csharp
+#           - ms-vscode.powershell
+#           - dbaeumer.vscode-eslint
+#           - ms-azuretools.vscode-azure-mcp-server
+#           - github.copilot
+#           - hashicorp.terraform
+#           - GitHub.vscode-pull-request-github
 
 #    - resource: PSDscResources/WindowsOptionalFeature
 #      id: WindowsSandboxInstall
