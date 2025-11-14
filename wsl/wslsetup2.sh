@@ -98,8 +98,28 @@ https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs)
 fi
 
 sudo apt install -y podman-remote
-sudo sh -c "echo 'export WIN_PODMAN_PIPE=//./pipe/podman-machine-default' > /etc/profile.d/podman.sh"
-sudo sh -c "echo 'export CONTAINER_HOST=//./pipe/podman-machine-default' > /etc/profile.d/podman.sh"
+podman-remote info
+# Create the containers.conf file
+mkdir -p ~/.config/containers
+cat > ~/.config/containers/containers.conf << 'EOF'
+[engine]
+remote = true
+url = "ssh://root@127.0.0.1:60200/run/podman/podman.sock"
+EOF
+#url = "npipe:////./pipe/podman-machine-default"
+#url = "unix:///run/podman/podman.sock"
+#url = "unix:///mnt/wsl/podman/podman.sock"
+dos2unix ~/.config/containers/containers.conf
+cat ~/.config/containers/containers.conf
+unset CONTAINER_HOST
+unset DOCKER_HOST
+unset PODMAN_HOST
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
+podman-remote system connection add myuser --identity ~/.ssh/id_ed25519 ssh://myuser@192.168.122.1/run/user/1000/podman/podman.sock
+podman-remote system connection add npipe:////./pipe/podman-machine-default
+
+#sudo sh -c "echo 'export WIN_PODMAN_PIPE=//./pipe/podman-machine-default' > /etc/profile.d/podman.sh"
+#sudo sh -c "echo 'export CONTAINER_HOST=//./pipe/podman-machine-default' > /etc/profile.d/podman.sh"
 
 ## Azure IOTEdge
 setup-iotedge() {
