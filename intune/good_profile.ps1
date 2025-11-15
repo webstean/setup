@@ -1,4 +1,4 @@
-
+E
 ## Note: This FILE is ASCII encoded, for compatibility with Windows Powershell, so any Unicode characters need to be eliminated
 
 #Set-ExecutionPolicy Unrestricted -Scope Process
@@ -1500,4 +1500,4 @@ if (Get-Command 'azd' -ErrorAction SilentlyContinue) {
 ## Show verbose messages
 $VerbosePreference = 'Continue'
 
-
+dotnet completions script pwsh | out-String | Invoke-Expression -ErrorAction SilentlyContinue
