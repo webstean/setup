@@ -768,6 +768,7 @@ function Restore-Terminal {
 }
 
 if ($IsLanguagePermissive) {
+    Write-Host "Checking for Mapped Drives..."
     $CLSIDs = @()
     foreach($registryKey in (Get-ChildItem "Registry::HKEY_CLASSES_ROOT\CLSID" -Recurse -ErrorAction SilentlyContinue)){
         If (($registryKey.GetValueNames() | ForEach-Object {$registryKey.GetValue($_)}) -eq "Drive or folder redirected using Remote Desktop") {
@@ -784,7 +785,9 @@ if ($IsLanguagePermissive) {
     if ( -not [bool](Get-Module -ListAvailable -Name Az.Tools.Predictor | Out-Null )) {
         Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue
     }
+}
 
+function Set-Azure-Environment {
     $subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id
     if (-not [string]::IsNullOrEmpty($subscription_id)) {
         Set-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Value $subscription_id
@@ -831,6 +834,7 @@ AZURE_USERNAME=$env:UPN
     #$Host.UI.RawUI.BufferSize.Height = 5000
     #$Host.UI.RawUI.WindowTop = 0
 }
+Set-Azure-Environment
 
 function Get-EnvFile {
     [CmdletBinding()]
