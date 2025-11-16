@@ -836,7 +836,7 @@ AZURE_USERNAME=$env:UPN
 }
 Set-Azure-Environment
 
-function Get-EnvFile {
+function Get-Default-EnvFile {
     [CmdletBinding()]
     param(
         # Don't set a static default here—compute it at runtime instead
@@ -948,6 +948,8 @@ function Get-Logon {
 
     $meta = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration" -ErrorAction Stop
     $meta | Format-List authorization_endpoint, token_endpoint, issuer, jwks_uri
+
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
 
 function Enable-PIMRole {
@@ -977,7 +979,6 @@ function Enable-PIMRole {
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
-
 
     ## if ( -not ($IsLanguagePermissive)) { return } 
 
@@ -1091,6 +1092,7 @@ function Enable-PIMRole {
             throw "Error occured trying to activate $RoleName"
         }
     }
+
     $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
 ## Enable-PIMRole
@@ -1153,6 +1155,7 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     }
 
     Write-Host "Access denied or token not available."
+    
     $PSDefaultParameterValues['*:Verbose']   = $preserve
     return $false
 }
@@ -1317,7 +1320,7 @@ function Get-Token-Interactive {
     Write-Host "$RedirectUri?code=YOUR_CODE_HERE&state=12345" -ForegroundColor Yellow
     Write-Host "`nCopy the 'code' value from that URL and paste it below.`n"
 
-    # 2️⃣ Prompt user for authorization code
+    # Prompt user for authorization code
     $authCode = Read-Host "Enter the authorization code"
 
     if ([string]::IsNullOrWhiteSpace($authCode)) {
@@ -1389,7 +1392,7 @@ function Get-EntraUserInfo {
     }
 }
 
-function Test-Token { ## with Graph Modules
+function Test-Token-Email { ## with Graph Modules
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
@@ -1475,26 +1478,6 @@ function Get-EntraID-Info {
     # Show top-level keys
     $openidConfig | Format-List
     $VerbosePreference = $preserve
-}
-
-function Set-StarShip {
-    if ( $env:STARSHIP_CONFIG ) {
-        # Download a config
-        $url = 'https://raw.githubusercontent.com/TaouMou/starship-presets/refs/heads/main/starship_pills.toml'
-        $response = Invoke-WebRequest -Uri $url -ContentType "text/plain" -UseBasicParsing
-        $response.Content | Out-File $HOME/.starship_pill.toml
-        Copy-Item $HOME/.starship_pill.toml $env:STARSHIP_CONFIG
-        
-        ## Other options
-        #starship preset pastel-powerline -o $env:STARSHIP_CONFIG
-        #starship preset nerd-font-symbols -o $env:STARSHIP_CONFIG
-        #starship preset gruvbox-rainbow -o $env:STARSHIP_CONFIG
-        #starship preset plain-text-symbols -o $env:STARSHIP_CONFIG
-        #starship preset bracketed-segments -o $env:STARSHIP_CONFIG
-        
-        ## Implement 
-        Invoke-Expression (&starship init powershell -o $env:STARSHIP_CONFIG)
-    }
 }
 
 ##if (Get-Command 'azd' -ErrorAction SilentlyContinue) {
