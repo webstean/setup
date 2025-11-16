@@ -812,7 +812,7 @@ function Set-Azure-Environment {
         Remove-Item -Path Env:\AZURE_USERNAME -Force -ErrorAction SilentlyContinue
     }
     
-    if (-not ([string]::IsNullOrEmpty($UPN) -and [string]::IsNullOrEmpty($AZURE_SUBSCRIPTION_ID}) -and [string]::IsNullOrEmpty($AZURE_TENANT_ID) [string]::IsNullOrEmpty($AZURE_TENANT_NAME) )) {
+    if (-not ([string]::IsNullOrEmpty($UPN)) -and [string]::IsNullOrEmpty($AZURE_SUBSCRIPTION_ID})) -and [string]::IsNullOrEmpty($AZURE_TENANT_ID)) [string]::IsNullOrEmpty($AZURE_TENANT_NAME)) ) {
         @"
 # $env:AZURE_TENANT_NAME .env file
 AZURE_SUBSCRIPTION_ID=$env:AZURE_SUBSCRIPTION_ID
