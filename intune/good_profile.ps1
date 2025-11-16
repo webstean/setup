@@ -789,7 +789,7 @@ if ($IsLanguagePermissive) {
 
 function Set-Azure-Developer-Environment {
     
-    if ( -not ( $env.DEVELOPER -neq "Yes" )) { return }
+    if ( -not ( $env.DEVELOPER -eq "Yes" )) { return }
 
     $subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id
     if (-not [string]::IsNullOrEmpty($subscription_id)) {
