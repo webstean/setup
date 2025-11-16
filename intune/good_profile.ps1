@@ -803,14 +803,14 @@ if ($IsLanguagePermissive) {
     } else {
         Remove-Item -Path Env:\AZURE_TENANT_NAME -Force -ErrorAction SilentlyContinue
     }
-    
-    if (![string]::IsNullOrEmpty($UPN)) {
+    if (-not [string]::IsNullOrEmpty($UPN)) {
         Set-Item -Path Env:\AZURE_USERNAME -Value $UPN
     } else {
         Remove-Item -Path Env:\AZURE_USERNAME -Force -ErrorAction SilentlyContinue
     }
     
-    @"
+    if (-not ([string]::IsNullOrEmpty($UPN) -and [string]::IsNullOrEmpty($AZURE_SUBSCRIPTION_ID}) -and [string]::IsNullOrEmpty($AZURE_TENANT_ID) [string]::IsNullOrEmpty($AZURE_TENANT_NAME) ) {
+        @"
 # $env:AZURE_TENANT_NAME .env file
 AZURE_SUBSCRIPTION_ID=$env:AZURE_SUBSCRIPTION_ID
 AZURE_TENANT_ID=$env:AZURE_TENANT_ID
@@ -818,7 +818,7 @@ AZURE_USERNAME=$env:UPN
 "@ | Out-File -Encoding UTF8 -FilePath "$HOME/.env-default"
     Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env-default" -Force
     Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env" -Force
-    
+    }
     # $Host.UI.RawUI.WindowTitle = "Andrew"
     
     #$raw = $Host.UI.RawUI
