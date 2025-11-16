@@ -787,7 +787,10 @@ if ($IsLanguagePermissive) {
     }
 }
 
-function Set-Azure-Environment {
+function Set-Azure-Developer-Environment {
+    
+    if ( -not ( $env.DEVELOPER -neq "Yes" )) { return }
+
     $subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id
     if (-not [string]::IsNullOrEmpty($subscription_id)) {
         Set-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Value $subscription_id
@@ -834,7 +837,7 @@ AZURE_USERNAME=$env:UPN
     #$Host.UI.RawUI.BufferSize.Height = 5000
     #$Host.UI.RawUI.WindowTop = 0
 }
-Set-Azure-Environment
+Set-Azure-Developer-Environment
 
 function Get-Default-EnvFile {
     [CmdletBinding()]
