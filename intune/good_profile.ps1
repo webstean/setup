@@ -1954,4 +1954,156 @@ function Get-DefaultRouteAdapter {
     }
 }
 
+function Get-ZscalerClientState {
+    <#
+    .SYNOPSIS
+        Gathers Zscaler-related configuration/state on a Windows endpoint (read-only).
+
+    .DESCRIPTION
+        Enumerates likely locations for Zscaler Client Connector and tunnel info:
+        - Installed Apps (registry)
+        - Services & Processes
+        - System proxy (WinINET) and WinHTTP proxy
+        - Network adapters & default route
+        - Root certs containing "Zscaler"
+        - Common file system paths
+
+        NOTE: Uses broad matching (Zscaler|ZSA) to be resilient across versions.
+
+    .PARAMETER IncludeRoutes
+        Include default route and candidate tunnel routes.
+
+    .PARAMETER AsJson
+        Emit JSON instead of a PowerShell object.
+
+    .EXAMPLE
+        Get-ZscalerClientState -IncludeRoutes | Format-List
+
+    .EXAMPLE
+        Get-ZscalerClientState -AsJson | Out-File .\zscaler_state.json -Encoding utf8
+    #>
+
+    [CmdletBinding()]
+    param(
+        [switch]$IncludeRoutes,
+        [switch]$AsJson
+    )
+
+    function Get-RegistryValues {
+        param([string]$Path, [string[]]$Names)
+        $h = @{}
+        try {
+            $item = Get-Item -LiteralPath $Path -ErrorAction Stop
+            foreach ($n in $Names) {
+                $h[$n] = (Get-ItemProperty -LiteralPath $Path -Name $n -ErrorAction SilentlyContinue).$n
+            }
+        } catch {}
+        [pscustomobject]$h
+    }
+
+    # 1) Installed App (Uninstall registry)
+    $uninstallRoots = @(
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall'
+    )
+    $installed = foreach ($root in $uninstallRoots) {
+        Get-ChildItem $root -ErrorAction SilentlyContinue | ForEach-Object {
+            $p = Get-ItemProperty $_.PsPath -ErrorAction SilentlyContinue
+            if ($p.DisplayName -match 'Zscaler|Client Connector|ZSA') {
+                [pscustomobject]@{
+                    DisplayName   = $p.DisplayName
+                    DisplayVersion= $p.DisplayVersion
+                    Publisher     = $p.Publisher
+                    InstallLocation= $p.InstallLocation
+                    UninstallString= $p.UninstallString
+                    RegistryPath  = $_.PsPath
+                }
+            }
+        }
+    }
+
+    # 2) Services / Processes
+    $services  = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match 'Zscaler|ZSA' -or $_.Name -match 'Zscaler|ZSA' } |
+                 Select-Object Name,DisplayName,Status,StartType
+    $processes = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Zscaler|ZSA' } |
+                 ForEach-Object {
+                    [pscustomobject]@{
+                        Name = $_.Name; Id = $_.Id; Path = ($_.Path)
+                    }
+                 }
+
+    # 3) Proxy (WinINET = user), WinHTTP = machine
+    $inetCU = Get-RegistryValues -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -Names ProxyEnable,ProxyServer,AutoConfigURL
+    $inetLM = Get-RegistryValues -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -Names ProxyEnable,ProxyServer,AutoConfigURL
+
+    $winHttpProxy = try {
+        $out = & netsh winhttp show proxy 2>$null
+        if ($LASTEXITCODE -eq 0) { $out -join "`n" } else { $null }
+    } catch { $null }
+
+    # 4) Adapters / Routes (look for “Zscaler”/“ZSA”)
+    $adapters = Get-NetAdapter -IncludeHidden -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -match 'Zscaler|ZSA' -or $_.InterfaceDescription -match 'Zscaler|ZSA' } |
+                Select-Object Name, InterfaceDescription, InterfaceIndex, Status, MacAddress, ifIndex
+
+    $defaultRoute4 = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
+                     Sort-Object RouteMetric, InterfaceMetric | Select-Object -First 1
+    $defaultAdapter = if ($defaultRoute4) {
+        Get-NetAdapter -InterfaceIndex $defaultRoute4.InterfaceIndex -ErrorAction SilentlyContinue |
+            Select-Object Name, InterfaceDescription, InterfaceIndex, Status
+    }
+
+    $routes = $null
+    if ($IncludeRoutes) {
+        $routes = Get-NetRoute -ErrorAction SilentlyContinue |
+                  Where-Object { $_.DestinationPrefix -in @('0.0.0.0/0','::/0') -or $_.InterfaceIndex -in ($adapters.InterfaceIndex) } |
+                  Sort-Object AddressFamily, RouteMetric, InterfaceMetric |
+                  Select-Object AddressFamily, DestinationPrefix, NextHop, InterfaceIndex, RouteMetric, InterfaceMetric
+    }
+
+    # 5) Root certificates containing "Zscaler"
+    $zscalerCerts = @()
+    foreach ($store in @('Cert:\LocalMachine\Root','Cert:\CurrentUser\Root')) {
+        $zscalerCerts += Get-ChildItem $store -ErrorAction SilentlyContinue |
+            Where-Object { $_.Subject -match 'Zscaler' -or $_.Issuer -match 'Zscaler' } |
+            Select-Object @{n='Store';e={$store}},
+                          Subject, Issuer, NotAfter, Thumbprint, FriendlyName
+    }
+
+    # 6) Common file system paths
+    $paths = @(
+        'C:\Program Files\Zscaler',
+        'C:\Program Files (x86)\Zscaler',
+        'C:\ProgramData\Zscaler',
+        "$env:LOCALAPPDATA\Zscaler",
+        "$env:PROGRAMDATA\Zscaler"
+    ) | ForEach-Object {
+        if (Test-Path $_) { $_ }
+    }
+
+    $result = [pscustomobject]@{
+      ComputerName       = $env:COMPUTERNAME
+      UserName           = $env:USERNAME
+      PowerShellVersion  = $PSVersionTable.PSVersion.ToString()
+      InstalledApps      = $installed
+      Services           = $services
+      Processes          = $processes
+      ProxyWinINET_User  = $inetCU
+      ProxyWinINET_Machine = $inetLM
+      ProxyWinHTTP       = $winHttpProxy
+      DefaultAdapter     = $defaultAdapter
+      DefaultRouteIPv4   = if ($defaultRoute4) { [pscustomobject]@{ NextHop=$defaultRoute4.NextHop; IfIndex=$defaultRoute4.InterfaceIndex; RouteMetric=$defaultRoute4.RouteMetric; InterfaceMetric=$defaultRoute4.InterfaceMetric } }
+      ZscalerAdapters    = $adapters
+      RoutesSummary      = $routes
+      ZscalerRootCerts   = $zscalerCerts
+      ExistingPaths      = $paths
+    }
+
+    if ($AsJson) {
+        $result | ConvertTo-Json -Depth 6
+    } else {
+        $result
+    }
+}
+
 
