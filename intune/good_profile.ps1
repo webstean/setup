@@ -835,9 +835,9 @@ function Get-RDS-Drives {
         }    
     }
 }
-if ($VirtualMachine -eq $true) {
-    Get-RDS-Drives
-}
+#if ($VirtualMachine -eq $true) {
+#    Get-RDS-Drives
+#}
 
 function Set-Azure-Developer-Environment {
     
@@ -1577,7 +1577,6 @@ function Get-EntraID-Info {
 $VerbosePreference = 'Continue'
 
 if ( ($env:DEVELOPER -eq "Yes") -and ($IsLanguagePermissive -eq $true) ) { 
-    Write-Host "aa"
     ## dotnet shell completions
     dotnet completions script pwsh | Out-String | Invoke-Expression -ErrorAction SilentlyContinue
     azd completion powershell | Out-String | Invoke-Expression -ErrorAction SilentlyContinue
