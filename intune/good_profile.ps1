@@ -116,10 +116,11 @@ function Get-HostPlatform {
         }
     }
 
-if ($IsLanguagePermissive) {
-    [pscustomobject]@{
-        VirtualMachine = $virtualMachine
-        Type           = $type
+    if ($IsLanguagePermissive) {
+        [pscustomobject]@{
+            VirtualMachine = $virtualMachine
+            Type           = $type
+        }
     }
 }
 Get-HostPlatform
