@@ -1795,7 +1795,7 @@ function Get-HttpsCertificateInfo {
             }
 
             # Emit a clean object
-            [pscustomobject]@{
+            $details = [pscustomobject]@{
                 Hostname           = $fqdn
                 Port               = $Port
                 OwnerSubject       = $cert2.Subject
