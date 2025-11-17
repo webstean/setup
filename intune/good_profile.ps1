@@ -1704,7 +1704,7 @@ function Get-HttpsCertificateInfo {
         [int]$TimeoutMs = 8000,
 
         # Use proxy (Zscaler etc..)
-        [bool]$proxy = $true
+        #[bool]$proxy = $true,
 
         # Optional: constrain TLS versions if needed (useful on older hosts)
         [System.Security.Authentication.SslProtocols]$TlsProtocols = (
