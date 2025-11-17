@@ -1032,14 +1032,14 @@ function Get-Meta { ##IMDS
     $uri = "http://169.254.169.254/metadata/instance?api-version=2021-02-01"
     $response = Invoke-RestMethod -Uri $uri -Headers $headers -ErrorAction Stop
     if ($response ) {
-        $response | Format-List
-        $PSDefaultParameterValues['*:Verbose']   = $preserve
-        return $true
+        $response | Format-List 
     } else {
         throw "Not running inside Azure"
         $PSDefaultParameterValues['*:Verbose']   = $preserve
         return $false
     }
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
+    return $true
 }
 
 function Enable-PIMRole {
