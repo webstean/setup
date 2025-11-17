@@ -1594,15 +1594,17 @@ function Set-FolderAclUsersModify {
             if ($TakeOwnership) {
                 if ($PSCmdlet.ShouldProcess($target, "Take ownership (recursive)")) {
                     & takeown /f "$target" /r /d y | Out-Null
-                    Invoke-Icacls -Args @("$target", '/setowner', 'Administrators', '/t', '/c') | Out-Null
+                    Invoke-Icacls -Args @("$target", '/setowner', 'Users', '/t', '/c') | Out-Null
                 }
             }
 
             # 2) Inheritance control
             if ($BreakInheritance) {
+                ## Disable
                 Invoke-Icacls -Args @("$target", '/inheritance:d', '/c') | Out-Null
             }
             else {
+                ## Enable
                 Invoke-Icacls -Args @("$target", '/inheritance:e', '/c') | Out-Null
             }
 
@@ -1617,11 +1619,11 @@ function Set-FolderAclUsersModify {
             $recurseFlag = if ($Recurse) { '/t' } else { $null }
 
             # Keep SYSTEM/Admins Full Control
-            Invoke-Icacls -Args @("$target", '/grant', "${SidSystem}:$inheritFlags(F)", $recurseFlag, '/c') | Out-Null
-            Invoke-Icacls -Args @("$target", '/grant', "${SidAdmins}:$inheritFlags(F)", $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidSystem}:${inheritFlags}(F)",     $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidAdmins}:${inheritFlags}(F)",     $recurseFlag, '/c') | Out-Null
 
             # Give Users Modify (NOT Full Control)
-            Invoke-Icacls -Args @("$target", '/grant', "${SidUsers}:$inheritFlags(M)", $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidUsers}:${inheritFlags}(M)",      $recurseFlag, '/c') | Out-Null
 
             # 5) Display resulting ACEs on the root for verification
             Write-Verbose "Final ACL (root):"
@@ -1634,4 +1636,5 @@ function Set-FolderAclUsersModify {
 }
 #Set-FolderAclUsersModify -Path "$env:SystemDrive\Bin"
 #Set-FolderAclUsersModify -Path "$env:SystemDrive\Workspaces"
+#Set-FolderAclUsersModify -Path "$env:SystemDrive\Scripts"
 
