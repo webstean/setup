@@ -1109,3 +1109,13 @@ if (Test-Path $wauConfig) {
     $json.ShowUpdatesFound = $false
     $json | ConvertTo-Json -Depth 4 | Set-Content $wauConfig -Encoding UTF8
 }
+
+Add-Type -AssemblyName System.Windows.Forms
+
+$global:balloon = New-Object System.Windows.Forms.NotifyIcon
+$path = (Get-Process -Id $PID).Path
+$global:balloon.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon($path)
+$global:balloon.BalloonTipTitle = "Developer Setup"
+$global:balloon.BalloonTipText  = "DEVELOPER-SYSTEM has finished"
+$global:balloon.Visible = $true
+$global:balloon.ShowBalloonTip(5000)
