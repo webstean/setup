@@ -1495,7 +1495,10 @@ function Get-EntraID-Info {
 ## Show verbose messages
 $VerbosePreference = 'Continue'
 
-dotnet completions script pwsh | out-String | Invoke-Expression -ErrorAction SilentlyContinue
+if ( $env.DEVELOPER -eq "Yes" ) { 
+    ## dotnet shell completions
+    dotnet completions script pwsh | out-String | Invoke-Expression -ErrorAction SilentlyContinue
+}
 
 function Set-FolderAclUsersModify {
     <#
