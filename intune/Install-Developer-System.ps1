@@ -759,6 +759,7 @@ if (-Not (Test-Path -Path "${Bin}" -PathType Container -ErrorAction SilentlyCont
 } else {
     Write-Output "Directory ${Bin} already exists." 
 }
+icacls "$env:SystemDrive\BIN" /grant "Users:(M)" /t | Out-Null
 
 # Download the contents of an entire folder from a public repo in C:\BIN
 Get-GitHubDirectory -Owner 'webstean' -Repo 'setup' -Branch 'main' -Path 'intune/bin' -Destination "${BIN}"
