@@ -1810,6 +1810,13 @@ function Show-Toast-Message {
     # Only show toasts in interactive user sessions
     if (-not [Environment]::UserInteractive) { return }
 
+    if ( -not $IsLanguagePermissive) {
+        Write-Host ("Toast messages aren't supported when PowerShell is not in FullLanguage mode")
+        Write-Host $Title
+        Write-Host $Message
+        return        
+    } 
+
     # Ensure required assemblies are available
     #try {
     #    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
