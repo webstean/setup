@@ -1012,7 +1012,7 @@ function Get-EntraID {
         throw "Environment variable AZURE_TENANT_ID not set"
     }
     $response = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration" -ErrorAction Stop
-    if (response ) {
+    if ($response ) {
         $PSDefaultParameterValues['*:Verbose']   = $preserve
         $response | Format-List authorization_endpoint, token_endpoint, issuer, jwks_uri
         return $true
@@ -1031,7 +1031,7 @@ function Get-Meta { ##IMDS
     $headers = @{ "Metadata" = "true" }
     $uri = "http://169.254.169.254/metadata/instance?api-version=2021-02-01"
     $response = Invoke-RestMethod -Uri $uri -Headers $headers -ErrorAction Stop
-    if (response ) {
+    if ($response ) {
         $response | Format-List
         $PSDefaultParameterValues['*:Verbose']   = $preserve
         return $true
