@@ -1790,11 +1790,11 @@ function Get-HttpsCertificateInfo {
 
 # Examples:
 # Show owner/subject for a site
-# Get-HttpsCertificateInfo -Host "www.microsoft.com"
-# Get-HttpsCertificateInfo -Host "cnn.com"
+# Get-HttpsCertificateInfo -Fqdn "www.microsoft.com"
+# Get-HttpsCertificateInfo -Fqdn "cnn.com"
 
 # Export the certificate to a file as well
-# Get-HttpsCertificateInfo -Host "example.com" -ExportCerPath "C:\Temp\example.cer"
+# Get-HttpsCertificateInfo -Fqdn "example.com" -ExportCerPath "C:\Temp\example.cer"
 
 function Show-Toast-Message {
     [CmdletBinding()]
