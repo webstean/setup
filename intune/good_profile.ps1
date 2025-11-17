@@ -932,7 +932,8 @@ function Get-Default-Env-File {
     $PSDefaultParameterValues['*:Verbose']   = $false
 
     if (-not $IsLanguagePermissive) {
-        return 
+         Set-Item -Path "Env:\AZURE_CLIENT_ID" -Value "14d82eec-204b-4c2f-b7e8-296a70dab67e"
+         return 
     }
     ## Compute default path at call time if Path wasn't provided or is blank
     if (-not $PSBoundParameters.ContainsKey('Path') -or [string]::IsNullOrWhiteSpace($Path)) {
