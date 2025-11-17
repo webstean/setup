@@ -1361,7 +1361,7 @@ function Get-Token-Device-Flow { ## without Graph Modules
     return $false
 }
 
-function Get-Token-Interactive {
+function Get-Token-Interactive { ## via Browser
     <#
         .SYNOPSIS
         Interactive Microsoft Entra ID / Microsoft Graph login that works in
@@ -1417,6 +1417,8 @@ function Get-Token-Interactive {
     Write-Verbose "Using ClientId: $ClientId"
     Write-Verbose "Using Scopes  : $Scopes"
 
+    Write-Host "Attempting to logon as Client_ID $ClientId to Tenant: $TenantId with these scopes: $Scopes"
+    return 
     # Build the authorize URL
     $authUrl = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/authorize" +
                "?client_id=$ClientId" +
