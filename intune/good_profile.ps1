@@ -526,8 +526,7 @@ function Install-OrUpdateModule {
                 ## Install-PSResource -Name PackageManagement -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
                 Install-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
             }
-        }
-        else {
+        } else {
             Write-Host "Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
             ## Update-PSResource -Name PackageManagement -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue
             if ($prerelease) {
@@ -865,7 +864,10 @@ function Set-Azure-Developer-Environment {
     } else {
         Remove-Item -Path Env:\AZURE_USERNAME -Force -ErrorAction SilentlyContinue
     }
-    
+}
+#Set-Azure-Developer-Environment
+
+function Set-Env-from-File {
     if (
         -not [string]::IsNullOrEmpty($UPN) -and
         -not [string]::IsNullOrEmpty($AZURE_SUBSCRIPTION_ID) -and
@@ -880,20 +882,8 @@ AZURE_USERNAME=$env:UPN
 "@ | Out-File -Encoding UTF8 -FilePath "$HOME/.env-default"
     Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env-default" -Force
     Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env" -Force
-    }
-    # $Host.UI.RawUI.WindowTitle = "Andrew"
-    
-    #$raw = $Host.UI.RawUI
-    #$raw.BufferSize = New-Object System.Management.Automation.Host.Size(
-    #[Math]::Max($raw.BufferSize.Width, 160),  # width
-    #5000                                      # height
-    #)
-    ## Alternative
-    #$Host.UI.RawUI.BufferSize.Width = 120
-    #$Host.UI.RawUI.BufferSize.Height = 5000
-    #$Host.UI.RawUI.WindowTop = 0
 }
-Set-Azure-Developer-Environment
+#Set-Env-from-File {
 
 function Get-Default-EnvFile {
     [CmdletBinding()]
@@ -950,6 +940,7 @@ function Get-Default-EnvFile {
     $PSDefaultParameterValues['*:Verbose']   = $preserve
     return $envVars
 }
+Get-Default-EnvFile
 
 function Import-EnvFile {
     param(
@@ -989,14 +980,14 @@ function Import-EnvFile {
         }
     }
     Write-Host "Portal Logon: https://entra.microsoft.com/?tenant=$env:AZURE_TENANT_ID"
-#    if ($env:AZURE_USERNAME) {
-#        Write-Host "Logon as: $env:AZURE_USERNAME"
-#        if ( $env:AZURE_CLIENT_ID ) {
-#            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID --ClientId $env:AZURE_CLIENT_ID -Scope User.Read"
-#        } else {
-#            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope User.Read"
-#        }
-#    }
+    if ( $env:AZURE_CLIENT_ID ) {
+        Write-Host "DELEGATIUON"
+        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID --ClientId $env:AZURE_CLIENT_ID -Scope User.Read"
+    }  else {
+        Write-Host "AS USER"
+        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope User.Read"
+    }
+
     $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
 
