@@ -42,6 +42,43 @@ function Update-Profile-Force {
 }
 #Update-Profile-Force
 
+## FullLanguage: No restrictions (default in most PowerShell sessions)
+## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
+## RestrictedLanguage: Very limited (e.g., only basic expressions)
+## NoLanguage: No scripting allowed at all
+$acceptableModes = @("FullLanguage")
+$unacceptableModes = @("ConstrainedLanguage", "RestrictedLanguage", "NoLanguage")
+$currentMode = $ExecutionContext.SessionState.LanguageMode.ToString()
+$IsLanguagePermissive = $currentMode -in $acceptableModes
+
+$UTF8 = $false
+if ($IsLanguagePermissive) {
+    [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
+} 
+if ([bool](Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage').ACP -eq '65001') { 
+    Write-Host  -ForegroundColor DarkGreen ("UTF-8 output encoding enabled")
+    $UTF8 = $true
+}
+
+# Get the current language mode
+if ($IsLanguagePermissive) {
+    Write-Host -ForegroundColor DarkGreen "PowerShell Language Mode is: $currentMode"
+    $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+} else {
+    Write-Host -ForegroundColor DarkYellow "PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
+    $IsAdmin = $null -ne (whoami /groups | Select-String "S-1-5-32-544")
+}
+
+# Set install scope variable based on elevation
+## if ($IsAdmin -and $IsLanguagePermissive) {
+if ($IsAdmin) {
+    $InstallScope = 'AllUsers'
+    Write-Host -ForegroundColor DarkRed "User permisisons is        : ADMIN"
+} else {
+    $InstallScope = 'CurrentUser'
+    Write-Host -ForegroundColor DarkYellow "User permisisons is        : USER"
+}
+
 $VirtualMachine = $true
 $type = $null
 
@@ -79,6 +116,7 @@ function Get-HostPlatform {
         }
     }
 
+if ($IsLanguagePermissive) {
     [pscustomobject]@{
         VirtualMachine = $virtualMachine
         Type           = $type
@@ -132,42 +170,6 @@ if ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue )) {
     ## docker run --rm -it ghcr.io/baresip/docker/baresip:latest
 }
 
-## FullLanguage: No restrictions (default in most PowerShell sessions)
-## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
-## RestrictedLanguage: Very limited (e.g., only basic expressions)
-## NoLanguage: No scripting allowed at all
-$acceptableModes = @("FullLanguage")
-$unacceptableModes = @("ConstrainedLanguage", "RestrictedLanguage", "NoLanguage")
-$currentMode = $ExecutionContext.SessionState.LanguageMode.ToString()
-$IsLanguagePermissive = $currentMode -in $acceptableModes
-
-$UTF8 = $false
-if ($IsLanguagePermissive) {
-    [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
-} 
-if ([bool](Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage').ACP -eq '65001') { 
-    Write-Host  -ForegroundColor DarkGreen ("UTF-8 output encoding enabled")
-    $UTF8 = $true
-}
-
-# Get the current language mode
-if ($IsLanguagePermissive) {
-    Write-Host -ForegroundColor DarkGreen "PowerShell Language Mode is: $currentMode"
-    $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-} else {
-    Write-Host -ForegroundColor DarkYellow "PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
-    $IsAdmin = $null -ne (whoami /groups | Select-String "S-1-5-32-544")
-}
-
-# Set install scope variable based on elevation
-## if ($IsAdmin -and $IsLanguagePermissive) {
-if ($IsAdmin) {
-    $InstallScope = 'AllUsers'
-    Write-Host -ForegroundColor DarkRed "User permisisons is        : ADMIN"
-} else {
-    $InstallScope = 'CurrentUser'
-    Write-Host -ForegroundColor DarkYellow "User permisisons is        : USER"
-}
 
 function Set-Developer-Variables {
     ## Edit as required
@@ -926,7 +928,10 @@ function Get-Default-Env-File {
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
 
-    # Compute default path at call time if Path wasn't provided or is blank
+    if (-not $IsLanguagePermissive) {
+        return 
+    }
+    ## Compute default path at call time if Path wasn't provided or is blank
     if (-not $PSBoundParameters.ContainsKey('Path') -or [string]::IsNullOrWhiteSpace($Path)) {
         if ($env:OneDriveCommercial) {
             $Path = Join-Path $env:OneDriveCommercial ".env-default"
@@ -940,7 +945,7 @@ function Get-Default-Env-File {
     }
 
     if (-not (Test-Path -Path $Path)) {
-        Write-Error "The .env file was not found: $Path"
+        Write-Host "The .env-default file was not found"
         return $null
     }
 
