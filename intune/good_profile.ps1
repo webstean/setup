@@ -1791,3 +1791,59 @@ function Get-HttpsCertificateInfo {
 # Export the certificate to a file as well
 # Get-HttpsCertificateInfo -Host "example.com" -ExportCerPath "C:\Temp\example.cer"
 
+function Show-Toast-Message {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Title,
+
+        [Parameter(Mandatory, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Message,
+
+        [int]$DurationMs = 5000   # how long to show the balloon
+    )
+
+    # Only show toasts in interactive user sessions
+    if (-not [Environment]::UserInteractive) { return }
+
+    # Ensure required assemblies are available
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+        Add-Type -AssemblyName System.Drawing       -ErrorAction Stop
+    }
+    catch {
+        Write-Warning "Windows Forms / Drawing not available in this session: $($_.Exception.Message)"
+        return
+    }
+
+    $notifyIcon = $null
+    try {
+        $notifyIcon = New-Object System.Windows.Forms.NotifyIcon
+
+        # Try to use the current process icon; fall back to an information icon
+        $procPath = (Get-Process -Id $PID).Path
+        $icon = $null
+        try { $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($procPath) } catch {}
+        if (-not $icon) { $icon = [System.Drawing.SystemIcons]::Information }
+
+        $notifyIcon.Icon            = $icon
+        $notifyIcon.Visible         = $true
+        $notifyIcon.BalloonTipTitle = $Title
+        $notifyIcon.BalloonTipText  = $Message
+
+        # Show the notification
+        $notifyIcon.ShowBalloonTip($DurationMs)
+
+        # Give Windows time to display before disposing
+        Start-Sleep -Milliseconds $DurationMs
+    }
+    finally {
+        if ($notifyIcon) {
+            $notifyIcon.Visible = $false
+            $notifyIcon.Dispose()
+        }
+    }
+}
+
