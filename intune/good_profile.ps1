@@ -1704,6 +1704,11 @@ function Get-HttpsCertificateInfo {
         [int]$TimeoutMs = 8000
     )
 
+    if ( -not $IsLanguagePermissive) {
+        Write-Host ("Cannot inspect certificates when PowerShell is not in FullLanguage mode")
+        return        
+    } 
+
     begin {
         # Helper to extract SANs from the certificate
         function Get-SubjectAltNames([System.Security.Cryptography.X509Certificates.X509Certificate2]$cert) {
