@@ -970,6 +970,11 @@ function Get-Default-Env-File {
         Set-Item -Path "Env:\$key" -Value "$value"
     }
 
+    ## Make sure AZURE_CLIENT_ID gets set to well known value
+    if ( ($null -eq $env:AZURE_CLIENT_ID )) {
+        Set-Item -Path "Env:\AZURE_CLIENT_ID" -Value "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
+    }
+    
     $PSDefaultParameterValues['*:Verbose']   = $preserve
     return $envVars
 }
@@ -1236,7 +1241,7 @@ function Enable-PIMRole {
 function Get-Token-Graph {  ## with Graph PowerShell Modules
     [CmdletBinding()]
     param(
-        [string[]]$Scopes = @('.default') ##@('Mail.ReadBasic','Mail.Read')
+        [string[]]$Scopes = @('User.Read') ##@('Mail.ReadBasic','Mail.Read')
     )
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
@@ -1251,7 +1256,7 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     if ( (Check-Azure-Environment) -eq $false ) {
         throw "Correct environment variables are NOT defined!"
     }
-    Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope "$scopes"
+    Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope "$scopes" -NoWelcome
     
     $params = @{
         Method     = 'GET'
