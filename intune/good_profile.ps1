@@ -602,10 +602,13 @@ foreach ($alias in 't', 'tf', 'tv', 'ti' ) {
     if ([bool](Get-Alias $alias -ErrorAction SilentlyContinue)) { Remove-Item Alias:$alias -force }
 }
 
+## Terraform shortcuts
 function t { terraform.exe @args }
 function tf { terraform.exe fmt @args}
 function tv { terraform.exe validate @args }
 function ti { terraform.exe init -upgrade @args}
+## Sysinternal shortcuts
+function handle { handle.exe init -nobanner @args}
  
 function cdw { Set-Location c:\workspaces }
 
