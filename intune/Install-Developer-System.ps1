@@ -148,6 +148,10 @@ function Install-OrUpdate-DotNetTools {
 
     $Arguments = "tool list --global"
     Start-Process -FilePath "dotnet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru -ErrorAction SilentlyContinue
+
+    ## Add source, for searching
+    $Arguments = "nuget add source https://api.nuget.org/v3/index.json -n searchnuget.org"
+    Start-Process -FilePath "dotnet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru -ErrorAction SilentlyContinue
 }
 Install-OrUpdate-DotNetTools
 
@@ -854,7 +858,7 @@ function Set-FolderAclUsersModify {
             if ($TakeOwnership) {
                 if ($PSCmdlet.ShouldProcess($target, "Take ownership (recursive)")) {
                     & takeown /f "$target" /r /d y | Out-Null
-                    Invoke-Icacls -Args @("$target", '/setowner', 'Administrators', '/t', '/c') | Out-Null
+                    Invoke-Icacls -Args @("$target", '/setowner', 'Users', '/t', '/c') | Out-Null
                 }
             }
 
@@ -883,7 +887,7 @@ function Set-FolderAclUsersModify {
             Invoke-Icacls -Args @("$target", '/grant', "${SidAdmins}:$inheritFlags(F)",     $recurseFlag, '/c') | Out-Null
 
             # Give Users Modify (NOT Full Control)
-            Invoke-Icacls -Args @("$target", '/grant', "$SidUsers:$inheritFlags(M)",      $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidUsers}:$inheritFlags(M)",      $recurseFlag, '/c') | Out-Null
 
             # 5) Display resulting ACEs on the root for verification
             Write-Verbose "Final ACL (root):"
@@ -897,20 +901,26 @@ function Set-FolderAclUsersModify {
 #Set-FolderAclUsersModify -Path "$env:SystemDrive\Bin"
 #Set-FolderAclUsersModify -Path "$env:SystemDrive\Workspaces"
 
-
 ## Bin
 #$usersGroup = [System.Security.Principal.NTAccount]"BUILTIN\Users"
 #icacls "$env:SystemDrive\Bin" /inheritance:d | Out-Null
+#icacls "$env:SystemDrive\Workspaces" /setowner "Users" /T
 #icacls "$env:SystemDrive\Bin" /grant "$($usersGroup.Value):(M)" /t | Out-Null
 #icacls "$env:SystemDrive\Bin" | findstr /i "BUILTIN\Users"
 
 ## Workspaces
-$usersGroup = [System.Security.Principal.NTAccount]"BUILTIN\Users"
-icacls "$env:SystemDrive\Workspaces" /inheritance:d | Out-Null
-icacls "$env:SystemDrive\Workspaces" /setowner "Users" /T
-icacls "$env:SystemDrive\Workspaces" /grant "$($usersGroup.Value):(M)" /t | Out-Null
-icacls "$env:SystemDrive\Workspaces" | findstr /i "BUILTIN\Users"
+#$usersGroup = [System.Security.Principal.NTAccount]"BUILTIN\Users"
+#icacls "$env:SystemDrive\Workspaces" /inheritance:d | Out-Null
+#icacls "$env:SystemDrive\Workspaces" /setowner "Users" /T
+#icacls "$env:SystemDrive\Workspaces" /grant "$($usersGroup.Value):(M)" /t | Out-Null
+#icacls "$env:SystemDrive\Workspaces" | findstr /i "BUILTIN\Users"
 
+## Scripts
+#$usersGroup = [System.Security.Principal.NTAccount]"BUILTIN\Users"
+#icacls "$env:SystemDrive\Scripts" /inheritance:d | Out-Null
+#icacls "$env:SystemDrive\Scripts" /setowner "Users" /T
+#icacls "$env:SystemDrive\Scripts" /grant "$($usersGroup.Value):(M)" /t | Out-Null
+#icacls "$env:SystemDrive\Scripts" | findstr /i "BUILTIN\Users"
 
 function Set-Users-Modify-NTFS {
     $Workspaces = "$env:SystemDrive\Workspaces"
