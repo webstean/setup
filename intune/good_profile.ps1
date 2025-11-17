@@ -844,9 +844,9 @@ function Import-Nice-Modules {
 }
 Import-Nice-Modules
 
-function Set-Azure-Developer-Environment {
+function Set-Azure-Environment {
     
-    if ( -not ( $env:DEVELOPER -eq "Yes" )) { return }
+    ## if ( -not ( $env:DEVELOPER -eq "Yes" )) { return }
 
     $subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id
     if (-not [string]::IsNullOrEmpty($subscription_id)) {
@@ -895,6 +895,7 @@ AZURE_USERNAME=$env:UPN
         Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env" -Force
     } else {
         Write-Host "Not enough environment variables defined!"
+        Write-Host " Run: Set-Azure-Environment" 
     }
 }
 #Create-Default-Env-File
