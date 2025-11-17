@@ -317,6 +317,9 @@ function Set-MSTerminalSetting {
         Set-JsonValue -JsonObject $json -Path "profiles.defaults.backgroundImage" -Value $BackgroundImage
     } else {
         Write-Host "Warning: $BackgroundImage NOT found!"
+        if ( Test-Path "$PSScriptRoot/logo.png" ) {
+            Set-JsonValue -JsonObject $json -Path "profiles.defaults.backgroundImage" -Value "$PSScriptRoot/logo.png"
+        }
     }
 
     ## Write the updated settings back
