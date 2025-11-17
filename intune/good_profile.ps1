@@ -898,7 +898,7 @@ function Create-Default-Env-File {
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
     
-    if ( Check-Azure-Enviromment ) {
+    if ( (Check-Azure-Environment) -eq $true ) {
         Write-Host "Writing out default .env file"
         @"
 # $env:AZURE_TENANT_NAME .env file
@@ -1248,7 +1248,7 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     #if (-not (Get-MgContext)) {
     #    Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope "$scopes"
     #}
-    if ( -not Check-Azure-Environment ) {
+    if ( (Check-Azure-Environment) -eq $false ) {
         throw "Correct environment variables are NOT defined!"
     }
     Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope "$scopes"
@@ -1328,7 +1328,7 @@ function Get-Token-Device-Flow { ## without Graph Modules
     if (-not $ClientId) {
         throw "ClientId not provided and no environment variable (AZURE_CLIENT_ID/ARM_CLIENT_ID/AAD_CLIENT_ID) was found."
     }
-    if ( -not Check-Azure-Environment ) {
+    if ( (Check-Azure-Environment) -eq $false ) {
         throw "Correct environment variables are NOT defined!"
     }
     Write-Verbose "Using TenantId: $TenantId"
