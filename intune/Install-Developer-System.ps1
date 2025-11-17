@@ -1112,12 +1112,4 @@ if (Test-Path $wauConfig) {
 
 Add-Type -AssemblyName System.Windows.Forms
 
-function Show-Tost-Message {
-    $global:balloon = New-Object System.Windows.Forms.NotifyIcon
-    $path = (Get-Process -Id $PID).Path
-    $global:balloon.Icon = [System.Drawing.Icon]::ExtractAssociatedIcon($path)
-    $global:balloon.BalloonTipTitle = "Developer Setup"
-    $global:balloon.BalloonTipText  = "DEVELOPER-SYSTEM has finished"
-    $global:balloon.Visible = $true
-    $global:balloon.ShowBalloonTip(5000) ## Show for 5 seconds
-}
+
