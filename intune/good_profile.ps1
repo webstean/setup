@@ -1846,4 +1846,5 @@ function Show-Toast-Message {
         }
     }
 }
+#Show-Toast-Message -Title "Title" -Message "Message"
 
