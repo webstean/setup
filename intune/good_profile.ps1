@@ -1735,7 +1735,7 @@ function Get-HttpsCertificateInfo {
 
             # Grab the remote certificate
             $remoteCert = $ssl.RemoteCertificate
-            if (-not $remoteCert) { throw "No certificate presented by $Host:$Port." }
+            if (-not $remoteCert) { throw "No certificate presented by ${Host}:${Port}." }
 
             $cert2 = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $remoteCert
 
@@ -1787,6 +1787,7 @@ function Get-HttpsCertificateInfo {
 # Examples:
 # Show owner/subject for a site
 # Get-HttpsCertificateInfo -Host "www.microsoft.com"
+# Get-HttpsCertificateInfo -Host "cnn.com"
 
 # Export the certificate to a file as well
 # Get-HttpsCertificateInfo -Host "example.com" -ExportCerPath "C:\Temp\example.cer"
