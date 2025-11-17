@@ -40,7 +40,51 @@ function Update-Profile-Force {
         Write-Host "No existing file found - new file created." -ForegroundColor Cyan
     }
 }
-# Update-Profile-Force
+#Update-Profile-Force
+
+$VirtualMachine = $true
+
+function Get-HostPlatform {
+
+    if ($env:IsDevBox -eq "True" ) {
+        $VirtualMachine = $true
+        $type = "Azure DevBox"
+        return
+    }
+
+    $cs = Get-CimInstance Win32_ComputerSystem
+    $model = "$($cs.Manufacturer) $($cs.Model)"
+    
+    switch -Regex ($model) {
+        "VMware" {
+            $VirtualMachine = $true
+            $type = "VMware virtual machine"
+        }
+        "VirtualBox" {
+            $VirtualMachine = $true
+            $type = "Oracle VirtualBox VM"
+        }
+        "Microsoft.*Virtual" {
+            $VirtualMachine = $true
+            $type = "Hyper-V / Azure virtual machine"
+        }
+        "QEMU|KVM" {
+            $VirtualMachine = $true
+            $type = "KVM/QEMU virtual machine"
+        }
+        default {
+            $VirtualMachine = $false
+            $type = "Likely bare-metal physical machine"
+        }
+    }
+
+#    [pscustomobject]@{
+#        Manufacturer = $cs.Manufacturer
+#        Model        = $cs.Model
+#        DetectedType = $type
+#    }
+}
+#Get-HostPlatform
 
 function Search {
     [CmdletBinding()]
