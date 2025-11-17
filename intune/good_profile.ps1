@@ -1724,7 +1724,7 @@ function Get-HttpsCertificateInfo {
         try {
             $connectTask = $client.ConnectAsync($Host, $Port)
             if (-not $connectTask.Wait($TimeoutMs)) {
-                throw "Timeout connecting to $Host:$Port after $TimeoutMs ms."
+                throw "Timeout connecting to ${Host}:${Port} after ${TimeoutMs} ms."
             }
 
             $stream = $client.GetStream()
