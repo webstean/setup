@@ -171,7 +171,7 @@ if ($IsAdmin) {
 
 function Set-Developer-Variables {
     ## Edit as required
-    if ( -not ( $env.DEVELOPER -eq "Yes" )) { return }
+    if ( -not ( $env:DEVELOPER -eq "Yes" )) { return }
     Write-Host "Setting Developer environment variables..."
     ## Dont send telemetry to Microsoft
     Set-Item -Path Env:\FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT -Value $true
@@ -841,7 +841,7 @@ function Get-RDS-Drives {
 
 function Set-Azure-Developer-Environment {
     
-    if ( -not ( $env.DEVELOPER -eq "Yes" )) { return }
+    if ( -not ( $env:DEVELOPER -eq "Yes" )) { return }
 
     $subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id
     if (-not [string]::IsNullOrEmpty($subscription_id)) {
