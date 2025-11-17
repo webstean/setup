@@ -879,7 +879,7 @@ function Check-Azure-Environment {
     if (
         -not [string]::IsNullOrEmpty($AZURE_CLIENT_ID) -and
         -not [string]::IsNullOrEmpty($AZURE_SUBSCRIPTION_ID) -and
-        -not [string]::IsNullOrEmpty($AZURE_TENANT_ID) -and
+        -not [string]::IsNullOrEmpty($AZURE_TENANT_ID)
     ) {
         return $true
     }
@@ -1241,7 +1241,7 @@ function Enable-PIMRole {
 function Get-Token-Graph {  ## with Graph PowerShell Modules
     [CmdletBinding()]
     param(
-        [string[]]$Scopes = @('Mail.ReadBasic','Mail.Read')
+        [string[]]$Scopes = @('.default') ##@('Mail.ReadBasic','Mail.Read')
     )
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
@@ -1253,7 +1253,11 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     #if (-not (Get-MgContext)) {
     #    Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope "$scopes"
     #}
-
+    if ( -not Check-Azure-Environment ) {
+        throw "Correct environment variables are NOT defined!"
+    }
+    Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope "$scopes"
+    
     $params = @{
         Method     = 'GET'
         Uri        = 'https://graph.microsoft.com/v1.0/me/messages'
@@ -1531,42 +1535,6 @@ function Get-EntraUserInfo {
     }
 }
 
-function Test-Token-Email { ## with Graph Modules
-    ## Turn off verbose
-    $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
-
-    $params = @{
-        Method  = "GET"
-        Uri = "https://graph.microsoft.com/v1.0/me/messages" +
-           "?`$select=subject,receivedDateTime" +
-           "&`$orderby=receivedDateTime%20desc" +
-           "&`$top=5"
-    }
-    try {
-        $response = Invoke-RestMethod @params `
-        -Headers @{
-            Authorization = "Bearer $env:ACCESS_TOKEN"
-            Prefer        = "outlook.body-content-type='text'"
-        } -ErrorAction Stop
-    }
-    catch {
-        throw "Get email failed. $_"
-    }
-    ## Write-Verbose "OData Context:" $response.'@odata.context'
-    $Response.Headers
-    Write-Verbose ("OData Context: {0}" -f $response.'@odata.context')
-    $items = if ($response.PSObject.Properties.Name -contains 'value') { $response.value } else { @($response) }
-    $items
-    # Extract and process the message collection
-    $messages = $response.value | Select-Object `
-    @{n='ReceivedLocal';e={[datetime]$_.receivedDateTime.ToLocalTime()}},
-    @{n='Subject';e={$_.subject}}
-
-    $messages | Format-Table -AutoSize
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
-}
-
 function Get-Token-Info {
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
@@ -1605,6 +1573,47 @@ function Get-Token-Info {
     }
     $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
+
+function Test-Token-Email { ## with Graph Modules
+    ## Turn off verbose
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
+
+    $params = @{
+        Method  = "GET"
+        Uri = "https://graph.microsoft.com/v1.0/me/messages" +
+           "?`$select=subject,receivedDateTime" +
+           "&`$orderby=receivedDateTime%20desc" +
+           "&`$top=5"
+    }
+    try {
+        $response = Invoke-RestMethod @params `
+        -Headers @{
+            Authorization = "Bearer $env:ACCESS_TOKEN"
+            Prefer        = "outlook.body-content-type='text'"
+        } -ErrorAction Stop
+    }
+    catch {
+        throw "Get email failed. $_"
+    }
+    ## Write-Verbose "OData Context:" $response.'@odata.context'
+    $Response.Headers
+    Write-Verbose ("OData Context: {0}" -f $response.'@odata.context')
+    $items = if ($response.PSObject.Properties.Name -contains 'value') { $response.value } else { @($response) }
+    $items
+    # Extract and process the message collection
+    $messages = $response.value | Select-Object `
+    @{n='ReceivedLocal';e={[datetime]$_.receivedDateTime.ToLocalTime()}},
+    @{n='Subject';e={$_.subject}}
+
+    $messages | Format-Table -AutoSize
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
+}
+
+function Test-Token-Access { ## with Graph Modules
+-AccessToken
+
+
 
 function Get-EntraID-Info {
     ## Turn off verbose
