@@ -924,6 +924,8 @@ function Import-Env-File {
     param(
         [Parameter(Mandatory)]
         [string]$EnvId
+
+        [bool]$silent = $false
     )
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
@@ -985,22 +987,23 @@ function Import-Env-File {
         Write-Host "Something is wrong with $envId file"
         return 
     }
-    Write-Host "Portal Logon: https://entra.microsoft.com/?tenant=$env:AZURE_TENANT_ID"
-    if ( $env:AZURE_CLIENT_ID ) {
-        Write-Host "DELEGATIUON"
-        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope User.Read -NoWelcome"
-        Write-Host "Get-MgContext"
-    }  else {
-        Write-Host "AS USER"
-        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope User.Read" -NoWelcome
-        Write-Host "Get-MgContext"
+    if (-not $silent ) {
+        Write-Host "Portal Logon: https://entra.microsoft.com/?tenant=$env:AZURE_TENANT_ID"
+        if ( $env:AZURE_CLIENT_ID ) {
+            Write-Host "DELEGATIUON"
+            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope User.Read -NoWelcome"
+            Write-Host "Get-MgContext"
+        }  else {
+            Write-Host "AS USER"
+            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope User.Read" -NoWelcome
+            Write-Host "Get-MgContext"
+        }
     }
-
     $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
 
 function Get-Default-Env-File {
-    Import-Env-File default
+    Import-Env-File default -silent $true
 }
 Get-Default-Env-File
 
