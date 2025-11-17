@@ -1576,7 +1576,8 @@ function Get-EntraID-Info {
 ## Show verbose messages
 $VerbosePreference = 'Continue'
 
-if ( $env.DEVELOPER -eq "Yes" ) { 
+if ( ($env:DEVELOPER -eq "Yes") -and ($IsLanguagePermissive -eq $true) ) { 
+    Write-Host "aa"
     ## dotnet shell completions
     dotnet completions script pwsh | Out-String | Invoke-Expression -ErrorAction SilentlyContinue
     azd completion powershell | Out-String | Invoke-Expression -ErrorAction SilentlyContinue
