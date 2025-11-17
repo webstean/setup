@@ -860,9 +860,11 @@ function Set-FolderAclUsersModify {
 
             # 2) Inheritance control
             if ($BreakInheritance) {
+                ## Disable
                 Invoke-Icacls -Args @("$target", '/inheritance:d', '/c') | Out-Null
             }
             else {
+                ## Enable
                 Invoke-Icacls -Args @("$target", '/inheritance:e', '/c') | Out-Null
             }
 
@@ -877,8 +879,8 @@ function Set-FolderAclUsersModify {
             $recurseFlag = if ($Recurse) { '/t' } else { $null }
 
             # Keep SYSTEM/Admins Full Control
-            Invoke-Icacls -Args @("$target", '/grant', "$SidSystem:$inheritFlags(F)",     $recurseFlag, '/c') | Out-Null
-            Invoke-Icacls -Args @("$target", '/grant', "$SidAdmins:$inheritFlags(F)",     $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidSystem}:$inheritFlags(F)",     $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidAdmins}:$inheritFlags(F)",     $recurseFlag, '/c') | Out-Null
 
             # Give Users Modify (NOT Full Control)
             Invoke-Icacls -Args @("$target", '/grant', "$SidUsers:$inheritFlags(M)",      $recurseFlag, '/c') | Out-Null
@@ -895,10 +897,20 @@ function Set-FolderAclUsersModify {
 #Set-FolderAclUsersModify -Path "$env:SystemDrive\Bin"
 #Set-FolderAclUsersModify -Path "$env:SystemDrive\Workspaces"
 
+
+## Bin
 #$usersGroup = [System.Security.Principal.NTAccount]"BUILTIN\Users"
-#icacls "$Bin" /inheritance:e | Out-Null
-#icacls "$Bin" /grant "$($usersGroup.Value):(M)" /t | Out-Null
-#icacls "$Bin" | findstr /i "BUILTIN\Users"
+#icacls "$env:SystemDrive\Bin" /inheritance:d | Out-Null
+#icacls "$env:SystemDrive\Bin" /grant "$($usersGroup.Value):(M)" /t | Out-Null
+#icacls "$env:SystemDrive\Bin" | findstr /i "BUILTIN\Users"
+
+## Workspaces
+$usersGroup = [System.Security.Principal.NTAccount]"BUILTIN\Users"
+icacls "$env:SystemDrive\Workspaces" /inheritance:d | Out-Null
+icacls "$env:SystemDrive\Workspaces" /setowner "Users" /T
+icacls "$env:SystemDrive\Workspaces" /grant "$($usersGroup.Value):(M)" /t | Out-Null
+icacls "$env:SystemDrive\Workspaces" | findstr /i "BUILTIN\Users"
+
 
 function Set-Users-Modify-NTFS {
     $Workspaces = "$env:SystemDrive\Workspaces"
@@ -961,6 +973,7 @@ function Install-SysInternalsTools {
         @{ Name = "tcpview64.exe";   Friendly = "TCP View.exe" },
         @{ Name = "winobj64.exe";    Friendly = "Windows Object Viewer.exe" },
         @{ Name = "psping64.exe";    Friendly = "PS Ping.exe" },
+        @{ Name = "handle64.exe";    Friendly = "handle.exe" },
         @{ Name = "procexp64.exe";   Friendly = "Process Explorer.exe" },
         @{ Name = "procmon64.exe";   Friendly = "Process Monitor.exe" },
         @{ Name = "RDCMan.exe";      Friendly = "Remote Desktop Manager.exe" }
