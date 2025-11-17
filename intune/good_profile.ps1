@@ -1794,27 +1794,29 @@ function Get-HttpsCertificateInfo {
                 )
             }
 
+            $cert2
             # Emit a clean object
-            $details = [pscustomobject]@{
-                Hostname           = $fqdn
-                Port               = $Port
-                OwnerSubject       = $cert2.Subject
-                SubjectCN          = $cert2.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::DnsName, $false)
-                Issuer             = $cert2.Issuer
-                NotBefore          = $cert2.NotBefore
-                NotAfter           = $cert2.NotAfter
-                IsExpired          = ([DateTime]::UtcNow -ge $cert2.NotAfter.ToUniversalTime())
-                Thumbprint         = $cert2.Thumbprint
-                SerialNumber       = $cert2.SerialNumber
-                SignatureAlgorithm = $cert2.SignatureAlgorithm.FriendlyName
-                KeyAlgorithm       = $cert2.PublicKey.Oid.FriendlyName
-                KeySizeBits        = $cert2.PublicKey.Key.KeySize
-                SANs               = $san
-                ChainStatus        = $chain.ChainStatus.Status.ToString()
-                ExportedCerPath    = $ExportCerPath
-            }
+#            [PSCustomObject]@{
+#                Hostname           = $fqdn
+#                Port               = $Port
+#                OwnerSubject       = $cert2.Subject
+#                SubjectCN          = $cert2.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::DnsName, $false)
+#                Issuer             = $cert2.Issuer
+#                NotBefore          = $cert2.NotBefore
+#                NotAfter           = $cert2.NotAfter
+#                IsExpired          = ([DateTime]::UtcNow -ge $cert2.NotAfter.ToUniversalTime())
+#                Thumbprint         = $cert2.Thumbprint
+#                SerialNumber       = $cert2.SerialNumber
+#                SignatureAlgorithm = $cert2.SignatureAlgorithm.FriendlyName
+#                KeyAlgorithm       = $cert2.PublicKey.Oid.FriendlyName
+#                KeySizeBits        = $cert2.PublicKey.Key.KeySize
+#                SANs               = $san
+#                ChainStatus        = $chain.ChainStatus.Status.ToString()
+#                ExportedCerPath    = $ExportCerPath
+#            }
         }
         finally {
+            ## clean up
             if ($ssl)    { $ssl.Dispose() }
             if ($stream) { $stream.Dispose() }
             if ($client) { $client.Dispose() }
