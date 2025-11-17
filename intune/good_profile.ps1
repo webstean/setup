@@ -1711,13 +1711,12 @@ function Get-HttpsCertificateInfo {
         )
     )
 
-    # Ensure we're not in ConstrainedLanguage (common in locked-down hosts)
-    if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
-        Write-Host "Cannot inspect certificates: PowerShell LanguageMode is $($ExecutionContext.SessionState.LanguageMode)."
-        return
-    }
-
     begin {
+        # Ensure we're not in ConstrainedLanguage (common in locked-down hosts)
+        if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
+            Write-Host "Cannot inspect certificates: PowerShell LanguageMode is $($ExecutionContext.SessionState.LanguageMode)."
+            return
+        }
         function Get-SubjectAltNames {
             param([System.Security.Cryptography.X509Certificates.X509Certificate2]$cert)
             $out = @()
