@@ -1819,8 +1819,8 @@ function Show-Toast-Message {
 
     # Ensure required assemblies are available
     #try {
-    #    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
-    #    Add-Type -AssemblyName System.Drawing       -ErrorAction Stop
+    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+    Add-Type -AssemblyName System.Drawing       -ErrorAction Stop
     #}
     #catch {
     #    Write-Warning "Windows Forms / Drawing not available in this session: $($_.Exception.Message)"
