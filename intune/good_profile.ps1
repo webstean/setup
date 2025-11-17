@@ -1793,14 +1793,14 @@ function Get-HttpsCertificateInfo {
                 )
             }
 
-            $cert2
+            # $cert2
             # Emit a clean object
-#            [PSCustomObject]@{
-#                Hostname           = $fqdn
-#                Port               = $Port
-#                OwnerSubject       = $cert2.Subject
-#                SubjectCN          = $cert2.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::DnsName, $false)
-#                Issuer             = $cert2.Issuer
+            [PSCustomObject]@{
+                Hostname           = $fqdn
+                Port               = $Port
+                OwnerSubject       = $cert2.Subject
+                SubjectCN          = $cert2.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::DnsName, $false)
+                Issuer             = $cert2.Issuer
 #                NotBefore          = $cert2.NotBefore
 #                NotAfter           = $cert2.NotAfter
 #                IsExpired          = ([DateTime]::UtcNow -ge $cert2.NotAfter.ToUniversalTime())
@@ -1812,7 +1812,7 @@ function Get-HttpsCertificateInfo {
 #                SANs               = $san
 #                ChainStatus        = $chain.ChainStatus.Status.ToString()
 #                ExportedCerPath    = $ExportCerPath
-#            }
+            }
         }
         finally {
             ## clean up
