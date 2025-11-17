@@ -1023,7 +1023,7 @@ function Get-Meta { ##IMDS
         $response | Format-List
         $PSDefaultParameterValues['*:Verbose']   = $preserve
         return $true
-    } else 
+    } else {
         throw "Not running inside Azure"
         $PSDefaultParameterValues['*:Verbose']   = $preserve
         return $false
