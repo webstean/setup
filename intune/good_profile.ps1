@@ -973,6 +973,8 @@ function Import-Env-File {
             if ($IsLanguagePermissive) {
                 ## Make it permanent, if not constrained by PowerShell
                 [System.Environment]::SetEnvironmentVariable($key, $val, 'User')
+            } else {
+                Set-ItemProperty -Path "HKCU:\Environment" -Name $key -Value $val
             }
             Set-Item -Path "Env:\$key" -Value "$val"
             
