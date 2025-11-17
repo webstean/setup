@@ -1002,6 +1002,8 @@ function Import-Env-File {
 
             # Set environment variable
             [System.Environment]::SetEnvironmentVariable($key, $val, 'User')
+            Set-Item -Path "Env:\$key" -Value "$value"
+            
             Write-Verbose "Set `$Env:$key = '$val'"
         }
     }
