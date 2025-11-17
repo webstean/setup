@@ -1834,9 +1834,10 @@ function Show-Toast-Message {
         # Try to use the current process icon; fall back to an information icon
         $procPath = (Get-Process -Id $PID).Path
         $icon = $null
-        try { $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($procPath) } catch {}
-        if (-not $icon) { $icon = [System.Drawing.SystemIcons]::Information }
-
+        #try { $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($procPath) } catch {}
+        #if (-not $icon) { $icon = [System.Drawing.SystemIcons]::Information }
+        $icon = [System.Drawing.SystemIcons]::Information
+ 
         $notifyIcon.Icon            = $icon
         $notifyIcon.Visible         = $true
         $notifyIcon.BalloonTipTitle = $Title
