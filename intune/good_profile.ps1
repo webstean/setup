@@ -1935,7 +1935,7 @@ function Get-DefaultRouteAdapter {
 
             [pscustomobject]@{
                 AddressFamily       = if ($prefix -eq "::/0") { "IPv6" } else { "IPv4" }
-                InterfaceAlias      = $adapter.Name
+                DefaultRouterAdapter = $adapter.Name
                 InterfaceIndex      = $adapter.InterfaceIndex
                 InterfaceDescription= $adapter.InterfaceDescription
                 MACAddress          = $adapter.MacAddress
