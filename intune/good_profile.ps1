@@ -949,9 +949,9 @@ function Get-Default-Env-File {
     $PSDefaultParameterValues['*:Verbose']   = $preserve
     return $envVars
 }
-Get-Default-EnvFile
+Get-Default-Env-File
 
-function Import-EnvFile {
+function Import-Env-File {
     param(
         [Parameter(Mandatory)]
         [string]$Path
