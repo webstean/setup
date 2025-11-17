@@ -1358,7 +1358,6 @@ function Get-Token-Device-Flow { ## without Graph Modules
         }
 
     Write-Host "Attempting to logon as Client_ID $ClientId to Tenant: $TenantId with these scopes: $Scopes"
-    return
     Write-Host "`nGo to $($deviceCodeResponse.verification_uri) and enter code: $($deviceCodeResponse.user_code)" -ForegroundColor Yellow
     Write-Host "Waiting for sign-in and consent..." -ForegroundColor DarkGray
 
@@ -1455,7 +1454,6 @@ function Get-Token-Interactive { ## via Browser
     Write-Verbose "Using Scopes  : $Scopes"
 
     Write-Host "Attempting to logon as Client_ID $ClientId to Tenant: $TenantId with these scopes: $Scopes"
-    return 
     # Build the authorize URL
     $authUrl = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/authorize" +
                "?client_id=$ClientId" +
