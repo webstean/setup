@@ -1685,3 +1685,109 @@ function Set-FolderAclUsersModify {
 #Set-FolderAclUsersModify -Path "$env:SystemDrive\Workspaces"
 #Set-FolderAclUsersModify -Path "$env:SystemDrive\Scripts"
 
+function Get-HttpsCertificateInfo {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position=0)]
+        [string]$Host = "cnn.com",                       # e.g. "example.com" (can be hostname or IP)
+
+        [int]$Port = 443,
+
+        # Optional: save the leaf certificate as a .cer file
+        [string]$ExportCerPath,
+
+        # Connection timeout (ms)
+        [int]$TimeoutMs = 8000
+    )
+
+    begin {
+        # Helper to extract SANs from the certificate
+        function Get-SubjectAltNames([System.Security.Cryptography.X509Certificates.X509Certificate2]$cert) {
+            foreach ($ext in $cert.Extensions) {
+                if ($ext.Oid.Value -eq '2.5.29.17') {
+                    try {
+                        $san = New-Object System.Security.Cryptography.AsnEncodedData($ext.Oid, $ext.RawData)
+                        # .Format($true) yields a readable "DNS Name=..." list
+                        $text = $san.Format($true)
+                        # Normalize lines like "DNS Name=example.com"
+                        $text -split "`r?`n" | Where-Object { $_ } |
+                            ForEach-Object { ($_ -replace '^\s*DNS Name=\s*','').Trim() }
+                    } catch { }
+                }
+            }
+        }
+    }
+
+    process {
+        # Create a TCP connection with timeout
+        $client = New-Object System.Net.Sockets.TcpClient
+        try {
+            $connectTask = $client.ConnectAsync($Host, $Port)
+            if (-not $connectTask.Wait($TimeoutMs)) {
+                throw "Timeout connecting to $Host:$Port after $TimeoutMs ms."
+            }
+
+            $stream = $client.GetStream()
+            $ssl = New-Object System.Net.Security.SslStream($stream, $false, { param($s,$c,$ch,$e) $true })
+
+            # Use SNI by authenticating as the hostname
+            $ssl.AuthenticateAsClient($Host)
+
+            # Grab the remote certificate
+            $remoteCert = $ssl.RemoteCertificate
+            if (-not $remoteCert) { throw "No certificate presented by $Host:$Port." }
+
+            $cert2 = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $remoteCert
+
+            # Build a simple chain to assess status (doesn't require the cert to be trusted)
+            $chain = New-Object System.Security.Cryptography.X509Certificates.X509Chain
+            $chain.ChainPolicy.RevocationMode    = [System.Security.Cryptography.X509Certificates.X509RevocationMode]::NoCheck
+            $chain.ChainPolicy.RevocationFlag    = [System.Security.Cryptography.X509Certificates.X509RevocationFlag]::EndCertificateOnly
+            $chain.ChainPolicy.VerificationFlags = [System.Security.Cryptography.X509Certificates.X509VerificationFlags]::IgnoreWrongUsage
+            $chain.Build($cert2) | Out-Null
+
+            $san = Get-SubjectAltNames $cert2
+
+            # Optional export
+            if ($ExportCerPath) {
+                [IO.File]::WriteAllBytes($ExportCerPath, $cert2.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
+            }
+
+            # Output a neat object
+            [pscustomobject]@{
+                Hostname          = $Host
+                Port              = $Port
+                OwnerSubject      = $cert2.Subject              # "owner" in common parlance
+                SubjectCN         = ($cert2.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::DnsName, $false))
+                Issuer            = $cert2.Issuer
+                NotBefore         = $cert2.NotBefore
+                NotAfter          = $cert2.NotAfter
+                IsExpired         = [DateTime]::UtcNow -ge $cert2.NotAfter.ToUniversalTime()
+                Thumbprint        = $cert2.Thumbprint
+                SerialNumber      = $cert2.SerialNumber
+                SignatureAlgorithm= $cert2.SignatureAlgorithm.FriendlyName
+                KeyAlgorithm      = $cert2.PublicKey.Oid.FriendlyName
+                KeySizeBits       = $cert2.PublicKey.Key.KeySize
+                SANs              = $san
+                ChainStatus       = ($chain.ChainStatus | ForEach-Object { $_.Status.ToString() } )
+                ExportedCerPath   = $ExportCerPath
+            }
+        }
+        catch {
+            throw $_
+        }
+        finally {
+            if ($ssl)    { $ssl.Dispose() }
+            if ($stream) { $stream.Dispose() }
+            if ($client) { $client.Dispose() }
+        }
+    }
+}
+
+# Examples:
+# Show owner/subject for a site
+# Get-HttpsCertificateInfo -Host "www.microsoft.com"
+
+# Export the certificate to a file as well
+# Get-HttpsCertificateInfo -Host "example.com" -ExportCerPath "C:\Temp\example.cer"
+
