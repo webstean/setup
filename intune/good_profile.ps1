@@ -1693,7 +1693,7 @@ function Get-HttpsCertificateInfo {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, Position=0)]
-        [string]$Host,                       # e.g. "example.com" (can be hostname or IP)
+        [string]$fqdn,                       # e.g. "example.com" (can be hostname or IP)
 
         [int]$Port = 443,
 
@@ -1726,7 +1726,7 @@ function Get-HttpsCertificateInfo {
         # Create a TCP connection with timeout
         $client = New-Object System.Net.Sockets.TcpClient
         try {
-            $connectTask = $client.ConnectAsync($Host, $Port)
+            $connectTask = $client.ConnectAsync($fqdn, $Port)
             if (-not $connectTask.Wait($TimeoutMs)) {
                 throw "Timeout connecting to ${Host}:${Port} after ${TimeoutMs} ms."
             }
@@ -1735,11 +1735,11 @@ function Get-HttpsCertificateInfo {
             $ssl = New-Object System.Net.Security.SslStream($stream, $false, { param($s,$c,$ch,$e) $true })
 
             # Use SNI by authenticating as the hostname
-            $ssl.AuthenticateAsClient($Host)
+            $ssl.AuthenticateAsClient($fqdn)
 
             # Grab the remote certificate
             $remoteCert = $ssl.RemoteCertificate
-            if (-not $remoteCert) { throw "No certificate presented by ${Host}:${Port}." }
+            if (-not $remoteCert) { throw "No certificate presented by ${fqdn}:${Port}." }
 
             $cert2 = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $remoteCert
 
