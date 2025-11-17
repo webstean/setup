@@ -816,25 +816,28 @@ function Restore-Terminal {
     }
 }
 
-if ($IsLanguagePermissive) {
-    Write-Host "Checking for Mapped Drives..."
-    $CLSIDs = @()
-    foreach($registryKey in (Get-ChildItem "Registry::HKEY_CLASSES_ROOT\CLSID" -Recurse -ErrorAction SilentlyContinue)){
-        If (($registryKey.GetValueNames() | ForEach-Object {$registryKey.GetValue($_)}) -eq "Drive or folder redirected using Remote Desktop") {
-            $CLSIDs += $registryKey
+function Get-RDS-Drives {
+    if ($IsLanguagePermissive) {
+        Write-Host "Checking for Mapped Drives..."
+        $CLSIDs = @()
+        foreach($registryKey in (Get-ChildItem "Registry::HKEY_CLASSES_ROOT\CLSID" -Recurse -ErrorAction SilentlyContinue)){
+            If (($registryKey.GetValueNames() | ForEach-Object {$registryKey.GetValue($_)}) -eq "Drive or folder redirected using Remote Desktop") {
+                $CLSIDs += $registryKey
+            }
         }
-    }
-    $drives = @()
-    foreach ($CLSID in $CLSIDs.PSPath) {
-        $drives += (Get-ItemProperty $CLSID)."(default)"
-    }
-    if ( -not [bool](Get-Module -ListAvailable -Name Terminal-Icons | Out-Null )) {
-        Import-Module Terminal-Icons -ErrorAction SilentlyContinue
-    }
-    if ( -not [bool](Get-Module -ListAvailable -Name Az.Tools.Predictor | Out-Null )) {
-        Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue
+        $drives = @()
+        foreach ($CLSID in $CLSIDs.PSPath) {
+            $drives += (Get-ItemProperty $CLSID)."(default)"
+        }
+        if ( -not [bool](Get-Module -ListAvailable -Name Terminal-Icons | Out-Null )) {
+            Import-Module Terminal-Icons -ErrorAction SilentlyContinue
+        }
+        if ( -not [bool](Get-Module -ListAvailable -Name Az.Tools.Predictor | Out-Null )) {
+            Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue
+        }    
     }
 }
+#Get-RDS-Drives
 
 function Set-Azure-Developer-Environment {
     
