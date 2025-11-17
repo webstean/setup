@@ -1611,8 +1611,17 @@ function Test-Token-Email { ## with Graph Modules
 }
 
 function Test-Token-Access { ## with Graph Modules
--AccessToken
+ ## Turn off verbose
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
+    if (-not $env:ACCESS_TOKEN) {
+        throw "No ACCESS_TOKEN found in environment variables."
+    }
+    Connect-MgGraph -AccessToken $env:ACCESS_TOKEN -Scope ".default"
+    Get-MgContext
 
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
+}
 
 
 function Get-EntraID-Info {
