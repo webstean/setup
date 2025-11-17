@@ -127,6 +127,7 @@ if ($IsAdmin) {
 
 function Set-Developer-Variables {
     ## Edit as required
+    if ( -not ( $env.DEVELOPER -eq "Yes" )) { return }
     
     ## Dont send telemetry to Microsoft
     Set-Item -Path Env:\FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT -Value $true
