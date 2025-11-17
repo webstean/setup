@@ -1007,6 +1007,10 @@ function Import-Env-File {
             Write-Verbose "Set `$Env:$key = '$val'"
         }
     }
+    if ( ($null -eq $env.AZURE_TENANT_ID ) -and ($null -eq $env.AZURE_CLIENR_ID )) {
+        Write-Host "Something is wrong with $envId file"
+        return 
+    }
     Write-Host "Portal Logon: https://entra.microsoft.com/?tenant=$env:AZURE_TENANT_ID"
     if ( $env:AZURE_CLIENT_ID ) {
         Write-Host "DELEGATIUON"
