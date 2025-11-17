@@ -919,7 +919,7 @@ function Get-Default-Env-File {
     }
 
     if (-not (Test-Path -Path $Path)) {
-        Write-Error "The specified .env file was not found: $Path"
+        Write-Error "The .env file was not found: $Path"
         return $null
     }
 
@@ -957,18 +957,27 @@ Get-Default-Env-File
 function Import-Env-File {
     param(
         [Parameter(Mandatory)]
-        [string]$Path
+        [string]$EnvId
     )
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
 
-    if (-not (Test-Path "$Path")) {
-        if (-not (Test-Path "$HOME\$Path")) {
-            throw "File not found: $Path or $Home\$Path"
-        } else {
-            $Path = "$HOME\$Path"
+    if (-not $PSBoundParameters.ContainsKey('Path') -or [string]::IsNullOrWhiteSpace($Path)) {
+        if ($env:OneDriveCommercial) {
+            $Path = Join-Path $env:OneDriveCommercial ".env-$envId"
         }
+        elseif ($env:OneDrive) {
+            $Path = Join-Path $env:OneDrive ".env-$envId"
+        }
+        else {
+            $Path = Join-Path $HOME ".env-$envId"
+        }
+    }
+
+    if (-not (Test-Path -Path $Path)) {
+        Write-Error "The .env file was not found: $envId"
+        return $null
     }
 
     Get-Content $Path | ForEach-Object {
@@ -987,7 +996,7 @@ function Import-Env-File {
             elseif ($val -match "^'(.*)'$") { $val = $matches[1] }
 
             # Set environment variable
-            [System.Environment]::SetEnvironmentVariable($key, $val, 'Process')
+            [System.Environment]::SetEnvironmentVariable($key, $val, 'User')
             Write-Verbose "Set `$Env:$key = '$val'"
         }
     }
