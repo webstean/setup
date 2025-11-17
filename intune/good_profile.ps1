@@ -970,7 +970,10 @@ function Import-Env-File {
             elseif ($val -match "^'(.*)'$") { $val = $matches[1] }
 
             # Set environment variable
-            [System.Environment]::SetEnvironmentVariable($key, $val, 'User')
+            if ($IsLanguagePermissive) {
+                ## Make it permanent, if not constrained by PowerShell
+                [System.Environment]::SetEnvironmentVariable($key, $val, 'User')
+            }
             Set-Item -Path "Env:\$key" -Value "$val"
             
             Write-Verbose "Set `$Env:$key = '$val'"
@@ -984,9 +987,11 @@ function Import-Env-File {
     if ( $env:AZURE_CLIENT_ID ) {
         Write-Host "DELEGATIUON"
         Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope User.Read -NoWelcome"
+        Write-Host "Get-MgContext"
     }  else {
         Write-Host "AS USER"
         Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope User.Read" -NoWelcome
+        Write-Host "Get-MgContext"
     }
 
     $PSDefaultParameterValues['*:Verbose']   = $preserve
