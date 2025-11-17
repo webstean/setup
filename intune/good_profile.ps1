@@ -80,12 +80,11 @@ function Get-HostPlatform {
     }
 
 #    [pscustomobject]@{
-#        Manufacturer = $cs.Manufacturer
-#        Model        = $cs.Model
-#        DetectedType = $type
+#        VirtualMachine = $virtualMachine
+#        Type           = $type
 #    }
 }
-#Get-HostPlatform
+Get-HostPlatform
 
 function Search {
     [CmdletBinding()]
