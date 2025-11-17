@@ -25,6 +25,8 @@ function Update-Profile-Force {
     $newContent = $response.Content
     $newContentLength = $response.RawContentLength
 
+    ## (Get-FileHash "$newContent").Hash
+
     # Check if file already exists
     if (Test-Path $PROFILE -ErrorAction SilentlyContinue) {
         $oldContent = Get-Content -Path $PROFILE -Raw -Encoding ASCII
