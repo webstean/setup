@@ -920,76 +920,6 @@ AZURE_USERNAME=$env:UPN
 }
 #Create-Default-Env-File
 
-function Get-Default-Env-File {
-    [CmdletBinding()]
-    param(
-        # Don't set a static default here—compute it at runtime instead
-        [Parameter(Mandatory = $false)]
-        [string]$Path
-    )
-    ## Turn off verbose
-    $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
-
-    if (-not $IsLanguagePermissive) {
-         # Set-Item -Path "Env:\AZURE_CLIENT_ID" -Value "14d82eec-204b-4c2f-b7e8-296a70dab67e"
-         Write-Host "Can't set Azure variables unless PowerShell is in Full Language mode"
-         return 
-    }
-    ## Compute default path at call time if Path wasn't provided or is blank
-    if (-not $PSBoundParameters.ContainsKey('Path') -or [string]::IsNullOrWhiteSpace($Path)) {
-        if ($env:OneDriveCommercial) {
-            $Path = Join-Path $env:OneDriveCommercial ".env-default"
-        }
-        elseif ($env:OneDrive) {
-            $Path = Join-Path $env:OneDrive ".env-default"
-        }
-        else {
-            $Path = Join-Path $HOME ".env-default"
-        }
-    }
-
-    if (-not (Test-Path -Path $Path)) {
-        Write-Host "The .env-default file was not found"
-        return $null
-    }
-
-    Write-Verbose "Loading environment variables from: $Path"
-
-    $envVars = @{}
-
-    foreach ($line in Get-Content -Path $Path) {
-        $trimmed = $line.Trim()
-
-        # Skip blanks and comments
-        if ([string]::IsNullOrWhiteSpace($trimmed) -or $trimmed.StartsWith('#')) { continue }
-
-        # Split on the first '=' only
-        $parts = $trimmed -split '=', 2
-        if ($parts.Count -lt 2) { continue }
-
-        $key = $parts[0].Trim()
-        $value = $parts[1].Trim()
-
-        # Strip optional wrapping quotes
-        if ($value -match '^(["''])?(.*?)(\1)?$') { $value = $matches[2] }
-
-        $envVars[$key] = $value
-
-        # Set environment variable for powershell session 
-        Set-Item -Path "Env:\$key" -Value "$value"
-    }
-
-    ## Make sure AZURE_CLIENT_ID gets set to well known value
-    if ( ($null -eq $env:AZURE_CLIENT_ID )) {
-        Set-Item -Path "Env:\AZURE_CLIENT_ID" -Value "14d82eec-204b-4c2f-b7e8-296a70dab67e"
-    }
-    
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
-    return $envVars
-}
-Get-Default-Env-File
-
 function Import-Env-File {
     param(
         [Parameter(Mandatory)]
@@ -1053,6 +983,11 @@ function Import-Env-File {
 
     $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
+
+function Get-Default-Env-File {
+    Import-Env-File default
+}
+Get-Default-Env-File
 
 function Get-EntraID {
     ## Turn off verbose
