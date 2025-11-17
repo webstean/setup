@@ -996,9 +996,32 @@ function Get-Logon {
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
 
-    $meta = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration" -ErrorAction Stop
-    $meta | Format-List authorization_endpoint, token_endpoint, issuer, jwks_uri
+    if ( -not $env:AZURE_TENANT_ID ) {
+        throw "Environment vairable AZURE_TENANT_ID not set"
+    }
+    $response = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration" -ErrorAction Stop
+    if (response ) {
+        $response | Format-List authorization_endpoint, token_endpoint, issuer, jwks_uri
+    } else {
+        throw "Tenant $env:AZURE_TENANT_ID was not found!"
+    }
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
+}
 
+function Get-Meta { ##IMDS
+    ## Turn off verbose
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
+
+    $headers = @{ "Metadata" = "true" }
+    $uri = "http://169.254.169.254/metadata/instance?api-version=2021-02-01"
+    $response = Invoke-RestMethod -Uri $uri -Headers $headers -ErrorAction Stop
+    if (response ) {
+        $response | Format-List
+    } else 
+        throw "Not running inside Azure"
+    }
+    
     $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
 
