@@ -991,13 +991,13 @@ function Import-EnvFile {
     $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
 
-function Get-Logon {
+function Get-EntraID {
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
 
     if ( -not $env:AZURE_TENANT_ID ) {
-        throw "Environment vairable AZURE_TENANT_ID not set"
+        throw "Environment variable AZURE_TENANT_ID not set"
     }
     $response = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration" -ErrorAction Stop
     if (response ) {
