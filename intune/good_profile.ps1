@@ -1015,7 +1015,7 @@ function Import-Env-File {
     Write-Host "Portal Logon: https://entra.microsoft.com/?tenant=$env:AZURE_TENANT_ID"
     if ( $env:AZURE_CLIENT_ID ) {
         Write-Host "DELEGATIUON"
-        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID --ClientId $env:AZURE_CLIENT_ID -Scope User.Read"
+        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope User.Read"
     }  else {
         Write-Host "AS USER"
         Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope User.Read"
@@ -1227,7 +1227,7 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
 
-    Write-Host "Logon via Broker with local indentity (ignore environment variables)"
+    Write-Host "Logon via Broker with local identity (this ignore ANY environment variables)"
     Write-Host "Requesting Access Token via Microsoft Graph PowerShell modules for scopes: $Scopes" -ForegroundColor Cyan
 
     # Ensure we're connected with the scopes we need
@@ -1273,6 +1273,7 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
 }
 
 function Get-Token-Device-Flow { ## without Graph Modules
+    ## https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-device-code
     param(
         ## Provide if you want; otherwise we'll pick it up from env vars
         [ValidateNotNullOrEmpty()]
@@ -1280,7 +1281,7 @@ function Get-Token-Device-Flow { ## without Graph Modules
         
         [string]$ClientId,
 
-        [string[]]$Scopes = @('Mail.ReadBasic','Mail.Read')
+        [string[]]$Scopes = @('User.Read')  ## @('Mail.ReadBasic','Mail.Read')
     )
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
@@ -1429,7 +1430,7 @@ function Get-Token-Interactive { ## via Browser
                "&scope=$([uri]::EscapeDataString($Scopes))" +
                "&state=12345"
 
-    Write-Host "Opening browser for Microsoft sign-in..." -ForegroundColor Cyan
+    Write-Host "Opening browser for Entra ID sign-in..." -ForegroundColor Cyan
     Start-Process $authUrl
 
     Write-Host "`nAfter you sign in, you'll be redirected to a URL similar to:`n"
