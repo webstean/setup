@@ -1703,6 +1703,9 @@ function Get-HttpsCertificateInfo {
         # Connection timeout (ms)
         [int]$TimeoutMs = 8000,
 
+        # Use proxy (Zscaler etc..)
+        [bool]$proxy = $true
+
         # Optional: constrain TLS versions if needed (useful on older hosts)
         [System.Security.Authentication.SslProtocols]$TlsProtocols = (
             [System.Security.Authentication.SslProtocols]::Tls12 -bor
@@ -1896,4 +1899,59 @@ function Show-Toast-Message {
     }
 }
 #Show-Toast-Message -Title "Title" -Message "Message"
+
+
+function Get-DefaultRouteAdapter {
+    <#
+    .SYNOPSIS
+        Shows the network adapter used for the default route (internet egress).
+
+    .DESCRIPTION
+        Finds the adapter that owns the lowest-metric default route (0.0.0.0/0 or ::/0)
+        and displays adapter name, interface index, gateway, and other useful info.
+
+    .EXAMPLE
+        Get-DefaultRouteAdapter
+
+    .EXAMPLE
+        Get-DefaultRouteAdapter -IncludeIPv6
+    #>
+
+    [CmdletBinding()]
+    param(
+        [switch]$IncludeIPv6
+    )
+
+    $routes = @("0.0.0.0/0")
+    if ($IncludeIPv6) { $routes += "::/0" }
+
+    $results = foreach ($prefix in $routes) {
+        $route = Get-NetRoute -DestinationPrefix $prefix -ErrorAction SilentlyContinue |
+            Sort-Object -Property RouteMetric, InterfaceMetric |
+            Select-Object -First 1
+
+        if ($null -ne $route) {
+            $adapter = Get-NetAdapter -InterfaceIndex $route.InterfaceIndex -ErrorAction SilentlyContinue
+
+            [pscustomobject]@{
+                AddressFamily       = if ($prefix -eq "::/0") { "IPv6" } else { "IPv4" }
+                InterfaceAlias      = $adapter.Name
+                InterfaceIndex      = $adapter.InterfaceIndex
+                InterfaceDescription= $adapter.InterfaceDescription
+                MACAddress          = $adapter.MacAddress
+                Status              = $adapter.Status
+                IPvGateway          = $route.NextHop
+                RouteMetric         = $route.RouteMetric
+                InterfaceMetric     = $route.InterfaceMetric
+            }
+        }
+    }
+
+    if ($results) {
+        $results
+    } else {
+        Write-Warning "No default routes found."
+    }
+}
+
 
