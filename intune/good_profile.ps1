@@ -1690,7 +1690,7 @@ function Get-HttpsCertificateInfo {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, Position=0)]
-        [string]$Host = "cnn.com",                       # e.g. "example.com" (can be hostname or IP)
+        [string]$Host,                       # e.g. "example.com" (can be hostname or IP)
 
         [int]$Port = 443,
 
