@@ -1614,11 +1614,11 @@ function Set-FolderAclUsersModify {
             $recurseFlag = if ($Recurse) { '/t' } else { $null }
 
             # Keep SYSTEM/Admins Full Control
-            Invoke-Icacls -Args @("$target", '/grant', "$SidSystem:$inheritFlags(F)",     $recurseFlag, '/c') | Out-Null
-            Invoke-Icacls -Args @("$target", '/grant', "$SidAdmins:$inheritFlags(F)",     $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidSystem}:$inheritFlags(F)", $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidAdmins}:$inheritFlags(F)", $recurseFlag, '/c') | Out-Null
 
             # Give Users Modify (NOT Full Control)
-            Invoke-Icacls -Args @("$target", '/grant', "$SidUsers:$inheritFlags(M)",      $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidUsers}:$inheritFlags(M)", $recurseFlag, '/c') | Out-Null
 
             # 5) Display resulting ACEs on the root for verification
             Write-Verbose "Final ACL (root):"
