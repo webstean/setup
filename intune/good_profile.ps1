@@ -1007,7 +1007,7 @@ function Import-Env-File {
             Write-Verbose "Set `$Env:$key = '$val'"
         }
     }
-    if ( ($null -eq $env.AZURE_TENANT_ID ) -and ($null -eq $env.AZURE_CLIENR_ID )) {
+    if ( ($null -eq $env:AZURE_TENANT_ID ) -and ($null -eq $env:AZURE_CLIENT_ID )) {
         Write-Host "Something is wrong with $envId file"
         return 
     }
@@ -1226,11 +1226,12 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
 
+    Write-Host "Logon via Broker with local indentity (ignore environment variables)"
     Write-Host "Requesting Access Token via Microsoft Graph PowerShell modules for scopes: $Scopes" -ForegroundColor Cyan
 
     # Ensure we're connected with the scopes we need
     if (-not (Get-MgContext)) {
-        Connect-MgGraph -Scopes $Scopes -NoWelcome
+        Connect-MgGraph -Scopes $Scopes  -NoWelcome
     }
 
     $params = @{
@@ -1319,6 +1320,8 @@ function Get-Token-Device-Flow { ## without Graph Modules
             scope     = $Scopes
         }
 
+    Write-Host "Attempting to logon as Client_ID $ClientId to Tenant: $TenantId with these scopes: $Scopes"
+    return
     Write-Host "`nGo to $($deviceCodeResponse.verification_uri) and enter code: $($deviceCodeResponse.user_code)" -ForegroundColor Yellow
     Write-Host "Waiting for sign-in and consent..." -ForegroundColor DarkGray
 
