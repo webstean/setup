@@ -972,7 +972,7 @@ function Get-Default-Env-File {
 
     ## Make sure AZURE_CLIENT_ID gets set to well known value
     if ( ($null -eq $env:AZURE_CLIENT_ID )) {
-        Set-Item -Path "Env:\AZURE_CLIENT_ID" -Value "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
+        Set-Item -Path "Env:\AZURE_CLIENT_ID" -Value "14d82eec-204b-4c2f-b7e8-296a70dab67e"
     }
     
     $PSDefaultParameterValues['*:Verbose']   = $preserve
