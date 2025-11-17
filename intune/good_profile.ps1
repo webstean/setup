@@ -929,18 +929,26 @@ function Import-Env-File {
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
 
-    if (-not $PSBoundParameters.ContainsKey('Path') -or [string]::IsNullOrWhiteSpace($Path)) {
-        if ($env:OneDriveCommercial) {
-            $Path = Join-Path $env:OneDriveCommercial ".env-$envId"
-        }
-        elseif ($env:OneDrive) {
-            $Path = Join-Path $env:OneDrive ".env-$envId"
-        }
-        else {
-            $Path = Join-Path $HOME ".env-$envId"
+    # Decide candidate paths in order
+    $paths = @()
+
+    if ($env:OneDriveCommercial) {
+        $paths += (Join-Path $env:OneDriveCommercial ".env-$envId")
+    }
+    if ($env:OneDrive) {
+        $paths += (Join-Path $env:OneDrive ".env-$envId")
+    }
+    $paths += (Join-Path $HOME ".env-$envId")
+
+    # Select the first existing path
+    $Path = $null
+    foreach ($p in $paths) {
+        if (Test-Path -Path $p) {
+            $Path = $p
+            break
         }
     }
-
+    
     if (-not (Test-Path -Path $Path)) {
         Write-Error "The .env file was not found: $envId"
         return $null
