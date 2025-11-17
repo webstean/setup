@@ -835,7 +835,9 @@ function Get-RDS-Drives {
         }    
     }
 }
-#Get-RDS-Drives
+if ($VirtualMachine -eq $true) {
+    Get-RDS-Drives
+}
 
 function Set-Azure-Developer-Environment {
     
@@ -867,25 +869,32 @@ function Set-Azure-Developer-Environment {
 }
 #Set-Azure-Developer-Environment
 
-function Set-Env-from-File {
+function Create-Default-Env-File {
+    ## Turn off verbose
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
     if (
         -not [string]::IsNullOrEmpty($UPN) -and
         -not [string]::IsNullOrEmpty($AZURE_SUBSCRIPTION_ID) -and
         -not [string]::IsNullOrEmpty($AZURE_TENANT_ID) -and
         -not [string]::IsNullOrEmpty($AZURE_TENANT_NAME)
     ) {
+        Write-Host "Writing out default .env file"
         @"
 # $env:AZURE_TENANT_NAME .env file
 AZURE_SUBSCRIPTION_ID=$env:AZURE_SUBSCRIPTION_ID
 AZURE_TENANT_ID=$env:AZURE_TENANT_ID
 AZURE_USERNAME=$env:UPN
 "@ | Out-File -Encoding UTF8 -FilePath "$HOME/.env-default"
-    Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env-default" -Force
-    Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env" -Force
+        Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env-default" -Force
+        Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env" -Force
+    } else {
+        Write-Host "Not enough environment variables defined!"
+    }
 }
-#Set-Env-from-File {
+#Create-Default-Env-File
 
-function Get-Default-EnvFile {
+function Get-Default-Env-File {
     [CmdletBinding()]
     param(
         # Don't set a static default here—compute it at runtime instead
