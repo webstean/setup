@@ -892,8 +892,8 @@ function Set-FolderAclUsersModify {
         }
     }
 }
-Set-FolderAclUsersModify -Path "$env:SystemDrive\Bin"
-Set-FolderAclUsersModify -Path "$env:SystemDrive\Workspaces"
+#Set-FolderAclUsersModify -Path "$env:SystemDrive\Bin"
+#Set-FolderAclUsersModify -Path "$env:SystemDrive\Workspaces"
 
 #$usersGroup = [System.Security.Principal.NTAccount]"BUILTIN\Users"
 #icacls "$Bin" /inheritance:e | Out-Null
