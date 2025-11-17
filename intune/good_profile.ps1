@@ -544,7 +544,7 @@ function Install-OrUpdateModule {
     }
 }
 
-if ($env:IsDevBox -eq "True" ) {
+if ( ($env:IsDevBox ) -and (Get-Command "devbox") )  {
     if ($env:UPN) {
         Write-Host -ForegroundColor Cyan "Welcome to your Dev Box $env:UPN"
     }
