@@ -1617,7 +1617,8 @@ function Test-Token-Access { ## with Graph Modules
     if (-not $env:ACCESS_TOKEN) {
         throw "No ACCESS_TOKEN found in environment variables."
     }
-    Connect-MgGraph -AccessToken $env:ACCESS_TOKEN -Scope ".default"
+    $SecureAccessToken = ConvertTo-SecureString -String $env:ACCESS_TOKEN -AsPlainText -Force
+    Connect-MgGraph -AccessToken $SecureAccessToken -NoWelcome
     Get-MgContext
 
     $PSDefaultParameterValues['*:Verbose']   = $preserve
