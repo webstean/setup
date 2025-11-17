@@ -79,10 +79,10 @@ function Get-HostPlatform {
         }
     }
 
-#    [pscustomobject]@{
-#        VirtualMachine = $virtualMachine
-#        Type           = $type
-#    }
+    [pscustomobject]@{
+        VirtualMachine = $virtualMachine
+        Type           = $type
+    }
 }
 Get-HostPlatform
 
