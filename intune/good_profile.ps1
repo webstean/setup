@@ -1811,14 +1811,14 @@ function Show-Toast-Message {
     if (-not [Environment]::UserInteractive) { return }
 
     # Ensure required assemblies are available
-    try {
-        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
-        Add-Type -AssemblyName System.Drawing       -ErrorAction Stop
-    }
-    catch {
-        Write-Warning "Windows Forms / Drawing not available in this session: $($_.Exception.Message)"
-        return
-    }
+    #try {
+    #    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+    #    Add-Type -AssemblyName System.Drawing       -ErrorAction Stop
+    #}
+    #catch {
+    #    Write-Warning "Windows Forms / Drawing not available in this session: $($_.Exception.Message)"
+    #    return
+    #}
 
     $notifyIcon = $null
     try {
