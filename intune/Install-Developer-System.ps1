@@ -759,9 +759,162 @@ if (-Not (Test-Path -Path "${Bin}" -PathType Container -ErrorAction SilentlyCont
 } else {
     Write-Output "Directory ${Bin} already exists." 
 }
-$usersGroup = [System.Security.Principal.NTAccount]"BUILTIN\Users"
-icacls "$env:SystemDrive\BIN" /inheritance:e | Out-Null
-icacls "$env:SystemDrive\BIN" /grant "$($usersGroup.Value):(M)" /t | Out-Null
+
+function Set-FolderAclUsersModify {
+    <#
+    .SYNOPSIS
+      Grant Modify to local Users (not Full Control) on a folder tree.
+
+    .DESCRIPTION
+      - Ensures elevation
+      - (Optional) Takes ownership and sets owner to Administrators
+      - (Optional) Breaks inheritance on the target folder (copies ACEs)
+      - Removes explicit DENY ACEs for Users/Everyone (so ALLOW can apply)
+      - Grants:
+            SYSTEM         : FullControl
+            Administrators : FullControl
+            Users          : Modify
+      - Uses well-known SIDs (locale-independent)
+      - Applies recursively by default
+
+    .PARAMETER Path
+      Target folder path. Default: C:\workspaces
+
+    .PARAMETER TakeOwnership
+      Take ownership before ACL changes. Default: $true
+
+    .PARAMETER BreakInheritance
+      Break inheritance (copy existing ACEs). Default: $true
+
+    .PARAMETER RemoveDeny
+      Remove explicit DENY entries for Users/Everyone. Default: $true
+
+    .PARAMETER Recurse
+      Recurse into all children. Default: $true
+
+    .PARAMETER WhatIf
+      Shows what would happen if the command runs. No changes made.
+
+    .EXAMPLE
+      Set-FolderAclUsersModify -Path 'C:\workspaces' -Verbose
+
+    .EXAMPLE
+      Set-FolderAclUsersModify -Path 'D:\Data' -BreakInheritance:$false
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
+    param(
+        [Parameter(Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Path = 'C:\workspaces',
+
+        [bool]$TakeOwnership   = $true,
+        [bool]$BreakInheritance = $true,
+        [bool]$RemoveDeny      = $true,
+        [bool]$Recurse         = $true
+    )
+
+    begin {
+        # Well-known SIDs (locale independent)
+        $SidSystem        = '*S-1-5-18'        # SYSTEM
+        $SidAdmins        = '*S-1-5-32-544'    # BUILTIN\Administrators
+        $SidUsers         = '*S-1-5-32-545'    # BUILTIN\Users
+
+        # Inheritance flags for files & folders
+        $inheritFlags = '(OI)(CI)'
+
+        function Invoke-Icacls {
+            param([string[]]$Args)
+            Write-Verbose ("icacls {0}" -f ($Args -join ' '))
+            if ($PSCmdlet.ShouldProcess("icacls $($Args -join ' ')")) {
+                & icacls @Args
+            }
+        }
+
+        function Assert-Elevated {
+            $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+            $p  = New-Object System.Security.Principal.WindowsPrincipal($id)
+            if (-not $p.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) {
+                throw "This function must be run in an elevated PowerShell (Run as Administrator)."
+            }
+        }
+    }
+
+    process {
+        try {
+            # Sanity checks
+            Assert-Elevated
+            if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
+                throw "Path not found or not a folder: $Path"
+            }
+
+            # Normalize path & optional long-path prefix for deep trees
+            $target = (Resolve-Path -LiteralPath $Path).Path
+
+            # 1) Take ownership (optional)
+            if ($TakeOwnership) {
+                if ($PSCmdlet.ShouldProcess($target, "Take ownership (recursive)")) {
+                    & takeown /f "$target" /r /d y | Out-Null
+                    Invoke-Icacls -Args @("$target", '/setowner', 'Administrators', '/t', '/c') | Out-Null
+                }
+            }
+
+            # 2) Inheritance control
+            if ($BreakInheritance) {
+                Invoke-Icacls -Args @("$target", '/inheritance:d', '/c') | Out-Null
+            }
+            else {
+                Invoke-Icacls -Args @("$target", '/inheritance:e', '/c') | Out-Null
+            }
+
+            # 3) Remove explicit DENY entries that would override our grant
+            if ($RemoveDeny) {
+                # These may no-op if none exist; that's fine.
+                Invoke-Icacls -Args @("$target", '/remove:d', 'Users',    '/c') | Out-Null
+                Invoke-Icacls -Args @("$target", '/remove:d', 'Everyone', '/c') | Out-Null
+            }
+
+            # 4) Grant the desired rights
+            $recurseFlag = if ($Recurse) { '/t' } else { $null }
+
+            # Keep SYSTEM/Admins Full Control
+            Invoke-Icacls -Args @("$target", '/grant', "$SidSystem:$inheritFlags(F)",     $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "$SidAdmins:$inheritFlags(F)",     $recurseFlag, '/c') | Out-Null
+
+            # Give Users Modify (NOT Full Control)
+            Invoke-Icacls -Args @("$target", '/grant', "$SidUsers:$inheritFlags(M)",      $recurseFlag, '/c') | Out-Null
+
+            # 5) Display resulting ACEs on the root for verification
+            Write-Verbose "Final ACL (root):"
+            & icacls "$target"
+        }
+        catch {
+            throw "Set-FolderAclUsersModify failed: $($_.Exception.Message)"
+        }
+    }
+}
+Set-FolderAclUsersModify -Path "$env:SystemDrive\Bin"
+Set-FolderAclUsersModify -Path "$env:SystemDrive\Workspaces"
+
+#$usersGroup = [System.Security.Principal.NTAccount]"BUILTIN\Users"
+#icacls "$Bin" /inheritance:e | Out-Null
+#icacls "$Bin" /grant "$($usersGroup.Value):(M)" /t | Out-Null
+#icacls "$Bin" | findstr /i "BUILTIN\Users"
+
+function Set-Users-Modify-NTFS {
+    $Workspaces = "$env:SystemDrive\Workspaces"
+    $acl = Get-Acl -Path $Workspaces
+    # Local Users well-known SID
+    $usersSid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-32-545'
+    $users    = $usersSid.Translate([System.Security.Principal.NTAccount])
+    # Inheritable Modify allow rule (propagates to files & folders)
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+        $users, 'Modify', 'ContainerInherit, ObjectInherit', 'None', 'Allow'
+    )
+    $acl.SetAccessRule($rule)      # add/replace matching rule
+    Set-Acl -Path $Path -AclObject $acl
+    # Optional: verify
+    (Get-Acl $Path).Access | Where-Object { $_.IdentityReference -eq $users }
+}
 
 # Download the contents of an entire folder from a public repo in C:\BIN
 Get-GitHubDirectory -Owner 'webstean' -Repo 'setup' -Branch 'main' -Path 'intune/bin' -Destination "${BIN}"
