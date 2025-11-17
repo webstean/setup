@@ -43,6 +43,7 @@ function Update-Profile-Force {
 #Update-Profile-Force
 
 $VirtualMachine = $true
+$type = $null
 
 function Get-HostPlatform {
 
