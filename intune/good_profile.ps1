@@ -945,8 +945,8 @@ function Get-Default-Env-File {
 
         $envVars[$key] = $value
 
-        # Set environment variable in current session
-        [System.Environment]::SetEnvironmentVariable($key, $value, 'User')
+        # Set environment variable for powershell session 
+        Set-Item -Path "Env:\$key" -Value "$value"
     }
 
     $PSDefaultParameterValues['*:Verbose']   = $preserve
