@@ -877,13 +877,13 @@ function Set-Azure-Environment {
 function Check-Azure-Environment {
     ## If we have AZURE environment variables then we are good
     if (
-        -not [string]::IsNullOrEmpty($AZURE_CLIENT_ID) -and
-        -not [string]::IsNullOrEmpty($AZURE_SUBSCRIPTION_ID) -and
+        -not [string]::IsNullOrEmpty($AZURE_CLIENT_ID) -or
+        -not [string]::IsNullOrEmpty($AZURE_SUBSCRIPTION_ID) -or
         -not [string]::IsNullOrEmpty($AZURE_TENANT_ID)
     ) {
-        return $true
+        return $false
     }
-    return $false
+    return $true
 }
 function Check-Azure-Token {
     ## If we have ACCESS_TOKEN variable we are good
