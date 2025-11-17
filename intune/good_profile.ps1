@@ -899,11 +899,6 @@ function Create-Default-Env-File {
     $PSDefaultParameterValues['*:Verbose']   = $false
     
     if ( Check-Azure-Enviromment ) {
-        -not [string]::IsNullOrEmpty($UPN) -and
-        -not [string]::IsNullOrEmpty($AZURE_SUBSCRIPTION_ID) -and
-        -not [string]::IsNullOrEmpty($AZURE_TENANT_ID) -and
-        -not [string]::IsNullOrEmpty($AZURE_TENANT_NAME)
-    ) {
         Write-Host "Writing out default .env file"
         @"
 # $env:AZURE_TENANT_NAME .env file
