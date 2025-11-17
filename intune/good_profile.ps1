@@ -874,11 +874,31 @@ function Set-Azure-Environment {
 }
 #Set-Azure-Developer-Environment
 
+function Check-Azure-Environment {
+    ## If we have AZURE environment variables then we are good
+    if (
+        -not [string]::IsNullOrEmpty($AZURE_CLIENT_ID) -and
+        -not [string]::IsNullOrEmpty($AZURE_SUBSCRIPTION_ID) -and
+        -not [string]::IsNullOrEmpty($AZURE_TENANT_ID) -and
+    ) {
+        return $true
+    }
+    return $false
+}
+function Check-Azure-Token {
+    ## If we have ACCESS_TOKEN variable we are good
+    if ( -not [string]::IsNullOrEmpty($ACCESS_TOKEN) ) {
+        return $true
+    }
+    return $false
+}
+
 function Create-Default-Env-File {
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
-    if (
+    
+    if ( Check-Azure-Enviromment ) {
         -not [string]::IsNullOrEmpty($UPN) -and
         -not [string]::IsNullOrEmpty($AZURE_SUBSCRIPTION_ID) -and
         -not [string]::IsNullOrEmpty($AZURE_TENANT_ID) -and
@@ -1015,10 +1035,10 @@ function Import-Env-File {
     Write-Host "Portal Logon: https://entra.microsoft.com/?tenant=$env:AZURE_TENANT_ID"
     if ( $env:AZURE_CLIENT_ID ) {
         Write-Host "DELEGATIUON"
-        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope User.Read"
+        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope User.Read -NoWelcome"
     }  else {
         Write-Host "AS USER"
-        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope User.Read"
+        Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope User.Read" -NoWelcome
     }
 
     $PSDefaultParameterValues['*:Verbose']   = $preserve
@@ -1227,13 +1247,12 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
 
-    Write-Host "Logon via Broker with local identity (this ignore ANY environment variables)"
     Write-Host "Requesting Access Token via Microsoft Graph PowerShell modules for scopes: $Scopes" -ForegroundColor Cyan
 
     # Ensure we're connected with the scopes we need
-    if (-not (Get-MgContext)) {
-        Connect-MgGraph -Scopes $Scopes  -NoWelcome
-    }
+    #if (-not (Get-MgContext)) {
+    #    Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope "$scopes"
+    #}
 
     $params = @{
         Method     = 'GET'
@@ -1288,7 +1307,7 @@ function Get-Token-Device-Flow { ## without Graph Modules
     $PSDefaultParameterValues['*:Verbose']   = $false
 
     Write-Host "Requesting Access Token via Entra ID Device Code flow for scopes: $Scopes" -ForegroundColor Cyan
-    
+
     ## Resolve TenantId in priority order: explicit param → common env vars
     $tenantCandidates = @(
         $TenantId,
@@ -1309,6 +1328,9 @@ function Get-Token-Device-Flow { ## without Graph Modules
     $ClientId = $clientCandidates | Select-Object -First 1
     if (-not $ClientId) {
         throw "ClientId not provided and no environment variable (AZURE_CLIENT_ID/ARM_CLIENT_ID/AAD_CLIENT_ID) was found."
+    }
+    if ( -not Check-Azure-Environment ) {
+        throw "Correct environment variables are NOT defined!"
     }
     Write-Verbose "Using TenantId: $TenantId"
     Write-Verbose "Using ClientId: $ClientId"
