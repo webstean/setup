@@ -944,6 +944,9 @@ function Get-Default-Env-File {
         if ($value -match '^(["''])?(.*?)(\1)?$') { $value = $matches[2] }
 
         $envVars[$key] = $value
+
+        # Set environment variable in current session
+        [System.Environment]::SetEnvironmentVariable($key, $value, 'User')
     }
 
     $PSDefaultParameterValues['*:Verbose']   = $preserve
