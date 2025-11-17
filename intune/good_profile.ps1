@@ -1001,11 +1001,14 @@ function Get-EntraID {
     }
     $response = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration" -ErrorAction Stop
     if (response ) {
+        $PSDefaultParameterValues['*:Verbose']   = $preserve
         $response | Format-List authorization_endpoint, token_endpoint, issuer, jwks_uri
+        return $true
     } else {
+        $PSDefaultParameterValues['*:Verbose']   = $preserve
         throw "Tenant $env:AZURE_TENANT_ID was not found!"
+        return $false
     }
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
 
 function Get-Meta { ##IMDS
@@ -1018,11 +1021,13 @@ function Get-Meta { ##IMDS
     $response = Invoke-RestMethod -Uri $uri -Headers $headers -ErrorAction Stop
     if (response ) {
         $response | Format-List
+        $PSDefaultParameterValues['*:Verbose']   = $preserve
+        return $true
     } else 
         throw "Not running inside Azure"
+        $PSDefaultParameterValues['*:Verbose']   = $preserve
+        return $false
     }
-    
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
 
 function Enable-PIMRole {
