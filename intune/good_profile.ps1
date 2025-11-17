@@ -666,8 +666,9 @@ function free {
     }
 }
 
+## Won't display anything, unless less than 5GB
 function checkdiskspace {
-    if (-not ($IsLanguagePermissive)) { return }
+    if (-not ($IsLanguagePermissive -eq $true )) { return }
     (Get-Volume -DriveLetter C).SizeRemaining | ForEach-Object {
         $sizeInGB = [math]::Round($_ / 1GB, 2)
         if ($sizeInGB -lt 5) {
@@ -827,17 +828,21 @@ function Get-RDS-Drives {
         foreach ($CLSID in $CLSIDs.PSPath) {
             $drives += (Get-ItemProperty $CLSID)."(default)"
         }
-        if ( -not [bool](Get-Module -ListAvailable -Name Terminal-Icons | Out-Null )) {
-            Import-Module Terminal-Icons -ErrorAction SilentlyContinue
-        }
-        if ( -not [bool](Get-Module -ListAvailable -Name Az.Tools.Predictor | Out-Null )) {
-            Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue
-        }    
     }
 }
 #if ($VirtualMachine -eq $true) {
 #    Get-RDS-Drives
 #}
+
+function Import-Nice-Modules {
+    if ( -not [bool](Get-Module -ListAvailable -Name Terminal-Icons | Out-Null )) {
+        Import-Module Terminal-Icons -ErrorAction SilentlyContinue
+    }
+    if ( -not [bool](Get-Module -ListAvailable -Name Az.Tools.Predictor | Out-Null )) {
+        Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue
+    }    
+}
+Import-Nice-Modules
 
 function Set-Azure-Developer-Environment {
     
