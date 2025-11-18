@@ -182,8 +182,10 @@ if (Get-Module PnP.PowerShell -ErrorAction SilentlyContinue ) {
     Install-Module -Name PnP.PowerShell -RequiredVersion 3.1.0
 }
 Get-Command -Module PnP.PowerShell
-
-
+## Connect-PnPOnline -url 
+#if ( $env:SHAREPOINT_ADMIN ) {
+#    Connect-PnPOnline -Url $env:SHAREPOINT_ADMIN -Interactive
+#}
 
 ## Add-PowerAppsAccount -Endpoint prod
 
