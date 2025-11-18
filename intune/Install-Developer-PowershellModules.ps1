@@ -185,6 +185,18 @@ Get-Command -Module PnP.PowerShell
 ## Connect-PnPOnline -url 
 #if ( $env:SHAREPOINT_ADMIN ) {
 #    Connect-PnPOnline -Url $env:AZURE_SHAREPOINT_ADMIN -Interactive
+#    $ACCESS_TOKEN = Get-PnPAccessToken
+#    Get-PnPTenant
+#    Get-PnPTenantSite
+#    Get-PnPTenantAppCatalogUrl
+#    Get-PnPTenantSyncClientRestriction
+#    Get-PnPTenantCdnEnabled
+#    Get-PnPTenantCdnOrigins
+#    Get-PnPTenantAllowBlockList
+#    Get-PnPTenantSiteClassification
+#    Get-PnPTenantCorporateDevicePolicy
+#    Get-PnPOrgNewsSite
+#    Get-PnPSiteDesign
 #}
 
 ## Add-PowerAppsAccount -Endpoint prod
