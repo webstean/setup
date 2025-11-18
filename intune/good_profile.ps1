@@ -1268,7 +1268,7 @@ function Get-Token-Device-Flow { ## without Graph Modules
         
         [string]$ClientId,
 
-        [string[]]$Scopes = @('User.Read')  ## @('Mail.ReadBasic','Mail.Read')
+        [string[]]$Scopes = 'User.Read'  ## @('Mail.ReadBasic','Mail.Read')
     )
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
