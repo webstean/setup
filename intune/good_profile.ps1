@@ -25,7 +25,7 @@ function Update-Profile-Force {
     $newContent = $response.Content
     $newContentLength = $response.RawContentLength
 
-    ## (Get-FileHash "$newContent").Hash
+    ## (Get-FileHash "$profile").Hash
 
     # Check if file already exists
     if (Test-Path $PROFILE -ErrorAction SilentlyContinue) {
@@ -1204,7 +1204,7 @@ function Enable-PIMRole {
 function Get-Token-Graph {  ## with Graph PowerShell Modules
     [CmdletBinding()]
     param(
-        [string[]]$Scopes = @('User.Read') ##@('Mail.ReadBasic','Mail.Read')
+        [string[]]$Scopes = 'User.Read' ##@('Mail.ReadBasic','Mail.Read')
     )
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
@@ -1219,6 +1219,7 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     if ( (Check-Azure-Environment) -eq $false ) {
         throw "Correct environment variables are NOT defined!"
     }
+    Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope $scopes -NoWelcome"
     Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope "$scopes" -NoWelcome
     
     $params = @{
