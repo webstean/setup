@@ -1027,6 +1027,15 @@ function Get-EntraID {
     }
 }
 
+function Get-Token { ##IMDS
+    if (-not $env:ACCESS_TOKEN) {
+        Connect-MgGraph -Scopes "Directory.Read.All","Application.Read.All"
+        $token = (Get-MgContext).AccessToken
+    } else {
+        $token = $env:ACCESS_TOKEN
+    }
+}
+
 function Get-Meta { ##IMDS
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
