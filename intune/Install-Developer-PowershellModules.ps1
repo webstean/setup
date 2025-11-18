@@ -182,7 +182,9 @@ if (Get-Module PnP.PowerShell -ErrorAction SilentlyContinue ) {
     Install-Module -Name PnP.PowerShell -RequiredVersion 3.1.0
 }
 Get-Command -Module PnP.PowerShell
-## Connect-PnPOnline -url 
+## Connect-PnPOnline -url
+## Sites.ReadWrite.All     – read/write to all site collections the user can access.
+## Sites.Manage.All        - lets you manage site permissions via Graph.         –
 #if ( $env:SHAREPOINT_ADMIN ) {
 #    Connect-PnPOnline -Url $env:AZURE_SHAREPOINT_ADMIN -Interactive
 #    $ACCESS_TOKEN = Get-PnPAccessToken
