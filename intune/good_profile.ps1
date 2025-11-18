@@ -1778,7 +1778,7 @@ function Get-HttpsCertificateInfo {
         # Ensure we're not in ConstrainedLanguage (common in locked-down hosts)
         if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
             Write-Host "Cannot inspect certificates: PowerShell LanguageMode is $($ExecutionContext.SessionState.LanguageMode)."
-            return
+            exit
         }
         function Get-SubjectAltNames {
             param([System.Security.Cryptography.X509Certificates.X509Certificate2]$cert)
@@ -1887,7 +1887,6 @@ function Get-HttpsCertificateInfo {
     }
 }
 
-
 # Examples:
 # Show owner/subject for a site
 # Get-HttpsCertificateInfo -Fqdn "www.microsoft.com"
@@ -1960,7 +1959,6 @@ function Show-Toast-Message {
     }
 }
 #Show-Toast-Message -Title "Title" -Message "Message"
-
 
 function Get-DefaultRouteAdapter {
     <#
@@ -2166,5 +2164,3 @@ function Get-ZscalerClientState {
         $result
     }
 }
-
-
