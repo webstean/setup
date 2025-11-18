@@ -1300,7 +1300,7 @@ function Get-Token-Device-Flow { ## without Graph Modules
     }
     Write-Verbose "Using TenantId: $TenantId"
     Write-Verbose "Using ClientId: $ClientId"
-    Write-Verbose "Using Scopes  : $Scopes"
+    Write-Verbose "Using Scopes  : $($Scopes -join ' ')"
         
     # Request a device code for the given scopes
     $deviceCodeResponse = Invoke-RestMethod -Method POST `
