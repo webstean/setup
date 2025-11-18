@@ -1204,23 +1204,21 @@ function Enable-PIMRole {
 function Get-Token-Graph {  ## with Graph PowerShell Modules
     [CmdletBinding()]
     param(
-        [string[]]$Scopes = 'User.Read' ##@('Mail.ReadBasic','Mail.Read')
+        [string[]]$Scopes = @('User.Read')  ## e.g. @('Mail.ReadBasic','Mail.Read')
     )
-    ## Turn off verbose
+
+    # Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
+    $PSDefaultParameterValues['*:Verbose'] = $false
 
-    Write-Host "Requesting Access Token via Microsoft Graph PowerShell modules for scopes: $Scopes" -ForegroundColor Cyan
+    Write-Host "Requesting Access Token via Microsoft Graph PowerShell modules for scopes: $($Scopes -join ' ')" -ForegroundColor Cyan
 
-    # Ensure we're connected with the scopes we need
-    #if (-not (Get-MgContext)) {
-    #    Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope "$scopes"
-    #}
     if ( (Check-Azure-Environment) -eq $false ) {
         throw "Correct environment variables are NOT defined!"
     }
-    Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope $scopes -NoWelcome"
-    Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope "$scopes" -NoWelcome
+
+    Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scopes $($Scopes -join ' ') -NoWelcome"
+    Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scopes $Scopes -NoWelcome
     
     $params = @{
         Method     = 'GET'
@@ -1232,7 +1230,7 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
         $response = Invoke-MgGraphRequest @params
     }
     catch {
-        $PSDefaultParameterValues['*:Verbose']   = $preserve
+        $PSDefaultParameterValues['*:Verbose'] = $preserve
         throw "Get-Token call failed. $($_.Exception.Message)"
     }
 
@@ -1249,13 +1247,13 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
         Set-Item -Path Env:\ACCESS_TOKEN -Value $token
         $token | Set-Clipboard
         Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
-        $PSDefaultParameterValues['*:Verbose']   = $preserve
+        $PSDefaultParameterValues['*:Verbose'] = $preserve
         return $true
     }
 
     Write-Host "Access denied or token not available."
     
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
+    $PSDefaultParameterValues['*:Verbose'] = $preserve
     return $false
 }
 
