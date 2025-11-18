@@ -990,7 +990,7 @@ function Import-Env-File {
     if (-not $silent ) {
         Write-Host "Portal Logon: https://entra.microsoft.com/?tenant=$env:AZURE_TENANT_ID"
         if ( $env:AZURE_CLIENT_ID ) {
-            Write-Host "DELEGATIUON"
+            Write-Host "DELEGATION"
             Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope User.Read -NoWelcome"
             Write-Host "Get-MgContext"
         }  else {
@@ -1218,7 +1218,7 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     }
 
     Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scopes $($Scopes -join ' ') -NoWelcome"
-    Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scopes $Scopes -NoWelcome
+    Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scopes $($Scopes -join ' ') -NoWelcome
     
     $params = @{
         Method     = 'GET'
@@ -1266,7 +1266,7 @@ function Get-Token-Device-Flow { ## without Graph Modules
         
         [string]$ClientId,
 
-        [string[]]$Scopes = 'User.Read'  ## @('Mail.ReadBasic','Mail.Read')
+        [string[]]$Scopes = @('User.Read')  ## e.g. @('Mail.ReadBasic','Mail.Read')
     )
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
@@ -1307,7 +1307,7 @@ function Get-Token-Device-Flow { ## without Graph Modules
         -Uri "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/devicecode" `
         -Body @{
             client_id = $ClientId
-            scope     = $Scopes
+            scope     = $($Scopes -join ' ')
         }
 
     Write-Host "Attempting to logon as Client_ID $ClientId to Tenant: $TenantId with these scopes: $Scopes"
@@ -1372,7 +1372,7 @@ function Get-Token-Interactive { ## via Browser
 
         [string]$RedirectUri = "https://login.microsoftonline.com/common/oauth2/nativeclient",
 
-        [string[]]$Scopes = @('Mail.ReadBasic','Mail.Read')
+        [string[]]$Scopes = @('User.Read')  ## e.g. @('Mail.ReadBasic','Mail.Read')
     )
 
     ## Turn off verbose
@@ -1415,6 +1415,7 @@ function Get-Token-Interactive { ## via Browser
                "&response_mode=query" +
                "&scope=$([uri]::EscapeDataString($Scopes))" +
                "&state=12345"
+    Write-Host $authUrl
 
     Write-Host "Opening browser for Entra ID sign-in..." -ForegroundColor Cyan
     Start-Process $authUrl
