@@ -175,10 +175,11 @@ Install-OrUpdateModule MicrosoftTeams
 #Install-OrUpdateModule VMware.PowerCLI ## VMware PowerCLI (its too big - as no longer used much)
 Install-OrUpdateModule Microsoft.PowerApps.Administration.PowerShell
 
+## Install-OrUpdateModule PnP.PowerShell
 if (Get-Module PnP.PowerShell -ErrorAction SilentlyContinue ) {
     Update-Module PnP.PowerShell
 } else {
-    Install-Module Pnp.Powershell
+    Install-Module -Name PnP.PowerShell -RequiredVersion 3.1.0
 }
 Get-Command -Module PnP.PowerShell
 
