@@ -923,7 +923,7 @@ AZURE_USERNAME=$env:UPN
 function Import-Env-File {
     param(
         [Parameter(Mandatory)]
-        [string]$EnvId
+        [string]$EnvId,
 
         [bool]$silent = $false
     )
