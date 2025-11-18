@@ -184,7 +184,7 @@ if (Get-Module PnP.PowerShell -ErrorAction SilentlyContinue ) {
 Get-Command -Module PnP.PowerShell
 ## Connect-PnPOnline -url 
 #if ( $env:SHAREPOINT_ADMIN ) {
-#    Connect-PnPOnline -Url $env:SHAREPOINT_ADMIN -Interactive
+#    Connect-PnPOnline -Url $env:AZURE_SHAREPOINT_ADMIN -Interactive
 #}
 
 ## Add-PowerAppsAccount -Endpoint prod
