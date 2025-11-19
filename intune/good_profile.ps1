@@ -1430,10 +1430,8 @@ function Test-SharePoint {
 function Get-Token-Graph { ##use Graph Model
     [CmdletBinding()]
     param(
-        [ValidateNotNullOrEmpty()]
         [string]$TenantId = $Env:AZURE_TENANT_ID,
         
-        [ValidateNotNullOrEmpty()]
         [string]$ClientId = $Env:AZURE_CLIENT_ID,
         
         [ValidateNotNullOrEmpty()]
@@ -1444,9 +1442,18 @@ function Get-Token-Graph { ##use Graph Model
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']  = $false
     
+    ## Set to public client, if CLIENT_ID is not set
+    if ([string]::IsNullOrWhiteSpace($ClientId)) {
+        $ClientId = "1950a258-227b-4e31-a9cf-717495945fc2"
+    }
+        
     try {
         ## uses WAM broker -UseDeviceAuthentication:$false
-        Connect-MgGraph -TenantId $TenantId -ClientId $ClientId -Scopes $($Scopes -join ' ') -UseDeviceAuthentication:$false -NoWelcome
+        if ([string]::IsNullOrWhiteSpace($TenantId)) {
+            Connect-MgGraph -ClientId $ClientId -Scopes $($Scopes -join ' ') -UseDeviceAuthentication:$false -NoWelcome
+        } else {
+            Connect-MgGraph -TenantId $TenantId -ClientId $ClientId -Scopes $($Scopes -join ' ') -UseDeviceAuthentication:$false -NoWelcome
+        }
         $response = Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1.0/me" -OutputType 'HttpResponseMessage'
     }
     catch { 
@@ -1617,7 +1624,7 @@ function Get-Token-Interactive { ## via Browser
     $authCode = Read-Host "Enter the authorization code"
 
     if ([string]::IsNullOrWhiteSpace($authCode)) {
-        Write-Warning "No code entered. Aborting."
+        Write-Warning "❌ No code entered. Aborting."
         return
     }
 
