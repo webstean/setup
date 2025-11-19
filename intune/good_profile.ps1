@@ -1427,8 +1427,13 @@ function Test-SharePoint {
 function Get-Token-Graph { ##use Graph Model
     [CmdletBinding()]
     param(
+        [ValidateNotNullOrEmpty()]
         [string]$TenantId = $Env:AZURE_TENANT_ID,
+        
+        [ValidateNotNullOrEmpty()]
         [string]$ClientId = $Env:AZURE_CLIENT_ID,
+        
+        [ValidateNotNullOrEmpty()]
         [string[]]$Scopes = @('.default')
     )
 
