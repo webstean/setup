@@ -173,7 +173,6 @@ if ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue )) {
     ## docker run --rm -it ghcr.io/baresip/docker/baresip:latest
 }
 
-
 function Set-Developer-Variables {
     ## Edit as required
     if ( -not ( $env:DEVELOPER -eq "Yes" )) { return }
@@ -1027,15 +1026,6 @@ function Get-EntraID {
     }
 }
 
-function Get-Token { ##IMDS
-    if (-not $env:ACCESS_TOKEN) {
-        Connect-MgGraph -Scopes "Directory.Read.All","Application.Read.All"
-        $token = (Get-MgContext).AccessToken
-    } else {
-        $token = $env:ACCESS_TOKEN
-    }
-}
-
 function Get-Meta { ##IMDS
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
@@ -1053,6 +1043,15 @@ function Get-Meta { ##IMDS
     }
     $PSDefaultParameterValues['*:Verbose']   = $preserve
     return $true
+}
+
+function Get-Token { ##IMDS
+    if (-not $env:ACCESS_TOKEN) {
+        Connect-MgGraph -Scopes "Directory.Read.All","Application.Read.All"
+        $token = (Get-MgContext).AccessToken
+    } else {
+        $token = $env:ACCESS_TOKEN
+    }
 }
 
 function Enable-PIMRole {
@@ -1299,6 +1298,130 @@ function New-GraphRequestParams {
 
     return $params
 }
+
+function Get-SPODelegatedAccessToken {
+    <#
+    .SYNOPSIS
+        Acquire a delegated SharePoint Online access token (Entra ID) for the signed-in user.
+
+    .DESCRIPTION
+        Uses OAuth 2.0 device code flow against the v2.0 endpoint to obtain
+        a delegated access token for SharePoint Online (SPO).
+
+        The token's audience (aud) will be the SPO resource:
+            00000003-0000-0ff1-ce00-000000000000
+
+    .PARAMETER Tenant
+        Your Entra ID tenant, either as a domain (contoso.onmicrosoft.com)
+        or GUID.
+
+    .PARAMETER SharePointHost
+        The SharePoint Online host used for scoping (e.g. contoso.sharepoint.com).
+
+    .PARAMETER ClientId
+        Public client application ID. By default uses the Microsoft 1st-party
+        public client (Azure PowerShell / MSAL client).
+
+    .PARAMETER StoreInEnv
+        If specified, the token is also stored in $env:ACCESS_TOKEN.
+
+    .OUTPUTS
+        [string] - The access token (JWT).
+    #>
+
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Tenant,
+
+        [Parameter(Mandatory)]
+        [string]$SharePointHost,
+
+        [string]$ClientId = "1950a258-227b-4e31-a9cf-717495945fc2",
+
+        [switch]$StoreInEnv
+    )
+
+    # ----- Step 1: Request device code -----
+    $scope = "https://$SharePointHost/.default offline_access openid profile"
+
+    $deviceCodeBody = @{
+        client_id = $ClientId
+        scope     = $scope
+    }
+
+    $deviceCodeUri = "https://login.microsoftonline.com/$Tenant/oauth2/v2.0/devicecode"
+
+    Write-Verbose "Requesting device code for tenant '$Tenant' and scope '$scope'..."
+    $device = Invoke-RestMethod -Method POST -Uri $deviceCodeUri -Body $deviceCodeBody
+
+    Write-Host ""
+    Write-Host "To sign in, open the following URL in a browser and enter the code:" -ForegroundColor Cyan
+    Write-Host "  URL : $($device.verification_uri)" -ForegroundColor Yellow
+    Write-Host "  Code: $($device.user_code)" -ForegroundColor Yellow
+    Write-Host ""
+
+    # ----- Step 2: Poll token endpoint -----
+    $tokenUri = "https://login.microsoftonline.com/$Tenant/oauth2/v2.0/token"
+
+    $pollBody = @{
+        grant_type  = "urn:ietf:params:oauth:grant-type:device_code"
+        client_id   = $ClientId
+        device_code = $device.device_code
+    }
+
+    $expiresIn   = [int]$device.expires_in
+    $intervalSec = [int]$device.interval
+    $startTime   = Get-Date
+
+    Write-Verbose "Polling token endpoint every $intervalSec seconds for up to $expiresIn seconds..."
+
+    $token = $null
+
+    while (-not $token) {
+        # Check timeout
+        $elapsed = (Get-Date) - $startTime
+        if ($elapsed.TotalSeconds -ge $expiresIn) {
+            throw "Device code has expired. Please run the function again to start a new sign-in."
+        }
+
+        try {
+            $token = Invoke-RestMethod -Method POST -Uri $tokenUri -Body $pollBody
+        }
+        catch {
+            $errorResponse = $_.ErrorDetails.Message
+            if ($errorResponse -match "authorization_pending") {
+                # User hasn't completed login yet – wait and retry
+                Start-Sleep -Seconds $intervalSec
+                continue
+            }
+            elseif ($errorResponse -match "slow_down") {
+                # Service is asking us to slow down – wait a bit more
+                Start-Sleep -Seconds ($intervalSec + 2)
+                continue
+            }
+            else {
+                throw "Failed to obtain token. Error response: $errorResponse"
+            }
+        }
+    }
+
+    $accessToken = $token.access_token
+
+    if (-not $accessToken) {
+        throw "Token response did not contain an access_token."
+    }
+
+    # ----- Optional: store in environment variable -----
+    if ($StoreInEnv) {
+        $env:ACCESS_TOKEN = $accessToken
+        Write-Verbose "Stored access token in environment variable ACCESS_TOKEN."
+    }
+
+    # Return the token
+    return $accessToken
+}
+
 
 function Get-Token-Graph {  ## with Graph PowerShell Modules
     [CmdletBinding()]
