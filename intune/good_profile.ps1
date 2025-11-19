@@ -1316,7 +1316,6 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
         throw "Correct environment variables are NOT defined!"
     }
 
-    Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scopes $($Scopes -join ' ') -NoWelcome"
     Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scopes $($Scopes -join ' ') -NoWelcome
     
     ## 'https://graph.microsoft.com/v1.0/me/messages'
