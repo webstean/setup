@@ -1045,7 +1045,7 @@ function Get-Meta { ##IMDS
     if ($response ) {
         $response | Format-List 
     } else {
-        throw "Not running inside Azure"
+        throw "This machine is not running inside Azure"
         $PSDefaultParameterValues['*:Verbose']   = $preserve
         return $false
     }
@@ -1055,7 +1055,7 @@ function Get-Meta { ##IMDS
 
 function Get-Token { ##IMDS
     if (-not $env:ACCESS_TOKEN) {
-        Connect-MgGraph -Scopes "Directory.Read.All","Application.Read.All"
+        Connect-MgGraph -Scopes ".default"
         $token = (Get-MgContext).AccessToken
     } else {
         $token = $env:ACCESS_TOKEN
