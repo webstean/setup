@@ -183,8 +183,9 @@ function Set-Developer-Variables {
     Set-Item -Path Env:\DOTNET_UPGRADEASSISTANT_TELEMETRY_OPTOUT -Value $true
     Set-Item -Path Env:\DOTNET_CLI_TELEMETRY_OPTOUT -Value $true
 
-    ## AZD get rid of annoying update prompt
+    ## AZD get rid of annoying update prompt and opt out of telemetry
     Set-Item -Path Env:\AZD_SKIP_UPDATE_CHECK -Value $true
+    Set-Item -Path Env:\AZURE_DEV_COLLECT_TELEMETRY -Value 'no'
     
     ## Azure PowerShell - suppress breaking change message
     Set-Item -Path Env:\SuppressAzurePowerShellBreakingChangeWarnings -Value $true
