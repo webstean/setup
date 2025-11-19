@@ -187,10 +187,10 @@ Get-Command -Module PnP.PowerShell
 ## Sites.Manage.All        - lets you manage site permissions via Graph.         –
 #if ( $env:SHAREPOINT_ADMIN ) {
 #    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -Interactive
+#    env:$SHAREPOINT_ACCESS_TOKEN = Get-PnPAccessToken
 #    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -AccessToken $env:SHAREPOINT_ACCESS_TOKEN
 #    Get-PnpConnection
 #    Get-PnPAuthenticationRealm
-#    env:$SHAREPOINT_ACCESS_TOKEN = Get-PnPAccessToken
 #    Get-PnPTenant
 #    Get-PnPTenantSite
 #    Get-PnPTenantAppCatalogUrl
