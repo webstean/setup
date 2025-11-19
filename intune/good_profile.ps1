@@ -1055,7 +1055,7 @@ function Get-Meta { ##IMDS
 
 function Get-Token { ##IMDS
     if (-not $env:ACCESS_TOKEN) {
-        Connect-MgGraph -Scopes ".default"
+        Connect-MgGraph -Scopes ".default" -NoWelcome
         $token = (Get-MgContext).AccessToken
     } else {
         $token = $env:ACCESS_TOKEN
