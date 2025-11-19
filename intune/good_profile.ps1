@@ -1210,6 +1210,96 @@ function Enable-PIMRole {
 ##    Write-Host "Please log in as the correct user."
 ## }
 
+function New-GraphRequestParams {
+    <#
+    .SYNOPSIS
+        Builds a @params splat hashtable for Invoke-MgGraphRequest.
+
+    .DESCRIPTION
+        Supports GET/POST/PATCH/DELETE, optional query parameters,
+        Microsoft Graph headers, and automatic JSON body conversion.
+
+    .EXAMPLE
+        $params = New-GraphRequestParams -Method GET `
+            -Uri "https://graph.microsoft.com/v1.0/me"
+
+        $response = Invoke-MgGraphRequest @params
+    #>
+
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet("GET","POST","PATCH","DELETE","PUT")]
+        [string]$Method,
+
+        [Parameter(Mandatory)]
+        [string]$Uri,
+
+        [hashtable]$Query,
+        [hashtable]$Headers,
+        $Body,
+        [string]$AccessToken,
+        [string]$OutputType = "Json"
+    )
+
+    #
+    # Build final URI with query parameters
+    #
+    if ($Query) {
+        $encoded = $Query.GetEnumerator() |
+            ForEach-Object { "{0}={1}" -f [System.Web.HttpUtility]::UrlEncode($_.Key), [System.Web.HttpUtility]::UrlEncode($_.Value) }
+
+        if ($Uri.Contains("?")) {
+            $Uri = "$Uri&$($encoded -join '&')"
+        } else {
+            $Uri = "$Uri?$($encoded -join '&')"
+        }
+    }
+
+    #
+    # Build headers
+    #
+    $finalHeaders = @{}
+
+    if ($Headers) {
+        foreach ($k in $Headers.Keys) {
+            $finalHeaders[$k] = $Headers[$k]
+        }
+    }
+
+    # Add Authorization header if token provided
+    if ($AccessToken) {
+        $finalHeaders["Authorization"] = "Bearer $AccessToken"
+    }
+
+    #
+    # Build params hashtable
+    #
+    $params = @{
+        Method     = $Method
+        Uri        = $Uri
+        OutputType = $OutputType
+    }
+
+    if ($finalHeaders.Count -gt 0) {
+        $params["Headers"] = $finalHeaders
+    }
+
+    #
+    # Add Body if provided
+    #
+    if ($PSBoundParameters.ContainsKey("Body")) {
+        # Convert PowerShell objects to JSON automatically
+        if ($Body -isnot [string] -and $Body -isnot [byte[]]) {
+            $Body = ($Body | ConvertTo-Json -Depth 10)
+        }
+
+        $params["Body"] = $Body
+    }
+
+    return $params
+}
+
 function Get-Token-Graph {  ## with Graph PowerShell Modules
     [CmdletBinding()]
     param(
@@ -1230,9 +1320,12 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scopes $($Scopes -join ' ') -NoWelcome
     
     ## 'https://graph.microsoft.com/v1.0/me/messages'
+    ## 'https://graph.microsoft.com/v1.0/users'
+    ## 'https://graph.microsoft.com/v1.0/me'
+    #New-GraphRequestParams -Method 'GET' -Uri 'https://graph.microsoft.com/v1.0/me' -OutputType = 'HttpResponseMessage'
     $params = @{
         Method     = 'GET'
-        Uri        = 'https://graph.microsoft.com/v1.0/users/'
+        Uri        = 'https://graph.microsoft.com/v1.0/me'
         OutputType = 'HttpResponseMessage'
     }
 
