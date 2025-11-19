@@ -1736,17 +1736,18 @@ function Get-Token-Info {
     ## exp should be a UNIX timestamp (seconds since epoch)
     $expUnix = [long]$jwt.exp
 
-    ## Convert exp to local DateTime
-    $expiry = [DateTimeOffset]::FromUnixTimeSeconds($expUnix).ToLocalTime()
-
-    ## Compute difference
-    $now = Get-Date
-    $minutesRemaining = [math]::Round(($expiry - $now).TotalMinutes, 2)
-    if ($minutesRemaining -le 0) {
-        Write-Host "Token has already expired!" -ForegroundColor Red
-        Write-Host "Expired at: $expiry" -ForegroundColor Red                
-    } else {
-        Write-Host "Token expires in $minutesRemaining minutes"
+    if ($IsLanguagePermissive) {
+        ## Convert exp to local DateTime
+        $expiry = [DateTimeOffset]::FromUnixTimeSeconds($expUnix).ToLocalTime()
+        ## Compute difference
+        $now = Get-Date
+        $minutesRemaining = [math]::Round(($expiry - $now).TotalMinutes, 2)
+        if ($minutesRemaining -le 0) {
+            Write-Host "❌ Token has already expired!" -ForegroundColor Red
+            Write-Host "Token expired at: $expiry" -ForegroundColor Red                
+        } else {
+            Write-Host "Token expires in $minutesRemaining minutes"
+        }
     }
     $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
