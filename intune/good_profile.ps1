@@ -1407,7 +1407,7 @@ function Get-SPODelegatedAccessToken {
     $accessToken = $token.access_token
 
     if (-not $accessToken) {
-        throw "Response did not contain an access_token."
+        throw "The response did not contain an access_token."
     }
 
     # ----- store in environment variable and clipboard -----
