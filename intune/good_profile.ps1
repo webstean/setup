@@ -1412,9 +1412,9 @@ function Get-SPODelegatedAccessToken {
 
     # ----- Optional: store in environment variable -----
     if ($StoreInEnv) {
-        $env:ACCESS_TOKEN = $accessToken
-        Write-Host "Stored access token in environment variable ACCESS_TOKEN and in Clipboard."
+        $env:SHAREPOINT_ACCESS_TOKEN = $accessToken
         $accesstoken | Set-Clipboard
+        Write-Host "Stored access token in environment variable SHAREPOINT_ACCESS_TOKEN and in Clipboard."
     }
 
     # Return the token
