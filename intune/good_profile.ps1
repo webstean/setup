@@ -1417,8 +1417,9 @@ function Get-SPODelegatedAccessToken {
         Write-Host "Stored access token in environment variable SHAREPOINT_ACCESS_TOKEN and in Clipboard."
     }
 
-    # Return the token
-    return $accessToken
+    Write-Host "Connect-PnPOnline -Url ""https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com"" -AccessToken "'$env:SHAREPOINT_ACCESS_TOKEN'
+    Write-Host "Get-PnpConnection"
+    return ##$accessToken
 }
 
 function Get-Token-Graph {  ## with Graph PowerShell Modules
@@ -1477,6 +1478,7 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     Write-Host "Access denied or token not available."
     
     $PSDefaultParameterValues['*:Verbose'] = $preserve
+
     return $false
 }
 
