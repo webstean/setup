@@ -1232,7 +1232,7 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     ## 'https://graph.microsoft.com/v1.0/me/messages'
     $params = @{
         Method     = 'GET'
-        Uri        = 'https://graph.microsoft.com/v1.0/users/"
+        Uri        = 'https://graph.microsoft.com/v1.0/users/'
         OutputType = 'HttpResponseMessage'
     }
 
