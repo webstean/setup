@@ -1055,7 +1055,8 @@ function Get-Meta { ##IMDS
 
 function Get-Token { ##IMDS
     if (-not $env:ACCESS_TOKEN) {
-        Connect-MgGraph -Scopes ".default" -NoWelcome
+        ## uses WAM broker 
+        Connect-MgGraph -Scopes ".default" -UseDeviceAuthentication:$false -NoWelcome
         $token = (Get-MgContext).AccessToken
     } else {
         $token = $env:ACCESS_TOKEN
@@ -1696,6 +1697,27 @@ function Get-Token-Interactive { ## via Browser
         $PSDefaultParameterValues['*:Verbose']   = $preserve
         return $false
     }
+}
+
+function Get-Token-MSAL {
+    # Install once:
+    # Install-Package Microsoft.Identity.Client -Source https://www.nuget.org/api/v2 -Scope CurrentUser
+    Add-Type -Path "$env:USERPROFILE\.nuget\packages\microsoft.identity.client\*\lib\net472\Microsoft.Identity.Client.dll"
+
+    $tenantId = $env.AZURE_TENANT_ID
+    $clientId = $env.AZURE_CLIENT_ID  ##"04b07795-8ddb-461a-bbee-02f9e1bf7b46"  # Public client (Graph PowerShell / Azure CLI style)
+    $scopes   = @("User.Read")
+
+    $app = [Microsoft.Identity.Client.PublicClientApplicationBuilder]::Create($clientId).
+        WithAuthority("https://login.microsoftonline.com/$tenantId").
+        WithDefaultRedirectUri().
+        Build()
+
+    $result = $app.AcquireTokenInteractive($scopes).ExecuteAsync().GetAwaiter().GetResult()
+
+    $accessToken = $result.AccessToken    
+    $accessToken | Set-Clipboard
+    Write-Host "Access token copied to clipboard."
 }
 
 function Get-EntraUserInfo {
