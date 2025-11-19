@@ -1422,6 +1422,13 @@ function Get-SPODelegatedAccessToken {
     return ##$accessToken
 }
 
+function Test-SharePoint {
+    Get-SPODelegatedAccessToken
+    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -AccessToken $env:SHAREPOINT_ACCESS_TOKEN
+    Get-PnPAuthenticationRealm
+    Get-PnpConnection
+}
+
 function Get-Token-Graph {  ## with Graph PowerShell Modules
     [CmdletBinding()]
     param(
