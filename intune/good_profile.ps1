@@ -1020,12 +1020,12 @@ function Get-EntraID {
     $PSDefaultParameterValues['*:Verbose']   = $false
 
     if ( -not $env:AZURE_TENANT_ID ) {
-        throw "Environment variable AZURE_TENANT_ID not set"
+        throw "Environment variable AZURE_TENANT_ID is not set"
     }
     $response = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration" -ErrorAction Stop
     if ($response ) {
         $PSDefaultParameterValues['*:Verbose']   = $preserve
-        $response | Format-List authorization_endpoint, token_endpoint, issuer, jwks_uri
+        $response | Format-List issuer, token_endpoint, authorization_endpoint, device_authorization_endpoint, end_session_endpoint, kerberos_endpoint, jwks_uri
         return $true
     } else {
         $PSDefaultParameterValues['*:Verbose']   = $preserve
@@ -1051,41 +1051,6 @@ function Get-Meta { ##IMDS
     }
     $PSDefaultParameterValues['*:Verbose']   = $preserve
     return $true
-}
-
-function Get-Token { ##use Grapoh Model
-## Turn off verbose
-    $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
-    
-    try {
-        ## uses WAM broker 
-        Connect-MgGraph -Scopes ".default" -UseDeviceAuthentication:$false -NoWelcome
-        $response = Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1.0/me" -OutputType 'HttpResponseMessage'
-    }
-    catch {
-        $PSDefaultParameterValues['*:Verbose'] = $preserve
-        throw "Get-Token call failed. $($_.Exception.Message)"
-    }
-
-    ## Primary path: read the Bearer token from the *request* Authorization header
-    $authHeader = $response.RequestMessage.Headers.Authorization
-    if ($authHeader -and $authHeader.Scheme -eq 'Bearer' -and $authHeader.Parameter) {
-        $accesstoken = $authHeader.Parameter
-    }
-
-    if ($accesstoken -and $accesstoken.Length -gt 1) {
-        Set-Item -Path Env:\ACCESS_TOKEN -Value $accesstoken
-        $accesstoken | Set-Clipboard
-        Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
-        $PSDefaultParameterValues['*:Verbose'] = $preserve
-        return $true
-    }
-
-    Write-Host "Access denied or token not available."
-    
-    $PSDefaultParameterValues['*:Verbose'] = $preserve
-    return $false
 }
 
 function Enable-PIMRole {
@@ -1367,11 +1332,9 @@ function Get-SPODelegatedAccessToken {
     param(
         [string]$Tenant = $Env:AZURE_TENANT_ID,
 
-        [string]$SharePointHost = $Env:AZURE_SHAREPOINT,
+        [string]$SharePointHost = $Env:AZURE_SHAREPOINT_ADMIN,
 
         [string]$ClientId = $Env:AZURE_CLIENT_ID,
-
-        [switch]$StoreInEnv = $true
     )
 
     # ----- Step 1: Request device code -----
@@ -1444,12 +1407,10 @@ function Get-SPODelegatedAccessToken {
         throw "Token response did not contain an access_token."
     }
 
-    # ----- Optional: store in environment variable -----
-    if ($StoreInEnv) {
-        $env:ACCESS_TOKEN_SHAREPOINT = $accessToken
-        $accesstoken | Set-Clipboard
-        Write-Host "Stored access token in environment variable ACCESS_TOKEN_SHAREPOINT and in Clipboard."
-    }
+    # ----- store in environment variable and clipboard -----
+    $env:ACCESS_TOKEN_SHAREPOINT = $accessToken
+    $accesstoken | Set-Clipboard
+    Write-Host "Stored access token in environment variable ACCESS_TOKEN_SHAREPOINT and in Clipboard."
 
     Write-Host "Connect-PnPOnline -Url ""https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com"" -AccessToken "'$env:ACCESS_TOKEN_SHAREPOINT'
     Write-Host "Get-PnpConnection"
@@ -1463,49 +1424,32 @@ function Test-SharePoint {
     Get-PnpConnection
 }
 
-function Get-Token-Graph {  ## with Graph PowerShell Modules
+function Get-Token-Graph { ##use Graph Model
     [CmdletBinding()]
     param(
-        [string[]]$Scopes = @('User.Read')  ## e.g. @('Mail.ReadBasic','Mail.Read')
+        [string]$TenantId = $Env:AZURE_TENANT_ID,
+        [string]$ClientId = $Env:AZURE_CLIENT_ID,
+        [string[]]$Scopes = @('.default')
     )
 
-    # Turn off verbose
+    ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose'] = $false
-
-    Write-Host "Requesting Access Token via Microsoft Graph PowerShell modules for scopes: $($Scopes -join ' ')" -ForegroundColor Cyan
-
-    if ( (Check-Azure-Environment) -eq $false ) {
-        throw "Correct environment variables are NOT defined!"
-    }
-
-    Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scopes $($Scopes -join ' ') -NoWelcome
+    $PSDefaultParameterValues['*:Verbose']  = $false
     
-    ## 'https://graph.microsoft.com/v1.0/me/messages'
-    ## 'https://graph.microsoft.com/v1.0/users'
-    ## 'https://graph.microsoft.com/v1.0/me'
-    #New-GraphRequestParams -Method 'GET' -Uri 'https://graph.microsoft.com/v1.0/me' -OutputType = 'HttpResponseMessage'
-    $params = @{
-        Method     = 'GET'
-        Uri        = 'https://graph.microsoft.com/v1.0/me'
-        OutputType = 'HttpResponseMessage'
-    }
-
     try {
-        $response = Invoke-MgGraphRequest @params
+        ## uses WAM broker -UseDeviceAuthentication:$false
+        Connect-MgGraph -TenantId $TenantId -ClientId $ClientId -Scopes $($Scopes -join ' ') -UseDeviceAuthentication:$false -NoWelcome
+        $response = Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1.0/me" -OutputType 'HttpResponseMessage'
     }
-    catch {
+    catch { 
         $PSDefaultParameterValues['*:Verbose'] = $preserve
-        throw "Get-Token call failed. $($_.Exception.Message)"
+        throw "Get-Token failed. $($_.Exception.Message)"
     }
 
-    # Primary path: read the Bearer token from the *request* Authorization header
+    ## Primary path: read the Bearer token from the *request* Authorization header
     $authHeader = $response.RequestMessage.Headers.Authorization
     if ($authHeader -and $authHeader.Scheme -eq 'Bearer' -and $authHeader.Parameter) {
         $accesstoken = $authHeader.Parameter
-    } else {
-        # Fallback: some SDK versions expose the token on the MgContext
-        $accesstoken = (Get-MgContext).AccessToken
     }
 
     if ($accesstoken -and $accesstoken.Length -gt 1) {
@@ -1519,7 +1463,6 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     Write-Host "Access denied or token not available."
     
     $PSDefaultParameterValues['*:Verbose'] = $preserve
-
     return $false
 }
 
