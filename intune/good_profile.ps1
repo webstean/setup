@@ -1331,15 +1331,13 @@ function Get-SPODelegatedAccessToken {
 
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
-        [string]$Tenant,
+        [string]$Tenant = $Env:AZURE_TENANT_ID,
 
-        [Parameter(Mandatory)]
-        [string]$SharePointHost,
+        [string]$SharePointHost = $Env:AZURE_SHAREPOINT,
 
         [string]$ClientId = "1950a258-227b-4e31-a9cf-717495945fc2",
 
-        [switch]$StoreInEnv
+        [switch]$StoreInEnv = $true
     )
 
     # ----- Step 1: Request device code -----
