@@ -1469,13 +1469,13 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     # Primary path: read the Bearer token from the *request* Authorization header
     $authHeader = $response.RequestMessage.Headers.Authorization
     if ($authHeader -and $authHeader.Scheme -eq 'Bearer' -and $authHeader.Parameter) {
-        $token = $authHeader.Parameter
+        $accesstoken = $authHeader.Parameter
     } else {
         # Fallback: some SDK versions expose the token on the MgContext
         $accesstoken = (Get-MgContext).AccessToken
     }
 
-    if ($token) {
+    if ($accesstoken -and $accesstoken.Length -gt 1) {
         Set-Item -Path Env:\ACCESS_TOKEN -Value $accesstoken
         $accesstoken | Set-Clipboard
         Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
