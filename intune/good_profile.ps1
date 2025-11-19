@@ -1729,11 +1729,13 @@ function Get-EntraUserInfo {
         $response = Invoke-RestMethod @params
         $response | Format-List
         $PSDefaultParameterValues['*:Verbose']   = $preserve
-        return $response
+        return $true
     }
     catch {
         throw "Failed to retrieve userinfo: $($_.Exception.Message)"
     }
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
+    return false
 }
 
 function Get-Token-Info {
