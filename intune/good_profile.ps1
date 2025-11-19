@@ -1320,7 +1320,7 @@ function Get-SPODelegatedAccessToken {
 
     .PARAMETER ClientId
         Public client application ID. By default uses the Microsoft 1st-party
-        public client (Azure PowerShell / MSAL client).
+        public client (Azure PowerShell / MSAL client). "1950a258-227b-4e31-a9cf-717495945fc2"
 
     .PARAMETER StoreInEnv
         If specified, the token is also stored in $env:ACCESS_TOKEN.
@@ -1335,7 +1335,7 @@ function Get-SPODelegatedAccessToken {
 
         [string]$SharePointHost = $Env:AZURE_SHAREPOINT,
 
-        [string]$ClientId = "1950a258-227b-4e31-a9cf-717495945fc2",
+        [string]$ClientId = $Env:AZURE_CLIENT_ID,
 
         [switch]$StoreInEnv = $true
     )
@@ -1413,7 +1413,8 @@ function Get-SPODelegatedAccessToken {
     # ----- Optional: store in environment variable -----
     if ($StoreInEnv) {
         $env:ACCESS_TOKEN = $accessToken
-        Write-Verbose "Stored access token in environment variable ACCESS_TOKEN."
+        Write-Host "Stored access token in environment variable ACCESS_TOKEN and in Clipboard."
+        $accesstoken | Set-Clipboard
     }
 
     # Return the token
@@ -1463,12 +1464,12 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
         $token = $authHeader.Parameter
     } else {
         # Fallback: some SDK versions expose the token on the MgContext
-        $token = (Get-MgContext).AccessToken
+        $accesstoken = (Get-MgContext).AccessToken
     }
 
     if ($token) {
-        Set-Item -Path Env:\ACCESS_TOKEN -Value $token
-        $token | Set-Clipboard
+        Set-Item -Path Env:\ACCESS_TOKEN -Value $accesstoken
+        $accesstoken | Set-Clipboard
         Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
         $PSDefaultParameterValues['*:Verbose'] = $preserve
         return $true
