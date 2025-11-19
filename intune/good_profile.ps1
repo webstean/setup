@@ -1717,13 +1717,12 @@ function Get-Token-Info {
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
 
-    Install-OrUpdateModule JWTDetails
     Import-Module JWTDetails
     ## or goto: https://jwt-decoder.com/
     ##          https://jwt.ms
     $jwt = Get-JWTDetails $env:ACCESS_TOKEN
     if ( -not ($jwt) ) {
-        Write-Host "Failed to decode token." -ForegroundColor Red
+        Write-Host "❌ Failed to decode token." -ForegroundColor Red
         $PSDefaultParameterValues['*:Verbose']   = $preserve
         return
     }
@@ -1732,6 +1731,7 @@ function Get-Token-Info {
     $jwt.app_displayname
     #$jwt.aud
     $jwt.iss
+    $jwt.scp
     $jwt.tid
     ## exp should be a UNIX timestamp (seconds since epoch)
     $expUnix = [long]$jwt.exp
