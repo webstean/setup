@@ -1341,7 +1341,7 @@ function Get-SPODelegatedAccessToken {
     )
 
     # ----- Step 1: Request device code -----
-    $scope = "https://$SharePointHost/.default offline_access openid profile"
+    $scope = "https://${SharePointHost}.sharepoint.com/.default offline_access openid profile"
 
     $deviceCodeBody = @{
         client_id = $ClientId
@@ -1420,7 +1420,6 @@ function Get-SPODelegatedAccessToken {
     # Return the token
     return $accessToken
 }
-
 
 function Get-Token-Graph {  ## with Graph PowerShell Modules
     [CmdletBinding()]
