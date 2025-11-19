@@ -1229,9 +1229,10 @@ function Get-Token-Graph {  ## with Graph PowerShell Modules
     Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scopes $($Scopes -join ' ') -NoWelcome"
     Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scopes $($Scopes -join ' ') -NoWelcome
     
+    ## 'https://graph.microsoft.com/v1.0/me/messages'
     $params = @{
         Method     = 'GET'
-        Uri        = 'https://graph.microsoft.com/v1.0/me/messages'
+        Uri        = 'https://graph.microsoft.com/v1.0/users/"
         OutputType = 'HttpResponseMessage'
     }
 
