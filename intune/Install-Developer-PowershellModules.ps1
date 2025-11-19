@@ -189,7 +189,8 @@ Get-Command -Module PnP.PowerShell
 #    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -Interactive
 #    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -AccessToken $env:SHAREPOINT_ACCESS_TOKEN
 #    Get-PnpConnection
-#    $ACCESS_TOKEN = Get-PnPAccessToken
+#    Get-PnPAuthenticationRealm
+#    env:$SHAREPOINT_ACCESS_TOKEN = Get-PnPAccessToken
 #    Get-PnPTenant
 #    Get-PnPTenantSite
 #    Get-PnPTenantAppCatalogUrl
@@ -198,7 +199,6 @@ Get-Command -Module PnP.PowerShell
 #    Get-PnPTenantCdnOrigins
 #    Get-PnPTenantAllowBlockList
 #    Get-PnPTenantSiteClassification
-#    Get-PnPTenantCorporateDevicePolicy
 #    Get-PnPOrgNewsSite
 #    Get-PnPSiteDesign
 #}
