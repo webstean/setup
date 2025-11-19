@@ -1330,11 +1330,14 @@ function Get-SPODelegatedAccessToken {
 
     [CmdletBinding()]
     param(
-        [string]$Tenant = $Env:AZURE_TENANT_ID,
+        [ValidateNotNullOrEmpty()]
+        [string]$TenantId = $Env:AZURE_TENANT_ID,
 
-        [string]$SharePointHost = $Env:AZURE_SHAREPOINT_ADMIN,
-
+        [ValidateNotNullOrEmpty()]
         [string]$ClientId = $Env:AZURE_CLIENT_ID,
+
+        [ValidateNotNullOrEmpty()]
+        [string]$SharePointHost = $Env:AZURE_SHAREPOINT_ADMIN
     )
 
     # ----- Step 1: Request device code -----
@@ -1345,9 +1348,9 @@ function Get-SPODelegatedAccessToken {
         scope     = $scope
     }
 
-    $deviceCodeUri = "https://login.microsoftonline.com/$Tenant/oauth2/v2.0/devicecode"
+    $deviceCodeUri = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/devicecode"
 
-    Write-Verbose "Requesting device code for tenant '$Tenant' and scope '$scope'..."
+    Write-Verbose "Requesting device code for tenant '$TenantId' and scope '$scope'..."
     $device = Invoke-RestMethod -Method POST -Uri $deviceCodeUri -Body $deviceCodeBody
 
     Write-Host ""
@@ -1357,7 +1360,7 @@ function Get-SPODelegatedAccessToken {
     Write-Host ""
 
     # ----- Step 2: Poll token endpoint -----
-    $tokenUri = "https://login.microsoftonline.com/$Tenant/oauth2/v2.0/token"
+    $tokenUri = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token"
 
     $pollBody = @{
         grant_type  = "urn:ietf:params:oauth:grant-type:device_code"
@@ -1404,7 +1407,7 @@ function Get-SPODelegatedAccessToken {
     $accessToken = $token.access_token
 
     if (-not $accessToken) {
-        throw "Token response did not contain an access_token."
+        throw "Response did not contain an access_token."
     }
 
     # ----- store in environment variable and clipboard -----
@@ -1448,7 +1451,7 @@ function Get-Token-Graph { ##use Graph Model
     }
     catch { 
         $PSDefaultParameterValues['*:Verbose'] = $preserve
-        throw "Get-Token failed. $($_.Exception.Message)"
+        throw "❌ Get-Token failed. $($_.Exception.Message)"
     }
 
     ## Primary path: read the Bearer token from the *request* Authorization header
@@ -1465,7 +1468,7 @@ function Get-Token-Graph { ##use Graph Model
         return $true
     }
 
-    Write-Host "Access denied or token not available."
+    Write-Host "❌ Access denied or token not available."
     
     $PSDefaultParameterValues['*:Verbose'] = $preserve
     return $false
@@ -1476,47 +1479,19 @@ function Get-Token-Device-Flow { ## without Graph Modules
     param(
         ## Provide if you want; otherwise we'll pick it up from env vars
         [ValidateNotNullOrEmpty()]
-        [string]$TenantId,
+        [string]$TenantId = $Env:AZURE_TENANT_ID,
         
-        [string]$ClientId,
+        [ValidateNotNullOrEmpty()]
+        [string]$ClientId = $Env:AZURE_CLIENT_ID,
 
-        [string[]]$Scopes = @('User.Read')  ## e.g. @('Mail.ReadBasic','Mail.Read')
+        [ValidateNotNullOrEmpty()]
+        [string[]]$Scopes = @('.default')
     )
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
 
-    Write-Host "Requesting Access Token via Entra ID Device Code flow for scopes: $Scopes" -ForegroundColor Cyan
-
-    ## Resolve TenantId in priority order: explicit param → common env vars
-    $tenantCandidates = @(
-        $TenantId,
-        $env:AZURE_TENANT_ID,  # Azure CLI / general
-        $env:ARM_TENANT_ID,    # Terraform/ARM conventions
-        $env:AAD_TENANT_ID     # some orgs use this
-    ) | Where-Object { $_ -and $_.Trim() -ne '' }
-    $TenantId = $tenantCandidates | Select-Object -First 1
-    if (-not $TenantId) {
-        throw "TenantId not provided and no environment variable (AZURE_TENANT_ID/ARM_TENANT_ID/AAD_TENANT_ID) was found."
-    }
-    $clientCandidates = @(
-        $ClientId,
-        $env:AZURE_CLIENT_ID,  # Azure CLI / general
-        $env:ARM_CLIENT_ID,    # Terraform/ARM conventions
-        $env:AAD_CLIENT_ID     # some orgs use this
-    ) | Where-Object { $_ -and $_.Trim() -ne '' }
-    $ClientId = $clientCandidates | Select-Object -First 1
-    if (-not $ClientId) {
-        throw "ClientId not provided and no environment variable (AZURE_CLIENT_ID/ARM_CLIENT_ID/AAD_CLIENT_ID) was found."
-    }
-    if ( (Check-Azure-Environment) -eq $false ) {
-        throw "Correct environment variables are NOT defined!"
-    }
-    Write-Verbose "Using TenantId: $TenantId"
-    Write-Verbose "Using ClientId: $ClientId"
-    Write-Verbose "Using Scopes  : $($Scopes -join ' ')"
-        
-    # Request a device code for the given scopes
+    ## Request a device code for the given scopes
     $deviceCodeResponse = Invoke-RestMethod -Method POST `
         -Uri "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/devicecode" `
         -Body @{
@@ -1524,11 +1499,11 @@ function Get-Token-Device-Flow { ## without Graph Modules
             scope     = $($Scopes -join ' ')
         }
 
-    Write-Host "Attempting to logon as Client_ID $ClientId to Tenant: $TenantId with these scopes: $Scopes"
+    Write-Host "Attempting to logon as Client_ID $ClientId to Tenant: $TenantId with these scopes: ($Scopes -join ' ')"
     Write-Host "`nGo to $($deviceCodeResponse.verification_uri) and enter code: $($deviceCodeResponse.user_code)" -ForegroundColor Yellow
     Write-Host "Waiting for sign-in and consent..." -ForegroundColor DarkGray
 
-    # Poll until user signs in and token is issued
+    ## Poll until user signs in and token is issued
     while ($true) {
         Start-Sleep -Seconds $deviceCodeResponse.interval
 
