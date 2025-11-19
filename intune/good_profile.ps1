@@ -1736,7 +1736,11 @@ function Get-EntraUserInfo {
         throw "No ACCESS_TOKEN found in environment variables."
     }
 
-    $endpoint = "https://graph.microsoft.com/oidc/userinfo"
+    $endpoint = "https://graph.microsoft.com/v1.0/me"
+    #$endpoint = "https://graph.microsoft.com/oidc/userinfo"
+
+    ## Alternative
+    #Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1.0/me"
 
     try {
         $params = @{
