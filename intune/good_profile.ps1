@@ -1053,14 +1053,39 @@ function Get-Meta { ##IMDS
     return $true
 }
 
-function Get-Token { ##IMDS
-    if (-not $env:ACCESS_TOKEN) {
+function Get-Token { ##use Grapoh Model
+## Turn off verbose
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
+    
+    try {
         ## uses WAM broker 
         Connect-MgGraph -Scopes ".default" -UseDeviceAuthentication:$false -NoWelcome
-        $token = (Get-MgContext).AccessToken
-    } else {
-        $token = $env:ACCESS_TOKEN
+        $response = Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1.0/me" -OutputType 'HttpResponseMessage'
     }
+    catch {
+        $PSDefaultParameterValues['*:Verbose'] = $preserve
+        throw "Get-Token call failed. $($_.Exception.Message)"
+    }
+
+    ## Primary path: read the Bearer token from the *request* Authorization header
+    $authHeader = $response.RequestMessage.Headers.Authorization
+    if ($authHeader -and $authHeader.Scheme -eq 'Bearer' -and $authHeader.Parameter) {
+        $accesstoken = $authHeader.Parameter
+    }
+
+    if ($accesstoken -and $accesstoken.Length -gt 1) {
+        Set-Item -Path Env:\ACCESS_TOKEN -Value $accesstoken
+        $accesstoken | Set-Clipboard
+        Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
+        $PSDefaultParameterValues['*:Verbose'] = $preserve
+        return $true
+    }
+
+    Write-Host "Access denied or token not available."
+    
+    $PSDefaultParameterValues['*:Verbose'] = $preserve
+    return $false
 }
 
 function Enable-PIMRole {
