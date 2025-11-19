@@ -186,7 +186,8 @@ Get-Command -Module PnP.PowerShell
 ## Sites.ReadWrite.All     – read/write to all site collections the user can access.
 ## Sites.Manage.All        - lets you manage site permissions via Graph.         –
 #if ( $env:SHAREPOINT_ADMIN ) {
-#    Connect-PnPOnline -Url $env:AZURE_SHAREPOINT_ADMIN -Interactive
+#    Connect-PnPOnline -Url $env:AZURE_SHAREPOINT_ADMIN -AccessToken $env:ACCESS_TOKEN
+#    Get-PnpConnection
 #    $ACCESS_TOKEN = Get-PnPAccessToken
 #    Get-PnPTenant
 #    Get-PnPTenantSite
