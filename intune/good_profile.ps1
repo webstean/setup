@@ -898,8 +898,8 @@ function Check-Graph-Token {
     return $false
 }
 function Check-Sharepoint-Token {
-    ## If we have SHAREPOINT_ACCESS_TOKEN variable we are good
-    if ( -not [string]::IsNullOrEmpty($env:SHAREPOINT_ACCESS_TOKEN) ) {
+    ## If we have ACCESS_TOKEN_SHAREPOINT variable we are good
+    if ( -not [string]::IsNullOrEmpty($env:ACCESS_TOKEN_SHAREPOINT) ) {
         return $true
     }
     return $false
@@ -1420,19 +1420,19 @@ function Get-SPODelegatedAccessToken {
 
     # ----- Optional: store in environment variable -----
     if ($StoreInEnv) {
-        $env:SHAREPOINT_ACCESS_TOKEN = $accessToken
+        $env:ACCESS_TOKEN_SHAREPOINT = $accessToken
         $accesstoken | Set-Clipboard
-        Write-Host "Stored access token in environment variable SHAREPOINT_ACCESS_TOKEN and in Clipboard."
+        Write-Host "Stored access token in environment variable ACCESS_TOKEN_SHAREPOINT and in Clipboard."
     }
 
-    Write-Host "Connect-PnPOnline -Url ""https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com"" -AccessToken "'$env:SHAREPOINT_ACCESS_TOKEN'
+    Write-Host "Connect-PnPOnline -Url ""https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com"" -AccessToken "'$env:ACCESS_TOKEN_SHAREPOINT'
     Write-Host "Get-PnpConnection"
     return ##$accessToken
 }
 
 function Test-SharePoint {
     Get-SPODelegatedAccessToken
-    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -AccessToken $env:SHAREPOINT_ACCESS_TOKEN
+    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -AccessToken $env:ACCESS_TOKEN_SHAREPOINT
     Get-PnPAuthenticationRealm
     Get-PnpConnection
 }
