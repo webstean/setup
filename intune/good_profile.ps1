@@ -853,19 +853,19 @@ function Set-Azure-Environment {
     
     ## if ( -not ( $env:DEVELOPER -eq "Yes" )) { return }
 
-    $subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id
+    $subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id | Out-Null
     if (-not [string]::IsNullOrEmpty($subscription_id)) {
         Set-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Value $subscription_id
     } else {
         Remove-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Force -ErrorAction SilentlyContinue
     }
-    $tenant_id = (Get-AzTenant -ErrorAction SilentlyContinue).Id
+    $tenant_id = (Get-AzTenant -ErrorAction SilentlyContinue).Id | Out-Null
     if (-not [string]::IsNullOrEmpty($tenant_id)) {
         Set-Item -Path Env:\AZURE_TENANT_ID -Value $tenant_id
     } else {
         Remove-Item -Path Env:\AZURE_TENANT_ID -Force -ErrorAction SilentlyContinue
     }
-    $tenant_name = (Get-AzTenant -ErrorAction SilentlyContinue).Name
+    $tenant_name = (Get-AzTenant -ErrorAction SilentlyContinue).Name | Out-Null
     if (-not [string]::IsNullOrEmpty($tenant_name)) {
         Set-Item -Path Env:\AZURE_TENANT_NAME -Value $tenant_name
     } else {
@@ -882,9 +882,9 @@ function Set-Azure-Environment {
 function Check-Azure-Environment {
     ## If we have AZURE environment variables then we are good
     if (
-        -not [string]::IsNullOrEmpty($AZURE_CLIENT_ID) -or
-        -not [string]::IsNullOrEmpty($AZURE_SUBSCRIPTION_ID) -or
-        -not [string]::IsNullOrEmpty($AZURE_TENANT_ID)
+        -not [string]::IsNullOrEmpty($env:AZURE_CLIENT_ID) -or
+        -not [string]::IsNullOrEmpty($env:AZURE_SUBSCRIPTION_ID) -or
+        -not [string]::IsNullOrEmpty($env:AZURE_TENANT_ID)
     ) {
         return $false
     }
