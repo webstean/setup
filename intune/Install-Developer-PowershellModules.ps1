@@ -204,6 +204,7 @@ Get-Command -Module PnP.PowerShell
 #    Get-PnPTenantSiteClassification
 #    Get-PnPOrgNewsSite
 #    Get-PnPSiteDesign
+#    Disconnect-PnpOnline
 #}
 
 ## Add-PowerAppsAccount -Endpoint prod
