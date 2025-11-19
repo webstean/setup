@@ -890,9 +890,16 @@ function Check-Azure-Environment {
     }
     return $true
 }
-function Check-Azure-Token {
+function Check-Graph-Token {
     ## If we have ACCESS_TOKEN variable we are good
-    if ( -not [string]::IsNullOrEmpty($ACCESS_TOKEN) ) {
+    if ( -not [string]::IsNullOrEmpty($env:ACCESS_TOKEN) ) {
+        return $true
+    }
+    return $false
+}
+function Check-Sharepoint-Token {
+    ## If we have SHAREPOINT_ACCESS_TOKEN variable we are good
+    if ( -not [string]::IsNullOrEmpty($env:SHAREPOINT_ACCESS_TOKEN) ) {
         return $true
     }
     return $false
