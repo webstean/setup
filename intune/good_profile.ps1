@@ -1422,10 +1422,11 @@ function Get-SPODelegatedAccessToken {
 
 function Test-SharePoint {
     Get-SPODelegatedAccessToken ## via device flow
-    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -UseDeviceAuthentication:$false -ClientId $env:AZURE_CLIENT_ID
+    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -Interactive -ClientId $env:AZURE_CLIENT_ID
     ## Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -UseDeviceAuthentication:$false -AccessToken $env:ACCESS_TOKEN_SHAREPOINT
     Get-PnPAuthenticationRealm
     Get-PnpConnection
+    Disconnect-PnPOnline
 }
 
 function Get-Token-Graph { ##use Graph Model
