@@ -1447,13 +1447,13 @@ function Get-Token-Graph { ##use Graph Model
     
     ## Set to public client, if CLIENT_ID is not set
     if ([string]::IsNullOrWhiteSpace($ClientId)) {
-        $ClientId = "1950a258-227b-4e31-a9cf-717495945fc2"
+        Write-Host "❌ Environment variable AZURE_CLIENT_ID not set, so setting it to Graph PowerShell / Azure CLI style"
+        $ClientId = "1950a258-227b-4e31-a9cf-717495945fc2" ## Microsoft Azure PowerShell
     }
         
     try {
         ## uses WAM broker -UseDeviceAuthentication:$false
         if ([string]::IsNullOrWhiteSpace($TenantId)) {
-            Write-Host "❌ Environment variable AZURE_CLIENT_ID not set, so setting it to Graph PowerShell / Azure CLI style"
             Write-Host "Get-Token failed. $($_.Exception.Message)"
             Connect-MgGraph -ClientId $ClientId -Scopes $($Scopes -join ' ') -UseDeviceAuthentication:$false -NoWelcome
         } else {
