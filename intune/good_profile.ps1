@@ -1415,14 +1415,14 @@ function Get-SPODelegatedAccessToken {
     $accesstoken | Set-Clipboard
     Write-Host "Stored access token in environment variable ACCESS_TOKEN_SHAREPOINT and in Clipboard."
 
-    Write-Host "Connect-PnPOnline -Url ""https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com"" -AccessToken "'$env:ACCESS_TOKEN_SHAREPOINT'
+    Write-Host "Connect-PnPOnline -Url ""https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com"" UseDeviceAuthentication:$false -AccessToken "'$env:ACCESS_TOKEN_SHAREPOINT'
     Write-Host "Get-PnpConnection"
     return ##$accessToken
 }
 
 function Test-SharePoint {
     Get-SPODelegatedAccessToken
-    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -AccessToken $env:ACCESS_TOKEN_SHAREPOINT
+    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -UseDeviceAuthentication:$false -AccessToken $env:ACCESS_TOKEN_SHAREPOINT
     Get-PnPAuthenticationRealm
     Get-PnpConnection
 }
