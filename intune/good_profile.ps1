@@ -998,11 +998,11 @@ function Import-Env-File {
         Write-Host "Portal Logon: https://entra.microsoft.com/?tenant=$env:AZURE_TENANT_ID"
         if ( $env:AZURE_CLIENT_ID ) {
             Write-Host "DELEGATION"
-            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope User.Read -NoWelcome"
+            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope .default -UseDeviceAuthentication:$false -NoWelcome"
             Write-Host "Get-MgContext"
         }  else {
             Write-Host "AS USER"
-            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope User.Read" -NoWelcome
+            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope .default" -UseDeviceAuthentication:$false -NoWelcome
             Write-Host "Get-MgContext"
         }
     }
