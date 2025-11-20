@@ -175,6 +175,7 @@ Install-OrUpdateModule MicrosoftTeams
 #Install-OrUpdateModule VMware.PowerCLI ## VMware PowerCLI (its too big - as no longer used much)
 Install-OrUpdateModule Microsoft.PowerApps.Administration.PowerShell
 Install-OrUpdateModule JWTDetails
+## Get-PnPTenant
 
 ## Install-OrUpdateModule PnP.PowerShell
 if (Get-Module PnP.PowerShell -ErrorAction SilentlyContinue ) {
