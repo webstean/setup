@@ -192,7 +192,7 @@ Get-Command -Module PnP.PowerShell
 #    Set-Item -Path Env:\SHAREPOINT_ACCESS_TOKEN -Value (Get-PnPAccessToken -decoded).EncodedToken
 #    Get-PnPAccessToken -Decoded
 #    (Get-PnPAccessToken -decoded).EncodedToken
-#    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -UseDeviceAuthentication:$false -AccessToken $env:SHAREPOINT_ACCESS_TOKEN
+#    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -AccessToken $env:SHAREPOINT_ACCESS_TOKEN
 #    Get-PnpConnection
 #    Get-PnPAuthenticationRealm
 #    Get-PnPTenant
