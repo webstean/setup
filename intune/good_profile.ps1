@@ -998,11 +998,11 @@ function Import-Env-File {
         Write-Host "Portal Logon: https://entra.microsoft.com/?tenant=$env:AZURE_TENANT_ID"
         if ( $env:AZURE_CLIENT_ID ) {
             Write-Host "DELEGATION"
-            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope User.Read -NoWelcome"
+            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope .default -UseDeviceAuthentication:$false -NoWelcome"
             Write-Host "Get-MgContext"
         }  else {
             Write-Host "AS USER"
-            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope User.Read" -NoWelcome
+            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope .default" -UseDeviceAuthentication:$false -NoWelcome
             Write-Host "Get-MgContext"
         }
     }
@@ -1415,16 +1415,19 @@ function Get-SPODelegatedAccessToken {
     $accesstoken | Set-Clipboard
     Write-Host "Stored access token in environment variable ACCESS_TOKEN_SHAREPOINT and in Clipboard."
 
-    Write-Host "Connect-PnPOnline -Url ""https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com"" -AccessToken "'$env:ACCESS_TOKEN_SHAREPOINT'
+    Write-Host "Connect-PnPOnline -Url ""https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com"" UseDeviceAuthentication:$false -AccessToken "'$env:ACCESS_TOKEN_SHAREPOINT'
     Write-Host "Get-PnpConnection"
     return ##$accessToken
 }
 
 function Test-SharePoint {
-    Get-SPODelegatedAccessToken
-    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -AccessToken $env:ACCESS_TOKEN_SHAREPOINT
-    Get-PnPAuthenticationRealm
-    Get-PnpConnection
+    Get-SPODelegatedAccessToken ## via device flow
+    Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -Interactive -ClientId $env:AZURE_CLIENT_ID
+    ## Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -UseDeviceAuthentication:$false -AccessToken $env:ACCESS_TOKEN_SHAREPOINT
+    Set-Item -Path Env:\SHAREPOINT_ACCESS_TOKEN -Value (Get-PnPAccessToken -decoded).EncodedToken    
+    Get-PnPTenant
+    Get-PnPTenantSite
+    Disconnect-PnPOnline
 }
 
 function Get-Token-Graph { ##use Graph Model
@@ -1444,13 +1447,13 @@ function Get-Token-Graph { ##use Graph Model
     
     ## Set to public client, if CLIENT_ID is not set
     if ([string]::IsNullOrWhiteSpace($ClientId)) {
-        $ClientId = "1950a258-227b-4e31-a9cf-717495945fc2"
+        Write-Host "❌ Environment variable AZURE_CLIENT_ID not set, so setting it to Graph PowerShell / Azure CLI style"
+        $ClientId = "1950a258-227b-4e31-a9cf-717495945fc2" ## Microsoft Azure PowerShell
     }
         
     try {
         ## uses WAM broker -UseDeviceAuthentication:$false
         if ([string]::IsNullOrWhiteSpace($TenantId)) {
-            Write-Host "❌ Environment variable AZURE_CLIENT_ID not set, so setting it to Graph PowerShell / Azure CLI style"
             Write-Host "Get-Token failed. $($_.Exception.Message)"
             Connect-MgGraph -ClientId $ClientId -Scopes $($Scopes -join ' ') -UseDeviceAuthentication:$false -NoWelcome
         } else {
