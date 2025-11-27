@@ -485,6 +485,8 @@ function Get-OsInfo {
             UBR         = [int]$ubr
             OSVersion   = $osVersion
             Type        = (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).InstallationType
+            Manufactuer = Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Manufacturer
+            Model       = Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Model
         } 
     } else {
         Write-Host "ProductName : " -NoNewline
@@ -500,6 +502,10 @@ function Get-OsInfo {
         Write-Host "OSVersion   : $osVersion"
         Write-Host "Type        : " -NoNewline
         (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).InstallationType
+        Write-Host "Manufactuer : " -NoNewLine
+        Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Manufacturer
+        Write-Host "Model       : " -NoNewLine
+        Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Model        
     }
 }
 
