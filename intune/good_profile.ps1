@@ -2458,13 +2458,13 @@ function Get-EntraDelegatedGrantsReport {
 
         [pscustomobject]@{
             AppName        = $clientSp.DisplayName
-            AppId          = $clientSp.AppId
+            ## AppId          = $clientSp.AppId
             ClientId       = $grant.ClientId
             Resource       = $resourceSp.DisplayName
-            ResourceAppId  = $resourceSp.AppId
-            ResourceId     = $grant.ResourceId
+            ##ResourceAppId  = $resourceSp.AppId
+            ##ResourceId     = $grant.ResourceId
             GrantedScopes  = $interesting -join ' '
-            FullScopeField = $grant.Scope
+            #FullScopeField = $grant.Scope
         }
     }
 
