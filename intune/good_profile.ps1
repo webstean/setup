@@ -1027,20 +1027,20 @@ Get-Default-Env-File
 function Get-EntraID {
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
+    $PSDefaultParameterValues['*:Verbose'] = $false
 
     if ( -not $env:AZURE_TENANT_ID ) {
         throw "Environment variable AZURE_TENANT_ID is not set"
     }
     $response = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration" -ErrorAction Stop
     if ($response ) {
-        $PSDefaultParameterValues['*:Verbose']   = $preserve
+        $PSDefaultParameterValues['*:Verbose'] = $preserve
         $response | Format-List issuer, token_endpoint, authorization_endpoint, device_authorization_endpoint, end_session_endpoint, kerberos_endpoint, jwks_uri
-        return $true
+        return $true | Out-Null
     } else {
         $PSDefaultParameterValues['*:Verbose']   = $preserve
         throw "Tenant $env:AZURE_TENANT_ID was not found!"
-        return $false
+        return $false | Out-Null
     }
 }
 
@@ -1051,7 +1051,7 @@ function Get-Meta { ##IMDS
 
     $headers = @{ "Metadata" = "true" }
     $uri = "http://169.254.169.254/metadata/instance?api-version=2021-02-01"
-    $response = Invoke-RestMethod -Uri $uri -Headers $headers -ErrorAction Stop
+    $response = Invoke-RestMethod -Uri $uri -Headers $headers -OutputType 'HttpResponseMessage' -ErrorAction Stop
     if ($response ) {
         $response | Format-List 
     } else {
@@ -1464,7 +1464,6 @@ function Get-Token-Graph { ##use Graph Model
     try {
         ## uses WAM broker -UseDeviceAuthentication:$false
         if ([string]::IsNullOrWhiteSpace($TenantId)) {
-            Write-Host "Get-Token failed. $($_.Exception.Message)"
             Connect-MgGraph -ClientId $ClientId -Scopes $($Scopes -join ' ') -UseDeviceAuthentication:$false -NoWelcome
         } else {
             Connect-MgGraph -TenantId $TenantId -ClientId $ClientId -Scopes $($Scopes -join ' ') -UseDeviceAuthentication:$false -NoWelcome
