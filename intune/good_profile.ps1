@@ -488,24 +488,24 @@ function Get-OsInfo {
             UBR         = [int]$ubr
             OSVersion   = $osVersion
             Type        = (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).InstallationType
-            Manufactuer = Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Manufacturer
-            Model       = Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Model
+            Manufactuer = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Manufacturer).Manufacturer
+            Model       = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Model).Model
         } 
     } else {
-        Write-Host "ProductName : " -NoNewline
+        Write-Host "ProductName  : " -NoNewline
         (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).ProductName
-        Write-Host "ReleaseId   : " -NoNewline
+        Write-Host "ReleaseId    : " -NoNewline
         (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).ReleaseId
-        Write-Host "DisplayVer  : " -NoNewline
+        Write-Host "DisplayVer   : " -NoNewline
         (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).DisplayVersion
-        Write-Host "Build       : " -NoNewline
+        Write-Host "Build        : " -NoNewline
         [int](Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).CurrentBuildNumber
-        Write-Host "UBR         : " -NoNewline
+        Write-Host "UBR          : " -NoNewline
         [int]$ubr
-        Write-Host "OSVersion   : $osVersion"
-        Write-Host "Type        : " -NoNewline
+        Write-Host "OSVersion    : $osVersion"
+        Write-Host "Type         : " -NoNewline
         (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).InstallationType
-        Write-Host "Manufactuer : " -NoNewLine
+        Write-Host "Manufacturer : " -NoNewLine
         Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Manufacturer
         Write-Host "Model       : " -NoNewLine
         Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Model        
@@ -1751,12 +1751,12 @@ function Get-Token-Info {
         $PSDefaultParameterValues['*:Verbose']   = $preserve
         return
     }
-    Write-Host "Name                : $jwt.name"
-    Write-Host "UPN                 : $jwt.upn"
-    Write-Host "Display Name        : $jwt.app_displayname"
-    Write-Host "Authorisation Server: $jwt.iss"
-    Write-Host "Authorised Scopes   : $jwt.scp"
-    Write-Host "Against Tenancy     : $jwt.tid"
+    Write-Host ("Name                : " + ($jwt.name -join ' '))
+    Write-Host ("UPN                 : " + ($jwt.upn -join ' '))
+    Write-Host ("Display Name        : " + ($jwt.app_displayname -join ' '))
+    Write-Host ("Authorisation Server: " + ($jwt.iss -join ' '))
+    Write-Host ("Authorised Scopes   : " + ($jwt.scp -join ' '))
+    Write-Host ("Against Tenancy     : " + ($jwt.tid -join ' '))
 
     ## exp should be a UNIX timestamp (seconds since epoch)
     $expUnix = [long]$jwt.exp
