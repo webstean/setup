@@ -1762,7 +1762,7 @@ function Get-Token-Info {
             Write-Host "❌ Token has already expired!" -ForegroundColor Red
             Write-Host "Token expired at: $expiry" -ForegroundColor Red                
         } else {
-            Write-Host "Token expires in $minutesRemaining minutes"
+            Write-Host "✅ Token expires in $minutesRemaining minutes"
         }
     }
     $PSDefaultParameterValues['*:Verbose']   = $preserve
