@@ -1,4 +1,4 @@
-aaa## Note: This FILE is ASCII encoded, for compatibility with Windows Powershell, so any Unicode characters need to be eliminated
+## Note: This FILE is ASCII encoded, for compatibility with Windows Powershell, so any Unicode characters need to be eliminated
 
 #Set-ExecutionPolicy Unrestricted -Scope Process
 #Set-ExecutionPolicy Unrestricted -Scope CurrentUser
@@ -1762,11 +1762,11 @@ function Get-Token-Info {
     Write-Host ("Authorised Scopes   : " + ($jwt.scp -join ' '))
     Write-Host ("Against Tenancy     : " + ($jwt.tid -join ' '))
 
-    if ( ($jwt.scp -join ' ')) -contains "ReadWrite.All" ) {
-        Write "Secret"
+    $scopes = $jwt.scp -split ' '
+    if ( $scopes -contains "ReadWrite.All" ) {
+        Write-Host -ForegroundColour Red "Be careful - this token contains a ReadWrite.All in its scope"
     }
-    
-    
+        
     ## exp should be a UNIX timestamp (seconds since epoch)
     $expUnix = [long]$jwt.exp
 
