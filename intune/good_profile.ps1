@@ -1747,14 +1747,17 @@ function Get-Token-Info {
     ##          https://jwt.ms
     $jwt = Get-JWTDetails $env:ACCESS_TOKEN
     if ( -not ($jwt) ) {
-        Write-Host "❌ Failed to decode token." -ForegroundColor Red
-        $PSDefaultParameterValues['*:Verbose']   = $preserve
-        return
+        $jwt = Get-JWTDetails | Get-Clipboard
+        if ( -not ($jwt) ) {
+            Write-Host "❌ Failed to decode token." -ForegroundColor Red
+            $PSDefaultParameterValues['*:Verbose']   = $preserve
+            return
+        }
     }
     Write-Host ("Name                : " + ($jwt.name -join ' '))
     Write-Host ("UPN                 : " + ($jwt.upn -join ' '))
-    Write-Host ("Display Name        : " + ($jwt.app_displayname -join ' '))
-    Write-Host ("Authorisation Server: " + ($jwt.iss -join ' '))
+    Write-Host ("As Application      : " + ($jwt.app_displayname -join ' '))
+    ## Write-Host ("Authorisation Server: " + ($jwt.iss -join ' '))
     Write-Host ("Authorised Scopes   : " + ($jwt.scp -join ' '))
     Write-Host ("Against Tenancy     : " + ($jwt.tid -join ' '))
 
@@ -1768,8 +1771,7 @@ function Get-Token-Info {
         $now = Get-Date
         $minutesRemaining = [math]::Round(($expiry - $now).TotalMinutes, 2)
         if ($minutesRemaining -le 0) {
-            Write-Host "❌ Token has already expired!" -ForegroundColor Red
-            Write-Host "Token expired at: $expiry" -ForegroundColor Red                
+            Write-Host "❌ Token has expired!" -ForegroundColor Red
         } else {
             Write-Host "✅ Token expires in $minutesRemaining minutes"
         }
