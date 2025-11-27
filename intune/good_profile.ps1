@@ -78,7 +78,7 @@ if ($IsAdmin) {
     Write-Host -ForegroundColor DarkRed "Current context permisisons is        : ADMIN"
 } else {
     $InstallScope = 'CurrentUser'
-    Write-Host -ForegroundColor DarkYellow "Current content permisisons is        : USER"
+    Write-Host -ForegroundColor DarkYellow "Current context permisisons is        : USER"
 }
 
 $VirtualMachine = $true
