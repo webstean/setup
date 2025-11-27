@@ -1660,24 +1660,28 @@ function Get-Token-Interactive { ## via Browser
 }
 
 function Get-Token-MSAL {
-    # Install once:
-    # Install-Package Microsoft.Identity.Client -Source https://www.nuget.org/api/v2 -Scope CurrentUser
-    Add-Type -Path "$env:USERPROFILE\.nuget\packages\microsoft.identity.client\*\lib\net472\Microsoft.Identity.Client.dll"
+     if ($IsLanguagePermissive) {
+        # Install once:
+        # Install-Package Microsoft.Identity.Client -Source https://www.nuget.org/api/v2 -Scope CurrentUser
+        Add-Type -Path "$env:USERPROFILE\.nuget\packages\microsoft.identity.client\*\lib\net472\Microsoft.Identity.Client.dll"
 
-    $tenantId = $env.AZURE_TENANT_ID
-    $clientId = $env.AZURE_CLIENT_ID  ##"04b07795-8ddb-461a-bbee-02f9e1bf7b46"  # Public client (Graph PowerShell / Azure CLI style)
-    $scopes   = @("User.Read")
+        $tenantId = $env.AZURE_TENANT_ID
+        $clientId = $env.AZURE_CLIENT_ID  ##"04b07795-8ddb-461a-bbee-02f9e1bf7b46"  # Public client (Graph PowerShell / Azure CLI style)
+        $scopes   = @("User.Read")
 
-    $app = [Microsoft.Identity.Client.PublicClientApplicationBuilder]::Create($clientId).
-        WithAuthority("https://login.microsoftonline.com/$tenantId").
-        WithDefaultRedirectUri().
-        Build()
+        $app = [Microsoft.Identity.Client.PublicClientApplicationBuilder]::Create($clientId).
+            WithAuthority("https://login.microsoftonline.com/$tenantId").
+            WithDefaultRedirectUri().
+            Build()
 
-    $result = $app.AcquireTokenInteractive($scopes).ExecuteAsync().GetAwaiter().GetResult()
+        $result = $app.AcquireTokenInteractive($scopes).ExecuteAsync().GetAwaiter().GetResult()
 
-    $accessToken = $result.AccessToken    
-    $accessToken | Set-Clipboard
-    Write-Host "Access token copied to clipboard."
+        $accessToken = $result.AccessToken    
+        $accessToken | Set-Clipboard
+        Write-Host "Access token copied to clipboard."
+    } else {
+        Write-Host "Langauge mode does not permit loading of MSAL library"
+    }
 }
 
 function Get-EntraUserInfo {
@@ -1738,13 +1742,13 @@ function Get-Token-Info {
         $PSDefaultParameterValues['*:Verbose']   = $preserve
         return
     }
-    $jwt.name
-    $jwt.upn
-    $jwt.app_displayname
-    #$jwt.aud
-    $jwt.iss
-    $jwt.scp
-    $jwt.tid
+    Write-Host "Name                : $jwt.name"
+    Write-Host "UPN                 : $jwt.upn"
+    Write-Host "Display Name        : $jwt.app_displayname"
+    Write-Host "Authorisation Server: $jwt.iss"
+    Write-Host "Authorised Scopes   : $jwt.scp"
+    Write-Host "Against Tenancy     : $jwt.tid"
+
     ## exp should be a UNIX timestamp (seconds since epoch)
     $expUnix = [long]$jwt.exp
 
