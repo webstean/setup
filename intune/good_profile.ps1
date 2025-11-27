@@ -123,7 +123,10 @@ function Get-HostPlatform {
             VirtualMachine = $virtualMachine
             Type           = $type
         }
-    }
+    } else {
+        Write-Host "VirtualMachine : $virtualMachine"
+        Write-Host "Type           : $type"
+    }        
 }
 Get-HostPlatform
 
