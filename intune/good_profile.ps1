@@ -1762,9 +1762,9 @@ function Get-Token-Info {
     Write-Host ("Authorised Scopes   : " + ($jwt.scp -join ' '))
     Write-Host ("Against Tenancy     : " + ($jwt.tid -join ' '))
 
-    $scopes = $jwt.scp -split ' '
-    if ( $scopes -contains "ReadWrite.All" ) {
-        Write-Host -ForegroundColour Red "Be careful - this token contains a ReadWrite.All in its scope"
+    if ( $jwt.scp -like '*ReadWrite.All*' ) {
+        Write-Host -ForegroundColor Red "Be careful - this token contains ReadWrite.All in atleast one of its scopes"
+        $scopes -match "ReadWrite.All" | Write-Host -ForegroundColor Red
     }
         
     ## exp should be a UNIX timestamp (seconds since epoch)
