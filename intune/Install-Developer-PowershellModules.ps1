@@ -162,14 +162,15 @@ Install-OrUpdateModule Az.Functions
 Install-OrUpdateModule Az.ContainerRegistry
 Install-OrUpdateModule Microsoft.WinGet.Client
 Install-OrUpdateModule Microsoft.WinGet.Configuration
-Install-OrUpdateModule Microsoft.Graph.Authentication
-Install-OrUpdateModule Microsoft.Graph.Groups
-Install-OrUpdateModule Microsoft.Graph.Users
-Install-OrUpdateModule Microsoft.Graph.Intune
-Install-OrUpdateModule Microsoft.Graph.Mail
 Install-OrUpdateModule Microsoft.Graph.Applications
+Install-OrUpdateModule Microsoft.Graph.Authentication
 Install-OrUpdateModule Microsoft.Graph.DeviceManagement
 Install-OrUpdateModule Microsoft.Graph.Files
+Install-OrUpdateModule Microsoft.Graph.Identity.SignIns
+Install-OrUpdateModule Microsoft.Graph.Intune
+Install-OrUpdateModule Microsoft.Graph.Groups
+Install-OrUpdateModule Microsoft.Graph.Mail
+Install-OrUpdateModule Microsoft.Graph.Users
 Install-OrUpdateModule Microsoft.Online.SharePoint.PowerShell
 Install-OrUpdateModule MicrosoftTeams
 #Install-OrUpdateModule VMware.PowerCLI ## VMware PowerCLI (its too big - as no longer used much)
