@@ -2414,3 +2414,61 @@ function Get-ZscalerClientState {
         $result
     }
 }
+
+function Get-EntraDelegatedGrantsReport {
+    [CmdletBinding()]
+    param(
+        # Scopes we don't care about
+        [string[]]$ExcludeScopes = @('openid', 'profile', 'email')
+    )
+
+    # Cache for service principals to avoid hammering Graph
+    $spCache = @{}
+
+    function Get-SpCached {
+        param([string]$Id)
+
+        if (-not $Id) { return $null }
+
+        if (-not $spCache.ContainsKey($Id)) {
+            $spCache[$Id] = Get-MgServicePrincipal -ServicePrincipalId $Id -ErrorAction SilentlyContinue
+        }
+
+        return $spCache[$Id]
+    }
+
+    Write-Verbose "Retrieving all OAuth2 delegated permission grants..."
+    $grants = Get-MgOauth2PermissionGrant -All
+
+    $output = foreach ($grant in $grants) {
+        if ([string]::IsNullOrWhiteSpace($grant.Scope)) { continue }
+
+        # Split the space-delimited scopes
+        $scopes      = $grant.Scope -split ' '
+        # Filter out boring baseline scopes
+        $interesting = $scopes | Where-Object {
+            $_ -and ($ExcludeScopes -notcontains $_)
+        }
+
+        # Skip grants that only have openid/profile/email
+        if (-not $interesting) { continue }
+
+        $clientSp   = Get-SpCached -Id $grant.ClientId
+        $resourceSp = Get-SpCached -Id $grant.ResourceId
+
+        [pscustomobject]@{
+            AppName        = $clientSp.DisplayName
+            AppId          = $clientSp.AppId
+            ClientId       = $grant.ClientId
+            Resource       = $resourceSp.DisplayName
+            ResourceAppId  = $resourceSp.AppId
+            ResourceId     = $grant.ResourceId
+            GrantedScopes  = $interesting -join ' '
+            FullScopeField = $grant.Scope
+        }
+    }
+
+    # Return the objects (caller decides how to display)
+    $output | Sort-Object AppName, Resource
+}
+
