@@ -86,12 +86,6 @@ $type = $null
 
 function Get-HostPlatform {
 
-    if ($env:IsDevBox -eq "True" ) {
-        $VirtualMachine = $true
-        $type = "Azure DevBox"
-        return
-    }
-
     $cs = Get-CimInstance Win32_ComputerSystem
     $model = "$($cs.Manufacturer) $($cs.Model)"
     
@@ -112,20 +106,27 @@ function Get-HostPlatform {
             $VirtualMachine = $true
             $type = "KVM/QEMU virtual machine"
         }
+        
         default {
             $VirtualMachine = $false
             $type = "Likely bare-metal physical machine"
         }
     }
-
+    if ($env:IsDevBox -eq "True" ) {
+        $VirtualMachine = $true
+        $type = "Azure DevBox"
+    }
+    
     if ($IsLanguagePermissive) {
         [pscustomobject]@{
             VirtualMachine = $virtualMachine
             Type           = $type
+            Model          = $model
         }
     } else {
         Write-Host "VirtualMachine : $virtualMachine"
         Write-Host "Type           : $type"
+        Write-Host "Model          : $model"
     }        
 }
 Get-HostPlatform
