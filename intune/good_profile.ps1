@@ -1750,6 +1750,7 @@ function Get-Token-Info {
         $jwt = Get-JWTDetails | Get-Clipboard
         if ( -not ($jwt) ) {
             Write-Host "❌ Failed to decode token." -ForegroundColor Red
+            Write-Host "Token can either be in the clipboard or in environment variable ACCESS_TOKEN"
             $PSDefaultParameterValues['*:Verbose']   = $preserve
             return
         }
@@ -1757,10 +1758,15 @@ function Get-Token-Info {
     Write-Host ("Name                : " + ($jwt.name -join ' '))
     Write-Host ("UPN                 : " + ($jwt.upn -join ' '))
     Write-Host ("As Application      : " + ($jwt.app_displayname -join ' '))
-    ## Write-Host ("Authorisation Server: " + ($jwt.iss -join ' '))
+    Write-Host ("Authorisation Server: " + ($jwt.iss -join ' '))
     Write-Host ("Authorised Scopes   : " + ($jwt.scp -join ' '))
     Write-Host ("Against Tenancy     : " + ($jwt.tid -join ' '))
 
+    if ( ($jwt.scp -join ' ')) -contains "ReadWrite.All" ) {
+        Write "Secret"
+    }
+    
+    
     ## exp should be a UNIX timestamp (seconds since epoch)
     $expUnix = [long]$jwt.exp
 
