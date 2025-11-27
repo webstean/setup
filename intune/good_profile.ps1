@@ -851,7 +851,7 @@ Import-Nice-Modules
 
 function Set-Azure-Environment {
     
-    ## if ( -not ( $env:DEVELOPER -eq "Yes" )) { return }
+    if ( -not ( $env:DEVELOPER -eq "Yes" )) { return }
 
     $subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id | Out-Null
     if (-not [string]::IsNullOrEmpty($subscription_id)) {
