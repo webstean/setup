@@ -75,10 +75,10 @@ if ($IsLanguagePermissive) {
 ## if ($IsAdmin -and $IsLanguagePermissive) {
 if ($IsAdmin) {
     $InstallScope = 'AllUsers'
-    Write-Host -ForegroundColor DarkRed "User permisisons is        : ADMIN"
+    Write-Host -ForegroundColor DarkRed "Current context permisisons is        : ADMIN"
 } else {
     $InstallScope = 'CurrentUser'
-    Write-Host -ForegroundColor DarkYellow "User permisisons is        : USER"
+    Write-Host -ForegroundColor DarkYellow "Current content permisisons is        : USER"
 }
 
 $VirtualMachine = $true
