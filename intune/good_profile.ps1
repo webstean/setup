@@ -1056,7 +1056,7 @@ function Format-JsonPretty {
 }
 ## Get-Content .\data.json | Format-JsonPretty
 
-function Get-Meta { ##IMDS
+function Get-Azure-Meta { ##IMDS
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
