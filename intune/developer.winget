@@ -607,15 +607,15 @@ properties:
         id: GoLang.Go
         source: winget
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: RaspberryPiFoundation.RaspberryPiImager
-      directives:
-        description: Installing RaspberryPiFoundation.RaspberryPiImager
-        allowPrerelease: false
-        securityContext: current
-      settings:
-        id: RaspberryPiFoundation.RaspberryPiImager
-        source: winget
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: RaspberryPiFoundation.RaspberryPiImager
+#      directives:
+#        description: Installing RaspberryPiFoundation.RaspberryPiImager
+#        allowPrerelease: false
+#        securityContext: current
+#      settings:
+#        id: RaspberryPiFoundation.RaspberryPiImager
+#        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: zarunbal.LogExpert
