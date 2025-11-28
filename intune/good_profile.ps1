@@ -2486,45 +2486,56 @@ function Get-WingetAutoUpdateStatus {
     param()
 
     $result = [ordered]@{
-        InstalledPaths     = @()
-        ActiveScript       = $null
-        ScheduledTask      = $null
-        ConfigPath         = $null
-        Config             = $null
-        Logs               = @()
-        WingetPackageInfo  = $null
+        InstalledPaths    = @()
+        ActiveScript      = $null
+        ScheduledTask     = $null
+        ConfigPath        = $null
+        Config            = $null
+        Logs              = @()
+        WingetPackageInfo = $null
     }
 
     # 1. Possible install/config locations
     $candidatePaths = @(
-        "C:\ProgramData\WinGet-AutoUpdate",
-        Join-Path $env:LOCALAPPDATA "WinGet-AutoUpdate",
-        Join-Path $env:LOCALAPPDATA "Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\WinGet-AutoUpdate"
+        "C:\ProgramData\WinGet-AutoUpdate"
+        (Join-Path $env:LOCALAPPDATA "WinGet-AutoUpdate")
+        (Join-Path $env:LOCALAPPDATA "Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\WinGet-AutoUpdate")
     )
 
     foreach ($path in $candidatePaths) {
-        if (Test-Path -Path $path) {
+        if ($path -and (Test-Path -Path $path)) {
             $result.InstalledPaths += $path
         }
     }
 
     # 2. Find the Scheduled Task(s)
-    $tasks = Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object {
-        $_.TaskName -like "*WinGet*AutoUpdate*"
+    $tasks = $null
+    try {
+        $tasks = Get-ScheduledTask -ErrorAction Stop | Where-Object {
+            $_.TaskName -like "*WinGet*AutoUpdate*"
+        }
+    }
+    catch {
+        # ScheduledTasks module not available or no permission
+        $tasks = $null
     }
 
     if ($tasks) {
-        # Assume first is primary, but keep all
+        # Keep all tasks in a trimmed view
         $result.ScheduledTask = $tasks | Select-Object TaskName, State, LastRunTime, NextRunTime, Triggers, Actions
 
-        # Try to determine active script path from action
+        # Determine active script path from first task's first action
         $action = $tasks[0].Actions | Select-Object -First 1
+
         if ($action -and $action.Arguments) {
-            # Extract .ps1 path from arguments (very common pattern)
-            if ($action.Arguments -match '"([^"]+\.ps1)"') {
+            $args = $action.Arguments
+
+            # Extract "C:\path\WAU.ps1" quoted
+            if ($args -match '"([^"]+\.ps1)"') {
                 $result.ActiveScript = $Matches[1]
             }
-            elseif ($action.Arguments -match "(-File\s+)([^\s]+\.ps1)") {
+            # Or -File C:\path\WAU.ps1 style
+            elseif ($args -match "(-File\s+)([^\s]+\.ps1)") {
                 $result.ActiveScript = $Matches[2]
             }
         }
@@ -2534,15 +2545,19 @@ function Get-WingetAutoUpdateStatus {
     $possibleConfig = @()
 
     foreach ($p in $result.InstalledPaths) {
-        $possibleConfig += Join-Path $p "config.json"
+        $possibleConfig += (Join-Path $p "config.json")
     }
 
     if ($result.ActiveScript) {
         $scriptDir = Split-Path -Path $result.ActiveScript -Parent
-        $possibleConfig += Join-Path $scriptDir "config.json"
+        if ($scriptDir) {
+            $possibleConfig += (Join-Path $scriptDir "config.json")
+        }
     }
 
-    $configPath = $possibleConfig | Where-Object { Test-Path $_ } | Select-Object -First 1
+    $configPath = $possibleConfig |
+        Where-Object { $_ -and (Test-Path $_) } |
+        Select-Object -First 1
 
     if ($configPath) {
         $result.ConfigPath = $configPath
@@ -2558,11 +2573,11 @@ function Get-WingetAutoUpdateStatus {
     # 4. Logs (if any)
     $logDirs = @()
     foreach ($p in $result.InstalledPaths) {
-        $logDirs += Join-Path $p "Logs"
+        $logDirs += (Join-Path $p "Logs")
     }
 
     $logs = foreach ($ld in $logDirs) {
-        if (Test-Path $ld) {
+        if ($ld -and (Test-Path $ld)) {
             Get-ChildItem -Path $ld -File -ErrorAction SilentlyContinue
         }
     }
@@ -2584,10 +2599,8 @@ function Get-WingetAutoUpdateStatus {
         $result.WingetPackageInfo = "Unable to query winget package info: $($_.Exception.Message)"
     }
 
-    # Output as PSCustomObject
     [pscustomobject]$result
 }
 
-# Usage:
+# Usage
 Get-WingetAutoUpdateStatus | Format-List *
-
