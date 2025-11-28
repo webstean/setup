@@ -8,7 +8,7 @@ function Get-AzureVMTags {
     $headers = @{ "Metadata" = "true" }
 
     # Query the metadata service
-    $response = Invoke-RestMethod -Uri $metadataUrl -Method GET -Headers $headers
+    $response = Invoke-RestMethod -Uri $metadataUrl -Method GET -Headers $headers -NoProxy
 
     # Output tags
     if ($response) {
