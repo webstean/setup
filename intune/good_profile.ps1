@@ -117,17 +117,17 @@ function Get-HostPlatform {
         $type = "Azure DevBox"
     }
     
-    if ($IsLanguagePermissive) {
-        [pscustomobject]@{
-            VirtualMachine = $virtualMachine
-            Type           = $type
-            Model          = $model
-        }
-    } else {
-        Write-Host "VirtualMachine : $virtualMachine"
-        Write-Host "Type           : $type"
-        Write-Host "Model          : $model"
-    }        
+#    if ($IsLanguagePermissive) {
+#        [pscustomobject]@{
+#            VirtualMachine = $virtualMachine
+#            Type           = $type
+#            Model          = $model
+#        }
+#    } else {
+#        Write-Host "VirtualMachine : $virtualMachine"
+#        Write-Host "Type           : $type"
+#        Write-Host "Model          : $model"
+#    }        
 }
 Get-HostPlatform
 
