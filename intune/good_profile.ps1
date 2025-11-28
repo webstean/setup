@@ -1106,7 +1106,7 @@ function Enable-PIMRole {
     )
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
+    $PSDefaultParameterValues['*:Verbose'] = $false
 
     ## if ( -not ($IsLanguagePermissive)) { return } 
 
@@ -1123,13 +1123,9 @@ function Enable-PIMRole {
         Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
         Import-Module Microsoft.Graph.Users -ErrorAction Stop
         $ctx = Get-MgContext
-                if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "User.Read")) {
+        if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "User.Read")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
             Connect-MgGraph -NoWelcome -Scopes "User.Read" -ErrorAction Stop | Out-Null
-        }
-        if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "User.ReadBasic.All")) {
-            if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
-            Connect-MgGraph -NoWelcome -Scopes "User.ReadBasic.All" -ErrorAction Stop | Out-Null
         }
         if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleAssignmentSchedule.Read.Directory")) {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
