@@ -1131,10 +1131,6 @@ function Enable-PIMRole {
             if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
             Connect-MgGraph -NoWelcome -Scopes "RoleAssignmentSchedule.Read.Directory" -ErrorAction Stop | Out-Null
         }
-        #if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleAssignmentSchedule.ReadWrite.Directory")) {
-        #    if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
-        #    Connect-MgGraph -Scopes "RoleAssignmentSchedule.ReadWrite.Directory" -ErrorAction Stop | Out-Null
-        #}
     }
 
     function Get-MyUserId {
