@@ -1074,10 +1074,10 @@ function Get-Meta { ##IMDS
     } else {
         throw "This machine is not running inside Azure"
         $PSDefaultParameterValues['*:Verbose']   = $preserve
-        return $false
+        return $false | Out-Null
     }
     $PSDefaultParameterValues['*:Verbose']   = $preserve
-    return $true
+    return $true | Out-Null
 }
 
 function Enable-PIMRole {
