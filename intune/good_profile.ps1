@@ -2481,3 +2481,113 @@ function Get-EntraDelegatedGrantsReport {
     $output | Sort-Object AppName, Resource
 }
 
+function Get-WingetAutoUpdateStatus {
+    [CmdletBinding()]
+    param()
+
+    $result = [ordered]@{
+        InstalledPaths     = @()
+        ActiveScript       = $null
+        ScheduledTask      = $null
+        ConfigPath         = $null
+        Config             = $null
+        Logs               = @()
+        WingetPackageInfo  = $null
+    }
+
+    # 1. Possible install/config locations
+    $candidatePaths = @(
+        "C:\ProgramData\WinGet-AutoUpdate",
+        Join-Path $env:LOCALAPPDATA "WinGet-AutoUpdate",
+        Join-Path $env:LOCALAPPDATA "Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\WinGet-AutoUpdate"
+    )
+
+    foreach ($path in $candidatePaths) {
+        if (Test-Path -Path $path) {
+            $result.InstalledPaths += $path
+        }
+    }
+
+    # 2. Find the Scheduled Task(s)
+    $tasks = Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object {
+        $_.TaskName -like "*WinGet*AutoUpdate*"
+    }
+
+    if ($tasks) {
+        # Assume first is primary, but keep all
+        $result.ScheduledTask = $tasks | Select-Object TaskName, State, LastRunTime, NextRunTime, Triggers, Actions
+
+        # Try to determine active script path from action
+        $action = $tasks[0].Actions | Select-Object -First 1
+        if ($action -and $action.Arguments) {
+            # Extract .ps1 path from arguments (very common pattern)
+            if ($action.Arguments -match '"([^"]+\.ps1)"') {
+                $result.ActiveScript = $Matches[1]
+            }
+            elseif ($action.Arguments -match "(-File\s+)([^\s]+\.ps1)") {
+                $result.ActiveScript = $Matches[2]
+            }
+        }
+    }
+
+    # 3. Try to find config.json next to detected paths / script
+    $possibleConfig = @()
+
+    foreach ($p in $result.InstalledPaths) {
+        $possibleConfig += Join-Path $p "config.json"
+    }
+
+    if ($result.ActiveScript) {
+        $scriptDir = Split-Path -Path $result.ActiveScript -Parent
+        $possibleConfig += Join-Path $scriptDir "config.json"
+    }
+
+    $configPath = $possibleConfig | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+    if ($configPath) {
+        $result.ConfigPath = $configPath
+        try {
+            $json = Get-Content -Path $configPath -Raw -ErrorAction Stop | ConvertFrom-Json
+            $result.Config = $json
+        }
+        catch {
+            $result.Config = "Error reading/parsing config.json: $($_.Exception.Message)"
+        }
+    }
+
+    # 4. Logs (if any)
+    $logDirs = @()
+    foreach ($p in $result.InstalledPaths) {
+        $logDirs += Join-Path $p "Logs"
+    }
+
+    $logs = foreach ($ld in $logDirs) {
+        if (Test-Path $ld) {
+            Get-ChildItem -Path $ld -File -ErrorAction SilentlyContinue
+        }
+    }
+
+    if ($logs) {
+        $result.Logs = $logs |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object FullName, Length, LastWriteTime -First 10
+    }
+
+    # 5. WinGet package info (if installed through winget)
+    try {
+        $pkg = winget list "Romanitho.Winget-AutoUpdate" --accept-source-agreements 2>$null
+        if ($LASTEXITCODE -eq 0 -and $pkg) {
+            $result.WingetPackageInfo = ($pkg | Out-String)
+        }
+    }
+    catch {
+        $result.WingetPackageInfo = "Unable to query winget package info: $($_.Exception.Message)"
+    }
+
+    # Output as PSCustomObject
+    [pscustomobject]$result
+}
+
+# Usage:
+Get-WingetAutoUpdateStatus | Format-List *
+
