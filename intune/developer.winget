@@ -438,7 +438,7 @@ properties:
       directives:
         description: Installing Microsoft.Azure.FunctionsCoreTools
         allowPrerelease: false
-        securityContext: current
+        securityContext: elevated
       settings:
         id: Microsoft.Azure.FunctionsCoreTools
         source: winget
