@@ -382,13 +382,14 @@ properties:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Romanitho.Winget-AutoUpdate
       directives:
-        description: Installing Romanitho.Winget-AutoUpdate
+        description: Installing Romanitho.Winget-AutoUpdate (WAU)
         allowPrerelease: false
         securityContext: elevated
       settings:
         id: Romanitho.Winget-AutoUpdate
         source: winget
-
+## Get-ScheduledTask -TaskName "WinGet-AutoUpdate" | Get-ScheduledTaskInfo
+## Get-ScheduledTask | Where-Object {$_.TaskName -like '*WinGet*AutoUpdate*'} | Select TaskName, State, LastRunTime
 ## excluded apps
 #Brave.Brave*
 #Google.Chrome*
@@ -403,15 +404,15 @@ properties:
 #Romanitho.Winget-AutoUpdate
 #KnifMelti.WAU-Settings-GUI
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: KnifMelti.WAU-Settings-GUI
-      directives:
-        description: Installing KnifMelti.WAU-Settings-GUI
-        allowPrerelease: false
-        securityContext: elevated
-      settings:
-        id: KnifMelti.WAU-Settings-GUI
-        source: winget
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: KnifMelti.WAU-Settings-GUI
+#      directives:
+#        description: Installing KnifMelti.WAU-Settings-GUI
+#        allowPrerelease: false
+#        securityContext: elevated
+#      settings:
+#        id: KnifMelti.WAU-Settings-GUI
+#        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Graphviz.Graphviz
