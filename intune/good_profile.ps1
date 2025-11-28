@@ -2599,8 +2599,8 @@ function Get-WingetAutoUpdateStatus {
         $result.WingetPackageInfo = "Unable to query winget package info: $($_.Exception.Message)"
     }
 
-    [pscustomobject]$result
+    ## [pscustomobject]$result
 }
 
 # Usage
-Get-WingetAutoUpdateStatus | Format-List *
+#Get-WingetAutoUpdateStatus | Format-List *
