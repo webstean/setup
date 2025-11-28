@@ -1044,6 +1044,18 @@ function Get-EntraID {
     }
 }
 
+function Format-JsonPretty {
+    param(
+        [Parameter(ValueFromPipeline)]
+        $InputObject,
+        [int]$Depth = 10
+    )
+    process {
+        $InputObject | ConvertFrom-Json -ErrorAction SilentlyContinue | ConvertTo-Json -Depth $Depth -Compress:$false
+    }
+}
+## Get-Content .\data.json | Format-JsonPretty
+
 function Get-Meta { ##IMDS
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
@@ -1051,9 +1063,14 @@ function Get-Meta { ##IMDS
 
     $headers = @{ "Metadata" = "true" }
     $uri = "http://169.254.169.254/metadata/instance?api-version=2021-02-01"
-    $response = Invoke-RestMethod -Uri $uri -Headers $headers -OutputType 'HttpResponseMessage' -ErrorAction Stop
+    $uri = "http://169.254.169.254/metadata/instance?api-version=2025-04-07"
+    
+    $response = Invoke-RestMethod -Uri $uri -Headers $headers -Method GET -NoProxy -ErrorAction Stop | ConvertTo-Json -Depth 64
     if ($response ) {
-        $response | Format-List 
+        ## $response | jq .
+        $response | jq -r '.compute.azEnvironment'
+        $response | jq -r '.compute.location'
+     
     } else {
         throw "This machine is not running inside Azure"
         $PSDefaultParameterValues['*:Verbose']   = $preserve
