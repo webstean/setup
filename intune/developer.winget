@@ -72,13 +72,15 @@ properties:
     - resource: xPSDesiredStateConfiguration/xScript
       id: variable.developer
       directives:
-        description: Set a system-wide environment variable
+        description: Set the Developer environment variables in the Machine scope 
         securityContext: elevated
       settings:
         GetScript: return $false
         TestScript: return $false
         SetScript: |
+          ## DEVELOPER = YES
           [System.Environment]::SetEnvironmentVariable("DEVELOPER","Yes","Machine")
+          ## _NT_SYMBOL_PATH = "srv*C:\Symbols*https://msdl.microsoft.com/download/symbols",
           $Symbols = "$env:SystemDrive\Symbols"
           if (-Not (Test-Path -Path "${Symbols}" -PathType Container -ErrorAction SilentlyContinue)) {
             New-Item -Path "${Symbols}" -Type Container
@@ -88,7 +90,6 @@ properties:
             "srv*${Symbols}*https://msdl.microsoft.com/download/symbols",
             [System.EnvironmentVariableTarget]::Machine
           )
-          ##   "srv*C:\Symbols*https://msdl.microsoft.com/download/symbols",
 
     - resource: xPSDesiredStateConfiguration/xScript
       id: Script.Set.User.Wallpaper
