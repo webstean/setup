@@ -258,7 +258,7 @@ function Set-DriveVolumeLabel {
 Set-DriveVolumeLabel -DriveLetter 'C' -DesiredVolumeName 'Developer'
 
 function New-TempDirectories {
-    Write-Output "Creating TEMP/TMP directories..." -ForegroundColor Green
+    Write-Output  "Creating TEMP/TMP directories..."
 
     $TempDirs = @("$env:SystemDrive\Temp", "$env:SystemDrive\Tmp")
 
