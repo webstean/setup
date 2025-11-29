@@ -39,13 +39,31 @@ properties:
         source: msstore
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Raw Image Extension
+      id: Raw.Image.Extension
       directives:
         description: Install Raw Image Extension
         allowPrerelease: false
       settings:
         id: 9NCTDW2W1BH8
         source: msstore
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.WindowsApp
+      directives:
+        description: Install Microsoft.WindowsApp
+        allowPrerelease: false
+      settings:
+        id: Microsoft.WindowsApp
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.WindowsJournal
+      directives:
+        description: Install Microsoft.WindowsJournal
+        allowPrerelease: false
+      settings:
+        id: Microsoft.WindowsJournal
+        source: winget
 
 #    - resource: Microsoft.WinGet.DSC/WinGetPackage
 #      id: installWSL
