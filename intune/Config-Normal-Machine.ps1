@@ -505,9 +505,7 @@ function Hide-WindowsSecurityFamilyOptions {
         -Force | Out-Null
 
     Write-Host "✅ 'Family options' hidden in Windows Security app." -ForegroundColor Green
-    Write-Host "   Restart the Windows Security app if it’s open." -ForegroundColor Yellow
 }
-
 Hide-WindowsSecurityFamilyOptions
 
 # Disable Windows Media Player's media sharing feature
@@ -517,13 +515,12 @@ Function DisableMediaSharing {
     }
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\WindowsMediaPlayer" -Name "PreventLibrarySharing" -Type DWord -Value 1
 }
-
 DisableMediaSharing
 
-Write-Output "Installing DotNet 2, 3 and 3.5 for compatibility..."
 # Install .NET Framework 2.0, 3.0 and 3.5 runtimes - Requires internet connection
 # Take ages to install!!
 Function InstallNET23 {
+    Write-Output "Installing DotNet 2, 3 and 3.5 for compatibility..."
     If ((Get-CimInstance -Class "Win32_OperatingSystem").ProductType -eq 1) {
         Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "NetFx3" } | Enable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
     }
@@ -535,10 +532,10 @@ Function InstallNET23 {
 
 # Uninstall Internet Explorer (not applicable on later Windows 10/11 builds)
 Function UninstallInternetExplorer {
+    Write-Output "Uninstalling Internet Explorer..."
     Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -like "Internet-Explorer-Optional*" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
     Get-WindowsCapability -Online | Where-Object { $_.Name -like "Browser.InternetExplorer*" } | Remove-WindowsCapability -Online | Out-Null
 }
-
 UninstallInternetExplorer
 
 Write-Output "Uninstalling Windows System bloat..."
@@ -569,6 +566,7 @@ RemoveFaxPrinter
 
 # Uninstall Windows Fax and Scan Services
 Function UninstallFaxAndScan {
+    Write-Output "Uninstalling Windows Fax and Scan..."
     Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "FaxServicesClientPackage" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
     Get-WindowsCapability -Online | Where-Object { $_.Name -like "Print.Fax.Scan*" } | Remove-WindowsCapability -Online | Out-Null
 }
