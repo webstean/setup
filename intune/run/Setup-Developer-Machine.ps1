@@ -88,6 +88,7 @@ if ($winget) {
         exit 1
     }
 }
+winget configure --enable 
 winget install Microsoft.Powershell --silent --accept-package-agreements --accept-source-agreements
 
 
