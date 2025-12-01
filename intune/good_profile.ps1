@@ -1770,6 +1770,8 @@ function Get-Token-Info {
     Write-Host ("Authorisation Server: " + ($jwt.iss -join ' '))
     Write-Host ("Authorised Scopes   : " + ($jwt.scp -join ' '))
     Write-Host ("Against Tenancy     : " + ($jwt.tid -join ' '))
+    Write-Host ('WIDS                :
+" + ($jwt.wids -join ' ')) 
 
     if ( $jwt.scp -like '*ReadWrite.All*' | Out-Null ) {
         Write-Host -ForegroundColor Red "Be careful - this token contains ReadWrite.All in atleast one of its scopes"
