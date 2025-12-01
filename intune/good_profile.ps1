@@ -2430,7 +2430,7 @@ function Get-EntraDelegatedGrantsReport {
     [CmdletBinding()]
     param(
         # Scopes we don't care about
-        [string[]]$ExcludeScopes = @('openid', 'profile', 'email')
+        [string[]]$ExcludeScopes = @('openid', 'profile', 'email', 'offline_access')
     )
 
     # Cache for service principals to avoid hammering Graph
