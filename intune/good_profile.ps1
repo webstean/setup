@@ -138,7 +138,7 @@ function Search {
         [string]$Filter
     )
 
-    Get-ChildItem -Path 'C:\' -Recurse -ErrorAction SilentlyContinue -Filter $Filter
+    Get-ChildItem -Path "$env:SYSTEMDRIVE" -Recurse -ErrorAction SilentlyContinue -Filter $Filter
 }
 
 function Reset-Podman {
