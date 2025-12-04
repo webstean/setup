@@ -1150,13 +1150,27 @@ properties:
       settings:
         Name: ms-vscode.vscode-node-azure-pack
 
-    # Remove GitLens
+    # Extension: ms-vscode.remote-server (Remote Tools)
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.eamodio.gitlens
+      id: stable.ms-vscode.remote-server
+      dependsOn:
+        - Microsoft.VisualStudioCode
+        - OpenJS.NodeJS
       directives:
-        description: Remove GitLens extension
+        description: Install ms-vscode.remote-server
         allowPrerelease: false
+        securityContext: current
         edition: stable
       settings:
-        Name: eamodio.gitlens
-        Exist: false
+        Name: ms-vscode.remote-server
+
+    # Remove GitLens
+#    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+#      id: stable.eamodio.gitlens
+#      directives:
+#        description: Remove GitLens extension
+#        allowPrerelease: false
+#        edition: stable
+#      settings:
+#        Name: eamodio.gitlens
+#        Exist: false
