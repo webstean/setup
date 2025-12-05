@@ -2483,3 +2483,60 @@ function Get-EntraDelegatedGrantsReport {
     # Return the objects (caller decides how to display)
     $output | Sort-Object AppName, Resource
 }
+
+function Test-TlsConnection {
+    <#
+    .SYNOPSIS
+        Tests HTTPS connectivity and TLS validation for a given URL.
+
+    .PARAMETER Url
+        The HTTPS URL to test (default: https://example.com)
+
+    .PARAMETER TimeoutSeconds
+        Connection timeout in seconds (default: 5)
+
+    .EXAMPLE
+        Test-TlsConnection -Url "https://graph.microsoft.com"
+
+    .EXAMPLE
+        Test-TlsConnection -Url "https://login.microsoftonline.com" -TimeoutSeconds 10
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$Url = "https://cnn.com",
+
+        [int]$TimeoutSeconds = 5
+    )
+
+    try {
+        $handler = [System.Net.Http.HttpClientHandler]::new()
+        $client  = [System.Net.Http.HttpClient]::new($handler)
+        $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)
+
+        $response = $client.GetAsync($Url).Result
+
+        Write-Host "✅ HTTPS OK ($($response.StatusCode)) - $Url" -ForegroundColor Green
+        return [pscustomobject]@{
+            Url          = $Url
+            StatusCode   = [int]$response.StatusCode
+            ReasonPhrase = $response.ReasonPhrase
+            Success      = $response.IsSuccessStatusCode
+        }
+    }
+    catch {
+        Write-Warning "❌ HTTPS validation failed for $Url — $($_.Exception.Message)"
+        return [pscustomobject]@{
+            Url          = $Url
+            StatusCode   = $null
+            ReasonPhrase = $null
+            Success      = $false
+            Error        = $_.Exception.Message
+        }
+    }
+    finally {
+        $client?.Dispose()
+        $handler?.Dispose()
+    }
+}
+
