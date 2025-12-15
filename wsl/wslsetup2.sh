@@ -44,23 +44,20 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     sudo install -m 0755 -d /etc/apt/keyrings
 
     ## Download and convert Microsoft’s GPG key
-    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc |
-    sudo gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg
- 
-    ## Set appropriate permissions
-    sudo chmod 644 /etc/apt/keyrings/microsoft.gpg
+    curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+    sudo install -o root -g root -m 644 microsoft.gpg /usr/share/keyrings
+    rm microsoft.gpg
     gpg --show-keys /etc/apt/keyrings/microsoft.gpg
 
     ## add a Microsoft repository 
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft.gpg] \
-https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" \
-  | sudo tee /etc/apt/sources.list.d/microsoft-prod.list > /dev/null
-
+    sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" >> /etc/apt/sources.list.d/microsoft-ubuntu-$(lsb_release -cs)-prod.list'
     sudo apt update -y
+
+    ## Microsoft Identity Broeker
+    sudo apt install -y microsoft-identity-broker
     
     ## Install WSL Utilities
     ## https://wslu.wedotstud.io/wslu/
-    ## 
     sudo apt-get install -y wslu
     #wslsys
 
