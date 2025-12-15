@@ -55,6 +55,7 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
 
     ## Microsoft Identity Broeker
     sudo apt install -y microsoft-identity-broker
+    #sudo dnf install -y microsoft-identity-broker
     
     ## Install WSL Utilities
     ## https://wslu.wedotstud.io/wslu/
