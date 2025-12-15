@@ -268,13 +268,6 @@ oracleinstantclientinstall() {
     
     return 0
 }
-
-# Install Oracle SQL Developer
-oraclesqldeveloperinstall() {
-    ## https://www.oracle.com/database/sqldeveloper/technologies/download/#license-lightbox
-    echo 
-}
-
 ## only supported on x86 64bit
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
@@ -285,6 +278,11 @@ if [ ${MACHINE_TYPE} == 'x86_64' ]; then
          oracleinstantclientinstall
     fi
 fi
+# Install Oracle SQL Developer
+oraclesqldeveloperinstall() {
+    ## https://www.oracle.com/database/sqldeveloper/technologies/download/#license-lightbox
+    echo 
+}
 
 # Join Active Directory - not really applicable for WSL (use on actual Linux installs) - but include here for completeness
 joinactivedirectory() {
