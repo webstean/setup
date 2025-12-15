@@ -90,6 +90,10 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     if (! which java) ; then
         sudo apt-get install -y msopenjdk-17
         sudo apt-get install -y default-jre
+        ## Adding a new alternative for "java".
+        #sudo update-alternatives --install /usr/bin/java java /media/mydisk/jdk/bin/java 1
+        ## Setting the new alternative as default for "java".
+        #sudo update-alternatives --config java
     fi
 fi
 
