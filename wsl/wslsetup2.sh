@@ -54,6 +54,8 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     sudo apt update -y
 
     ## Microsoft Identity Broeker
+    sudo apt install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
+    #sudo dnf install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
     sudo apt install -y microsoft-identity-broker
     #sudo dnf install -y microsoft-identity-broker
     
