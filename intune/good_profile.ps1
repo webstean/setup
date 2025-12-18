@@ -665,10 +665,24 @@ function t { terraform.exe @args }
 function tf { terraform.exe fmt @args}
 function tv { terraform.exe validate @args }
 function ti { terraform.exe init -upgrade @args}
+function tc { terraform.exe console @args}
+
 ## Sysinternal shortcuts
 function handle { handle.exe init -nobanner @args}
  
-function cdw { Set-Location c:\workspaces }
+function cdw {
+    [CmdletBinding()]
+    param()
+
+    $path = 'C:\workspaces'
+
+    if (Test-Path -Path $path -PathType Container | Out-Null ) {
+        Set-Location -Path $path
+    }
+    else {
+        return
+    }
+}
 
 function free {
     (Get-Volume -DriveLetter C).SizeRemaining | ForEach-Object {
