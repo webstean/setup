@@ -665,7 +665,10 @@ function t { terraform.exe @args }
 function tf { terraform.exe fmt @args}
 function tv { terraform.exe validate @args }
 function ti { terraform.exe init -upgrade @args}
-function tc { terraform.exe console @args}
+function tc {
+    Write-Host "Starting Terraform Console..."
+    terraform.exe console @args
+}
 
 ## Sysinternal shortcuts
 function handle { handle.exe init -nobanner @args}
