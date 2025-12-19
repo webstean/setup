@@ -166,6 +166,7 @@ Install-OrUpdateModule Microsoft.Graph.Applications
 Install-OrUpdateModule Microsoft.Graph.Authentication
 Install-OrUpdateModule Microsoft.Graph.DeviceManagement
 Install-OrUpdateModule Microsoft.Graph.Files
+Install-OrUpdateModule Microsoft.Graph.Identity.DirectoryManagement
 Install-OrUpdateModule Microsoft.Graph.Identity.SignIns
 Install-OrUpdateModule Microsoft.Graph.Intune
 Install-OrUpdateModule Microsoft.Graph.Groups
