@@ -1097,6 +1097,7 @@ function Get-Azure-Meta { ##IMDS
     return $true | Out-Null
 }
 
+## See: https://www.chanceofsecurity.com/post/microsoft-entra-pim-bulk-role-activation-tool
 function Enable-PIMRole {
     [CmdletBinding(SupportsShouldProcess)]
     param(
