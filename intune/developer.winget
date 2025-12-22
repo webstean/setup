@@ -576,6 +576,16 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Postman.PostmanAgent
+      directives:
+        description: Installing Postman.PostmanAgent
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Postman.PostmanAgent
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: LIGHTNINGUK.ImgBurn
       directives:
         description: Installing LIGHTNINGUK.ImgBurn
