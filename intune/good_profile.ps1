@@ -522,6 +522,10 @@ function Install-OrUpdate-Module {
         [switch]$Prerelease          # Optional: install prerelease versions
     )
 
+    ## Turn off verbose
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
+
     # Check if PSResourceGet is available
     if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
         Write-Host "PSResourceGet not found. Installing it first..." -ForegroundColor Yellow
@@ -555,8 +559,10 @@ function Install-OrUpdate-Module {
         Import-Module $ModuleName -Force
         Write-Host "✅ PowerShell '$ModuleName' is installed (and up to date.)" -ForegroundColor Green
     }
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
     catch {
         Write-Host "❌ Failed to install or update '$ModuleName': $_" -ForegroundColor Red
+        $PSDefaultParameterValues['*:Verbose']   = $preserve
     }
 }
 
