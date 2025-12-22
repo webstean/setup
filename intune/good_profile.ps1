@@ -513,7 +513,7 @@ function Get-OsInfo {
     }
 }
 
-function Install-OrUpdateModule {
+function Install-OrUpdate-Module {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -525,37 +525,38 @@ function Install-OrUpdateModule {
     # Check if PSResourceGet is available
     if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
         Write-Host "PSResourceGet not found. Installing it first..." -ForegroundColor Yellow
-        Install-Module -Name Microsoft.PowerShell.PSResourceGet -Scope $InstallScope -Force -ErrorAction SilentlyContinue
+        Install-Module -Name Microsoft.PowerShell.PSResourceGet -Scope $InstallScope -Force
         Import-Module Microsoft.PowerShell.PSResourceGet
     }
 
     # Check if module is already installed
-    $installed = Get-PSResource -Name $ModuleName -ErrorAction SilentlyContinue -Scope $Installscope
+    $installed = Get-PSResource -Name $ModuleName -ErrorAction SilentlyContinue -Scope $InstallScope
 
     try {
         if ($null -eq $installed) {
-            Write-Host "Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
+            Write-Host "PowerShell Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
             if ($prerelease) {
-                Install-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+                Install-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
             } else {
-                ## Install-PSResource -Name PackageManagement -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
-                Install-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+                ## Install-PSResource -Name PackageManagement -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope
+                Install-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
             }
-        } else {
-            Write-Host "Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
+        }
+        else {
+            Write-Host "PowerShell Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
             ## Update-PSResource -Name PackageManagement -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue
             if ($prerelease) {
-                Update-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+                Update-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
             } else {
-                Update-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+                Update-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
             }
         }
         # Optional: import after install/update
         Import-Module $ModuleName -Force
-        Write-Host "'$ModuleName' is installed (and up to date.)" -ForegroundColor Green
+        Write-Host "✅ PowerShell '$ModuleName' is installed (and up to date.)" -ForegroundColor Green
     }
     catch {
-        Write-Host "Failed to install or update '$ModuleName': $_" -ForegroundColor Red
+        Write-Host "❌ Failed to install or update '$ModuleName': $_" -ForegroundColor Red
     }
 }
 
