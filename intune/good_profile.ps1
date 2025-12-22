@@ -558,8 +558,8 @@ function Install-OrUpdate-Module {
         # Optional: import after install/update
         Import-Module $ModuleName -Force
         Write-Host "✅ PowerShell '$ModuleName' is installed (and up to date.)" -ForegroundColor Green
+        $PSDefaultParameterValues['*:Verbose']   = $preserve
     }
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
     catch {
         Write-Host "❌ Failed to install or update '$ModuleName': $_" -ForegroundColor Red
         $PSDefaultParameterValues['*:Verbose']   = $preserve
