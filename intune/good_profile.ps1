@@ -2566,3 +2566,145 @@ function Test-TlsConnection {
     }
 }
 
+function Export-CAPolicies {
+    <#
+    .SYNOPSIS
+    Export Microsoft Entra Conditional Access policies to JSON files.
+
+    .DESCRIPTION
+    Connects to Microsoft Graph (if needed), retrieves all Conditional Access policies,
+    and exports each policy to an individual JSON file for backup purposes.
+
+    .PARAMETER ExportPath
+    Folder to write JSON files to. Created if it doesn't exist.
+
+    .PARAMETER JsonDepth
+    ConvertTo-Json depth. Defaults to 10 to avoid truncation.
+
+    .PARAMETER Scopes
+    Graph scopes to request if a connection is required. Defaults to Policy.Read.All.
+
+    .PARAMETER SanitizeFileName
+    Sanitizes policy display names so they are valid Windows filenames.
+
+    .PARAMETER PassThru
+    Returns objects describing exported files.
+
+    .EXAMPLE
+    Export-CAPoliciesToJson -ExportPath 'C:\Temp\CA\' -Verbose
+
+    .EXAMPLE
+    Export-CAPoliciesToJson -ExportPath "$env:USERPROFILE\Documents\CA-Backup" -PassThru |
+      Format-Table -AutoSize
+
+    .NOTES
+    Based on: www.alitajran.com/export-conditional-access-policies/
+    #>
+
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [string] $ExportPath = 'C:\temp\',
+
+        [Parameter(Mandatory = $false)]
+        [ValidateRange(2, 100)]
+        [int] $JsonDepth = 10,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [string[]] $Scopes = @('Policy.Read.All'),
+
+        [Parameter(Mandatory = $false)]
+        [switch] $SanitizeFileName,
+
+        [Parameter(Mandatory = $false)]
+        [switch] $PassThru
+    )
+
+    begin {
+        Set-StrictMode -Version Latest
+
+        function New-SafeFileName {
+            param(
+                [Parameter(Mandatory)]
+                [string] $Name
+            )
+
+            # Replace invalid filename chars, trim, and collapse whitespace
+            $invalid = [Regex]::Escape(([IO.Path]::GetInvalidFileNameChars() -join ''))
+            $safe = [Regex]::Replace($Name, "[$invalid]", '_')
+            $safe = ($safe -replace '\s+', ' ').Trim()
+
+            if ([string]::IsNullOrWhiteSpace($safe)) { $safe = 'UnnamedPolicy' }
+            return $safe
+        }
+
+        # Ensure export folder exists
+        if (-not (Test-Path -LiteralPath $ExportPath)) {
+            Write-Verbose "Creating export folder: $ExportPath"
+            New-Item -ItemType Directory -Path $ExportPath -Force | Out-Null
+        }
+
+        # Ensure we have a Graph connection
+        try {
+            $ctx = Get-MgContext -ErrorAction SilentlyContinue
+            if (-not $ctx -or -not $ctx.Account) {
+                Write-Verbose "Connecting to Microsoft Graph with scopes: $($Scopes -join ', ')"
+                Connect-MgGraph -Scopes $Scopes | Out-Null
+            }
+            else {
+                Write-Verbose "Already connected to Microsoft Graph as: $($ctx.Account)"
+            }
+        }
+        catch {
+            throw "Failed to establish Microsoft Graph connection. $($_.Exception.Message)"
+        }
+    }
+
+    process {
+        try {
+            Write-Verbose "Retrieving Conditional Access policies..."
+            $allPolicies = Get-MgIdentityConditionalAccessPolicy -All -ErrorAction Stop
+
+            if (-not $allPolicies -or $allPolicies.Count -eq 0) {
+                Write-Warning "There are no Conditional Access policies to export."
+                return
+            }
+
+            $results = New-Object System.Collections.Generic.List[object]
+
+            foreach ($policy in $allPolicies) {
+                $policyName = $policy.DisplayName
+                $fileName = if ($SanitizeFileName) { (New-SafeFileName -Name $policyName) } else { $policyName }
+
+                # Always ensure .json extension
+                $outFile = Join-Path -Path $ExportPath -ChildPath ($fileName + '.json')
+
+                if ($PSCmdlet.ShouldProcess($outFile, "Export Conditional Access policy '$policyName'")) {
+                    try {
+                        $json = $policy | ConvertTo-Json -Depth $JsonDepth
+                        $json | Out-File -LiteralPath $outFile -Force -Encoding utf8
+
+                        Write-Host "✅ Exported CA policy: $policyName" -ForegroundColor Green
+
+                        $result = [pscustomobject]@{
+                            DisplayName = $policyName
+                            Id          = $policy.Id
+                            FilePath    = $outFile
+                        }
+                        $results.Add($result) | Out-Null
+                    }
+                    catch {
+                        Write-Host "❌ Failed exporting CA policy: $policyName. $($_.Exception.Message)" -ForegroundColor Red
+                    }
+                }
+            }
+
+            if ($PassThru) { $results }
+        }
+        catch {
+            throw "Error occurred while exporting policies. $($_.Exception.Message)"
+        }
+    }
+}
