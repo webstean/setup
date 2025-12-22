@@ -565,6 +565,7 @@ function Install-OrUpdate-Module {
         $PSDefaultParameterValues['*:Verbose']   = $preserve
     }
 }
+## Uninstall-PSResource microsoft.graph.* -scope AllUsers -SkipDependencyCheck
 
 if ( ($env:IsDevBox ) -and (Get-Command "devbox") )  {
     if ($env:UPN) {
