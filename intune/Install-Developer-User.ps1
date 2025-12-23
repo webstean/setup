@@ -315,6 +315,7 @@ function Set-MSTerminalSetting {
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.font.face" -Value $face
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.font.size" -Value $FontSize
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.font.weight" -Value "normal"
+    Set-JsonValue -JsonObject $json -Path "editor.fontFamily" -Value "FiraCode"
 
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.backgroundImageAlignment" -Value "bottomRight"
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.backgroundImageStretchMode" -Value "none"
