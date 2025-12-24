@@ -2711,6 +2711,8 @@ function Export-CAPolicies {
 
 function Connect-SharePoint {
     try {
+        Install-Module Microsoft.Online.SharePoint.PowerShell -force
+        Import-Module Microsoft.Online.SharePoint.PowerShell -force -UseWindowsPowerShell
         $adminUrl = "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com"
         Write-Host "Connecting to: ${adminUrl}..."
         Connect-SPOService -Url $adminUrl -ErrorAction Stop
