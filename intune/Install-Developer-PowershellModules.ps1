@@ -172,7 +172,6 @@ Install-OrUpdate-Module Microsoft.Graph.Intune
 Install-OrUpdate-Module Microsoft.Graph.Groups
 Install-OrUpdate-Module Microsoft.Graph.Mail
 Install-OrUpdate-Module Microsoft.Graph.Users
-Install-OrUpdate-Module Microsoft.Online.SharePoint.PowerShell
 Install-OrUpdate-Module MicrosoftTeams
 #Install-OrUpdate-Module VMware.PowerCLI ## VMware PowerCLI (its too big - as no longer used much)
 Install-OrUpdate-Module Microsoft.PowerApps.Administration.PowerShell
