@@ -2712,7 +2712,7 @@ function Export-CAPolicies {
 function Connect-SharePoint {
     try {
         $adminUrl = "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com"
-        Write-Host "Connecting to: $adminUrl"
+        Write-Host "Connecting to: ${adminUrl}..."
         Connect-SPOService -Url $adminUrl -ErrorAction Stop
        "Connected OK"
     }
