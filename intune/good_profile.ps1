@@ -994,7 +994,6 @@ function Import-Env-File {
     }
     
     if (-not (Test-Path -Path $Path -ErrorAction SilentlyContinue)) {
-        Write-Error "The .env file ($Path) was not found: $envId"
         return
     }
 
