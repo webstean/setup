@@ -94,7 +94,7 @@ if ((Get-PSResourceRepository -Name PSGallery).IsAllowedByPolicy -ne $true) {
 ## Delete everything and start again
 ## Get-PSResource -Scope 'AllUsers' | Uninstall-PSResource -SkipDependencyCheck
 
-function Install-OrUpdateModule {
+function Install-OrUpdate-Module {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -117,19 +117,19 @@ function Install-OrUpdateModule {
         if ($null -eq $installed) {
             Write-Host "PowerShell Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
             if ($prerelease) {
-                Install-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope
+                Install-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
             } else {
                 ## Install-PSResource -Name PackageManagement -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope
-                Install-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope
+                Install-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
             }
         }
         else {
             Write-Host "PowerShell Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
             ## Update-PSResource -Name PackageManagement -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue
             if ($prerelease) {
-                Update-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope
+                Update-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
             } else {
-                Update-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope
+                Update-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
             }
         }
         # Optional: import after install/update
@@ -149,33 +149,33 @@ if (Get-Module -Name AzureAD.Standard.Preview -ListAvailable -ErrorAction Silent
     Uninstall-Module AzureAD.Standard.Preview -Force -ErrorAction SilentlyContinue
 }
 
-Install-OrUpdateModule PSWindowsUpdate
-Install-OrUpdateModule PackageManagement
-Install-OrUpdateModule Terminal-Icons
-Install-OrUpdateModule Az.Accounts
-Install-OrUpdateModule Az.Storage
-Install-OrUpdateModule Az.Compute
-Install-OrUpdateModule Az.Resources
-Install-OrUpdateModule Az.Keyvault
-Install-OrUpdateModule Az.Network
-Install-OrUpdateModule Az.Functions
-Install-OrUpdateModule Az.ContainerRegistry
-Install-OrUpdateModule Microsoft.WinGet.Client
-Install-OrUpdateModule Microsoft.WinGet.Configuration
-Install-OrUpdateModule Microsoft.Graph.Applications
-Install-OrUpdateModule Microsoft.Graph.Authentication
-Install-OrUpdateModule Microsoft.Graph.DeviceManagement
-Install-OrUpdateModule Microsoft.Graph.Files
-Install-OrUpdateModule Microsoft.Graph.Identity.SignIns
-Install-OrUpdateModule Microsoft.Graph.Intune
-Install-OrUpdateModule Microsoft.Graph.Groups
-Install-OrUpdateModule Microsoft.Graph.Mail
-Install-OrUpdateModule Microsoft.Graph.Users
-Install-OrUpdateModule Microsoft.Online.SharePoint.PowerShell
-Install-OrUpdateModule MicrosoftTeams
-#Install-OrUpdateModule VMware.PowerCLI ## VMware PowerCLI (its too big - as no longer used much)
-Install-OrUpdateModule Microsoft.PowerApps.Administration.PowerShell
-Install-OrUpdateModule JWTDetails
+Install-OrUpdate-Module PSWindowsUpdate
+Install-OrUpdate-Module PackageManagement
+Install-OrUpdate-Module Terminal-Icons
+Install-OrUpdate-Module Az.Accounts
+Install-OrUpdate-Module Az.Storage
+Install-OrUpdate-Module Az.Compute
+Install-OrUpdate-Module Az.Resources
+Install-OrUpdate-Module Az.Keyvault
+Install-OrUpdate-Module Az.Network
+Install-OrUpdate-Module Az.Functions
+Install-OrUpdate-Module Az.ContainerRegistry
+Install-OrUpdate-Module Microsoft.WinGet.Client
+Install-OrUpdate-Module Microsoft.WinGet.Configuration
+Install-OrUpdate-Module Microsoft.Graph.Applications
+Install-OrUpdate-Module Microsoft.Graph.Authentication
+Install-OrUpdate-Module Microsoft.Graph.DeviceManagement
+Install-OrUpdate-Module Microsoft.Graph.Files
+Install-OrUpdate-Module Microsoft.Graph.Identity.DirectoryManagement
+Install-OrUpdate-Module Microsoft.Graph.Identity.SignIns
+Install-OrUpdate-Module Microsoft.Graph.Intune
+Install-OrUpdate-Module Microsoft.Graph.Groups
+Install-OrUpdate-Module Microsoft.Graph.Mail
+Install-OrUpdate-Module Microsoft.Graph.Users
+Install-OrUpdate-Module MicrosoftTeams
+#Install-OrUpdate-Module VMware.PowerCLI ## VMware PowerCLI (its too big - as no longer used much)
+Install-OrUpdate-Module Microsoft.PowerApps.Administration.PowerShell
+Install-OrUpdate-Module JWTDetails
 ## Get-PnPTenant
 
 ## Install-OrUpdateModule PnP.PowerShell
@@ -299,6 +299,9 @@ if ($env:USERNAME) {
 # Use DevCenter for deployments
 # azd config set platform.type devcenter
 # azd config unset platform.type devcenter
+azd extension install azure.coding-agent
+azd extension install azure.ai.agents
+# then: azd coding-agent config   - in each repo
 
 Update-AzConfig -CheckForUpgrade $false | Out-Null
 Update-AzConfig -DisplayRegionIdentified $true | Out-Null

@@ -938,6 +938,9 @@ function Set-Users-Modify-NTFS {
     (Get-Acl $Path).Access | Where-Object { $_.IdentityReference -eq $users }
 }
 
+git config --global --add safe.directory $env:SystemDrive\WORKSPACES
+git config --global --add safe.directory '*'
+
 # Download the contents of an entire folder from a public repo in C:\BIN
 Get-GitHubDirectory -Owner 'webstean' -Repo 'setup' -Branch 'main' -Path 'intune/bin' -Destination "${BIN}"
 

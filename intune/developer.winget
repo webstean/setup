@@ -576,6 +576,16 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Postman.PostmanAgent
+      directives:
+        description: Installing Postman.PostmanAgent
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Postman.PostmanAgent
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: LIGHTNINGUK.ImgBurn
       directives:
         description: Installing LIGHTNINGUK.ImgBurn
@@ -951,6 +961,32 @@ properties:
       settings:
         Name: 42Crunch.vscode-openapi
 
+    # VS Code bicep Extension
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.ms-azuretools.vscode-bicep
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install ms-azuretools.vscode-bicep extension
+        allowPrerelease: false
+        securityContext: current
+        edition: stable
+      settings:
+        Name: ms-azuretools.vscode-bicep
+
+    # VS Code GitHub Actions Extension
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.github.vscode-github-actions
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install github.vscode-github-actions
+        allowPrerelease: false
+        securityContext: current
+        edition: stable
+      settings:
+        Name: github.vscode-github-actions
+
     # VS Code DotNet extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: stable.vscode-ms-dotnettools.vscode-dotnet-runtime
@@ -1150,13 +1186,27 @@ properties:
       settings:
         Name: ms-vscode.vscode-node-azure-pack
 
-    # Remove GitLens
+    # Extension: ms-vscode.remote-server (Remote Tools)
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.eamodio.gitlens
+      id: stable.ms-vscode.remote-server
+      dependsOn:
+        - Microsoft.VisualStudioCode
+        - OpenJS.NodeJS
       directives:
-        description: Remove GitLens extension
+        description: Install ms-vscode.remote-server
         allowPrerelease: false
+        securityContext: current
         edition: stable
       settings:
-        Name: eamodio.gitlens
-        Exist: false
+        Name: ms-vscode.remote-server
+
+    # Remove GitLens
+#    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+#      id: stable.eamodio.gitlens
+#      directives:
+#        description: Remove GitLens extension
+#        allowPrerelease: false
+#        edition: stable
+#      settings:
+#        Name: eamodio.gitlens
+#        Exist: false

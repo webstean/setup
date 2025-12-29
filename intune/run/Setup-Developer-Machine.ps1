@@ -2,6 +2,52 @@
 
 $elapsed = [System.Diagnostics.Stopwatch]::StartNew()
 
+function Install-DotNetDesktopRuntime {
+    param(
+        [string]$DownloadUrl = "https://download.visualstudio.microsoft.com/download/pr/.../windowsdesktop-runtime-9.0.10-win-x64.exe",
+        [string]$TempPath = "$env:TEMP\dotnet_desktop_runtime.exe"
+    )
+
+    Write-Host "Downloading .NET Desktop Runtime..."
+    Invoke-WebRequest -Uri $DownloadUrl -OutFile $TempPath
+
+    Write-Host "Installing .NET Desktop Runtime silently..."
+    Start-Process -FilePath $TempPath `
+        -ArgumentList "/install /quiet /norestart" `
+        -Wait -NoNewWindow
+
+    Write-Host "Installation finished."
+}
+## Run
+#Install-DotNetDesktopRuntime
+
+## Once winget is installed
+function Install-LatestDotNetWindowsDesktopRuntime {
+    [CmdletBinding()]
+    param(
+        [ValidateSet("9","8")]
+        [string]$Major = "9",
+        [ValidateSet("x64","x86","arm64")]
+        [string]$Architecture = "x64"
+    )
+
+    if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
+        throw "winget not found. Run Install-WinGetPrereqsAndAppInstaller first."
+    }
+
+    $id = "Microsoft.DotNet.DesktopRuntime.$Major"
+
+    & winget install --id $id --exact --source winget `
+        --accept-source-agreements --accept-package-agreements `
+        --disable-interactivity --silent --scope machine `
+        --architecture $Architecture
+
+    & "$env:ProgramFiles\dotnet\dotnet.exe" --list-runtimes |
+        Select-String -Pattern "Microsoft\.WindowsDesktop\.App $Major\." |
+        ForEach-Object { $_.Line }
+}
+#
+
 ## Base URL for raw GitHub content (public`)
 $baseUrl = "https://raw.githubusercontent.com/webstean/setup//main/intune/"
 
@@ -64,6 +110,7 @@ if ($winget) {
     winget --version
 } else {
     Write-Host "⚠️ Winget is not installed. Installing..."
+    #Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe
 
     # Winget comes with the "App Installer" package from Microsoft Store
     # Try to install App Installer using winget’s official MSIX package

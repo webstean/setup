@@ -138,7 +138,7 @@ function Search {
         [string]$Filter
     )
 
-    Get-ChildItem -Path 'C:\' -Recurse -ErrorAction SilentlyContinue -Filter $Filter
+    Get-ChildItem -Path "$env:SYSTEMDRIVE" -Recurse -ErrorAction SilentlyContinue -Filter $Filter
 }
 
 function Reset-Podman {
@@ -513,7 +513,7 @@ function Get-OsInfo {
     }
 }
 
-function Install-OrUpdateModule {
+function Install-OrUpdate-Module {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -522,42 +522,50 @@ function Install-OrUpdateModule {
         [switch]$Prerelease          # Optional: install prerelease versions
     )
 
+    ## Turn off verbose
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
+
     # Check if PSResourceGet is available
     if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
         Write-Host "PSResourceGet not found. Installing it first..." -ForegroundColor Yellow
-        Install-Module -Name Microsoft.PowerShell.PSResourceGet -Scope $InstallScope -Force -ErrorAction SilentlyContinue
+        Install-Module -Name Microsoft.PowerShell.PSResourceGet -Scope $InstallScope -Force
         Import-Module Microsoft.PowerShell.PSResourceGet
     }
 
     # Check if module is already installed
-    $installed = Get-PSResource -Name $ModuleName -ErrorAction SilentlyContinue -Scope $Installscope
+    $installed = Get-PSResource -Name $ModuleName -ErrorAction SilentlyContinue -Scope $InstallScope
 
     try {
         if ($null -eq $installed) {
-            Write-Host "Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
+            Write-Host "PowerShell Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
             if ($prerelease) {
-                Install-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+                Install-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
             } else {
-                ## Install-PSResource -Name PackageManagement -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
-                Install-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+                ## Install-PSResource -Name PackageManagement -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope
+                Install-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
             }
-        } else {
-            Write-Host "Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
+        }
+        else {
+            Write-Host "PowerShell Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
             ## Update-PSResource -Name PackageManagement -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue
             if ($prerelease) {
-                Update-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+                Update-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
             } else {
-                Update-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $Installscope
+                Update-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
             }
         }
         # Optional: import after install/update
         Import-Module $ModuleName -Force
-        Write-Host "'$ModuleName' is installed (and up to date.)" -ForegroundColor Green
+        Write-Host "✅ PowerShell '$ModuleName' is installed (and up to date.)" -ForegroundColor Green
+        $PSDefaultParameterValues['*:Verbose']   = $preserve
     }
     catch {
-        Write-Host "Failed to install or update '$ModuleName': $_" -ForegroundColor Red
+        Write-Host "❌ Failed to install or update '$ModuleName': $_" -ForegroundColor Red
+        $PSDefaultParameterValues['*:Verbose']   = $preserve
     }
 }
+## Uninstall-PSResource microsoft.graph.* -scope AllUsers -SkipDependencyCheck
 
 if ( ($env:IsDevBox ) -and (Get-Command "devbox") )  {
     if ($env:UPN) {
@@ -665,10 +673,27 @@ function t { terraform.exe @args }
 function tf { terraform.exe fmt @args}
 function tv { terraform.exe validate @args }
 function ti { terraform.exe init -upgrade @args}
+function tc {
+    Write-Host "Starting Terraform Console..."
+    terraform.exe console @args
+}
+
 ## Sysinternal shortcuts
 function handle { handle.exe init -nobanner @args}
  
-function cdw { Set-Location c:\workspaces }
+function cdw {
+    [CmdletBinding()]
+    param()
+
+    $path = 'C:\workspaces'
+
+    if (Test-Path -Path $path -PathType Container | Out-Null ) {
+        Set-Location -Path $path
+    }
+    else {
+        return
+    }
+}
 
 function free {
     (Get-Volume -DriveLetter C).SizeRemaining | ForEach-Object {
@@ -968,9 +993,8 @@ function Import-Env-File {
         }
     }
     
-    if (-not (Test-Path -Path $Path)) {
-        Write-Error "The .env file was not found: $envId"
-        return $null
+    if (-not (Test-Path -Path $Path -ErrorAction SilentlyContinue)) {
+        return
     }
 
     Get-Content $Path | ForEach-Object {
@@ -1080,6 +1104,7 @@ function Get-Azure-Meta { ##IMDS
     return $true | Out-Null
 }
 
+## See: https://www.chanceofsecurity.com/post/microsoft-entra-pim-bulk-role-activation-tool
 function Enable-PIMRole {
     [CmdletBinding(SupportsShouldProcess)]
     param(
@@ -1770,6 +1795,7 @@ function Get-Token-Info {
     Write-Host ("Authorisation Server: " + ($jwt.iss -join ' '))
     Write-Host ("Authorised Scopes   : " + ($jwt.scp -join ' '))
     Write-Host ("Against Tenancy     : " + ($jwt.tid -join ' '))
+    Write-Host ("WIDS                : " + ($jwt.wids -join ' ')) 
 
     if ( $jwt.scp -like '*ReadWrite.All*' | Out-Null ) {
         Write-Host -ForegroundColor Red "Be careful - this token contains ReadWrite.All in atleast one of its scopes"
@@ -2430,7 +2456,7 @@ function Get-EntraDelegatedGrantsReport {
     [CmdletBinding()]
     param(
         # Scopes we don't care about
-        [string[]]$ExcludeScopes = @('openid', 'profile', 'email')
+        [string[]]$ExcludeScopes = @('openid', 'profile', 'email', 'offline_access', 'User.Read')
     )
 
     # Cache for service principals to avoid hammering Graph
@@ -2481,4 +2507,217 @@ function Get-EntraDelegatedGrantsReport {
 
     # Return the objects (caller decides how to display)
     $output | Sort-Object AppName, Resource
+}
+
+function Test-TlsConnection {
+    <#
+    .SYNOPSIS
+        Tests HTTPS connectivity and TLS validation for a given URL.
+
+    .PARAMETER Url
+        The HTTPS URL to test (default: https://example.com)
+
+    .PARAMETER TimeoutSeconds
+        Connection timeout in seconds (default: 5)
+
+    .EXAMPLE
+        Test-TlsConnection -Url "https://graph.microsoft.com"
+
+    .EXAMPLE
+        Test-TlsConnection -Url "https://login.microsoftonline.com" -TimeoutSeconds 10
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false)]
+        [string]$Url = "https://cnn.com",
+
+        [int]$TimeoutSeconds = 5
+    )
+
+    try {
+        $handler = [System.Net.Http.HttpClientHandler]::new()
+        $client  = [System.Net.Http.HttpClient]::new($handler)
+        $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)
+
+        $response = $client.GetAsync($Url).Result
+
+        Write-Host "✅ HTTPS OK ($($response.StatusCode)) - $Url" -ForegroundColor Green
+        return [pscustomobject]@{
+            Url          = $Url
+            StatusCode   = [int]$response.StatusCode
+            ReasonPhrase = $response.ReasonPhrase
+            Success      = $response.IsSuccessStatusCode
+        }
+    }
+    catch {
+        Write-Warning "❌ HTTPS validation failed for $Url — $($_.Exception.Message)"
+        return [pscustomobject]@{
+            Url          = $Url
+            StatusCode   = $null
+            ReasonPhrase = $null
+            Success      = $false
+            Error        = $_.Exception.Message
+        }
+    }
+    finally {
+        $client?.Dispose()
+        $handler?.Dispose()
+    }
+}
+
+function Export-CAPolicies {
+    <#
+    .SYNOPSIS
+    Export Microsoft Entra Conditional Access policies to JSON files.
+
+    .DESCRIPTION
+    Connects to Microsoft Graph (if needed), retrieves all Conditional Access policies,
+    and exports each policy to an individual JSON file for backup purposes.
+
+    .PARAMETER ExportPath
+    Folder to write JSON files to. Created if it doesn't exist.
+
+    .PARAMETER JsonDepth
+    ConvertTo-Json depth. Defaults to 10 to avoid truncation.
+
+    .PARAMETER Scopes
+    Graph scopes to request if a connection is required. Defaults to Policy.Read.All.
+
+    .PARAMETER SanitizeFileName
+    Sanitizes policy display names so they are valid Windows filenames.
+
+    .PARAMETER PassThru
+    Returns objects describing exported files.
+
+    .EXAMPLE
+    Export-CAPoliciesToJson -ExportPath 'C:\Temp\CA\' -Verbose
+
+    .EXAMPLE
+    Export-CAPoliciesToJson -ExportPath "$env:USERPROFILE\Documents\CA-Backup" -PassThru |
+      Format-Table -AutoSize
+
+    .NOTES
+    Based on: www.alitajran.com/export-conditional-access-policies/
+    #>
+
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [string] $ExportPath = 'C:\temp\',
+
+        [Parameter(Mandatory = $false)]
+        [ValidateRange(2, 100)]
+        [int] $JsonDepth = 10,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [string[]] $Scopes = @('Policy.Read.All'),
+
+        [Parameter(Mandatory = $false)]
+        [switch] $SanitizeFileName,
+
+        [Parameter(Mandatory = $false)]
+        [switch] $PassThru
+    )
+
+    begin {
+        Set-StrictMode -Version Latest
+
+        function New-SafeFileName {
+            param(
+                [Parameter(Mandatory)]
+                [string] $Name
+            )
+
+            # Replace invalid filename chars, trim, and collapse whitespace
+            $invalid = [Regex]::Escape(([IO.Path]::GetInvalidFileNameChars() -join ''))
+            $safe = [Regex]::Replace($Name, "[$invalid]", '_')
+            $safe = ($safe -replace '\s+', ' ').Trim()
+
+            if ([string]::IsNullOrWhiteSpace($safe)) { $safe = 'UnnamedPolicy' }
+            return $safe
+        }
+
+        # Ensure export folder exists
+        if (-not (Test-Path -LiteralPath $ExportPath)) {
+            Write-Verbose "Creating export folder: $ExportPath"
+            New-Item -ItemType Directory -Path $ExportPath -Force | Out-Null
+        }
+
+        # Ensure we have a Graph connection
+        try {
+            $ctx = Get-MgContext -ErrorAction SilentlyContinue
+            if (-not $ctx -or -not $ctx.Account) {
+                Write-Verbose "Connecting to Microsoft Graph with scopes: $($Scopes -join ', ')"
+                Connect-MgGraph -Scopes $Scopes | Out-Null
+            }
+            else {
+                Write-Verbose "Already connected to Microsoft Graph as: $($ctx.Account)"
+            }
+        }
+        catch {
+            throw "Failed to establish Microsoft Graph connection. $($_.Exception.Message)"
+        }
+    }
+
+    process {
+        try {
+            Write-Verbose "Retrieving Conditional Access policies..."
+            $allPolicies = Get-MgIdentityConditionalAccessPolicy -All -ErrorAction Stop
+
+            if (-not $allPolicies -or $allPolicies.Count -eq 0) {
+                Write-Warning "There are no Conditional Access policies to export."
+                return
+            }
+
+            $results = New-Object System.Collections.Generic.List[object]
+
+            foreach ($policy in $allPolicies) {
+                $policyName = $policy.DisplayName
+                $fileName = if ($SanitizeFileName) { (New-SafeFileName -Name $policyName) } else { $policyName }
+
+                # Always ensure .json extension
+                $outFile = Join-Path -Path $ExportPath -ChildPath ($fileName + '.json')
+
+                if ($PSCmdlet.ShouldProcess($outFile, "Export Conditional Access policy '$policyName'")) {
+                    try {
+                        $json = $policy | ConvertTo-Json -Depth $JsonDepth
+                        $json | Out-File -LiteralPath $outFile -Force -Encoding utf8
+
+                        Write-Host "✅ Exported CA policy: $policyName" -ForegroundColor Green
+
+                        $result = [pscustomobject]@{
+                            DisplayName = $policyName
+                            Id          = $policy.Id
+                            FilePath    = $outFile
+                        }
+                        $results.Add($result) | Out-Null
+                    }
+                    catch {
+                        Write-Host "❌ Failed exporting CA policy: $policyName. $($_.Exception.Message)" -ForegroundColor Red
+                    }
+                }
+            }
+
+            if ($PassThru) { $results }
+        }
+        catch {
+            throw "Error occurred while exporting policies. $($_.Exception.Message)"
+        }
+    }
+}
+
+function Connect-SharePoint {
+    try {
+        Install-Module Microsoft.Online.SharePoint.PowerShell -force
+        Import-Module Microsoft.Online.SharePoint.PowerShell -force -UseWindowsPowerShell
+        $adminUrl = "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com"
+        Write-Host "Connecting to: ${adminUrl}..."
+        Connect-SPOService -Url $adminUrl -ErrorAction Stop
+       "Connected OK"
+    }
+    catch {
+        $_ | Format-List * -Force
+    }
 }

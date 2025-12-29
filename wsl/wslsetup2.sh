@@ -44,23 +44,23 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     sudo install -m 0755 -d /etc/apt/keyrings
 
     ## Download and convert Microsoft’s GPG key
-    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc |
-    sudo gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg
- 
-    ## Set appropriate permissions
-    sudo chmod 644 /etc/apt/keyrings/microsoft.gpg
+    curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+    sudo install -o root -g root -m 644 microsoft.gpg /usr/share/keyrings
+    rm microsoft.gpg
     gpg --show-keys /etc/apt/keyrings/microsoft.gpg
 
     ## add a Microsoft repository 
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft.gpg] \
-https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" \
-  | sudo tee /etc/apt/sources.list.d/microsoft-prod.list > /dev/null
-
+    sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" >> /etc/apt/sources.list.d/microsoft-ubuntu-$(lsb_release -cs)-prod.list'
     sudo apt update -y
+
+    ## Microsoft Identity Broeker
+    sudo apt install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
+    #sudo dnf install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
+    sudo apt install -y microsoft-identity-broker
+    #sudo dnf install -y microsoft-identity-broker
     
     ## Install WSL Utilities
     ## https://wslu.wedotstud.io/wslu/
-    ## 
     sudo apt-get install -y wslu
     #wslsys
 
@@ -93,6 +93,10 @@ https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs)
     if (! which java) ; then
         sudo apt-get install -y msopenjdk-17
         sudo apt-get install -y default-jre
+        ## Adding a new alternative for "java".
+        #sudo update-alternatives --install /usr/bin/java java /media/mydisk/jdk/bin/java 1
+        ## Setting the new alternative as default for "java".
+        #sudo update-alternatives --config java
     fi
 fi
 
@@ -267,13 +271,6 @@ oracleinstantclientinstall() {
     
     return 0
 }
-
-# Install Oracle SQL Developer
-oraclesqldeveloperinstall() {
-    ## https://www.oracle.com/database/sqldeveloper/technologies/download/#license-lightbox
-    echo 
-}
-
 ## only supported on x86 64bit
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
@@ -284,6 +281,11 @@ if [ ${MACHINE_TYPE} == 'x86_64' ]; then
          oracleinstantclientinstall
     fi
 fi
+# Install Oracle SQL Developer
+oraclesqldeveloperinstall() {
+    ## https://www.oracle.com/database/sqldeveloper/technologies/download/#license-lightbox
+    echo 
+}
 
 # Join Active Directory - not really applicable for WSL (use on actual Linux installs) - but include here for completeness
 joinactivedirectory() {
