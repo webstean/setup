@@ -64,8 +64,7 @@ if ($winget) {
     winget --version
 } else {
     Write-Host "⚠️ Winget is not installed. Installing..."
-
-Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.
+    #Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe
 
     # Winget comes with the "App Installer" package from Microsoft Store
     # Try to install App Installer using winget’s official MSIX package
