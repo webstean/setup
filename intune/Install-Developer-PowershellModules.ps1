@@ -299,6 +299,8 @@ if ($env:USERNAME) {
 # Use DevCenter for deployments
 # azd config set platform.type devcenter
 # azd config unset platform.type devcenter
+azd extension install azure.coding-agent
+# then: azd coding-agent config   - in each repo
 
 Update-AzConfig -CheckForUpgrade $false | Out-Null
 Update-AzConfig -DisplayRegionIdentified $true | Out-Null
