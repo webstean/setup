@@ -961,7 +961,7 @@ properties:
       settings:
         Name: 42Crunch.vscode-openapi
 
-    # VS Code .NET Development Extensions
+    # VS Code bicep Extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: stable.ms-azuretools.vscode-bicep
       dependsOn:
@@ -973,6 +973,19 @@ properties:
         edition: stable
       settings:
         Name: ms-azuretools.vscode-bicep
+
+    # VS Code GitHub Actions Extension
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.github.vscode-github-actions
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install github.vscode-github-actions
+        allowPrerelease: false
+        securityContext: current
+        edition: stable
+      settings:
+        Name: github.vscode-github-actions
 
     # VS Code DotNet extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
