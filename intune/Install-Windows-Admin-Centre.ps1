@@ -24,7 +24,7 @@ function Get-AzureVMTags {
 
 # Check if we are inside Azure, and exit if we are
 $metadataUrl = "http://169.254.169.254/metadata/instance?api-version=2021-02-01"
-$response = Invoke-RestMethod -Headers @{"Metadata" = "true" } -Method GET -Uri $metadataUrl -ErrorAction Ignore | ConvertTo-Json -Depth 64
+$response = Invoke-RestMethod -Headers @{"Metadata" = "true" } -Method GET -Uri $metadataUrl -ErrorAction Ignore | ConvertTo-Json -Depth 64 -ErrorAction Ignore 
 if ($response | ConvertFrom-Json -ErrorAction SilentlyContinue | Select-Object -ExpandProperty compute -ErrorAction SilentlyContinue | Get-Member -Name azEnvironment -MemberType NoteProperty -ErrorAction SilentlyContinue) {
     Write-Warning "⚠️ This computer is running inside Azure - so skipping Windows Admin Center install (use an Azure extension instead)"
     Get-AzureVMTags
