@@ -300,6 +300,7 @@ if ($env:USERNAME) {
 # azd config set platform.type devcenter
 # azd config unset platform.type devcenter
 azd extension install azure.coding-agent
+azd extension install azure.ai.agents
 # then: azd coding-agent config   - in each repo
 
 Update-AzConfig -CheckForUpgrade $false | Out-Null
