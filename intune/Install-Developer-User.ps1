@@ -569,10 +569,10 @@ sh -c 'echo [interop]                  >>  /etc/wsl.conf'
 sh -c 'echo appendWindowsPath = false  >>  /etc/wsl.conf'
 
 sh -c 'echo [boot]                     >>  /etc/wsl.conf'
-sh -c 'systemd = true                    >>  /etc/wsl.conf'
+sh -c 'systemd = true                  >>  /etc/wsl.conf'
 
 sh -c 'echo [gpu]                      >>  /etc/wsl.conf'
-sh -c 'enabled = true                    >>  /etc/wsl.conf'
+sh -c 'enabled = true                  >>  /etc/wsl.conf'
 "@
 
     ## Allow Inbound connections
