@@ -567,7 +567,14 @@ hostAddressLoopback=true
     wsl -d $Distro --user root bash -c @"
 sh -c 'echo [interop]                  >>  /etc/wsl.conf'
 sh -c 'echo appendWindowsPath = false  >>  /etc/wsl.conf'
+
+sh -c 'echo [boot]                     >>  /etc/wsl.conf'
+sh -c 'systemd = true                    >>  /etc/wsl.conf'
+
+sh -c 'echo [gpu]                      >>  /etc/wsl.conf'
+sh -c 'enabled = true                    >>  /etc/wsl.conf'
 "@
+
     ## Allow Inbound connections
     Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
     
