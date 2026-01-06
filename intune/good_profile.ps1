@@ -151,6 +151,9 @@ function Reset-Podman {
     podman machine set --rootful
     podman machine start
     podman machine inspect | jq
+    podman machine inspect --format "{{.ConnectionInfo.SSHConfig}}"
+    ## Download and Run Container
+    podman run --rm quay.io/podman/hello
 }
 
 function Reset-Podman2 {
@@ -163,6 +166,9 @@ function Reset-Podman2 {
     podman machine init --rootful --timezone "Australia/Melbourne"
     podman machine start
     podman machine inspect | jq
+    podman machine inspect --format "{{.ConnectionInfo.SSHConfig}}"
+    ## Download and Run Container
+    podman run --rm quay.io/podman/hello
 }
 
 if ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue )) {
