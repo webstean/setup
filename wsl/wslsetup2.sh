@@ -265,7 +265,8 @@ oracleinstantclientinstall() {
     return 0
 }
 ## only supported on x86 64bit
-MACHINE_TYPE=`uname -m`
+## dpkg --print-architecture ## amd64
+MACHINE_TYPE=`uname -m` 
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
     ## don't bother if already installed
     set -- /opt/oracle/instantclient*
