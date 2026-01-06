@@ -23,6 +23,17 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
         ## Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
         xeyes &
     fi
+    ## WSL Audio (via Pulse Audio)
+    sudo apt-get install -y pulseaudio pulseaudio-utils mpv
+    sudo mkdir -p /etc/pulse &&
+    sudo tee /etc/pulse/client-rt.conf >/dev/null <<'EOF'
+realtime-scheduling = yes
+realtime-priority = 5
+nice-level = -11
+EOF
+    pactl info >/dev/null 2>&1 || echo "⚠ Pulse/PipeWire not running"
+    wget --https-only --no-verbose -O /tmp/jump.ogg https://commondatastorage.googleapis.com/codeskulptor-assets/jump.ogg
+    mpv --no-video /tmp/jump.ogg
     # export WINHOME=$(wslpath "$(wslvar USERPROFILE)")
 fi
     
@@ -74,11 +85,6 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
     export ACCEPT_EULA=Y && apt-get install -y ttf-mscorefonts-installer
 
-    ## WSL Audio (via Pulse Audio)
-    sudo apt-get install -y pulseaudio pulseaudio-utils mpv
-    wget --https-only --no-verbose -O /tmp/jump.ogg https://commondatastorage.googleapis.com/codeskulptor-assets/jump.ogg
-    mpv --no-video /tmp/jump.ogg
-    
     ## Install Azure Function Toolkit
     sudo apt-get install -y azure-functions-core-tools
 
