@@ -17,7 +17,7 @@ sudo apt-get upgrade -y
 
 if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     ## make sure prereqs are installs
-    sudo apt-get install apt-transport-https ca-certificates curl software-properties-common
+    sudo apt-get install apt-transport-https ca-certificates curl software-properties-common gpg
     
     ## Create the keyring directory if not present
     sudo install -m 0755 -d /etc/apt/keyrings
