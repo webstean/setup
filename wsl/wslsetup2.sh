@@ -32,9 +32,6 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
         sudo apt update -y
     fi
     
-    sudo apt install -y intune-portal 
-    #sudo apt install -y msft-broker msft-edge
-        
     ## Install WSL Utilities
     ## https://wslu.wedotstud.io/wslu/
     sudo apt-get install -y wslu
@@ -101,13 +98,19 @@ else
     sudo mdatp health
     sudo mdatp health --field real_time_protection_enabled
 
-    ## Microsoft Identity Broker (BIG package - around 350MB )
+    ## Microsoft Identity Broker (BIG package - around 350MB ) - need reboot
     #sudo apt install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
     #sudo dnf install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
     #sudo apt install -y microsoft-identity-broker
     #sudo dnf install -y microsoft-identity-broker
+    sudo apt install -y intune-portal 
+    #sudo apt install -y msft-broker msft-edge
 
-    #sudo apt install -y microsoft-identity-broker
+    ## need reboot
+    sudo apt install -y microsoft-identity-broker
+    #sudo apt install -y microsoft-identity-diagnostics ## only avialable on certin Linux distirbutions
+    ## and need full desktop
+    sudo apt install -y ubuntu-desktop
 fi
     
 ## Set Timezone - includes keeping the machine to the right time but not sure how?
