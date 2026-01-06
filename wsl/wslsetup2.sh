@@ -15,7 +15,61 @@ set -x
 sudo apt-get update -y
 sudo apt-get upgrade -y
 
-## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff
+if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
+    ## make sure prereqs are installs
+    sudo apt-get install apt-transport-https ca-certificates curl software-properties-common
+    
+    ## Create the keyring directory if not present
+    sudo install -m 0755 -d /etc/apt/keyrings
+
+    ## Download and convert Microsoft’s GPG key
+    curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+    sudo install -o root -g root -m 0644 microsoft.gpg /usr/share/keyrings
+    rm microsoft.gpg
+    if (gpg --show-keys /usr/share/keyrings/microsoft.gpg) ; then
+        ## add a Microsoft Ubuntu repository 
+        sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" >> /etc/apt/sources.list.d/microsoft-ubuntu-$(lsb_release -cs)-prod.list'
+        sudo apt update -y
+    fi
+    
+    sudo apt install -y intune-portal 
+    #sudo apt install -y msft-broker msft-edge
+        
+    ## Install WSL Utilities
+    ## https://wslu.wedotstud.io/wslu/
+    sudo apt-get install -y wslu
+    #wslsys
+
+    ## Install Microsoft fonts
+    export ACCEPT_EULA=Y && sudo apt-get install -y ttf-mscorefonts-installer
+
+    ## Install Azure Function Toolkit
+    #sudo apt-get install -y azure-functions-core-tools
+
+    ## Install Microsoft SQL Server Command-Line Tools
+    export ACCEPT_EULA=Y && sudo apt-get install -y mssql-tools18
+
+    ## Install Powershell
+    sudo apt-get install -y powershell
+    if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
+    if (which -s pwsh) ; then 
+        sudo sh -c 'echo if \(which -s pwsh\) \; then            >  /etc/profile.d/microsoft-powershell.sh'
+        sudo sh -c 'echo    echo \"PowerShell \(pwsh\) found!\"  >> /etc/profile.d/microsoft-powershell.sh'
+        sudo sh -c 'echo fi                                      >> /etc/profile.d/microsoft-powershell.sh'
+    fi
+    
+    ## Install Java from Microsoft - but only if java not installed already
+    #sudo apt-get install -y default-jre
+    if (! which java) ; then
+        sudo apt-get install -y msopenjdk-17
+        ## Adding a new alternative for "java".
+        #sudo update-alternatives --install /usr/bin/java java /media/mydisk/jdk/bin/java 1
+        ## Setting the new alternative as default for "java".
+        #sudo update-alternatives --config java
+    fi
+fi
+
+## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff and get sound working
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     if ! [ -x /usr/bin/sqlitebrowser ] ; then
         apt-get install -y x11-apps
@@ -27,7 +81,6 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     ## https://github.com/mikeroyal/PipeWire-Guide
     #sudo apt-get install -y pulseaudio pulseaudio-utils mpv
     sudo apt-get install -y pipewire pipewire-audio-client-libraries pipewire-pulse pipewire-alsa wireplumber mpv
-
     sudo mkdir -p /etc/pulse && sudo tee /etc/pulse/client-rt.conf >/dev/null <<'EOF'
 realtime-scheduling = yes
 realtime-priority = 5
@@ -39,6 +92,22 @@ EOF
         wget --https-only --no-verbose -O /tmp/jump.ogg https://commondatastorage.googleapis.com/codeskulptor-assets/jump.ogg
         mpv --no-video /tmp/jump.ogg
     fi
+else
+    ## Not running under WSL, so we assume baremetal or full VM
+
+    ## Microsoft Defender for Endpoint
+    sudo apt-get install -y mdatp
+    mdatp --version
+    sudo mdatp health
+    sudo mdatp health --field real_time_protection_enabled
+
+    ## Microsoft Identity Broker (BIG package - around 350MB )
+    #sudo apt install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
+    #sudo dnf install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
+    #sudo apt install -y microsoft-identity-broker
+    #sudo dnf install -y microsoft-identity-broker
+
+    #sudo apt install -y microsoft-identity-broker
 fi
     
 ## Set Timezone - includes keeping the machine to the right time but not sure how?
@@ -51,90 +120,26 @@ source ~/.bashrc
 
 ## Add Microsoft Repos and Applications
 ## https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt
-if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
-    ## make sure prereqs are installs
-    ${CMD_INSTALL} apt-transport-https ca-certificates curl software-properties-common
-    
-    ## Create the keyring directory if not present
-    sudo install -m 0755 -d /etc/apt/keyrings
-
-    ## Download and convert Microsoft’s GPG key
-    curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
-    sudo install -o root -g root -m 644 microsoft.gpg /usr/share/keyrings
-    rm microsoft.gpg
-    if (gpg --show-keys /usr/share/keyrings/microsoft.gpg) ; then
-        ## add a Microsoft repository 
-        sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" >> /etc/apt/sources.list.d/microsoft-ubuntu-$(lsb_release -cs)-prod.list'
-        sudo apt update -y
-    fi
-    
-    ## Microsoft Identity Broker (BIG package - around 350MB )
-    #sudo apt install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
-    #sudo dnf install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
-    #sudo apt install -y microsoft-identity-broker
-    #sudo dnf install -y microsoft-identity-broker
-
-    #sudo apt install -y microsoft-identity-broker
-    sudo apt install -y intune-portal 
-    #sudo apt install -y msft-broker msft-edge
-        
-    ## Install WSL Utilities
-    ## https://wslu.wedotstud.io/wslu/
-    sudo apt-get install -y wslu
-    #wslsys
-
-    ## Microsoft Defender for Endpoint
-    #sudo apt-get install -y mdatp
-    #mdatp --version
-    #sudo mdatp health
-    #sudo mdatp health --field real_time_protection_enabled
-
-    ## Install Microsoft fonts
-    echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
-    export ACCEPT_EULA=Y && sudo apt-get install -y ttf-mscorefonts-installer
-
-    ## Install Azure Function Toolkit
-    sudo apt-get install -y azure-functions-core-tools
-
-    ## Install Microsoft SQL Server Command-Line Tools
-    export ACCEPT_EULA=Y && sudo apt-get install -y mssql-tools18
-
-    ## Install Powershell
-    sudo apt-get install -y powershell
-    if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
-    if (which -s pwsh) ; then 
-        sudo sh -c 'echo   if \(which -s pwsh\) \; then > /etc/profile.d/microsoft-powershell.sh'
-        sudo sh -c 'echo   echo \"PowerShell \(pwsh\) found!\"     >>  /etc/profile.d/microsoft-powershell.sh'
-        sudo sh -c 'echo   fi >> /etc/profile.d/microsoft-powershell.sh'
-    fi
-    
-    ## Install Java from Microsoft - but only if java not installed already
-    if (! which java) ; then
-        sudo apt-get install -y msopenjdk-17
-        sudo apt-get install -y default-jre
-        ## Adding a new alternative for "java".
-        #sudo update-alternatives --install /usr/bin/java java /media/mydisk/jdk/bin/java 1
-        ## Setting the new alternative as default for "java".
-        #sudo update-alternatives --config java
-    fi
-fi
 
 ## Podman Remote - using Windows
 setup-podman-remote() {
     sudo apt install -y podman-remote
     podman_socket="$(find /mnt/wsl/podman-sockets -name '*.sock' | head -n 1)"
-    [ -S "$podman_socket" ] || {
-        echo "Podman not running in Windows" >&2
-    } else {
-        podman-remote system connection add --default winpodman unix://$podman_socket
-        podman-remote system connection default winpodman
-        if [ "$(id -u)" -ne 0 ]; then ## only do this if user isn't root
-            sudo usermod --append --groups 10 "$(whoami)"
-        fi
-        podman-remote ps
-        podman-remote info
-        podman-remote run --rm quay.io/podman/hello
-    }
+    if [ ! -S "$podman_socket" ]; then
+      echo "Podman socket not found (Windows PODMAN not running VM?): $podman_socket" >&2
+    else
+      # Create/replace connection (idempotent-ish)
+      podman-remote system connection remove winpodman >/dev/null 2>&1 || true
+      podman-remote system connection add winpodman "unix://$podman_socket"
+      podman-remote system connection default winpodman
+      # Only do this if user isn't root
+      if [ "$(id -u)" -ne 0 ]; then
+        sudo usermod --append --groups 10 "$USER"
+      fi
+      podman-remote ps
+      podman-remote info
+      podman-remote run --rm quay.io/podman/hello
+    fi
 }
 setup-podman-remote
 
@@ -427,21 +432,28 @@ sudo sh -c 'echo "# Improve output of less for binary files."          >> /etc/p
 sudo sh -c 'echo [ -x /usr/bin/lesspipe ] \&\& eval "\$(SHELL=/bin/sh lesspipe)"   >>  /etc/profile.d/bash.sh'
 
 sudo sh -c 'echo "# Alias to provide distribution name"                 >> /etc/profile.d/bash.sh'
-sudo sh -c 'echo "alias distribution=\". /etc/os-release;echo \$ID\$VERSION_ID\"" >> /etc/profile.d/bash.sh'
+sudo sh -c 'echo "alias distribution=\". /etc/os-release;echo \$ID \$VERSION_ID\"" >> /etc/profile.d/bash.sh'
+
+if (which podman-remote) ; then
+    sudo sh -c 'echo "# Alias for podman"                                >> /etc/profile.d/bash.sh'
+    sudo sh -c 'echo "alias podman='podman-remote'"                      >> /etc/profile.d/bash.sh'
+    sudo sh -c 'echo "#podman-remote system connection list"             >> /etc/profile.d/bash.sh'
+    sudo sh -c 'echo "echo \"podman found!\""                            >> /etc/profile.d/bash.sh'
+fi
 
 ## Azure environment
 sudo sh -c 'echo "# Setup Azure environment up - if it exists"            >  /etc/profile.d/azure.sh'
 sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/env-azure.sh\" ] ; then " >> /etc/profile.d/azure.sh'
-sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""         >> /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-azure.sh\""   >> /etc/profile.d/azure.sh'
+sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""            >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-azure.sh\""     >> /etc/profile.d/azure.sh'
 sudo sh -c 'echo "fi"                                                     >> /etc/profile.d/azure.sh'
 
 ## AWS environment
-sudo sh -c 'echo "# Setup AWS environment up - if it exists"             > /etc/profile.d/aws.sh'
+sudo sh -c 'echo "# Setup AWS environment up - if it exists"               > /etc/profile.d/aws.sh'
 sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/env-aws.sh\" ] ; then " >> /etc/profile.d/aws.sh'
-sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""         >> /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-aws.sh\""     >> /etc/profile.d/aws.sh'
-sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/aws.sh'
+sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""             >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-aws.sh\""        >> /etc/profile.d/aws.sh'
+sudo sh -c 'echo "fi"                                                      >> /etc/profile.d/aws.sh'
 
 ## Google Cloud environment
 sudo sh -c 'echo "# Setup Google GCP environment up - if it exists"        >  /etc/profile.d/gcp.sh'
@@ -468,9 +480,6 @@ if (which -s node) ; then
 fi
     
 sudo apt-get install -y golang
-#if ! [ -x ~.go/bin/go ] ; then
-#    wget -q -O - https://git.io/vQhTU | bash
-#fi
 
 ## Install Google Cloud (GCP) CLI
 #cd ~ && curl https://sdk.cloud.google.com > install.sh
@@ -578,4 +587,5 @@ sudo sh -c 'echo fi >>  /etc/profile.d/zlogo.sh'
 
 touch $HOME/.hushlogin
 
- 
+sudo apt autoremove -y
+
