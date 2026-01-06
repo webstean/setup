@@ -62,12 +62,12 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
     sudo install -o root -g root -m 644 microsoft.gpg /usr/share/keyrings
     rm microsoft.gpg
-    gpg --show-keys /usr/share/keyrings/microsoft.gpg
-
-    ## add a Microsoft repository 
-    sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" >> /etc/apt/sources.list.d/microsoft-ubuntu-$(lsb_release -cs)-prod.list'
-    sudo apt update -y
-
+    if (gpg --show-keys /usr/share/keyrings/microsoft.gpg) ; then
+        ## add a Microsoft repository 
+        sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" >> /etc/apt/sources.list.d/microsoft-ubuntu-$(lsb_release -cs)-prod.list'
+        sudo apt update -y
+    fi
+    
     ## Microsoft Identity Broker (BIG package - around 350MB )
     #sudo apt install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
     #sudo dnf install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
