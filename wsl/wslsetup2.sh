@@ -60,16 +60,16 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
     sudo install -o root -g root -m 644 microsoft.gpg /usr/share/keyrings
     rm microsoft.gpg
-    gpg --show-keys /etc/apt/keyrings/microsoft.gpg
+    gpg --show-keys /usr/share/keyrings/microsoft.gpg
 
     ## add a Microsoft repository 
     sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" >> /etc/apt/sources.list.d/microsoft-ubuntu-$(lsb_release -cs)-prod.list'
     sudo apt update -y
 
-    ## Microsoft Identity Broeker
-    sudo apt install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
+    ## Microsoft Identity Broker (BIG package - around 350MB )
+    #sudo apt install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
     #sudo dnf install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
-    sudo apt install -y microsoft-identity-broker
+    #sudo apt install -y microsoft-identity-broker
     #sudo dnf install -y microsoft-identity-broker
     
     ## Install WSL Utilities
@@ -85,7 +85,7 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
 
     ## Install Microsoft fonts
     echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
-    export ACCEPT_EULA=Y && apt-get install -y ttf-mscorefonts-installer
+    export ACCEPT_EULA=Y && sudo apt-get install -y ttf-mscorefonts-installer
 
     ## Install Azure Function Toolkit
     sudo apt-get install -y azure-functions-core-tools
@@ -114,7 +114,6 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
 fi
 
 sudo apt install -y podman-remote
-podman-remote info
 # Create the containers.conf file
 mkdir -p ~/.config/containers
 cat > ~/.config/containers/containers.conf << 'EOF'
@@ -131,8 +130,9 @@ unset CONTAINER_HOST
 unset DOCKER_HOST
 unset PODMAN_HOST
 ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
-podman-remote system connection add myuser --identity ~/.ssh/id_ed25519 ssh://myuser@192.168.122.1/run/user/1000/podman/podman.sock
-podman-remote system connection add npipe:////./pipe/podman-machine-default
+#podman-remote system connection add myuser --identity ~/.ssh/id_ed25519 ssh://myuser@192.168.122.1/run/user/1000/podman/podman.sock
+#podman-remote system connection add npipe:////./pipe/podman-machine-default
+podman-remote info
 
 #sudo sh -c "echo 'export WIN_PODMAN_PIPE=//./pipe/podman-machine-default' > /etc/profile.d/podman.sh"
 #sudo sh -c "echo 'export CONTAINER_HOST=//./pipe/podman-machine-default' > /etc/profile.d/podman.sh"
@@ -173,13 +173,14 @@ sudo systemctl --no-pager start sysstat
 sudo systemctl --no-pager status sysstat 
 # sar -u
 
-## sync the time automatioally
+## sync the time automatically
 sudo systemctl --no-pager enable systemd-timesyncd.service
 sudo systemctl --no-pager status systemd-timesyncd.service
 
 ## install WASM
 curl https://get.wasmer.io -sSfL | sh
 ## example
+## source ~./bashrc
 ## wasmer run python/python -- -c "for x in range(999): print(f'{x} square: {x*x}')"
 
 ## Ensure git is install and then configure it 
