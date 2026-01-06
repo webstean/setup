@@ -150,8 +150,10 @@ function Reset-Podman {
     podman machine stop
     podman machine set --rootful
     podman machine start
-    podman machine inspect | jq
-    podman machine inspect --format "{{.ConnectionInfo.SSHConfig}}"
+    #podman machine inspect | jq
+    podman machine inspect --format "{{.SSHConfig.IdentityPath}}"
+    podman machine inspect --format "{{.SSHConfig.Port}}"
+    podman machine inspect --format "{{.SSHConfig.RemoteUsername}}"
     #podman machine info
     ## Download and Run Container
     podman run --rm quay.io/podman/hello
@@ -166,8 +168,10 @@ function Reset-Podman2 {
     podman machine reset --force
     podman machine init --rootful --timezone "Australia/Melbourne"
     podman machine start
-    podman machine inspect | jq
-    podman machine inspect --format "{{.ConnectionInfo.SSHConfig}}"
+    #podman machine inspect | jq
+    podman machine inspect --format "{{.SSHConfig.IdentityPath}}"
+    podman machine inspect --format "{{.SSHConfig.Port}}"
+    podman machine inspect --format "{{.SSHConfig.RemoteUsername}}"
     #podman machine info
     ## Download and Run Container
     podman run --rm quay.io/podman/hello
