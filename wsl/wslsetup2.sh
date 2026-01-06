@@ -73,7 +73,11 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     #sudo dnf install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
     #sudo apt install -y microsoft-identity-broker
     #sudo dnf install -y microsoft-identity-broker
-    
+
+    #sudo apt install -y microsoft-identity-broker
+    sudo apt install -y intune-portal 
+    #sudo apt install -y msft-broker msft-edge
+        
     ## Install WSL Utilities
     ## https://wslu.wedotstud.io/wslu/
     sudo apt-get install -y wslu
@@ -115,18 +119,24 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     fi
 fi
 
-## Podman Remote - use Windows
-sudo apt install -y podman-remote
-podman_socket="$(find /mnt/wsl/podman-sockets -name '*.sock' | head -n 1)"
-[ -S "$podman_socket" ] || {
-    echo "Podman not running in Windows" >&2
-} else {
-    podman-remote system connection add --default winpodman unix://$podman_socket
-    podman-remote system connection default winpodman
-    podman-remote ps
-    podman-remote info
-    podman-remote run --rm quay.io/podman/hello
+## Podman Remote - using Windows
+setup-podman-remote() {
+    sudo apt install -y podman-remote
+    podman_socket="$(find /mnt/wsl/podman-sockets -name '*.sock' | head -n 1)"
+    [ -S "$podman_socket" ] || {
+        echo "Podman not running in Windows" >&2
+    } else {
+        podman-remote system connection add --default winpodman unix://$podman_socket
+        podman-remote system connection default winpodman
+        if [ "$(id -u)" -ne 0 ]; then ## only do this if user isn't root
+            sudo usermod --append --groups 10 "$(whoami)"
+        fi
+        podman-remote ps
+        podman-remote info
+        podman-remote run --rm quay.io/podman/hello
+    }
 }
+setup-podman-remote
 
 ## Azure IOTEdge
 setup-iotedge() {
@@ -154,6 +164,7 @@ setup-iotedge() {
         sudo iotedge list
     fi
 }
+#setup-iotedge
 
 ## install and config sysstat
 apt-get install -y sysstat
