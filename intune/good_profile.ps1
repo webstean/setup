@@ -152,6 +152,7 @@ function Reset-Podman {
     podman machine start
     podman machine inspect | jq
     podman machine inspect --format "{{.ConnectionInfo.SSHConfig}}"
+    #podman machine info
     ## Download and Run Container
     podman run --rm quay.io/podman/hello
 }
@@ -167,6 +168,7 @@ function Reset-Podman2 {
     podman machine start
     podman machine inspect | jq
     podman machine inspect --format "{{.ConnectionInfo.SSHConfig}}"
+    #podman machine info
     ## Download and Run Container
     podman run --rm quay.io/podman/hello
 }
