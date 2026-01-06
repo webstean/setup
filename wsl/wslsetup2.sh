@@ -57,7 +57,7 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     
     ## Install Java from Microsoft - but only if java not installed already
     #sudo apt-get install -y default-jre
-    if (! which java) ; then
+    if (! which -s java) ; then
         sudo apt-get install -y msopenjdk-17
         ## Adding a new alternative for "java".
         #sudo update-alternatives --install /usr/bin/java java /media/mydisk/jdk/bin/java 1
@@ -110,7 +110,7 @@ else
     sudo apt install -y microsoft-identity-broker
     #sudo apt install -y microsoft-identity-diagnostics ## only avialable on certin Linux distirbutions
     ## and need full desktop
-    sudo apt install -y ubuntu-desktop
+    sudo apt install -y ubuntu-desktop ## then startx
 fi
     
 ## Set Timezone - includes keeping the machine to the right time but not sure how?
@@ -292,11 +292,11 @@ apt-get install -y build-essential pkg-config intltool libtool autoconf
 install-sqlite() {
     ## sqllite
     apt-get install -y sqlite3 sqlite3-tools libsqlite3-dev
-    if (which sqlite3 ) ; then
+    if (which -s sqlite3 ) ; then
         ## Install browser (X11) for sqlite
         apt-get install -y sqlitebrowser
     fi
-    if (which sqlitebrowserxxxx ) ; then
+    if (which -s sqlitebrowserxxxx ) ; then
         ## Run SQLite browser (X11) for sqlite
         sqlitebrowser &
     fi
@@ -344,7 +344,7 @@ sudo tee /etc/profile.d/bash.sh >/dev/null <<'EOF'
 alias distribution='. /etc/os-release; echo "$ID $VERSION_ID"'
 EOF
 
-if (which podman-remote) ; then
+if (which -s podman-remote) ; then
     sudo sh -c 'echo "# Alias for podman"                                >> /etc/profile.d/bash.sh'
     sudo sh -c 'echo "alias podman='podman-remote'"                      >> /etc/profile.d/bash.sh'
     sudo sh -c 'echo "#podman-remote system connection list"             >> /etc/profile.d/bash.sh'
@@ -441,7 +441,7 @@ setup-starship() {
 
     if [ -f /etc/profile.d/starship.sh ] ; then sudo rm -f /etc/profile.d/starship.sh ; fi
     sudo sh -c 'echo "# Starship Prompt"                          >   /etc/profile.d/starship.sh'
-    sudo sh -c 'echo "if (which starship) ; then"                 >>  /etc/profile.d/starship.sh'
+    sudo sh -c 'echo "if (which -s starship) ; then"                 >>  /etc/profile.d/starship.sh'
     sudo sh -c 'echo "    echo \"Starship (shell) found!\""       >> /etc/profile.d/bash.sh'
     sudo sh -c 'echo "    eval \"\$(starship init bash)\" "       >>  /etc/profile.d/starship.sh'
     sudo sh -c 'echo "fi"                                         >>  /etc/profile.d/starship.sh' 
