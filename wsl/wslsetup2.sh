@@ -163,7 +163,7 @@ curl https://get.wasmer.io -sSfL | sh
 ## wasmer run python/python -- -c "for x in range(999): print(f'{x} square: {x*x}')"
 
 ## Ensure git is install and then configure it 
-${CMD_INSTALL} git
+sudo apt-get install -y git
 if [ -x /usr/bin/git ]; then
     git config --global color.ui true
     git config --global --add safe.directory '*'
@@ -203,13 +203,10 @@ oracleinstantclientinstall() {
     sudo unzip -qo ${tmpdir}/instantclient-tools*.zip -d /opt/oracle
 
     # rm instantclient-basic*.zip
-    set -- /opt/oracle/instantclient*
-    export LD_LIBRARY_PATH=$1
-    if [ -f /etc/profile.d/oracle-instantclient.sh ] ; then
-        sudo rm /etc/profile.d/oracle-instantclient.sh 
-    fi
     ### Environment variables for Oracle Instance Client
     ### https://docs.oracle.com/en/database/oracle/oracle-database/21/lacli/environment-variables-instant-client.html
+    set -- /opt/oracle/instantclient*
+    export LD_LIBRARY_PATH=$1
     sudo sh -c "echo ##Oracle Instant Client Setup     >  /etc/profile.d/oracle-instantclient.sh"
     sudo sh -c "echo oracle-instantclient\(\) {        >  /etc/profile.d/oracle-instantclient.sh"
     sudo sh -c "echo   export LD_LIBRARY_PATH=$1       >> /etc/profile.d/oracle-instantclient.sh"
