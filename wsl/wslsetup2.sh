@@ -448,12 +448,8 @@ sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""         >> /etc/p
 sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-gcp.sh\""    >> /etc/profile.d/gcp.sh'
 sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/gcp.sh'
 
-## Docker on Docker
-#sudo sh -c 'echo "# Setup Docker on Docker"                              >  /etc/profile.d/dockerd.sh'
-#sudo sh -c 'echo "export DOCKER_HOST=tcp://localhost:2375"               >> /etc/profile.d/dockerd.sh'
-
 ## shortcut to Windows home directory
-sudo sh -c 'echo "export WINHOME=\$(wslpath \"\$(wslvar USERPROFILE)\")"   > /etc/profile.d/winhome.sh'
+#sudo sh -c 'echo "export WINHOME=\$(wslpath \"\$(wslvar USERPROFILE)\")"   > /etc/profile.d/winhome.sh'
 
 ## Install Node.js + npm
 sudo apt install -y nodejs npm
