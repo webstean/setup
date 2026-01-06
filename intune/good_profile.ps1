@@ -148,38 +148,22 @@ function Reset-Podman {
         return $false
     }
     podman machine stop
-    podman machine set --rootful
+    podman machine rm --force 
+    podman system connection rm podman-machine-default
+    podman system connection rm podman-machine-default-root
+    podman machine init --timezone "Australia/Melbourne"
     podman machine start
+    podman system connection list
     #podman machine inspect | jq
     $PODMAN_IDENTITY = podman machine inspect --format "{{.SSHConfig.IdentityPath}}" ## Private Key
-    $PODMAN_PORT = podman machine inspect --format "{{.SSHConfig.Port}}"
+    $PODMAN_PORT = podman machine podman-machine-default-root inspect --format "{{.SSHConfig.Port}}"
     $PODMAN_USER = podman machine inspect --format "{{.SSHConfig.RemoteUsername}}"
     $PODMAN_PATH = podman machine inspect --format "{{.ConnectionInfo.PodmanSocket.Path}}"
-    $PODMAN_CONNECTION = "ssh://${PODMAN_USER}@localhost:${PODMAN_PORT}/${PODMAN_PATH}"
-    Write-Host "PODMAN-CONNECTION = ${PODMAN_CONNECTION}"
+    $PODMAN_CONNECTION = "ssh://${PODMAN_USER}@localhost/${PODMAN_PATH}"
     $PODMAN_IDENTITY= "/mnt/c/users/vid9na6/.local/share/containers/podman/machine/machine"
-    Write-Host "PODMAN-IDENTITY = ${PODMAN_IDENTITY}"
-    Write-Host "In WSL run: podman-remote"
-    #podman machine info
-    ## Download and Run Container
-    podman run --rm quay.io/podman/hello
-}
-
-function Reset-Podman2 {
-    ## Run as required (bigger reset)
-    if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
-        Write-Host "Podman was not found/not installed!"
-        return $false
-    }
-    podman machine reset --force
-    podman machine init --rootful --timezone "Australia/Melbourne"
-    podman machine start
-    #podman machine inspect | jq
-    $PODMAN_IDENTITY = podman machine inspect --format "{{.SSHConfig.IdentityPath}}" ## Private Key
-    $PODMAN_PORT = podman machine inspect --format "{{.SSHConfig.Port}}"
-    $PODMAN_USER = podman machine inspect --format "{{.SSHConfig.RemoteUsername}}"
-    $PODMAN_PATH = podman machine inspect --format "{{.ConnectionInfo.PodmanSocket.Path}}"
-    
+    Write-Host "In WSL run:"
+    Write-Host "podman-remote system connection add --identity ${PODMAN_IDENTITY} --port ${PODMAN_PORT} winpodman ${PODMAN_CONNECTION}"
+    Write-Host "podman-remote system connection default winpodman"
     #podman machine info
     ## Download and Run Container
     podman run --rm quay.io/podman/hello
