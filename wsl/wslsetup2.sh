@@ -143,34 +143,6 @@ setup-podman-remote() {
 }
 setup-podman-remote
 
-## Azure IOTEdge
-setup-iotedge() {
-    if (true) ; then
-        sudo apt-get -y update; sudo apt-get -y install moby-engine  
-        if [ -f /etc/docker/daemon.json ] ; then
-            sudo sh -c "{                                >  ~/config-docker-for-iotedge.sh"
-            sudo sh -c "    \"log-driver\": \"local\"    >> ~/config-docker-for-iotedge.sh"
-            sudo sh -c "}                                >> ~/config-docker-for-iotedge.sh"
-        fi
-        curl -ssl https://raw.githubusercontent.com/moby/moby/master/contrib/check-config.sh -o check-config.sh
-        chmod +x check-config.sh
-        ./check-config.sh
-
-        #sudo apt-get -y install aziot-edge defender-iot-micro-agent-edge
-        #sudo apt-get -y install aziot-edge defender-iot-micro-agent-edge
-
-        sudo apt-get -y install aziot-edge aziot-identity-service
-        ## sudo iotedge config mp --connection-string 'PASTE_DEVICE_CONNECTION_STRING_HERE'
-        ## sudo iotedge config apply -c '/etc/aziot/config.toml'
-        sudo iotedge system status
-        sudo iotedge system logs
-        sudo iotedge check
-        sudo iotedge check --verbose
-        sudo iotedge list
-    fi
-}
-#setup-iotedge
-
 ## install and config sysstat
 apt-get install -y sysstat
 sudo sh -c 'echo ENABLED="true" >  /etc/default/sysstat'
@@ -308,70 +280,6 @@ oraclesqldeveloperinstall() {
     echo 
 }
 
-# Join Active Directory - not really applicable for WSL (use on actual Linux installs) - but include here for completeness
-joinactivedirectory() {
-    # Environment variables
-    # USERDNSDOMAIN : DNS Name of Active Directory domain
-    # JOINACC       : Name of Join Account
-    echo "Trying to join AD Domain ${USERDNSDOMAIN} with the account: ${JOINACC}" 
-    if [[ -z "${USERDNSDOMAIN}" ]]; then 
-        echo "Error: Variable: USERNDNSDOMAIN is not defined!"
-        return 1
-    fi
-    if [[ "${USERDNSDOMAIN}" != *.* ]]; then
-        echo "Error: Variable: USERNDNSDOMAIN looks invalid - not a FQDN name!"
-        return 1
-    fi
-    if [[ -z "${JOINACC}" ]]; then 
-        echo "Error: Variable: JOINACC is not defined!"
-        return 1
-    fi
-    
-    # Define full account name variable
-    FULLJOINACC = '${JOINACC}@${USERDNSDOMAIN}'
-        
-    ## Dependencies for AD Join
-    sudo apt-get install -y realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
-    #apt-get install -y cifs-utils
-    ## Info on Domain
-    echo "Join AD domain: ${USERDNSDOMAIN}"
-    if (sudo realm discover ${USERDNSDOMAIN}) ; then
-        # Generate Kerberos ticket
-        echo sudo kinit ${FULLJOINACC}
-        # Join the Domain
-        echo sudo realm join --verbose ${USERDNSDOMAIN}-U '${FULLJOINACC}'
-    else
-        return 1
-    fi
-    return 0
-}
-
-## Mount SMB Azure File Share on Linux - expects to already be logged in with az login
-mountazurefiles() {
-    ## https://learn.microsoft.com/en-us/azure/storage/files/storage-how-to-use-files-linux?tabs=Ubuntu%2Csmb311
-    ${CMD_INSTALL} cifs-utils
-    ${CMD_INSTALL} autofs
-    
-    az login
-    if [ -z ${RESOURCE_GROUP_NAME} ] ; then
-        return 1;
-    fi
-    if [ -z ${STORAGE_ACCOUNT_NAME} ] ; then
-        return 1;
-    fi
-    
-    ## This command assumes you have logged in with az login (azure cli needs to be installed)
-    HTTP_ENDPOINT=$(az storage account show \
-        --resource-group $RESOURCE_GROUP_NAME \
-        --name $STORAGE_ACCOUNT_NAME \
-        --query "primaryEndpoints.file" --output tsv | tr -d '"')
-    SMBPATH=$(echo $HTTP_ENDPOINT | cut -c7-${#HTTP_ENDPOINT})
-    FILE_HOST=$(echo $-- | tr -d "/")
-
-    nc -zvw3 $FILE_HOST 445
-        
-    return 0
-}
 
 ## essentials
 apt-get install -y apt-transport-https ca-certificates software-properties-common screenfetch unzip git curl wget jq dos2unix gnupg2 python3 python3-pip
@@ -478,7 +386,7 @@ if (which -s node) ; then
     sudo sh -c 'echo   echo \"Node JS \(node\) found -  use nvm/npx to manage!\"  >>  /etc/profile.d/nodejs.sh'
     sudo sh -c 'echo fi >>  /etc/profile.d/nodejs.sh'
 fi
-    
+   
 sudo apt-get install -y golang
 
 ## Install Google Cloud (GCP) CLI
@@ -589,3 +497,95 @@ touch $HOME/.hushlogin
 
 sudo apt autoremove -y
 
+# Join Active Directory - not really applicable for WSL (use on actual Linux installs) - but include here for completeness
+joinactivedirectory() {
+    # Environment variables
+    # USERDNSDOMAIN : DNS Name of Active Directory domain
+    # JOINACC       : Name of Join Account
+    echo "Trying to join AD Domain ${USERDNSDOMAIN} with the account: ${JOINACC}" 
+    if [[ -z "${USERDNSDOMAIN}" ]]; then 
+        echo "Error: Variable: USERNDNSDOMAIN is not defined!"
+        return 1
+    fi
+    if [[ "${USERDNSDOMAIN}" != *.* ]]; then
+        echo "Error: Variable: USERNDNSDOMAIN looks invalid - not a FQDN name!"
+        return 1
+    fi
+    if [[ -z "${JOINACC}" ]]; then 
+        echo "Error: Variable: JOINACC is not defined!"
+        return 1
+    fi
+    
+    # Define full account name variable
+    FULLJOINACC = '${JOINACC}@${USERDNSDOMAIN}'
+        
+    ## Dependencies for AD Join
+    sudo apt-get install -y realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
+    #apt-get install -y cifs-utils
+    ## Info on Domain
+    echo "Join AD domain: ${USERDNSDOMAIN}"
+    if (sudo realm discover ${USERDNSDOMAIN}) ; then
+        # Generate Kerberos ticket
+        echo sudo kinit ${FULLJOINACC}
+        # Join the Domain
+        echo sudo realm join --verbose ${USERDNSDOMAIN}-U '${FULLJOINACC}'
+    else
+        return 1
+    fi
+    return 0
+}
+
+## Mount SMB Azure File Share on Linux - expects to already be logged in with az login
+mountazurefiles() {
+    ## https://learn.microsoft.com/en-us/azure/storage/files/storage-how-to-use-files-linux?tabs=Ubuntu%2Csmb311
+    ${CMD_INSTALL} cifs-utils
+    ${CMD_INSTALL} autofs
+    
+    az login
+    if [ -z ${RESOURCE_GROUP_NAME} ] ; then
+        return 1;
+    fi
+    if [ -z ${STORAGE_ACCOUNT_NAME} ] ; then
+        return 1;
+    fi
+    
+    ## This command assumes you have logged in with az login (azure cli needs to be installed)
+    HTTP_ENDPOINT=$(az storage account show \
+        --resource-group $RESOURCE_GROUP_NAME \
+        --name $STORAGE_ACCOUNT_NAME \
+        --query "primaryEndpoints.file" --output tsv | tr -d '"')
+    SMBPATH=$(echo $HTTP_ENDPOINT | cut -c7-${#HTTP_ENDPOINT})
+    FILE_HOST=$(echo $-- | tr -d "/")
+
+    nc -zvw3 $FILE_HOST 445
+        
+    return 0
+}
+
+## Azure IOTEdge
+setup-iotedge() {
+    if (true) ; then
+        sudo apt-get -y update; sudo apt-get -y install moby-engine  
+        if [ -f /etc/docker/daemon.json ] ; then
+            sudo sh -c "{                                >  ~/config-docker-for-iotedge.sh"
+            sudo sh -c "    \"log-driver\": \"local\"    >> ~/config-docker-for-iotedge.sh"
+            sudo sh -c "}                                >> ~/config-docker-for-iotedge.sh"
+        fi
+        curl -ssl https://raw.githubusercontent.com/moby/moby/master/contrib/check-config.sh -o check-config.sh
+        chmod +x check-config.sh
+        ./check-config.sh
+
+        #sudo apt-get -y install aziot-edge defender-iot-micro-agent-edge
+        #sudo apt-get -y install aziot-edge defender-iot-micro-agent-edge
+
+        sudo apt-get -y install aziot-edge aziot-identity-service
+        ## sudo iotedge config mp --connection-string 'PASTE_DEVICE_CONNECTION_STRING_HERE'
+        ## sudo iotedge config apply -c '/etc/aziot/config.toml'
+        sudo iotedge system status
+        sudo iotedge system logs
+        sudo iotedge check
+        sudo iotedge check --verbose
+        sudo iotedge list
+    fi
+}
+#setup-iotedge
