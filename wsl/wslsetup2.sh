@@ -28,7 +28,12 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     rm microsoft.gpg
     if (gpg --show-keys /usr/share/keyrings/microsoft.gpg) ; then
         ## add a Microsoft Ubuntu repository 
-        sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" >> /etc/apt/sources.list.d/microsoft-ubuntu-$(lsb_release -cs)-prod.list'
+        sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/microsoft-ubuntu-$(lsb_release -cs)-prod.list' > /dev/null
+        sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/edge stable main" | sudo tee /etc/apt/sources.list.d/microsoft-edge-stable.list' > /dev/null
+        sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/ms-teams stable main" | sudo tee /etc/apt/sources.list.d/microsoft-teams-stable.list' > /dev/null
+        sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" | sudo tee /etc/apt/sources.list.d/microsoft-vscode-stable.list' > /dev/null
+        ##sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/iotedge-$(lsb_release -cs) stable main" | sudo tee /etc/apt/sources.list.d/microsoft-iotedge-$(lsb_release -cs)-stable.list' > /dev/null
+        #sudo apt install microsoft-edge-stable
         sudo apt update -y
     fi
     
