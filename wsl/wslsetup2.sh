@@ -115,54 +115,18 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     fi
 fi
 
+## Podman Remote - use Windows
 sudo apt install -y podman-remote
-
-    Write-Host "PODMAN-CONNECTION = ${PODMAN_CONNECTION}"
-    $PODMAN_IDENTITY= "/mnt/c/users/vid9na6/.local/share/containers/podman/machine/machine"
-    Write-Host "PODMAN-IDENTITY = ${PODMAN_IDENTITY}"
-
-
-podman-remote system connection add winpodman ssh://user@localhost:62429/run/user/1000/podman/podman.sock
-podman-remote system connection default winpodman
-## Test
-podman --connection winpodman ps
-
-add_podman_win_ssh() {
-  local alias="winpodman"
-  local host="localhost"
-  local port="2222"
-  local user="core"
-  local key="$HOME/.ssh/podman-machine-default"
-  local cfg="$HOME/.ssh/config"
-
-  mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
-
-  # Remove existing block
-  sed -i "/^Host $alias$/,/^$/d" "$cfg" 2>/dev/null || true
-
-  cat >>"$cfg" <<EOF
-
-Host $alias
-    HostName $host
-    Port $port
-    User $user
-    IdentityFile $key
-    IdentitiesOnly yes
-    StrictHostKeyChecking no
-    UserKnownHostsFile /dev/null
-EOF
-
-  chmod 600 "$cfg"
-  echo "SSH config entry '$alias' added/updated"
+podman_socket="$(find /mnt/wsl/podman-sockets -name '*.sock' | head -n 1)"
+[ -S "$podman_socket" ] || {
+    echo "Podman not running in Windows" >&2
+} else {
+    podman-remote system connection add --default winpodman unix://$podman_socket
+    podman-remote system connection default winpodman
+    podman-remote ps
+    podman-remote info
+    podman-remote run --rm quay.io/podman/hello
 }
-
-podman-remote system connection add myuser --identity ~/.ssh/id_ed25519 ssh://myuser@192.168.122.1/run/user/1000/podman/podman.sock
-podman-remote system connection list
-podman-remote info
-podman-remote run --rm quay.io/podman/hello
-
-#sudo sh -c "echo 'export WIN_PODMAN_PIPE=//./pipe/podman-machine-default' > /etc/profile.d/podman.sh"
-#sudo sh -c "echo 'export CONTAINER_HOST=//./pipe/podman-machine-default' > /etc/profile.d/podman.sh"
 
 ## Azure IOTEdge
 setup-iotedge() {
