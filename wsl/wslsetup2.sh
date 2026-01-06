@@ -346,20 +346,20 @@ if (which podman-remote) ; then
     sudo sh -c 'echo "# Alias for podman"                                >> /etc/profile.d/bash.sh'
     sudo sh -c 'echo "alias podman='podman-remote'"                      >> /etc/profile.d/bash.sh'
     sudo sh -c 'echo "#podman-remote system connection list"             >> /etc/profile.d/bash.sh'
-    sudo sh -c 'echo "echo \"podman found!\""                            >> /etc/profile.d/bash.sh'
+    sudo sh -c 'echo "echo \"Podman (podman-remote) found!\""            >> /etc/profile.d/bash.sh'
 fi
 
 ## Azure environment
-sudo sh -c 'echo "# Setup Azure environment up - if it exists"            >  /etc/profile.d/azure.sh'
+sudo sh -c 'echo "# Setup Azure environment up - if it exists"               >  /etc/profile.d/azure.sh'
 sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/env-azure.sh\" ] ; then " >> /etc/profile.d/azure.sh'
-sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""            >> /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-azure.sh\""     >> /etc/profile.d/azure.sh'
-sudo sh -c 'echo "fi"                                                     >> /etc/profile.d/azure.sh'
+sudo sh -c 'echo "    echo \"Found Azure (Microsoft) environment\""          >> /etc/profile.d/azure.sh'
+sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-azure.sh\""        >> /etc/profile.d/azure.sh'
+sudo sh -c 'echo "fi"                                                        >> /etc/profile.d/azure.sh'
 
 ## AWS environment
-sudo sh -c 'echo "# Setup AWS environment up - if it exists"               > /etc/profile.d/aws.sh'
+sudo sh -c 'echo "# Setup AWS environment up - if it exists"               >  /etc/profile.d/aws.sh'
 sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/env-aws.sh\" ] ; then " >> /etc/profile.d/aws.sh'
-sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""             >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""             >> /etc/profile.d/aws.sh'
 sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-aws.sh\""        >> /etc/profile.d/aws.sh'
 sudo sh -c 'echo "fi"                                                      >> /etc/profile.d/aws.sh'
 
@@ -438,10 +438,11 @@ setup-starship() {
     curl -fsSL https://starship.rs/install.sh | /bin/sh -s -- -y
 
     if [ -f /etc/profile.d/starship.sh ] ; then sudo rm -f /etc/profile.d/starship.sh ; fi
-    sudo sh -c 'echo "# Starship Prompt"                       >  /etc/profile.d/starship.sh'
-    sudo sh -c 'echo "if (which starship) ; then"              >>  /etc/profile.d/starship.sh'
-    sudo sh -c 'echo "    eval \"\$(starship init bash)\" "    >>  /etc/profile.d/starship.sh'
-    sudo sh -c 'echo "fi"                                      >>  /etc/profile.d/starship.sh' 
+    sudo sh -c 'echo "# Starship Prompt"                          >   /etc/profile.d/starship.sh'
+    sudo sh -c 'echo "if (which starship) ; then"                 >>  /etc/profile.d/starship.sh'
+    sudo sh -c 'echo "    eval \"\$(starship init bash)\" "       >>  /etc/profile.d/starship.sh'
+    sudo sh -c 'echo "    echo \"Starship (shell) found!\""       >> /etc/profile.d/bash.sh'
+    sudo sh -c 'echo "fi"                                         >>  /etc/profile.d/starship.sh' 
 
     # Detect shell
     USER_SHELL=$(basename "$SHELL")
@@ -473,7 +474,7 @@ setup-starship() {
         echo "Starship init command already present in $SHELL_RC"
     fi
 }
-setup-starship
+#setup-starship
 
 ## Generate
 ## https://textkool.com/en/ascii-art-generator
