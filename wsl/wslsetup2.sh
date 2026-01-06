@@ -24,13 +24,16 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
         xeyes &
     fi
     ## WSL Audio (via Pulse Audio)
-    sudo apt-get install -y pulseaudio pulseaudio-utils mpv
+    #sudo apt-get install -y pulseaudio pulseaudio-utils mpv
+    sudo apt-get install -y pipewire pipewire-audio-client-libraries pipewire-pulse pipewire-alsa wireplumber mpv
+
     sudo mkdir -p /etc/pulse && sudo tee /etc/pulse/client-rt.conf >/dev/null <<'EOF'
 realtime-scheduling = yes
 realtime-priority = 5
 nice-level = -11
 EOF
     pactl info >/dev/null 2>&1 || echo "⚠ Pulse/PipeWire not running"
+    pactl info | grep "Server Name"
     wget --https-only --no-verbose -O /tmp/jump.ogg https://commondatastorage.googleapis.com/codeskulptor-assets/jump.ogg
     mpv --no-video /tmp/jump.ogg
     # export WINHOME=$(wslpath "$(wslvar USERPROFILE)")
