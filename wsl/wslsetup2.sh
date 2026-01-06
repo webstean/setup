@@ -24,6 +24,7 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
         xeyes &
     fi
     ## WSL Audio (via Pulse Audio)
+    ## https://github.com/mikeroyal/PipeWire-Guide
     #sudo apt-get install -y pulseaudio pulseaudio-utils mpv
     sudo apt-get install -y pipewire pipewire-audio-client-libraries pipewire-pulse pipewire-alsa wireplumber mpv
 
