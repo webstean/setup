@@ -123,16 +123,16 @@ source ~/.bashrc
 
 ## Podman Remote - using Windows
 setup-podman-remote() {
-    sudo apt install -y podman-remote
     podman_socket="$(find /mnt/wsl/podman-sockets -name '*.sock' | head -n 1)"
     if [ ! -S "$podman_socket" ]; then
       echo "Podman socket not found (Windows PODMAN not running VM?): $podman_socket" >&2
     else
+      sudo apt install -y podman-remote
       # Create/replace connection (idempotent-ish)
       podman-remote system connection remove winpodman >/dev/null 2>&1 || true
       podman-remote system connection add winpodman "unix://$podman_socket"
       podman-remote system connection default winpodman
-      # Only do this if user isn't root
+      # Only do this if user isn't root, add user to uucp (permission for podman to work)
       if [ "$(id -u)" -ne 0 ]; then
         sudo usermod --append --groups 10 "$USER"
       fi
