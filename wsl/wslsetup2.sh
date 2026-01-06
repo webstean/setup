@@ -116,6 +116,12 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
 fi
 
 sudo apt install -y podman-remote
+podman-remote system connection add winpodman ssh://core@localhost:2222/run/user/1000/podman/podman.sock
+podman-remote system connection default winpodman
+## Test
+podman --connection winpodman ps
+
+
 # Create the containers.conf file
 mkdir -p ~/.config/containers
 cat > ~/.config/containers/containers.conf << 'EOF'
