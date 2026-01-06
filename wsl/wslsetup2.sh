@@ -117,6 +117,11 @@ fi
 
 sudo apt install -y podman-remote
 
+    Write-Host "PODMAN-CONNECTION = ${PODMAN_CONNECTION}"
+    $PODMAN_IDENTITY= "/mnt/c/users/vid9na6/.local/share/containers/podman/machine/machine"
+    Write-Host "PODMAN-IDENTITY = ${PODMAN_IDENTITY}"
+
+
 podman-remote system connection add winpodman ssh://user@localhost:62429/run/user/1000/podman/podman.sock
 podman-remote system connection default winpodman
 ## Test
