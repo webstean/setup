@@ -442,11 +442,15 @@ sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-aws.sh\""     >> /etc/
 sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/aws.sh'
 
 ## Google Cloud environment
-sudo sh -c 'echo "# Setup Google GCP environment up - if it exists"      >  /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "# Setup Google GCP environment up - if it exists"        >  /etc/profile.d/gcp.sh'
 sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/env-gcp.sh\" ] ; then " >> /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""         >> /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-gcp.sh\""    >> /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "fi"                                                    >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""             >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-gcp.sh\""        >> /etc/profile.d/gcp.sh'
+sudo sh -c 'echo "fi"                                                      >> /etc/profile.d/gcp.sh'
+
+sudo sh -c 'echo "if ! [ -x \~.go/bin/go ] ; then"                         >  /etc/profile.d/golang.sh'
+sudo sh -c 'echo echo    \"Golang \(go\) found!\"                          >> /etc/profile.d/golang.sh'
+sudo sh -c 'echo fi                                                        >> /etc/profile.d/golang.sh'
 
 ## shortcut to Windows home directory
 #sudo sh -c 'echo "export WINHOME=\$(wslpath \"\$(wslvar USERPROFILE)\")"   > /etc/profile.d/winhome.sh'
@@ -464,9 +468,6 @@ fi
 sudo apt-get install -y golang
 #if ! [ -x ~.go/bin/go ] ; then
 #    wget -q -O - https://git.io/vQhTU | bash
-    sudo sh -c 'echo "if ! [ -x \~.go/bin/go ] ; then"  >   /etc/profile.d/golang.sh'
-    sudo sh -c 'echo echo    \"Golang \(go\) found!\"     >>  /etc/profile.d/golang.sh'
-    sudo sh -c 'echo fi                                >>  /etc/profile.d/golang.sh'
 #fi
 
 ## Install Google Cloud (GCP) CLI
