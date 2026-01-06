@@ -116,6 +116,7 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
 fi
 
 sudo apt install -y podman-remote
+
 podman-remote system connection add winpodman ssh://user@localhost:62429/run/user/1000/podman/podman.sock
 podman-remote system connection default winpodman
 ## Test
