@@ -33,11 +33,12 @@ realtime-scheduling = yes
 realtime-priority = 5
 nice-level = -11
 EOF
-    pactl info >/dev/null 2>&1 || echo "⚠ Pulse/PipeWire not running"
-    pactl info | grep "Server Name"
-    wget --https-only --no-verbose -O /tmp/jump.ogg https://commondatastorage.googleapis.com/codeskulptor-assets/jump.ogg
-    mpv --no-video /tmp/jump.ogg
-    # export WINHOME=$(wslpath "$(wslvar USERPROFILE)")
+    if ( !(LANG=C pactl info >/dev/null 2>&1 || echo "⚠ Pulse/PipeWire not running")) ; then
+        LANG=C pactl info | grep "Server Name"
+        LANG=C pactl info | grep "Server String"
+        wget --https-only --no-verbose -O /tmp/jump.ogg https://commondatastorage.googleapis.com/codeskulptor-assets/jump.ogg
+        mpv --no-video /tmp/jump.ogg
+    fi
 fi
     
 ## Set Timezone - includes keeping the machine to the right time but not sure how?
