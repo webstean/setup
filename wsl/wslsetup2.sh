@@ -327,7 +327,7 @@ sudo sh -c 'echo "# Limit number of lines and entries in the history." >>  /etc/
 sudo sh -c 'echo export HISTFILESIZE=50000                             >>  /etc/profile.d/bash.sh'
 sudo sh -c 'echo export HISTSIZE=50000                                 >>  /etc/profile.d/bash.sh'
 
-sudo sh -c 'echo "# Add a timestamp to each command."                  >>  /etc/profile.d/bash.sh'
+sudo sh -c 'echo "# Add a timestamp to each history entry."            >>  /etc/profile.d/bash.sh'
 sudo sh -c 'echo export HISTTIMEFORMAT=\"%Y/%m/%d %H:%M:%S:\"          >>  /etc/profile.d/bash.sh'
 
 sudo sh -c 'echo "# Duplicate lines and lines starting with a space are not put into the history." >>  /etc/profile.d/bash.sh'
@@ -336,11 +336,13 @@ sudo sh -c 'echo export HISTCONTROL=ignoreboth                         >>  /etc/
 sudo sh -c 'echo "# Append to the history file, dont overwrite it."    >>  /etc/profile.d/bash.sh'
 sudo sh -c 'echo shopt -s histappend                                   >>  /etc/profile.d/bash.sh'
 
-sudo sh -c 'echo "# Improve output of less for binary files."          >> /etc/profile.d/bash.sh'
-sudo sh -c 'echo [ -x /usr/bin/lesspipe ] \&\& eval "\$(SHELL=/bin/sh lesspipe)"   >>  /etc/profile.d/bash.sh'
 
-sudo sh -c 'echo "# Alias to provide distribution name"                 >> /etc/profile.d/bash.sh'
-sudo sh -c 'echo "alias distribution=\". /etc/os-release;echo \$ID \$VERSION_ID\"" >> /etc/profile.d/bash.sh'
+sudo tee /etc/profile.d/bash.sh >/dev/null <<'EOF'
+# Improve output of less for binary files
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+# Alias to provide distribution name"
+alias distribution='. /etc/os-release; echo "$ID $VERSION_ID"'
+EOF
 
 if (which podman-remote) ; then
     sudo sh -c 'echo "# Alias for podman"                                >> /etc/profile.d/bash.sh'
@@ -440,8 +442,8 @@ setup-starship() {
     if [ -f /etc/profile.d/starship.sh ] ; then sudo rm -f /etc/profile.d/starship.sh ; fi
     sudo sh -c 'echo "# Starship Prompt"                          >   /etc/profile.d/starship.sh'
     sudo sh -c 'echo "if (which starship) ; then"                 >>  /etc/profile.d/starship.sh'
-    sudo sh -c 'echo "    eval \"\$(starship init bash)\" "       >>  /etc/profile.d/starship.sh'
     sudo sh -c 'echo "    echo \"Starship (shell) found!\""       >> /etc/profile.d/bash.sh'
+    sudo sh -c 'echo "    eval \"\$(starship init bash)\" "       >>  /etc/profile.d/starship.sh'
     sudo sh -c 'echo "fi"                                         >>  /etc/profile.d/starship.sh' 
 
     # Detect shell
