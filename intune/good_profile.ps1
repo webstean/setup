@@ -151,11 +151,15 @@ function Reset-Podman {
     podman machine set --rootful
     podman machine start
     #podman machine inspect | jq
-    podman machine inspect --format "{{.SSHConfig.IdentityPath}}" ## Private Key
-    podman machine inspect --format "{{.SSHConfig.Port}}"
-    podman machine inspect --format "{{.SSHConfig.RemoteUsername}}"
-    podman machine inspect --format "{{.ConnectionInfo.PodmanSocket.Path}}"
-
+    $PODMAN_IDENTITY = podman machine inspect --format "{{.SSHConfig.IdentityPath}}" ## Private Key
+    $PODMAN_PORT = podman machine inspect --format "{{.SSHConfig.Port}}"
+    $PODMAN_USER = podman machine inspect --format "{{.SSHConfig.RemoteUsername}}"
+    $PODMAN_PATH = podman machine inspect --format "{{.ConnectionInfo.PodmanSocket.Path}}"
+    $PODMAN_CONNECTION = "ssh://${PODMAN_USER}@localhost:${PODMAN_PORT}/${PODMAN_PATH}"
+    Write-Host "PODMAN-CONNECTION = ${PODMAN_CONNECTION}"
+    $PODMAN_IDENTITY= "/mnt/c/users/vid9na6/.local/share/containers/podman/machine/machine"
+    Write-Host "PODMAN-IDENTITY = ${PODMAN_IDENTITY}"
+    Write-Host "In WSL run: podman-remote"
     #podman machine info
     ## Download and Run Container
     podman run --rm quay.io/podman/hello
@@ -171,10 +175,10 @@ function Reset-Podman2 {
     podman machine init --rootful --timezone "Australia/Melbourne"
     podman machine start
     #podman machine inspect | jq
-    podman machine inspect --format "{{.SSHConfig.IdentityPath}}" ## Private Key
-    podman machine inspect --format "{{.SSHConfig.Port}}"
-    podman machine inspect --format "{{.SSHConfig.RemoteUsername}}"
-    podman machine inspect --format "{{.ConnectionInfo.PodmanSocket.Path}}"
+    $PODMAN_IDENTITY = podman machine inspect --format "{{.SSHConfig.IdentityPath}}" ## Private Key
+    $PODMAN_PORT = podman machine inspect --format "{{.SSHConfig.Port}}"
+    $PODMAN_USER = podman machine inspect --format "{{.SSHConfig.RemoteUsername}}"
+    $PODMAN_PATH = podman machine inspect --format "{{.ConnectionInfo.PodmanSocket.Path}}"
     
     #podman machine info
     ## Download and Run Container
