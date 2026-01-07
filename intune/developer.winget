@@ -59,7 +59,7 @@ properties:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.WindowsJournal
       directives:
-        description: Install Microsoft.WindowsJournal
+        description: Install Microsoft.WindowsJournal (Works with fingers, mouse, or pen on touchscreen devices)
         allowPrerelease: false
       settings:
         id: Microsoft.WindowsJournal
