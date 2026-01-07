@@ -56,6 +56,8 @@ properties:
         id: Microsoft.WindowsApp
         source: winget
 
+# $HasTouch = (Get-CimInstance Win32_PnPEntity | Where-Object Name -eq 'HID-compliant touch screen').Count -gt 0
+# $HasTouch
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.WindowsJournal
       directives:
