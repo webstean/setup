@@ -96,6 +96,7 @@ EOF
     fi
 else
     ## Not running under WSL, so we assume baremetal or full VM
+    ## Note, WSL is not supported for Intune enrollment 
 
     ## Microsoft Defender for Endpoint
     sudo apt-get install -y mdatp
