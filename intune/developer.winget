@@ -308,6 +308,11 @@ properties:
         id: GnuWin32.UnZip
         source: winget
 
+
+winget install -e --id ImageMagick.ImageMagick
+
+
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: RedHat.Podman
 #      dependsOn:
