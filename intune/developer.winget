@@ -490,15 +490,15 @@ properties:
 #        id: Oracle.SQLDeveloper
 #        source: winget
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Oracle.OCI-CLI
-      directives:
-        description: Installing Oracle.OCI-CLI
-        allowPrerelease: false
-        securityContext: current
-      settings:
-        id: Oracle.OCI-CLI
-        source: winget
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Oracle.OCI-CLI
+#      directives:
+#        description: Installing Oracle.OCI-CLI
+#        allowPrerelease: false
+#        securityContext: current
+#      settings:
+#        id: Oracle.OCI-CLI
+#        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: SQLite.SQLite
