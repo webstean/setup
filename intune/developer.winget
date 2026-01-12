@@ -308,10 +308,14 @@ properties:
         id: GnuWin32.UnZip
         source: winget
 
-
-winget install -e --id ImageMagick.ImageMagick
-
-
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: ImageMagick.ImageMagick
+      directives:
+        description: Install ImageMagick.ImageMagick
+        allowPrerelease: false
+      settings:
+        id: ImageMagick.ImageMagick
+        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: RedHat.Podman
@@ -347,9 +351,6 @@ winget install -e --id ImageMagick.ImageMagick
         TestScript: return $false
         SetScript: |
           [System.Environment]::SetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME","podman","Machine")
-          # Not required API forwarding listening on: npipe:////./pipe/docker_engine
-          # Docker API clients default to this address. You do not need to set DOCKER_HOST.
-          #[System.Environment]::SetEnvironmentVariable("DOCKER_HOST",'npipe:////./pipe/docker_engine',"Machine")
           [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:DOCKER_HOST', 'Machine')
 
 ## containers.containerClient Podman
@@ -867,8 +868,9 @@ winget install -e --id ImageMagick.ImageMagick
         description: Install OpenJS.NodeJS (dependency for many VS Code extensions)
         securityContext: current
       settings:
-        id: OpenJS.NodeJS
+        id: OpenJS.NodeJS.LTS
         source: winget
+
     # Java (open source)
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: ms-java-jdk
