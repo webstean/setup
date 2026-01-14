@@ -2725,3 +2725,22 @@ function Connect-SharePoint {
         $_ | Format-List * -Force
     }
 }
+
+function Invoke-Graph {
+    param(
+        [Parameter(Mandatory)][string]$Uri,
+        [ValidateSet('GET','POST','PATCH','PUT','DELETE')][string]$Method = 'GET',
+        [object]$Body
+    )
+
+    $headers = @{
+        Authorization = "Bearer $env:GRAPH_TOKEN"
+        Accept        = "application/json"
+    }
+
+    if ($PSBoundParameters.ContainsKey('Body')) {
+        $json = $Body | ConvertTo-Json -Depth 50
+        return Invoke-RestMethod -Method $Method -Uri $Uri -Headers $headers -ContentType 'application/json' -Body $json
+    }
+    return Invoke-RestMethod -Method $Method -Uri $Uri -Headers $headers
+}
