@@ -300,6 +300,15 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.etl2pcapng
+      directives:
+        description: Install Microsoft.etl2pcapng
+        allowPrerelease: false
+      settings:
+        id: Microsoft.etl2pcapng
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: GnuWin32.UnZip
       directives:
         description: Install GnuWin32.UnZip
