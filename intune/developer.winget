@@ -573,6 +573,16 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Elgato.CameraHub
+      directives:
+        description: Installing Elgato.CameraHub
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Elgato.CameraHub
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Dapr.CLI
       directives:
         description: Installing Dapr.CLI
