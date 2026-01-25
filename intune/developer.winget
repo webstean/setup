@@ -561,6 +561,17 @@ properties:
         id: Microsoft.WindowsTerminal
         source: winget
 
+    ## Audio / Video Utilities
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.TeamsTxNDI
+      directives:
+        description: Installing Microsoft.TeamsTxNDI
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Microsoft.TeamsTxNDI
+        source: winget
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Dapr.CLI
       directives:
