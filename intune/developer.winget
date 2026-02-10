@@ -893,9 +893,9 @@ properties:
 
     # NodeJS
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: OpenJS.NodeJS
+      id: OpenJS.NodeJS.LTS
       directives:
-        description: Install OpenJS.NodeJS (dependency for many VS Code extensions)
+        description: Install OpenJS.NodeJS.LTS (dependency for many VS Code extensions)
         securityContext: current
       settings:
         id: OpenJS.NodeJS.LTS
@@ -905,10 +905,10 @@ properties:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: ms-java-jdk
       directives:
-        description: Install Microsoft Open JDK 21
+        description: Install Microsoft Open JDK 25
         securityContext: current
       settings:
-        id: Microsoft.OpenJDK.21
+        id: Microsoft.OpenJDK.25
         source: winget
 
 #  - resource: Microsoft.VSCode.Dsc/VSCodeExtension
