@@ -546,7 +546,7 @@ Function RemoveSystemBloat {
     try {
         Write-Output "Uninstalling Windows System bloat..."
         Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WorkFolders-Client" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
-        Get-WindowsCapability -Online | Where-Object { $_.Name -like "Microsoft.Windows.PowerShell.ISE*" } | Remove-WindowsCapability -Online | Out-Null
+        #Get-WindowsCapability -Online | Where-Object { $_.Name -like "Microsoft.Windows.PowerShell.ISE*" } | Remove-WindowsCapability -Online | Out-Null
         Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "Printing-XPSServices-Features" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
         Remove-Printer -Name "Fax" -ErrorAction SilentlyContinue
         Write-Output "Uninstalling Windows Fax and Scan..."
@@ -554,7 +554,7 @@ Function RemoveSystemBloat {
         Get-WindowsCapability -Online | Where-Object { $_.Name -like "Print.Fax.Scan*" } | Remove-WindowsCapability -Online | Out-Null
     }
     catch {
-       Write-Warning "❌ Failed to uninstall some of the bloat: $_"
+       Write-Warning "❌ Failed to uninstall some of the System bloat: $_"
     }
 }
 RemoveSystemBloat
