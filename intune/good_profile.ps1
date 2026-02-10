@@ -668,7 +668,7 @@ $ompConfig = "C:\Program Files\WindowsApps\ohmyposh.cli_27.5.0.0_x64__96v55e8n80
 #(Get-Command -ErrorAction SilentlyContinue starship.exe).Source
 
 ## Check for Starship
-if ($env:STARSHIP_CONFIG -and (Test-Path "$starshipConfig" -PathType Leaf) -and $IsLanguagePermissive ) {
+if ($env:STARSHIP_CONFIG -and (Test-Path "$env:STARSHIP_CONFIG" -PathType Leaf) -and $IsLanguagePermissive ) {
     Write-Host "Found Starship shell...so starting it..."
     Invoke-Expression (&starship init powershell)
     Enable-TransientPrompt
