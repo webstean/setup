@@ -349,7 +349,12 @@ function Invoke-ScriptReliably {
     if ($Elevate) { $startInfo.Verb = 'RunAs' }
     if ($Hidden)  { $startInfo.WindowStyle = 'Hidden' }
 
-    $proc = Start-Process @startInfo
+    try {
+        $proc = Start-Process @startInfo
+    }
+    catch {
+       Write-Warning "❌ Script Execution couldn't start: $_"
+    }
 
     # Optional timeout
     if ($TimeoutSeconds -gt 0 -and -not $proc.HasExited) {
@@ -403,7 +408,6 @@ function Invoke-WingetConfiguration-Developer {
         winget configure --file ${destination}\developer.winget --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
     } else {
         Write-Host "${destination}\developer.winget not found!!"
-        Read-Host "Press Enter to continue..."
     }
     return ;
     ## get-childitem     $env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir\
@@ -485,18 +489,17 @@ try {
     Write-Host "⏳ All STEPS completed in $($elapsed.Elapsed.Minutes) minutes."
 }
 catch {
-    Write-Error "Error executing: $_"
-}
-finally {
-    # Stop transcript no matter what
-    Stop-Transcript
-    Write-Host "Transcript stopped."
-    Write-Host "COMPLETED."
+    Write-Error "Error executing script: $_"
 }
 
 ## Cleanup
 #sfc /scannow
 #dism.exe /Online /Cleanup-Image /RestoreHealth
+
+## Stop transcript no matter what
+Stop-Transcript
+Write-Host "Transcript stopped."
+Write-Host "COMPLETED."
 
 return $true
 
