@@ -562,7 +562,7 @@ properties:
         source: winget
 
     ## Audio / Video Utilities
-    # NDI Runtime
+    # NDI Runtime ## current has an issues with (Apple) Bonjour service being blocked from being install
     #- resource: Microsoft.WinGet.DSC/WinGetPackage
     #  id: NDI.NDIRuntime
     #  directives:
