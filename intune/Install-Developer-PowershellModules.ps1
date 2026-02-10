@@ -245,7 +245,7 @@ Set-PSReadLineOption -PredictionSource History
 Set-PSReadLineOption -PredictionViewStyle ListView
 
 ## Install Azure Tools Predictor
-Install-OrUpdateModule Az.Tools.Predictor
+Install-OrUpdate-Module Az.Tools.Predictor
 Import-Module Az.Tools.Predictor
 
 ## Install (and Update) PowerShell Help
