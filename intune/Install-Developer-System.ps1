@@ -471,7 +471,6 @@ $features_to_enable | ForEach-Object {
     }
     catch {
         Write-Output "Exception with $_"
-        Exit-WithError $_
     }
 }
 
