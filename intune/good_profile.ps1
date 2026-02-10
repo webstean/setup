@@ -126,6 +126,9 @@ $acceptableModes = @("FullLanguage")
 $unacceptableModes = @("ConstrainedLanguage", "RestrictedLanguage", "NoLanguage")
 $currentMode = $ExecutionContext.SessionState.LanguageMode.ToString()
 $IsLanguagePermissive = $currentMode -in $acceptableModes
+if ((Get-ClmAuditState).IsAudit) {
+    $IsLanguagePermissive = $true
+}
 
 $UTF8 = $false
 if ($IsLanguagePermissive) {
