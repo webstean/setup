@@ -467,5 +467,10 @@ finally {
     Write-Host "Transcript stopped."
     Write-Host "COMPLETED."
 }
+
+## Cleanup
+#sfc /scannow
+#dism.exe /Online /Cleanup-Image /RestoreHealth
+
 return $true
 
