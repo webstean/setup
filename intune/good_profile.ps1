@@ -53,11 +53,8 @@ function Get-ClmAuditState {
     $systemPolicy = $null
     try {
         $systemPolicy = [System.Management.Automation.Security.SystemPolicy]::GetSystemLockdownPolicy()
-    } catch {
-        # Not available on some hosts / older PowerShell
-    }
+    } catch { }
 
-    # Fallback: environment variable (often registry-backed)
     $envPolicy = $null
     if (Test-Path Env:\__PSLockdownPolicy) {
         $envPolicy = $env:__PSLockdownPolicy
@@ -65,8 +62,8 @@ function Get-ClmAuditState {
 
     [pscustomobject]@{
         LanguageMode        = $languageMode
-        SystemLockdownMode  = $systemPolicy   # None / Audit / Enforce (when available)
-        EnvLockdownPolicy   = $envPolicy      # raw value when set
+        SystemLockdownMode  = $systemPolicy
+        EnvLockdownPolicy   = $envPolicy
         IsConstrained       = ($languageMode -eq 'ConstrainedLanguage')
         IsAudit             = ($systemPolicy -eq 'Audit') -or ($envPolicy -eq '8')
         IsEnforced          = ($systemPolicy -eq 'Enforce') -or ($envPolicy -eq '4')
@@ -75,6 +72,9 @@ function Get-ClmAuditState {
                               else { 'Low (cannot determine audit vs enforce here)' }
     }
 }
+# Usage:
+# (Get-ClmAuditState).IsAudit
+
 
 function Get-ConstrainedLanguageState {
     [CmdletBinding()]
@@ -87,8 +87,8 @@ function Get-ConstrainedLanguageState {
         LanguageMode    = $languageMode
         LockdownPolicy  = $lockdownPolicy
         IsConstrained   = ($languageMode -eq 'ConstrainedLanguage')
-        IsAudit         = (Get-ClmAuditState.IsAudit -eq true)
-        IsEnforced      = (Get-ClmAuditState.IsEnforced -eq true)
+        IsAudit         = ((Get-ClmAuditState).IsAudit -eq true)
+        IsEnforced      = ((Get-ClmAuditState).IsEnforced -eq true)
     }
 }
 
