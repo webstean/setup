@@ -411,6 +411,32 @@ function Install-NuGetCredentialProviderforAzureArtefacts {
 ## Install Azure Arctefacts Credential Provider
 #Install-NuGetCredentialProviderforAzureArtefacts
 
+function Set-DesktopIconsVisibility {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet('Show','Hide')]
+        [string]$State,
+
+        [switch]$RestartExplorer
+    )
+
+    $regPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+    $valueName = 'HideIcons'
+
+    $value = if ($State -eq 'Hide') { 1 } else { 0 }
+
+    if ($PSCmdlet.ShouldProcess("Desktop Icons", $State)) {
+        New-Item -Path $regPath -Force | Out-Null
+        Set-ItemProperty -Path $regPath -Name $valueName -Type DWord -Value $value
+    }
+
+    if ($RestartExplorer) {
+        Stop-Process -Name explorer -Force
+    }
+}
+Set-DesktopIconsVisibility -State Hide
+
 ## Generate StrongPassword for developers, used in scripts such as SQL Server installations
 if ( [string]::IsNullOrWhiteSpace($env:STRONGPASSWORD)) {
     Write-Output "Generating a random password retained as an environment variable..."
