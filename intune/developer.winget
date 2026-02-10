@@ -562,15 +562,25 @@ properties:
         source: winget
 
     ## Audio / Video Utilities
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.TeamsTxNDI
-      directives:
-        description: Installing Microsoft.TeamsTxNDI
-        allowPrerelease: false
-        securityContext: current
-      settings:
-        id: Microsoft.TeamsTxNDI
-        source: winget
+    # NDI Runtime
+    #- resource: Microsoft.WinGet.DSC/WinGetPackage
+    #  id: NDI.NDIRuntime
+    #  directives:
+    #    description: Install NDI.NDIRuntime
+    #    securityContext: current
+    #  settings:
+    #    id: NDI.NDIRuntime
+    #    source: winget
+
+    #- resource: Microsoft.WinGet.DSC/WinGetPackage
+    #  id: Microsoft.TeamsTxNDI
+    #  directives:
+    #    description: Installing Microsoft.TeamsTxNDI
+    #    allowPrerelease: false
+    #    securityContext: current
+    #  settings:
+    #    id: Microsoft.TeamsTxNDI
+    #    source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Elgato.CameraHub
@@ -871,6 +881,7 @@ properties:
 #        HttpsUrl: https://github.com/lscph1929/scripts.git
 #        RootDirectory: "C:/WorkSpaces"
 
+    # Git Clone
     - resource: GitDsc/GitClone
       id: github.com/webstean/setup
       directives:
@@ -880,16 +891,6 @@ properties:
       settings:
         HttpsUrl: https://github.com/webstean/setup
         RootDirectory: "C:/WorkSpaces"
-
-    # NDI Runtime
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: NDI.NDIRuntime
-      directives:
-        description: Install NDI.NDIRuntime
-        securityContext: current
-      settings:
-        id: NDI.NDIRuntime
-        source: winget
 
     # NodeJS
     - resource: Microsoft.WinGet.DSC/WinGetPackage
