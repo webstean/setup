@@ -178,7 +178,7 @@ Install-OrUpdate-Module Microsoft.PowerApps.Administration.PowerShell
 Install-OrUpdate-Module JWTDetails
 ## Get-PnPTenant
 
-## Install-OrUpdateModule PnP.PowerShell
+## Install-OrUpdate-Module PnP.PowerShell
 if (Get-Module PnP.PowerShell -ErrorAction SilentlyContinue ) {
     Update-Module -Name PnP.PowerShell
 } else {
