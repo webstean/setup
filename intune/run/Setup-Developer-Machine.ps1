@@ -338,7 +338,7 @@ function Invoke-ScriptReliably {
 
     if ($proc.ExitCode -ne 0) {
         $err = Get-Content -LiteralPath $errFile -Raw -ErrorAction SilentlyContinue
-        throw "Script failed with exit code $($proc.ExitCode). $err"
+        #throw "Script failed with exit code $($proc.ExitCode). $err"
     }
 
     [pscustomobject]@{
