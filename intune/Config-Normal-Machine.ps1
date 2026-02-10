@@ -588,157 +588,6 @@ Function DisableIEEnhancedSecurity {
 }
 DisableIEEnhancedSecurity
 
-Write-Output "Uninstalling Microsoft application Bloat..."
-
-function Uninstall-AppxPackageAndWait {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$PackageName
-    )
-
-    # Get the package for all users
-    $package = Get-AppxPackage $PackageName -AllUsers
-
-    if (-not $package) {
-        Write-Host "Package '$PackageName' is not installed."
-        return
-    }
-
-    Write-Host "Uninstalling '$PackageName' for all users..."
-    Remove-AppxPackage -Package $package.PackageFullName -AllUsers
-
-    # Wait for the package to be fully uninstalled
-    do {
-        Start-Sleep -Seconds 2
-        $stillInstalled = Get-AppxPackage $PackageName -AllUsers
-    } while ($stillInstalled)
-
-    Write-Host "Package '$PackageName' has been successfully uninstalled."
-}
-
-# Uninstall default Microsoft applications
-Function UninstallMsftBloat {
-    ## Import-Module Appx
-    Uninstall-AppxPackageAndWait "Microsoft.GamingApp"
-    Uninstall-AppxPackageAndWait "Microsoft.XboxIdentityProvider"
-    Uninstall-AppxPackageAndWait "Microsoft.Xbox.TCUI"
-    Uninstall-AppxPackageAndWait "Microsoft.Windows.DevHome"  
-    Uninstall-AppxPackageAndWait "Clipchamp.Clipchamp"
-    Uninstall-AppxPackageAndWait "Microsoft.3DBuilder"
-    Uninstall-AppxPackageAndWait "Microsoft.AppConnector"
-    Uninstall-AppxPackageAndWait "Microsoft.BingFinance"
-    Uninstall-AppxPackageAndWait "Microsoft.BingFoodAndDrink"
-    Uninstall-AppxPackageAndWait "Microsoft.BingHealthAndFitness"
-    Uninstall-AppxPackageAndWait "Microsoft.BingMaps"
-    Uninstall-AppxPackageAndWait "Microsoft.BingNews"
-    Uninstall-AppxPackageAndWait "Microsoft.BingSports"
-    Uninstall-AppxPackageAndWait "Microsoft.BingTranslator"
-    Uninstall-AppxPackageAndWait "Microsoft.BingTravel"
-    Uninstall-AppxPackageAndWait "Microsoft.BingWeather"
-    Uninstall-AppxPackageAndWait "Microsoft.CommsPhone"
-    Uninstall-AppxPackageAndWait "Microsoft.ConnectivityStore"
-    Uninstall-AppxPackageAndWait "Microsoft.FreshPaint"
-    Uninstall-AppxPackageAndWait "Microsoft.GetHelp"
-    Uninstall-AppxPackageAndWait "Microsoft.Getstarted"
-    Uninstall-AppxPackageAndWait "Microsoft.HelpAndTips"
-    Uninstall-AppxPackageAndWait "Microsoft.Media.PlayReadyClient.2"
-    Uninstall-AppxPackageAndWait "Microsoft.Messaging"
-    Uninstall-AppxPackageAndWait "Microsoft.Microsoft3DViewer"
-    Uninstall-AppxPackageAndWait "Microsoft.MicrosoftOfficeHub"
-    Uninstall-AppxPackageAndWait "Microsoft.MicrosoftPowerBIForWindows"
-    Uninstall-AppxPackageAndWait "Microsoft.MicrosoftSolitaireCollection"
-    Uninstall-AppxPackageAndWait "Microsoft.MicrosoftStickyNotes"
-    Uninstall-AppxPackageAndWait "Microsoft.MinecraftUWP"
-    Uninstall-AppxPackageAndWait "Microsoft.MixedReality.Portal"
-    Uninstall-AppxPackageAndWait "Microsoft.MoCamera"
-    Uninstall-AppxPackageAndWait "Microsoft.MSPaint"
-    Uninstall-AppxPackageAndWait "Microsoft.NetworkSpeedTest"
-    Uninstall-AppxPackageAndWait "Microsoft.OfficeLens"
-    Uninstall-AppxPackageAndWait "Microsoft.Office.OneNote"
-    Uninstall-AppxPackageAndWait "Microsoft.Office.Sway"
-    Uninstall-AppxPackageAndWait "Microsoft.OneConnect"
-    Uninstall-AppxPackageAndWait "Microsoft.OutlookForWindows"
-    Uninstall-AppxPackageAndWait "Microsoft.People"
-    Uninstall-AppxPackageAndWait "Microsoft.PowerAutomateDesktop"
-    Uninstall-AppxPackageAndWait "Microsoft.Print3D"
-    Uninstall-AppxPackageAndWait "Microsoft.Reader"
-    Uninstall-AppxPackageAndWait "Microsoft.RemoteDesktop"
-    Uninstall-AppxPackageAndWait "Microsoft.SkypeApp"
-    Uninstall-AppxPackageAndWait "Microsoft.Todos"
-    Uninstall-AppxPackageAndWait "Microsoft.Wallet"
-    Uninstall-AppxPackageAndWait "Microsoft.WebMediaExtensions"
-    Uninstall-AppxPackageAndWait "Microsoft.Whiteboard"
-    Uninstall-AppxPackageAndWait "Microsoft.WindowsAlarms"
-    Uninstall-AppxPackageAndWait "Microsoft.WindowsCamera"
-    Uninstall-AppxPackageAndWait "microsoft.windowscommunicationsapps"
-    Uninstall-AppxPackageAndWait "Microsoft.WindowsFeedbackHub"
-    Uninstall-AppxPackageAndWait "Microsoft.WindowsMaps"
-    Uninstall-AppxPackageAndWait "Microsoft.WindowsPhone"
-    Uninstall-AppxPackageAndWait "Microsoft.Windows.Photos"
-    Uninstall-AppxPackageAndWait "Microsoft.WindowsReadingList"
-    Uninstall-AppxPackageAndWait "Microsoft.WindowsScan"
-    Uninstall-AppxPackageAndWait "Microsoft.WindowsSoundRecorder"
-    Uninstall-AppxPackageAndWait "Microsoft.WinJS.1.0"
-    Uninstall-AppxPackageAndWait "Microsoft.WinJS.2.0"
-    Uninstall-AppxPackageAndWait "Microsoft.YourPhone"
-    Uninstall-AppxPackageAndWait "Microsoft.ZuneMusic"
-    Uninstall-AppxPackageAndWait "Microsoft.ZuneVideo"
-    Uninstall-AppxPackageAndWait "Microsoft.Advertising.Xaml" # Dependency for microsoft.windowscommunicationsapps, Microsoft.BingWeather
-}
-
-UninstallMsftBloat
-
-# Uninstall default third party applications
-function UninstallThirdPartyBloat {
-    Write-Output "Uninstalling 3rd Party application Bloat..."
-    ## Import-Module Appx
-    Uninstall-AppxPackageAndWait "2414FC7A.Viber"
-    Uninstall-AppxPackageAndWait "41038Axilesoft.ACGMediaPlayer"
-    Uninstall-AppxPackageAndWait "46928bounde.EclipseManager"
-    Uninstall-AppxPackageAndWait "4DF9E0F8.Netflix"
-    Uninstall-AppxPackageAndWait "64885BlueEdge.OneCalendar"
-    Uninstall-AppxPackageAndWait "7EE7776C.LinkedInforWindows"
-    Uninstall-AppxPackageAndWait "828B5831.HiddenCityMysteryofShadows"
-    Uninstall-AppxPackageAndWait "89006A2E.AutodeskSketchBook"
-    Uninstall-AppxPackageAndWait "9E2F88E3.Twitter"
-    Uninstall-AppxPackageAndWait "A278AB0D.DisneyMagicKingdoms"
-    Uninstall-AppxPackageAndWait "A278AB0D.DragonManiaLegends"
-    Uninstall-AppxPackageAndWait "A278AB0D.MarchofEmpires"
-    Uninstall-AppxPackageAndWait "ActiproSoftwareLLC.562882FEEB491"
-    Uninstall-AppxPackageAndWait "AD2F1837.GettingStartedwithWindows8"
-    Uninstall-AppxPackageAndWait "AD2F1837.HPJumpStart"
-    Uninstall-AppxPackageAndWait "AD2F1837.HPRegistration"
-    Uninstall-AppxPackageAndWait "AdobeSystemsIncorporated.AdobePhotoshopExpress"
-    Uninstall-AppxPackageAndWait "Amazon.com.Amazon"
-    Uninstall-AppxPackageAndWait "C27EB4BA.DropboxOEM"
-    Uninstall-AppxPackageAndWait "CAF9E577.Plex"
-    Uninstall-AppxPackageAndWait "CyberLinkCorp.hs.PowerMediaPlayer14forHPConsumerPC"
-    Uninstall-AppxPackageAndWait "D52A8D61.FarmVille2CountryEscape"
-    Uninstall-AppxPackageAndWait "D5EA27B7.Duolingo-LearnLanguagesforFree"
-    Uninstall-AppxPackageAndWait "DB6EA5DB.CyberLinkMediaSuiteEssentials"
-    Uninstall-AppxPackageAndWait "DolbyLaboratories.DolbyAccess"
-    Uninstall-AppxPackageAndWait "Drawboard.DrawboardPDF"
-    Uninstall-AppxPackageAndWait "Facebook.Facebook"
-    Uninstall-AppxPackageAndWait "Fitbit.FitbitCoach"
-    Uninstall-AppxPackageAndWait "flaregamesGmbH.RoyalRevolt2"
-    Uninstall-AppxPackageAndWait "GAMELOFTSA.Asphalt8Airborne"
-    Uninstall-AppxPackageAndWait "KeeperSecurityInc.Keeper"
-    Uninstall-AppxPackageAndWait "king.com.BubbleWitch3Saga"
-    Uninstall-AppxPackageAndWait "king.com.CandyCrushFriends"
-    Uninstall-AppxPackageAndWait "king.com.CandyCrushSaga"
-    Uninstall-AppxPackageAndWait "king.com.CandyCrushSodaSaga"
-    Uninstall-AppxPackageAndWait "king.com.FarmHeroesSaga"
-    Uninstall-AppxPackageAndWait "Nordcurrent.CookingFever"
-    Uninstall-AppxPackageAndWait "PandoraMediaInc.29680B314EFC2"
-    Uninstall-AppxPackageAndWait "PricelinePartnerNetwork.Booking.comBigsavingsonhot"
-    Uninstall-AppxPackageAndWait "SpotifyAB.SpotifyMusic"
-    Uninstall-AppxPackageAndWait "ThumbmunkeysLtd.PhototasticCollage"
-    Uninstall-AppxPackageAndWait "WinZipComputing.WinZipUniversal"
-    Uninstall-AppxPackageAndWait "XINGAG.XING"
-}
-UninstallThirdPartyBloat
-
 function Disable-WindowsGaming {
     [CmdletBinding(SupportsShouldProcess)]
     param()
@@ -1234,6 +1083,164 @@ function SortOutTimeManagement {
     }
 }
 SortOutTimeManagement
+
+
+function Uninstall-AppxPackageAndWait {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PackageName
+    )
+
+    # Get the package for all users
+    $package = Get-AppxPackage $PackageName -AllUsers
+
+    if (-not $package) {
+        Write-Host "Package '$PackageName' is not installed."
+        return
+    }
+
+    try {
+        Write-Host "Uninstalling '$PackageName' for all users..."
+        Remove-AppxPackage -Package $package.PackageFullName -AllUsers
+    }
+    catch {
+        Write-Log -Message "Error uninstalling: $($_.Exception.message)"
+        Write-Warning "Error: $($_.Exception.message)"
+    }
+        
+    # Wait for the package to be fully uninstalled
+    do {
+        Start-Sleep -Seconds 2
+        $stillInstalled = Get-AppxPackage $PackageName -AllUsers
+    } while ($stillInstalled)
+
+    Write-Host "Package '$PackageName' has been successfully uninstalled."
+}
+
+# Uninstall default Microsoft applications
+Function UninstallMsftBloat {
+    Write-Output "Uninstalling Microsoft application Bloat..."
+
+    ## Import-Module Appx
+    Uninstall-AppxPackageAndWait "Microsoft.GamingApp"
+    Uninstall-AppxPackageAndWait "Microsoft.XboxIdentityProvider"
+    Uninstall-AppxPackageAndWait "Microsoft.Xbox.TCUI"
+    Uninstall-AppxPackageAndWait "Microsoft.Windows.DevHome"  
+    Uninstall-AppxPackageAndWait "Clipchamp.Clipchamp"
+    Uninstall-AppxPackageAndWait "Microsoft.3DBuilder"
+    Uninstall-AppxPackageAndWait "Microsoft.AppConnector"
+    Uninstall-AppxPackageAndWait "Microsoft.BingFinance"
+    Uninstall-AppxPackageAndWait "Microsoft.BingFoodAndDrink"
+    Uninstall-AppxPackageAndWait "Microsoft.BingHealthAndFitness"
+    Uninstall-AppxPackageAndWait "Microsoft.BingMaps"
+    Uninstall-AppxPackageAndWait "Microsoft.BingNews"
+    Uninstall-AppxPackageAndWait "Microsoft.BingSports"
+    Uninstall-AppxPackageAndWait "Microsoft.BingTranslator"
+    Uninstall-AppxPackageAndWait "Microsoft.BingTravel"
+    Uninstall-AppxPackageAndWait "Microsoft.BingWeather"
+    Uninstall-AppxPackageAndWait "Microsoft.CommsPhone"
+    Uninstall-AppxPackageAndWait "Microsoft.ConnectivityStore"
+    Uninstall-AppxPackageAndWait "Microsoft.FreshPaint"
+    Uninstall-AppxPackageAndWait "Microsoft.GetHelp"
+    Uninstall-AppxPackageAndWait "Microsoft.Getstarted"
+    Uninstall-AppxPackageAndWait "Microsoft.HelpAndTips"
+    Uninstall-AppxPackageAndWait "Microsoft.Media.PlayReadyClient.2"
+    Uninstall-AppxPackageAndWait "Microsoft.Messaging"
+    Uninstall-AppxPackageAndWait "Microsoft.Microsoft3DViewer"
+    Uninstall-AppxPackageAndWait "Microsoft.MicrosoftOfficeHub"
+    Uninstall-AppxPackageAndWait "Microsoft.MicrosoftPowerBIForWindows"
+    Uninstall-AppxPackageAndWait "Microsoft.MicrosoftSolitaireCollection"
+    Uninstall-AppxPackageAndWait "Microsoft.MicrosoftStickyNotes"
+    Uninstall-AppxPackageAndWait "Microsoft.MinecraftUWP"
+    Uninstall-AppxPackageAndWait "Microsoft.MixedReality.Portal"
+    Uninstall-AppxPackageAndWait "Microsoft.MoCamera"
+    Uninstall-AppxPackageAndWait "Microsoft.MSPaint"
+    Uninstall-AppxPackageAndWait "Microsoft.NetworkSpeedTest"
+    Uninstall-AppxPackageAndWait "Microsoft.OfficeLens"
+    Uninstall-AppxPackageAndWait "Microsoft.Office.OneNote"
+    Uninstall-AppxPackageAndWait "Microsoft.Office.Sway"
+    Uninstall-AppxPackageAndWait "Microsoft.OneConnect"
+    Uninstall-AppxPackageAndWait "Microsoft.OutlookForWindows"
+    Uninstall-AppxPackageAndWait "Microsoft.People"
+    Uninstall-AppxPackageAndWait "Microsoft.PowerAutomateDesktop"
+    Uninstall-AppxPackageAndWait "Microsoft.Print3D"
+    Uninstall-AppxPackageAndWait "Microsoft.Reader"
+    Uninstall-AppxPackageAndWait "Microsoft.RemoteDesktop"
+    Uninstall-AppxPackageAndWait "Microsoft.SkypeApp"
+    Uninstall-AppxPackageAndWait "Microsoft.Todos"
+    Uninstall-AppxPackageAndWait "Microsoft.Wallet"
+    Uninstall-AppxPackageAndWait "Microsoft.WebMediaExtensions"
+    Uninstall-AppxPackageAndWait "Microsoft.Whiteboard"
+    Uninstall-AppxPackageAndWait "Microsoft.WindowsAlarms"
+    Uninstall-AppxPackageAndWait "Microsoft.WindowsCamera"
+    Uninstall-AppxPackageAndWait "microsoft.windowscommunicationsapps"
+    Uninstall-AppxPackageAndWait "Microsoft.WindowsFeedbackHub"
+    Uninstall-AppxPackageAndWait "Microsoft.WindowsMaps"
+    Uninstall-AppxPackageAndWait "Microsoft.WindowsPhone"
+    Uninstall-AppxPackageAndWait "Microsoft.Windows.Photos"
+    Uninstall-AppxPackageAndWait "Microsoft.WindowsReadingList"
+    Uninstall-AppxPackageAndWait "Microsoft.WindowsScan"
+    Uninstall-AppxPackageAndWait "Microsoft.WindowsSoundRecorder"
+    Uninstall-AppxPackageAndWait "Microsoft.WinJS.1.0"
+    Uninstall-AppxPackageAndWait "Microsoft.WinJS.2.0"
+    Uninstall-AppxPackageAndWait "Microsoft.YourPhone"
+    Uninstall-AppxPackageAndWait "Microsoft.ZuneMusic"
+    Uninstall-AppxPackageAndWait "Microsoft.ZuneVideo"
+    Uninstall-AppxPackageAndWait "Microsoft.Advertising.Xaml" # Dependency for microsoft.windowscommunicationsapps, Microsoft.BingWeather
+}
+#UninstallMsftBloat
+
+# Uninstall default third party applications
+function UninstallThirdPartyBloat {
+    Write-Output "Uninstalling 3rd Party application Bloat..."
+    ## Import-Module Appx
+    Uninstall-AppxPackageAndWait "2414FC7A.Viber"
+    Uninstall-AppxPackageAndWait "41038Axilesoft.ACGMediaPlayer"
+    Uninstall-AppxPackageAndWait "46928bounde.EclipseManager"
+    Uninstall-AppxPackageAndWait "4DF9E0F8.Netflix"
+    Uninstall-AppxPackageAndWait "64885BlueEdge.OneCalendar"
+    Uninstall-AppxPackageAndWait "7EE7776C.LinkedInforWindows"
+    Uninstall-AppxPackageAndWait "828B5831.HiddenCityMysteryofShadows"
+    Uninstall-AppxPackageAndWait "89006A2E.AutodeskSketchBook"
+    Uninstall-AppxPackageAndWait "9E2F88E3.Twitter"
+    Uninstall-AppxPackageAndWait "A278AB0D.DisneyMagicKingdoms"
+    Uninstall-AppxPackageAndWait "A278AB0D.DragonManiaLegends"
+    Uninstall-AppxPackageAndWait "A278AB0D.MarchofEmpires"
+    Uninstall-AppxPackageAndWait "ActiproSoftwareLLC.562882FEEB491"
+    Uninstall-AppxPackageAndWait "AD2F1837.GettingStartedwithWindows8"
+    Uninstall-AppxPackageAndWait "AD2F1837.HPJumpStart"
+    Uninstall-AppxPackageAndWait "AD2F1837.HPRegistration"
+    Uninstall-AppxPackageAndWait "AdobeSystemsIncorporated.AdobePhotoshopExpress"
+    Uninstall-AppxPackageAndWait "Amazon.com.Amazon"
+    Uninstall-AppxPackageAndWait "C27EB4BA.DropboxOEM"
+    Uninstall-AppxPackageAndWait "CAF9E577.Plex"
+    Uninstall-AppxPackageAndWait "CyberLinkCorp.hs.PowerMediaPlayer14forHPConsumerPC"
+    Uninstall-AppxPackageAndWait "D52A8D61.FarmVille2CountryEscape"
+    Uninstall-AppxPackageAndWait "D5EA27B7.Duolingo-LearnLanguagesforFree"
+    Uninstall-AppxPackageAndWait "DB6EA5DB.CyberLinkMediaSuiteEssentials"
+    Uninstall-AppxPackageAndWait "DolbyLaboratories.DolbyAccess"
+    Uninstall-AppxPackageAndWait "Drawboard.DrawboardPDF"
+    Uninstall-AppxPackageAndWait "Facebook.Facebook"
+    Uninstall-AppxPackageAndWait "Fitbit.FitbitCoach"
+    Uninstall-AppxPackageAndWait "flaregamesGmbH.RoyalRevolt2"
+    Uninstall-AppxPackageAndWait "GAMELOFTSA.Asphalt8Airborne"
+    Uninstall-AppxPackageAndWait "KeeperSecurityInc.Keeper"
+    Uninstall-AppxPackageAndWait "king.com.BubbleWitch3Saga"
+    Uninstall-AppxPackageAndWait "king.com.CandyCrushFriends"
+    Uninstall-AppxPackageAndWait "king.com.CandyCrushSaga"
+    Uninstall-AppxPackageAndWait "king.com.CandyCrushSodaSaga"
+    Uninstall-AppxPackageAndWait "king.com.FarmHeroesSaga"
+    Uninstall-AppxPackageAndWait "Nordcurrent.CookingFever"
+    Uninstall-AppxPackageAndWait "PandoraMediaInc.29680B314EFC2"
+    Uninstall-AppxPackageAndWait "PricelinePartnerNetwork.Booking.comBigsavingsonhot"
+    Uninstall-AppxPackageAndWait "SpotifyAB.SpotifyMusic"
+    Uninstall-AppxPackageAndWait "ThumbmunkeysLtd.PhototasticCollage"
+    Uninstall-AppxPackageAndWait "WinZipComputing.WinZipUniversal"
+    Uninstall-AppxPackageAndWait "XINGAG.XING"
+}
+#UninstallThirdPartyBloat
+
 
 Write-Host "Restarting Windows Explorer..."
 Stop-Process -Name explorer -Force
