@@ -158,7 +158,7 @@ function Disable-MsnFeedsAndWidgets {
     # 3. Disable Search Highlights
     try {
         $searchKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
-        New-Item -Path $searchKey -Force | Out-Null
+        New-Item -Path $searchKey -Force | Out-Null ## Get weird error message: Attempted to perform an unauthorized operation.
         New-ItemProperty -Path $searchKey -Name "IsDynamicSearchBoxEnabled" -Value 0 -PropertyType DWord -Force | Out-Null
         New-ItemProperty -Path $searchKey -Name "IsDynamicSearchBoxEnabledOnTablet" -Value 0 -PropertyType DWord -Force | Out-Null
         Write-Host "✅ Search highlights disabled."
@@ -243,7 +243,6 @@ Function DisableAutoplay {
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" -Name "DisableAutoplay" -Type DWord -Value 1
     Ensure-RegistryValue -Hive HKCU -SubKey 'Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers' -Name 'DisableAutoplay' -Value '1' -Type 'DWORD'
 }
-
 DisableAutoplay
 
 # Disable Autorun for all drives
@@ -309,7 +308,6 @@ Function SetSoundSchemeNone {
     }
     Set-ItemProperty -Path "HKCU:\AppEvents\Schemes" -Name "(Default)" -Type String -Value $SoundScheme
 }
-
 SetSoundSchemeNone
 
 # Disable playing Windows Startup sound
@@ -532,45 +530,34 @@ Function InstallNET23 {
 
 # Uninstall Internet Explorer (not applicable on later Windows 10/11 builds)
 Function UninstallInternetExplorer {
-    Write-Output "Uninstalling Internet Explorer..."
-    Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -like "Internet-Explorer-Optional*" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
-    Get-WindowsCapability -Online | Where-Object { $_.Name -like "Browser.InternetExplorer*" } | Remove-WindowsCapability -Online | Out-Null
+    try {
+        Write-Output "Uninstalling Internet Explorer..."
+        Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -like "Internet-Explorer-Optional*" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
+        Get-WindowsCapability -Online | Where-Object { $_.Name -like "Browser.InternetExplorer*" } | Remove-WindowsCapability -Online | Out-Null
+    }
+    catch {
+        Write-Warning "❌ Failed to uninstall Internet Explorer: $_"
+    }
 }
 UninstallInternetExplorer
 
-Write-Output "Uninstalling Windows System bloat..."
 # Uninstall Work Folders Client - never used
-Function UninstallWorkFolders {
-    Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WorkFolders-Client" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
+Function RemoveSystemBloat {
+    try {
+        Write-Output "Uninstalling Windows System bloat..."
+        Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WorkFolders-Client" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
+        Get-WindowsCapability -Online | Where-Object { $_.Name -like "Microsoft.Windows.PowerShell.ISE*" } | Remove-WindowsCapability -Online | Out-Null
+        Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "Printing-XPSServices-Features" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
+        Remove-Printer -Name "Fax" -ErrorAction SilentlyContinue
+        Write-Output "Uninstalling Windows Fax and Scan..."
+        Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "FaxServicesClientPackage" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
+        Get-WindowsCapability -Online | Where-Object { $_.Name -like "Print.Fax.Scan*" } | Remove-WindowsCapability -Online | Out-Null
+    }
+    catch {
+       Write-Warning "❌ Failed to uninstall some of the bloat: $_"
+    }
 }
-UninstallWorkFolders
-
-# Uninstall PowerShell Integrated Scripting Environment - Applicable since 2004
-# Note: Also removes built-in graphical methods like Out-GridView
-Function UninstallPowerShellISE {
-    Get-WindowsCapability -Online | Where-Object { $_.Name -like "Microsoft.Windows.PowerShell.ISE*" } | Remove-WindowsCapability -Online | Out-Null
-}
-## UninstallPowerShellISE
-
-# Uninstall Microsoft XPS Document Writer
-Function UninstallXPSPrinter {
-    Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "Printing-XPSServices-Features" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
-}
-UninstallXPSPrinter
-
-# Remove Default Fax Printer
-Function RemoveFaxPrinter {
-    Remove-Printer -Name "Fax" -ErrorAction SilentlyContinue
-}
-RemoveFaxPrinter
-
-# Uninstall Windows Fax and Scan Services
-Function UninstallFaxAndScan {
-    Write-Output "Uninstalling Windows Fax and Scan..."
-    Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "FaxServicesClientPackage" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
-    Get-WindowsCapability -Online | Where-Object { $_.Name -like "Print.Fax.Scan*" } | Remove-WindowsCapability -Online | Out-Null
-}
-UninstallFaxAndScan
+RemoveSystemBloat
 
 # Hide Server Manager after login (applicable to Servers only)
 Function HideServerManagerOnLogin {
@@ -599,7 +586,6 @@ Function DisableIEEnhancedSecurity {
         Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A8-37EF-4b3f-8CFC-4F3A74704073}" -Name "IsInstalled" -Type DWord -Value 0
     }
 }
-
 DisableIEEnhancedSecurity
 
 Write-Output "Uninstalling Microsoft application Bloat..."
@@ -751,7 +737,6 @@ function UninstallThirdPartyBloat {
     Uninstall-AppxPackageAndWait "WinZipComputing.WinZipUniversal"
     Uninstall-AppxPackageAndWait "XINGAG.XING"
 }
-
 UninstallThirdPartyBloat
 
 function Disable-WindowsGaming {
@@ -1070,7 +1055,6 @@ function EnableClipboardHistorySync {
 
     Write-Output "Clipboard history has been enabled."
 }
-
 EnableClipboardHistorySync
 
 ## Gets rid of banner at top of MSTerminal screen (effective after a reboot)
@@ -1136,7 +1120,6 @@ function Set-DefaultTerminalToWindowsTerminal {
         return $false
     }
 }
-
 Set-DefaultTerminalToWindowsTerminal -AllUsers
 
 function DisableSearchonStartMenu {
@@ -1145,7 +1128,6 @@ function DisableSearchonStartMenu {
     if (-not (Test-Path $Path)) { New-Item -Path $Path -Force | Out-Null }
     New-ItemProperty -Path $Path -Name "DisableSearchBoxSuggestions" -Value 1 -PropertyType DWord -Force | Out-Null
 }
-
 DisableSearchonStartMenu
 
 Write-Output "Configuring Media..."
@@ -1153,7 +1135,6 @@ Function UninstallMediaPlayer {
     Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WindowsMediaPlayer" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
     Get-WindowsCapability -Online | Where-Object { $_.Name -like "Media.WindowsMediaPlayer*" } | Remove-WindowsCapability -Online | Out-Null
 }
-
 UninstallMediaPlayer
 
 function Install-VLC {
@@ -1210,7 +1191,6 @@ function Install-VLC {
 
     Write-Host "✅ VLC set as default media player for current user. Logoff/logon may be required."
 }
-
 Install-VLC
 
 function SortOutTimeManagement {
@@ -1253,7 +1233,6 @@ function SortOutTimeManagement {
         Start-Service -Name W32Time
     }
 }
-
 SortOutTimeManagement
 
 Write-Host "Restarting Windows Explorer..."
