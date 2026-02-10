@@ -1089,7 +1089,6 @@ function SortOutTimeManagement {
 }
 SortOutTimeManagement
 
-
 function Uninstall-AppxPackageAndWait {
     [CmdletBinding()]
     param(
@@ -1107,7 +1106,12 @@ function Uninstall-AppxPackageAndWait {
 
     try {
         Write-Host "Uninstalling '$PackageName' for all users..."
-        Remove-AppxPackage -Package $package.PackageFullName -AllUsers
+        Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
+Remove-AppxPackage `
+  -Package $package.PackageFullName
+  -AllUsers
+'@
+##        Remove-AppxPackage -Package $package.PackageFullName -AllUsers
     }
     catch {
         Write-Log -Message "Error uninstalling: $($_.Exception.message)"
