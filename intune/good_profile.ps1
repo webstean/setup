@@ -92,6 +92,32 @@ function Get-ConstrainedLanguageState {
     }
 }
 
+function Invoke-WindowsPowerShell {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$ScriptBlock,
+
+        [switch]$AsAdmin
+    )
+
+    $ps51 = "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe"
+
+    $args = @(
+        '-NoProfile'
+        '-ExecutionPolicy', 'Bypass'
+        '-Command', $ScriptBlock
+    )
+
+    if ($AsAdmin) {
+        Start-Process -FilePath $ps51 -ArgumentList $args -Verb RunAs -Wait
+    }
+    else {
+        & $ps51 @args
+    }
+}
+
+
 ## FullLanguage: No restrictions (default in most PowerShell sessions)
 ## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
 ## RestrictedLanguage: Very limited (e.g., only basic expressions)
