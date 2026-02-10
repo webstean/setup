@@ -87,16 +87,10 @@ function Get-ConstrainedLanguageState {
         LanguageMode    = $languageMode
         LockdownPolicy  = $lockdownPolicy
         IsConstrained   = ($languageMode -eq 'ConstrainedLanguage')
-        EnforcementMode = switch ($lockdownPolicy) {
-            0 { 'Not enabled' }
-            4 { 'Enforced' }
-            8 { 'Audit' }
-            default { 'Unknown' }
-        }
+        IsAudit         = (Get-ClmAuditState.IsAudit -eq true)
+        IsEnforced      = (Get-ClmAuditState.IsEnforced -eq true)
     }
 }
-
-
 
 ## FullLanguage: No restrictions (default in most PowerShell sessions)
 ## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
