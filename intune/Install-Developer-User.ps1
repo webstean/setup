@@ -105,7 +105,8 @@ function Set-VSCodeProtocolPolicy {
         Write-Host "Restart Edge and check edge://policy to confirm the policy is applied." -ForegroundColor Cyan
     }
 }
-Set-VSCodeProtocolPolicy -IncludeGithubDev:$true
+Set-VSCodeProtocolPolicy -IncludeGithubDev:$true -Scope Machine
+Set-VSCodeProtocolPolicy -IncludeGithubDev:$true -Scope User
 
 ## Helper Function for JSON files
 function Set-JsonValue {
