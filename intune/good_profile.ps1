@@ -44,6 +44,60 @@ function Update-Profile-Force {
 }
 #Update-Profile-Force
 
+function Get-ClmAuditState {
+    [CmdletBinding()]
+    param()
+
+    $languageMode = $ExecutionContext.SessionState.LanguageMode
+
+    $systemPolicy = $null
+    try {
+        $systemPolicy = [System.Management.Automation.Security.SystemPolicy]::GetSystemLockdownPolicy()
+    } catch {
+        # Not available on some hosts / older PowerShell
+    }
+
+    # Fallback: environment variable (often registry-backed)
+    $envPolicy = $null
+    if (Test-Path Env:\__PSLockdownPolicy) {
+        $envPolicy = $env:__PSLockdownPolicy
+    }
+
+    [pscustomobject]@{
+        LanguageMode        = $languageMode
+        SystemLockdownMode  = $systemPolicy   # None / Audit / Enforce (when available)
+        EnvLockdownPolicy   = $envPolicy      # raw value when set
+        IsConstrained       = ($languageMode -eq 'ConstrainedLanguage')
+        IsAudit             = ($systemPolicy -eq 'Audit') -or ($envPolicy -eq '8')
+        IsEnforced          = ($systemPolicy -eq 'Enforce') -or ($envPolicy -eq '4')
+        Confidence          = if ($systemPolicy) { 'High (SystemPolicy)' }
+                              elseif ($envPolicy) { 'Medium (Env var)' }
+                              else { 'Low (cannot determine audit vs enforce here)' }
+    }
+}
+
+function Get-ConstrainedLanguageState {
+    [CmdletBinding()]
+    param()
+
+    $languageMode = $ExecutionContext.SessionState.LanguageMode
+    $lockdownPolicy = $ExecutionContext.SessionState.PSVariable.GetValue('__PSLockdownPolicy')
+
+    [pscustomobject]@{
+        LanguageMode    = $languageMode
+        LockdownPolicy  = $lockdownPolicy
+        IsConstrained   = ($languageMode -eq 'ConstrainedLanguage')
+        EnforcementMode = switch ($lockdownPolicy) {
+            0 { 'Not enabled' }
+            4 { 'Enforced' }
+            8 { 'Audit' }
+            default { 'Unknown' }
+        }
+    }
+}
+
+
+
 ## FullLanguage: No restrictions (default in most PowerShell sessions)
 ## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
 ## RestrictedLanguage: Very limited (e.g., only basic expressions)
