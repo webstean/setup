@@ -374,15 +374,15 @@ properties:
         id: Kubernetes.kubectl
         source: winget
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Azure.VPN
-      directives:
-        description: Installing Azure VPN Client
-        allowPrerelease: false
-        securityContext: current
-      settings:
-        id: 9NP355QT2SQB
-        source: msstore
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Azure.VPN
+#      directives:
+#        description: Installing Azure VPN Client
+#        allowPrerelease: false
+#        securityContext: current
+#      settings:
+#        id: 9NP355QT2SQB
+#        source: msstore
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.Azd
