@@ -981,8 +981,13 @@ DisableSearchonStartMenu
 
 Write-Output "Configuring Media..."
 Function UninstallMediaPlayer {
-    Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WindowsMediaPlayer" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
-    Get-WindowsCapability -Online | Where-Object { $_.Name -like "Media.WindowsMediaPlayer*" } | Remove-WindowsCapability -Online | Out-Null
+    try {
+        Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WindowsMediaPlayer" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
+        Get-WindowsCapability -Online | Where-Object { $_.Name -like "Media.WindowsMediaPlayer*" } | Remove-WindowsCapability -Online | Out-Null
+    }
+    catch {
+        Write-Warning "❌ Failed to uninstall Widows Media Player (yuk!): $_"
+    }
 }
 UninstallMediaPlayer
 
