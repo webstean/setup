@@ -372,7 +372,8 @@ function Invoke-WingetConfiguration-Developer {
     #winget configure show     --file developer.winget --ignore-warnings --disable-interactivity --verbose-logs
     if ( Test-Path "${destination}\developer.winget" ) {
         #winget configure --file developer.winget --accept-configuration-agreements --suppress-initial-details --disable-interactivity --verbose-logs
-        winget configure --enable 
+        winget configure --enable
+        winget settings --enable  ProxyCommandLineOptions ## valid values are: LocalManifestFiles, BypassCertificatePinningForMicrosoftStore, InstallerHashOverride, LocalArchiveMalwareScanOverride, ProxyCommandLineOptions
         winget configure --file ${destination}\developer.winget --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
     } else {
         Write-Host "${destination}\developer.winget not found!!"
