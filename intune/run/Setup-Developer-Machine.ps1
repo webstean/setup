@@ -2,6 +2,32 @@
 
 $elapsed = [System.Diagnostics.Stopwatch]::StartNew()
 
+## global function: to run Windows Powershell
+function Invoke-WindowsPowerShell {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$ScriptBlock,
+
+        [switch]$AsAdmin
+    )
+
+    $ps51 = "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe"
+
+    $args = @(
+        '-NoProfile'
+        '-ExecutionPolicy', 'Bypass'
+        '-Command', $ScriptBlock
+    )
+
+    if ($AsAdmin) {
+        Start-Process -FilePath $ps51 -ArgumentList $args -Verb RunAs -Wait
+    }
+    else {
+        & $ps51 @args
+    }
+}
+
 function Install-DotNetDesktopRuntime {
     param(
         [string]$DownloadUrl = "https://download.visualstudio.microsoft.com/download/pr/.../windowsdesktop-runtime-9.0.10-win-x64.exe",
