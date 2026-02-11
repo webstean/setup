@@ -439,7 +439,8 @@ if (Get-Command sudo ) {
     sudo config --enable enable
     ## https://raw.githubusercontent.com/microsoft/sudo/refs/heads/main/scripts/sudo.ps1
 }
-
+Write-Output "Install Windows components that Developers need..." 
+        
 ## Enable/Install Features
 #if ($PSVersionTable.PSVersion.Major -eq 5) {
 #    Write-Output "Running in Windows PowerShell."
