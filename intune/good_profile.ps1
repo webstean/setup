@@ -87,8 +87,8 @@ function Get-ConstrainedLanguageState {
         LanguageMode    = $languageMode
         LockdownPolicy  = $lockdownPolicy
         IsConstrained   = ($languageMode -eq 'ConstrainedLanguage')
-        IsAudit         = ((Get-ClmAuditState).IsAudit -eq true)
-        IsEnforced      = ((Get-ClmAuditState).IsEnforced -eq true)
+        IsAudit         = ((Get-ClmAuditState).IsAudit -eq $true)
+        IsEnforced      = ((Get-ClmAuditState).IsEnforced -eq $true)
     }
 }
 
