@@ -2593,7 +2593,7 @@ function Get-EntraDelegatedGrantsReport {
 function Test-TlsConnection {
     <#
     .SYNOPSIS
-        Tests HTTPS connectivity and TLS validation for a given URL.
+        Tests HTTPS connectivity and TLS/certificate validation for a given URL.
 
     .PARAMETER Url
         The HTTPS URL to test (default: https://example.com)
@@ -2609,40 +2609,106 @@ function Test-TlsConnection {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $false)]
-        [string]$Url = "https://cnn.com",
+        [Parameter()]
+        [ValidateNotNullOrEmpty()]
+        [string]$Url = 'https://example.com',
 
+        [Parameter()]
+        [ValidateRange(1,300)]
         [int]$TimeoutSeconds = 5
     )
 
+    # Normalize / validate URL
+    if ($Url -notmatch '^\w+://') { $Url = "https://$Url" }
+
+    $uri = $null
+    try { $uri = [Uri]$Url } catch { throw "Invalid Url: $Url" }
+    if ($uri.Scheme -ne 'https') { throw "Url must be HTTPS: $Url" }
+
+    $handler = $null
+    $client  = $null
+    $response = $null
+
+    # Capture TLS/cert info
+    $cert2 = $null
+    $sslErrors = $null
+
     try {
         $handler = [System.Net.Http.HttpClientHandler]::new()
-        $client  = [System.Net.Http.HttpClient]::new($handler)
-        $client.Timeout = [TimeSpan]::FromSeconds($TimeoutSeconds)
 
-        $response = $client.GetAsync($Url).Result
+        # Capture certificate details and any policy errors
+        $handler.ServerCertificateCustomValidationCallback = {
+            param($req, $cert, $chain, $errors)
 
-        Write-Host "✅ HTTPS OK ($($response.StatusCode)) - $Url" -ForegroundColor Green
-        return [pscustomobject]@{
-            Url          = $Url
-            StatusCode   = [int]$response.StatusCode
-            ReasonPhrase = $response.ReasonPhrase
-            Success      = $response.IsSuccessStatusCode
+            if ($cert) {
+                try { $script:cert2 = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($cert) } catch { }
+            }
+            $script:sslErrors = $errors
+
+            # Return $true only when there are no SSL policy errors (i.e., "valid")
+            return ($errors -eq [System.Net.Security.SslPolicyErrors]::None)
+        }
+
+        $client = [System.Net.Http.HttpClient]::new($handler)
+
+        # Reliable timeout with cancellation token
+        $cts = [System.Threading.CancellationTokenSource]::new([TimeSpan]::FromSeconds($TimeoutSeconds))
+
+        # Ask for headers only (faster) then dispose
+        $response = $client.GetAsync($uri, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead, $cts.Token).GetAwaiter().GetResult()
+
+        $tlsProtocol = $null
+        try {
+            # Best-effort: only available if HttpClient exposes the underlying connection info (often not).
+            # So we return null unless we can infer via SslStream (not directly accessible here).
+            $tlsProtocol = $null
+        } catch { }
+
+        $ok = $response.IsSuccessStatusCode -and ($sslErrors -eq [System.Net.Security.SslPolicyErrors]::None)
+
+        if ($ok) {
+            Write-Host "✅ HTTPS + TLS OK ($($response.StatusCode)) - $Url" -ForegroundColor Green
+        } else {
+            Write-Warning "⚠️ HTTPS connected but TLS policy errors: $sslErrors - $Url"
+        }
+
+        [pscustomobject]@{
+            Url            = $uri.AbsoluteUri
+            StatusCode     = [int]$response.StatusCode
+            ReasonPhrase   = $response.ReasonPhrase
+            HttpSuccess    = $response.IsSuccessStatusCode
+            TlsValid       = ($sslErrors -eq [System.Net.Security.SslPolicyErrors]::None)
+            SslPolicyErrors= $sslErrors
+            CertSubject    = $cert2?.Subject
+            CertIssuer     = $cert2?.Issuer
+            CertThumbprint = $cert2?.Thumbprint
+            CertNotBefore  = $cert2?.NotBefore
+            CertNotAfter   = $cert2?.NotAfter
+            TimeoutSeconds = $TimeoutSeconds
         }
     }
     catch {
-        Write-Warning "❌ HTTPS validation failed for $Url — $($_.Exception.Message)"
-        return [pscustomobject]@{
-            Url          = $Url
-            StatusCode   = $null
-            ReasonPhrase = $null
-            Success      = $false
-            Error        = $_.Exception.Message
+        Write-Warning "❌ HTTPS/TLS failed for $Url — $($_.Exception.Message)"
+        [pscustomobject]@{
+            Url            = $Url
+            StatusCode     = $null
+            ReasonPhrase   = $null
+            HttpSuccess    = $false
+            TlsValid       = $false
+            SslPolicyErrors= $sslErrors
+            CertSubject    = $cert2?.Subject
+            CertIssuer     = $cert2?.Issuer
+            CertThumbprint = $cert2?.Thumbprint
+            CertNotBefore  = $cert2?.NotBefore
+            CertNotAfter   = $cert2?.NotAfter
+            TimeoutSeconds = $TimeoutSeconds
+            Error          = $_.Exception.Message
         }
     }
     finally {
-        $client?.Dispose()
-        $handler?.Dispose()
+        if ($response) { $response.Dispose() }
+        if ($client)   { $client.Dispose() }
+        if ($handler)  { $handler.Dispose() }
     }
 }
 
