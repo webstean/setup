@@ -4,7 +4,7 @@
 ## ==> IPv4 is preferred and it suggested you disabled IPv6 is you have issues: https://learn.microsoft.com/en-us/entra/global-secure-access/troubleshoot-global-secure-access-client-diagnostics-health-check#ipv4-preferred
 ## ==> DNS over HTTP not supported: https://learn.microsoft.com/en-us/entra/global-secure-access/troubleshoot-global-secure-access-client-diagnostics-health-check#dns-over-https-not-supported
 ## ==> QUIC is not supported for Internet Access, but is supported for Private Access and Microsoft 365 workloads.
-## These change won't be fully effective until after reboot.
+## These changes won't be fully effective until after reboot.
 function CreateIfNotExists {
     param($Path)
     if (-NOT (Test-Path $Path)) {
