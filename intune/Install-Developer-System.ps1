@@ -485,7 +485,7 @@ Enable-WindowsOptionalFeature `
         }
     }
     catch {
-        Write-Output "Exception with $_"
+        Write-Output "Exception $_ when removing Windows compoents"
     }
 }
 
@@ -496,15 +496,23 @@ $features_to_disable = @(
 $features_to_disable | ForEach-Object {
     try {
         Write-Output "Disabling Windows Feature: $_" 
-        $feature = Get-WindowsOptionalFeature -FeatureName "$_" -Online
+        $feature = Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
+Get-WindowsOptionalFeature `
+   -FeatureName "$_" `
+   -Online `
+'@
         if ($feature -and ($feature.State -eq "Enabled")) {
             Write-Output ("Disabling $_...") 
-            Disable-WindowsOptionalFeature -FeatureName "$_" -Online -NoRestart
+            Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
+Disable-WindowsOptionalFeature `
+    -FeatureName "$_" `
+    -Online `
+    -NoRestart `
+'@
         }
     }
     catch {
-        Write-Output "Exception with $_"
-        Exit-WithError $_
+        Write-Output "Exception $_ when install Windows compoents"
     }
 }
 
