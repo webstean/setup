@@ -994,7 +994,7 @@ Function UninstallMediaPlayer {
         Get-WindowsCapability -Online | Where-Object { $_.Name -like "Media.WindowsMediaPlayer*" } | Remove-WindowsCapability -Online | Out-Null
     }
     catch {
-        Write-Warning "❌ Failed to uninstall Widows Media Player (yuk!): $_"
+        Write-Warning "❌ Failed to uninstall Windows Media Player (yuk!): $_"
     }
 }
 UninstallMediaPlayer
