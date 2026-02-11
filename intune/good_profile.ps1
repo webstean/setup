@@ -1,4 +1,4 @@
-## Note: This FILE is ASCII encoded, for compatibility with Windows Powershell, so any Unicode characters need to be eliminated
+hidlitem## Note: This FILE is ASCII encoded, for compatibility with Windows Powershell, so any Unicode characters need to be eliminated
 
 #Set-ExecutionPolicy Unrestricted -Scope Process
 #Set-ExecutionPolicy Unrestricted -Scope CurrentUser
@@ -215,7 +215,7 @@ function Search {
         [string]$Filter
     )
 
-    Get-ChildItem -Path "$env:SYSTEMDRIVE\" -Recurse -ErrorAction SilentlyContinue -Filter $Filter
+    Get-ChildItem -Path "$env:SystemDrive\" -Recurse -Filter $Filter -Force 2>$null
 }
 
 function Reset-Podman {
