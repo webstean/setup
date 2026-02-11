@@ -103,6 +103,10 @@ function Install-OrUpdate-Module {
         [switch]$Prerelease          # Optional: install prerelease versions
     )
 
+    ## Turn off verbose
+    $preserve = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose']   = $false
+    
     # Check if PSResourceGet is available
     if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
         Write-Host "PSResourceGet not found. Installing it first..." -ForegroundColor Yellow
@@ -139,6 +143,9 @@ function Install-OrUpdate-Module {
     catch {
         Write-Host "❌ Failed to install or update '$ModuleName': $_" -ForegroundColor Red
     }
+
+    ## REturn verbose to previous value
+    $PSDefaultParameterValues['*:Verbose']   = $preserve
 }
 
 ## Get rid of deprecated modules
