@@ -1127,18 +1127,18 @@ properties:
         Name: ms-dotnettools.csdevkit
 
     # VS Code golang.Go extension
-    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.golang.Go.extension
-      dependsOn:
-        - Microsoft.VisualStudioCode
-        - GoLang.Go
-      directives:
-        description: Install Go Lang extension
-        allowPrerelease: true
-        securityContext: current
-        edition: stable
-      settings:
-        Name: golang.Go
+#    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+#      id: stable.golang.Go.extension
+#      dependsOn:
+#        - Microsoft.VisualStudioCode
+#        - GoLang.Go
+#      directives:
+#        description: Install Go Lang extension
+#        allowPrerelease: true
+#        securityContext: current
+#        edition: stable
+#      settings:
+#        Name: golang.Go
 
     # VS Code PowerShell extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
