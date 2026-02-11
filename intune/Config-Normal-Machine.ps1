@@ -111,16 +111,24 @@ DisableInbuiltDNS
 DisableQUIC
 
 function Set-NetworkProfilesToPrivate {
-    # Make all the network connection profiles private
+    [CmdletBinding()]
+    param ()
+
     $networks = Get-NetConnectionProfile
+
     foreach ($net in $networks) {
-        Write-Host "Changing '$($net.Name)' from $($net.NetworkCategory) to Private..."
-        Set-NetConnectionProfile -InterfaceIndex $net.InterfaceIndex -NetworkCategory Private
+        if ($net.NetworkCategory -ne 'Private') {
+            Write-Host "Changing '$($net.Name)' from $($net.NetworkCategory) to Private..."
+            Set-NetConnectionProfile -InterfaceIndex $net.InterfaceIndex -NetworkCategory Private -ErrorAction Stop
+        }
+        else {
+            Write-Host "'$($net.Name)' is already Private. Skipping."
+        }
     }
-    ## Verify
+
+    # Verify
     Get-NetConnectionProfile
 }
-Set-NetworkProfilesToPrivate
 
 # WANT MORE OPTIONS, see: https://github.com/petrak-dan/Win11-Initial-Setup-Script/blob/main/Win10.psm1
 # Disable News and Interests feed in Taskbar
