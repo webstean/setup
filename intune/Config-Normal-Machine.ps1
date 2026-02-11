@@ -376,7 +376,6 @@ Function HideMusicFromExplorer {
 
     Write-Host "🎵 Music folder will be hidden from 'This PC' permanently." -ForegroundColor Green
 }
-
 HideMusicFromExplorer ## does not work
 
 # Disable Internet Explorer warning when closing multiple tabs.
@@ -466,9 +465,7 @@ function Set-EdgeNoFirstRun {
         -Force | Out-Null
 
     Write-Host "✅ Microsoft Edge configured to skip first run, auto sign-in, and force sync (subject to device/account setup)."
-    Write-Host "   Restart Edge and check edge://policy to confirm policies are applied."
 }
-
 Set-EdgeNoFirstRun
 
 function Hide-WindowsSecurityFamilyOptions {
@@ -560,7 +557,7 @@ Function RemoveSystemBloat {
        Write-Warning "❌ Failed to uninstall some of the System bloat: $_"
     }
 }
-RemoveSystemBloat
+#RemoveSystemBloat
 
 # Hide Server Manager after login (applicable to Servers only)
 Function HideServerManagerOnLogin {
