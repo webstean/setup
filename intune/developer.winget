@@ -1048,6 +1048,21 @@ properties:
 #      settings:
 #        Name: microsoft-aspire.aspire-vscode
 
+
+
+    # VS Code .NET Development Extensions
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.HashiCorp.terraform
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install HashiCorp.terraform extension
+        allowPrerelease: false
+        securityContext: current
+        edition: stable
+      settings:
+        Name: HashiCorp.terraform
+
     # VS Code .NET Development Extensions
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: stable.42Crunch.vscode-openapi
