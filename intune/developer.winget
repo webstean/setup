@@ -824,7 +824,7 @@ properties:
       settings:
         ## https://learn.microsoft.com/en-us/windows/powertoys/dsc-configure
         GeneralSettings:
-          Startup: true
+          Startup: false
           EnableWarningsElevatedApps: false
           AutoDownloadUpdates: true
           ShowWhatsNewAfterUpdates: false
