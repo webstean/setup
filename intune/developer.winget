@@ -593,6 +593,26 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Elgato.StreamDeck
+      directives:
+        description: Installing Elgato.StreamDeck
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Elgato.StreamDeck
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Elgato.ControlCenter
+      directives:
+        description: Installing Elgato.ControlCenter
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Elgato.ControlCenter
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Dapr.CLI
       directives:
         description: Installing Dapr.CLI
