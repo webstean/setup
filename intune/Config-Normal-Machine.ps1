@@ -512,6 +512,8 @@ Function DisableMediaSharing {
         New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\WindowsMediaPlayer" -Force | Out-Null
     }
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\WindowsMediaPlayer" -Name "PreventLibrarySharing" -Type DWord -Value 1
+    Write-Host "✅ 'Disabled Media Sharing" -ForegroundColor Green
+}
 }
 DisableMediaSharing
 
@@ -539,7 +541,7 @@ Function UninstallInternetExplorer {
         Write-Warning "❌ Failed to uninstall Internet Explorer: $_"
     }
 }
-UninstallInternetExplorer
+#UninstallInternetExplorer
 
 # Uninstall Work Folders Client - never used
 Function RemoveSystemBloat {
