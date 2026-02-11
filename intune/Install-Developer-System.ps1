@@ -461,13 +461,27 @@ $features_to_enable = @(
     ## "SMB1Protocol-Client",
 ) | Sort-Object
 
+
 $features_to_enable | ForEach-Object {
     try {
         Write-Output "Enabling Windows Feature: $_" 
-        $feature = Get-WindowsOptionalFeature -FeatureName "$_" -Online
+        $feature = Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
+Get-WindowsOptionalFeature `
+   -FeatureName "$_" `
+   -Online `
+'@
+      
         if ($feature -and ($feature.State -eq "Disabled")) {
             Write-Output ("Enabling $_...") 
-            Enable-WindowsOptionalFeature -FeatureName "$_" -Online -All -LimitAccess -NoRestart
+            
+            Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
+Enable-WindowsOptionalFeature `
+    -FeatureName "$_" `
+    -Online `
+    -All `
+    -LimitAccess `
+    -NoRestart `
+'@
         }
     }
     catch {
