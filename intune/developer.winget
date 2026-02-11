@@ -663,15 +663,15 @@ properties:
         id: LIGHTNINGUK.ImgBurn
         source: winget
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: JanDeDobbeleer.OhMyPosh
-      directives:
-        description: Installing JanDeDobbeleer.OhMyPosh
-        allowPrerelease: false
-        securityContext: current
-      settings:
-        id: JanDeDobbeleer.OhMyPosh
-        source: winget
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: JanDeDobbeleer.OhMyPosh
+#      directives:
+#        description: Installing JanDeDobbeleer.OhMyPosh
+#        allowPrerelease: false
+#        securityContext: current
+#      settings:
+#        id: JanDeDobbeleer.OhMyPosh
+#        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Starship.Starship
@@ -693,15 +693,15 @@ properties:
         id: jqlang.jq
         source: winget
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: GoLang.Go
-      directives:
-        description: Installing GoLang.Go
-        allowPrerelease: false
-        securityContext: current
-      settings:
-        id: GoLang.Go
-        source: winget
+ #   - resource: Microsoft.WinGet.DSC/WinGetPackage
+ #     id: GoLang.Go
+ #     directives:
+ #       description: Installing GoLang.Go
+ #       allowPrerelease: false
+ #       securityContext: current
+ #     settings:
+ #       id: GoLang.Go
+ #       source: winget
 
 #    - resource: Microsoft.WinGet.DSC/WinGetPackage
 #      id: RaspberryPiFoundation.RaspberryPiImager
