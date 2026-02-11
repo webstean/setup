@@ -561,17 +561,18 @@ useradd -m -s /bin/bash -G sudo $env:UserName
     Start-Process -FilePath 'wsl' -ArgumentList "--manage $Distro --set-default-user $env:UserName" -NoNewWindow -Wait -PassThru | Out-Null
     Start-Process -FilePath 'wsl' -ArgumentList "--set-default $Distro" -NoNewWindow -Wait -PassThru | Out-Null
 
+    Write-Output ("Enabling sudo for all users in WSL...") 
     wsl -d $Distro --user root bash -c @"
-if ! (sudo grep NOPASSWD:ALL /etc/sudoers  > /dev/null 2>&1 ) ; then 
-    # Everyone
-    bash -c "echo '#Everyone - WSL' | sudo EDITOR='tee -a' visudo"
-    bash -c "echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
-    # Entra ID
-    bash -c "echo '#Azure AD - WSL' | sudo EDITOR='tee -a' visudo"
-    bash -c "echo '%sudo aad_admins=(ALL:ALL) NOPASSWD:ALL' | sudo EDITOR='tee -a' visudo"
-fi
-"@
+if ! grep -q 'NOPASSWD:ALL' /etc/sudoers; then
+    cat <<'EOF' | EDITOR='tee -a' visudo
+# Everyone - WSL
+%sudo ALL=(ALL:ALL) NOPASSWD:ALL
 
+# Azure AD - WSL
+%aad_admins ALL=(ALL:ALL) NOPASSWD:ALL
+EOF
+fi
+"@  
     $wslConfigPath = [System.IO.Path]::Combine($env:USERPROFILE, ".wslconfig")
     if (Test-Path $wslConfigPath) {
         Remove-Item -Force $wslConfigPath
@@ -592,14 +593,7 @@ hostAddressLoopback=true
 
     ## Turn of Windows PATH inside Linux
     wsl -d $Distro --user root bash -c @"
-sh -c 'echo [interop]                  >>  /etc/wsl.conf'
-sh -c 'echo appendWindowsPath = false  >>  /etc/wsl.conf'
-
-sh -c 'echo [boot]                     >>  /etc/wsl.conf'
-sh -c 'systemd = true                  >>  /etc/wsl.conf'
-
-sh -c 'echo [gpu]                      >>  /etc/wsl.conf'
-sh -c 'enabled = true                  >>  /etc/wsl.conf'
+printf '[interop]\nappendWindowsPath = false\n\n[boot]\nsystemd = true\n\n[gpu]\nenabled = true\n' > /etc/wsl.conf
 "@
 
     ## Allow Inbound connections
