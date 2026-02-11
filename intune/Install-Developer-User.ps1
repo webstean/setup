@@ -428,7 +428,7 @@ function Set-DesktopIconsVisibility {
     $value = if ($State -eq 'Hide') { 1 } else { 0 }
 
     if ($PSCmdlet.ShouldProcess("Desktop Icons", $State)) {
-        New-Item -Path $regPath -Force | Out-Null
+        CreateIfNotExists "$regPath"
         Set-ItemProperty -Path $regPath -Name $valueName -Type DWord -Value $value
     }
 
