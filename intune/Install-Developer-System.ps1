@@ -562,10 +562,9 @@ function Install-SqlLocalDBLatest {
         $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru
     }
     catch {
-        Write-Host "SQL Server Express LocalDB installation Failed."
+        Write-Host "❌ Exception during SqlLocalDB installation: $($_.Exception.Message)"
     }
 }
-    
 Install-SqlLocalDBLatest
 
 function Enable-WindowsSandboxIfCapable {
