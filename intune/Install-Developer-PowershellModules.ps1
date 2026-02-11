@@ -48,16 +48,16 @@ catch {
 ## curl -sSL https://dot.net/v1/dotnet-install.sh | bash -- --version $(jq -r '.sdk.version' global.json)
 # winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.10
 
-Write-Host "Installing .NET SDK Preview..."
-try {
-    winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.Preview
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "✅ .NET SDK Preview installed successfully" -ForegroundColor Green
-    }
-}
-catch {
-    Write-Warning "Failed to install .NET SDK Preview: $($_.Exception.Message)"
-}
+#Write-Host "Installing .NET SDK Preview..."
+#try {
+#    winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.Preview
+#    if ($LASTEXITCODE -eq 0) {
+#        Write-Host "✅ .NET SDK Preview installed successfully" -ForegroundColor Green
+#    }
+#}
+#catch {
+#    Write-Warning "Failed to install .NET SDK Preview: $($_.Exception.Message)"
+#}
 
 ## Provider: nuget
 Write-Output "Enabling nuget..."
