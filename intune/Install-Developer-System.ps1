@@ -551,19 +551,21 @@ function Install-SqlLocalDBLatest {
             Invoke-WebRequest -Uri $url -OutFile $filePath -UseBasicParsing
         }
         catch {
-            Throw "Download failed: $_"
+            Throw "SqlLocalDB installer download failed: $_"
         }
     }
 
     # Perform silent install
     $msiArgs = "/i `"$filePath`" /qn IACCEPTSQLLOCALDBLICENSETERMS=YES"
     Write-Verbose "Installing LocalDB silently: msiexec.exe $msiArgs"
-    $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru
-    if ($process.ExitCode -ne 0) {
-        Throw "SqlLocalDB.msi installation failed with exit code $($process.ExitCode)"
+    try {
+        $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru
     }
-    Write-Host "SQL Server Express LocalDB installation completed."
+    catch {
+        Write-Host "SQL Server Express LocalDB installation Failed."
+    }
 }
+    
 Install-SqlLocalDBLatest
 
 function Enable-WindowsSandboxIfCapable {
