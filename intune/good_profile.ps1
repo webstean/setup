@@ -2887,3 +2887,41 @@ function Invoke-Graph {
     }
     return Invoke-RestMethod -Method $Method -Uri $Uri -Headers $headers
 }
+
+function Get-AzureAustraliaEastIpRanges {
+    [CmdletBinding()]
+    param (
+        [ValidateSet("raw", "terraform")]
+        [string]$Output = "raw"
+    )
+
+    $downloadPage = "https://www.microsoft.com/en-us/download/details.aspx?id=56519"
+
+    Write-Verbose "Downloading latest Azure IP ranges for Sydney Australia..."
+
+    $jsonUrl = (Invoke-WebRequest -Uri $downloadPage -UseBasicParsing).Links |
+        Where-Object href -like "*.json" |
+        Select-Object -First 1 -ExpandProperty href
+
+    if (-not $jsonUrl) {
+        throw "Could not find Azure IP ranges JSON link."
+    }
+
+    $json = Invoke-RestMethod -Uri $jsonUrl
+
+    $prefixes = $json.values |
+        Where-Object { $_.properties.region -eq "australiaeast" } |
+        ForEach-Object { $_.properties.addressPrefixes } |
+        Sort-Object -Unique
+
+    switch ($Output) {
+        "raw" {
+            $prefixes
+        }
+        "terraform" {
+            $prefixes | ForEach-Object {
+                '"{0}",' -f $_
+            }
+        }
+    }
+}
