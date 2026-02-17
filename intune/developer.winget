@@ -1195,17 +1195,17 @@ properties:
         Name: ms-azuretools.vscode-containers
 
     # VS Code Terraform extension
-#    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-#      id: stable.vscode-hashicorp.terraform
-#      dependsOn:
-#        - Microsoft.VisualStudioCode
-#      directives:
-#        description: Install HashiCorp Terraform extension
-#        allowPrerelease: false
-#        securityContext: current
-#        edition: stable
-#      settings:
-#        Name: hashicorp.terraform
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.vscode-hashicorp.terraform
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install HashiCorp Terraform extension
+        allowPrerelease: false
+        securityContext: current
+        edition: stable
+      settings:
+        Name: hashicorp.terraform
 
     # VS Code Microsoft Terraform extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
