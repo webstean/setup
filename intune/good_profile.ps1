@@ -768,11 +768,11 @@ function cdw {
 
     $path = 'C:\workspaces'
 
-    if (Test-Path -Path $path -PathType Container | Out-Null ) {
+    if (Test-Path -Path $path -PathType Container) {
         Set-Location -Path $path
     }
     else {
-        return
+        Write-Warning "$path does not exist."
     }
 }
 
