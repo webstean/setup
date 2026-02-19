@@ -115,9 +115,7 @@ function Install-WinRM {
 #Install-WinRM
 
 ## The tools functionality is only installed via DOTNET SDKs, not Runtimes
-function Install-OrUpdate-DotNetTools {
-    Write-Output ("Installing/Updating DotNet Tools...") 
-    $dotnetTools = @(
+$dotnetTools = @(
         "Microsoft.DataApiBuilder",               ## dab
         "IntuneCLI",                              ## intuneCLI (3rd party)
         "microsoft.powerapps.cli.tool",           ## powerapp tools
@@ -128,6 +126,12 @@ function Install-OrUpdate-DotNetTools {
         "Aspire.Cli",                             ## Aspire CLI # --prerelease
         "upgrade-assistant"                       ## upgrade assistant
     )
+
+function Install-OrUpdate-DotNetTools {
+    Write-Output ("Installing/Updating DotNet Tools...") 
+    ## By default, these get install under $HOME\.dotnet\tools\xxxx.exe
+    ## You can change this (to avoid applocker configs) with the --tool-path option 
+    
 
     foreach ($tool in $dotnetTools) {
         $installedTool = dotnet tool list --global | Where-Object { $_ -match $tool }
@@ -154,6 +158,22 @@ function Install-OrUpdate-DotNetTools {
     Start-Process -FilePath "dotnet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru -ErrorAction SilentlyContinue
 }
 Install-OrUpdate-DotNetTools
+
+function Remove-DotNetTools {
+    Write-Output ("Removing (Uninstalling) DotNet Tools...")   
+
+    foreach ($tool in $dotnetTools) {
+        $installedTool = dotnet tool list --global | Where-Object { $_ -match $tool }
+        if ($installedTool) {
+            Write-Output "UnInstalling $tool..." 
+            $Arguments = "tool uninstall --global $tool"
+            Start-Process -FilePath "dotnet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru
+        } else {
+            Write-Output "$tool is already installed." 
+        }
+    }
+}
+#Remove-DotNetTools
 
 ## Add or Remote Directory from the Path, add check to see if it is already there first
 function Add-DirectoryToPath {
