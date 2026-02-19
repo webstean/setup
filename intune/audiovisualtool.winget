@@ -1,0 +1,100 @@
+   ## Audio / Video Utilities
+    # NDI Runtime ## current has an issues with (Apple) Bonjour service being blocked from being install
+    = resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: NDI.NDIRuntime
+      directives:
+        description: Install NDI.NDIRuntime
+        securityContext: current
+      settings:
+        id: NDI.NDIRuntime
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.TeamsTxNDI
+      directives:
+        description: Installing Microsoft.TeamsTxNDI
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Microsoft.TeamsTxNDI
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: RODE.RODECasterApp
+      directives:
+        description: Installing RODE.RODECasterApp
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: RODE.RODECasterApp
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: RODE.RODECentral
+      directives:
+        description: Installing RODE.RODECentral
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: RODE.RODECentral
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: RODE.RODECasterVirtualDeviceDriver
+      directives:
+        description: Installing RODE.RODECasterVirtualDeviceDriver
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: RODE.RODECasterVirtualDeviceDriver
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: RODE.Rode-Connect
+      directives:
+        description: Installing RODE.Rode-Connect
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: RODE.Rode-Connect
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Elgato.CameraHub
+      directives:
+        description: Installing Elgato.CameraHub
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Elgato.CameraHub
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Elgato.StreamDeck
+      directives:
+        description: Installing Elgato.StreamDeck
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Elgato.StreamDeck
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Elgato.ControlCenter
+      directives:
+        description: Installing Elgato.ControlCenter
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Elgato.ControlCenter
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Bitfocus.Companion
+      directives:
+        description: Installing Bitfocus.Companion
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Bitfocus.Companion
+        source: winget
