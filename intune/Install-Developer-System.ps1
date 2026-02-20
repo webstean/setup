@@ -229,7 +229,7 @@ function Install-OrUpdate-DotNetTools {
 }
 Install-OrUpdate-DotNetTools
 
-## Add NuGet source if missing (best-effort)
+## Add NuGet source to dotnet if missing (best-effort)
 try {
    $sources = & dotnet nuget list source 2>$null
    if (-not ($sources -match 'searchnuget\.org')) {
