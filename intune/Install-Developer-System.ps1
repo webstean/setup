@@ -128,36 +128,118 @@ $dotnetTools = @(
     )
 
 function Install-OrUpdate-DotNetTools {
-    Write-Output ("Installing/Updating DotNet Tools...") 
-    ## By default, these get install under $HOME\.dotnet\tools\xxxx.exe
-    ## You can change this (to avoid applocker configs) with the --tool-path option 
-    
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string[]]$Tools,
 
-    foreach ($tool in $dotnetTools) {
-        $installedTool = dotnet tool list --global | Where-Object { $_ -match $tool }
-        if (-not $installedTool) {
-            Write-Output "Installing $tool..." 
-            $Arguments = "tool install --ignore-failed-sources --global $tool --prerelease"
-            Start-Process -FilePath "dotnet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru
-        } else {
-            Write-Output "$tool is already installed." 
+        # Use Global by default (installs to $HOME\.dotnet\tools)
+        [switch]$Global = $true,
+
+        # If set, installs to this folder instead of global. Mutually exclusive with -Global.
+        [string]$ToolPath = "C:\Program Files\DotNet Tools",
+
+        # Include prerelease versions
+        [switch]$Prerelease = $true
+    )
+
+    if ($PSBoundParameters.ContainsKey('ToolPath') -and $Global) {
+        # If caller explicitly set ToolPath, force non-global to avoid invalid combination.
+        $Global = $false
+    }
+
+    if (-not $Global) {
+        if ([string]::IsNullOrWhiteSpace($ToolPath)) {
+            throw "ToolPath is empty."
+        }
+        if (-not (Test-Path -Path $ToolPath -PathType Container)) {
+            New-Item -Path $ToolPath -ItemType Directory -Force | Out-Null
         }
     }
 
-    $Arguments = "tool list --global"
-    Start-Process -FilePath "dotnet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru -ErrorAction SilentlyContinue
+    function Invoke-DotNet {
+        [CmdletBinding()]
+        param(
+            [Parameter(Mandatory)]
+            [string[]]$Args
+        )
 
-    $Arguments = "tool update --global --prerelease --all"
-    Start-Process -FilePath "dotnet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru -ErrorAction SilentlyContinue
+        $p = Start-Process -FilePath "dotnet.exe" -ArgumentList $Args -NoNewWindow -Wait -PassThru
+        if ($p.ExitCode -ne 0) {
+            throw "dotnet $($Args -join ' ') failed with exit code $($p.ExitCode)"
+        }
+    }
 
-    $Arguments = "tool list --global"
-    Start-Process -FilePath "dotnet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru -ErrorAction SilentlyContinue
+    Write-Output "Installing/Updating .NET tools..."
 
-    ## Add source, for searching
-    $Arguments = "nuget add source https://api.nuget.org/v3/index.json -n searchnuget.org"
-    Start-Process -FilePath "dotnet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru -ErrorAction SilentlyContinue
+    # List installed tools in the correct scope
+    $listArgs = @("tool","list")
+    if ($Global) {
+        $listArgs += "--global"
+    }
+    else {
+        $listArgs += @("--tool-path", $ToolPath)
+    }
+
+    $installed = & dotnet @listArgs 2>$null
+    # Normalize to tool package ids found in output table
+    $installedIds = @()
+    if ($installed) {
+        $installedIds = $installed |
+            Select-Object -Skip 2 |
+            ForEach-Object { ($_ -split '\s+')[0] } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    }
+
+    foreach ($tool in $Tools) {
+        $isInstalled = $installedIds -contains $tool
+
+        if (-not $isInstalled) {
+            Write-Output "Installing $tool..."
+            $args = @("tool","install","--ignore-failed-sources", $tool)
+            if ($Prerelease) { $args += "--prerelease" }
+
+            if ($Global) {
+                $args += "--global"
+            }
+            else {
+                $args += @("--tool-path", $ToolPath)
+            }
+
+            Invoke-DotNet -Args $args
+        }
+        else {
+            Write-Output "Updating $tool..."
+            $args = @("tool","update", $tool)
+            if ($Prerelease) { $args += "--prerelease" }
+
+            if ($Global) {
+                $args += "--global"
+            }
+            else {
+                $args += @("--tool-path", $ToolPath)
+            }
+
+            Invoke-DotNet -Args $args
+        }
+    }
+
+    # Show final state
+    Invoke-DotNet -Args $listArgs
 }
 Install-OrUpdate-DotNetTools
+
+## Add NuGet source if missing (best-effort)
+try {
+   $sources = & dotnet nuget list source 2>$null
+   if (-not ($sources -match 'searchnuget\.org')) {
+     Invoke-DotNet -Args @("nuget","add","source","https://api.nuget.org/v3/index.json","-n","searchnuget.org")
+   }
+} 
+catch {
+    ## Do not fail the whole function for a source add problem
+    Write-Warning "Could not add/list NuGet source 'searchnuget.org': $($_.Exception.Message)"
+}
 
 function Remove-DotNetTools {
     Write-Output ("Removing (Uninstalling) DotNet Tools...")   
