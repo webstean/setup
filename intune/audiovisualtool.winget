@@ -5,7 +5,7 @@ properties:
   resources:
    ## Audio / Video Utilities
     # NDI Runtime ## current has an issues with (Apple) Bonjour service being blocked from being install
-    = resource: Microsoft.WinGet.DSC/WinGetPackage
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: NDI.NDIRuntime
       directives:
         description: Install NDI.NDIRuntime
