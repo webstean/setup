@@ -21,6 +21,16 @@ properties:
         source: msstore
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Windows.Camera
+      directives:
+        description: Install Windows.Camera
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: 9WZDNCRFJBBG
+        source: msstore
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.PowerShell
       directives:
         description: Install Microsoft.PowerShell
