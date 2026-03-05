@@ -48,21 +48,39 @@ function Get-DotNetHostInfo {
     [CmdletBinding()]
     param()
 
-    [pscustomobject]@{
+    $jsonVersion  = '<not loaded>'
+    $jsonLocation = '<not loaded>'
+
+    try {
+        # Probe once; if it loads, capture version + location
+        $asm = [System.Text.Json.JsonSerializer].Assembly
+        $jsonVersion  = $asm.GetName().Version.ToString()
+        $jsonLocation = $asm.Location
+    }
+    catch {
+        # If System.Text.Json can't load (or something blocks it), keep defaults
+    }
+
+    $isElevated = $false
+    try {
+        $isElevated = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).
+            IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    } catch {}
+
+    return [pscustomobject]@{
         PowerShellVersion = $PSVersionTable.PSVersion.ToString()
         Edition           = $PSVersionTable.PSEdition
+        Host              = $Host.Name
+        PSHome            = $PSHOME
         OS                = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
         Framework         = [System.Runtime.InteropServices.RuntimeInformation]::FrameworkDescription
         ProcessArch       = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()
-        JsonAssembly      = try {
-            ([System.Text.Json.JsonSerializer].Assembly.GetName().Version.ToString())
-        } catch { "<not loaded>" }
-        JsonLocation      = try {
-            ([System.Text.Json.JsonSerializer].Assembly.Location)
-        } catch { "<not loaded>" }
+        IsElevated        = $isElevated
+        JsonAssembly      = $jsonVersion
+        JsonLocation      = $jsonLocation
     }
 }
-#Get-DotNetHostInfo
+# Get-DotNetHostInfo | Format-List
 
 function Get-ClmAuditState {
     [CmdletBinding()]
