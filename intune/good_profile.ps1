@@ -44,6 +44,26 @@ function Update-Profile-Force {
 }
 #Update-Profile-Force
 
+function Get-DotNetHostInfo {
+    [CmdletBinding()]
+    param()
+
+    [pscustomobject]@{
+        PowerShellVersion = $PSVersionTable.PSVersion.ToString()
+        Edition           = $PSVersionTable.PSEdition
+        OS                = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
+        Framework         = [System.Runtime.InteropServices.RuntimeInformation]::FrameworkDescription
+        ProcessArch       = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()
+        JsonAssembly      = try {
+            ([System.Text.Json.JsonSerializer].Assembly.GetName().Version.ToString())
+        } catch { "<not loaded>" }
+        JsonLocation      = try {
+            ([System.Text.Json.JsonSerializer].Assembly.Location)
+        } catch { "<not loaded>" }
+    }
+}
+#Get-DotNetHostInfo
+
 function Get-ClmAuditState {
     [CmdletBinding()]
     param()
