@@ -20,90 +20,109 @@ function Wait-WindowsUptime {
     return $true
 }
 
-function SetAustraliaLocation {
-    $ShortLanguage = "AU" ## Language pack for Australian English
+#Requires -RunAsAdministrator
+function Enable-AustralianLanguagePack {
+    [CmdletBinding()]
+    param()
 
-    Wait-WindowsUptime
-    ## Set the Home Location
-    $geoId = (New-Object System.Globalization.RegionInfo $ShortLanguage).GeoId
-    Write-Host "Setting Windows location to be $ShortLanguage"
-    Set-WinHomeLocation -GeoId $geoId
-}
+    if (Get-Command Wait-WindowsUptime -ErrorAction SilentlyContinue) {
+        Wait-WindowsUptime
+    }
 
-function EnableAustralianLanguagePack {
-    Wait-WindowsUptime
-    $ShortLanguage = "AU" ## Language pack for Australian English
-    $lcid = ([System.Globalization.CultureInfo]::GetCultureInfo("en-$ShortLanguage")).LCID
-    $DisplayName = ([System.Globalization.CultureInfo]::GetCultureInfo("en-$ShortLanguage")).DisplayName
-    $Language = ([System.Globalization.CultureInfo]::GetCultureInfo("en-$ShortLanguage")).Name
-    Write-Host "lcid        = $lcid"            ## 3081
-    Write-Host "DisplayName = $DisplayName"     ## English (Australia)
-    Write-Host "Language    = $Language"        ## en-AU
+    $LanguageTag = "en-AU" # Australian English
 
+    $ci = [System.Globalization.CultureInfo]::GetCultureInfo($LanguageTag)
+    $lcid        = $ci.LCID
+    $DisplayName = $ci.DisplayName
+    $Language    = $ci.Name
+
+    Write-Host "lcid        = $lcid"        # 3081
+    Write-Host "DisplayName = $DisplayName" # English (Australia)
+    Write-Host "Language    = $Language"    # en-AU
     Write-Output "Installing language pack: $DisplayName"
 
     try {
-        ## Set-Culture -CultureInfo de-DE
-        Set-Culture -CultureInfo $Language 
+        # Install language capabilities (FODs)
+        $capabilities = @(
+            "Language.Basic~~~$Language~0.0.1.0",
+            "Language.Speech~~~$Language~0.0.1.0",
+            "Language.TextToSpeech~~~$Language~0.0.1.0",
+            "Language.OCR~~~$Language~0.0.1.0"
+            # Optional:
+            "Language.Handwriting~~~$Language~0.0.1.0"
+        )
 
-		## Get-WindowsCapability -Online | Where-Object Name -like '*en-AU*'
-		$capabilities = @(
-			"Language.Basic~~~$Language~0.0.1.0",
-			"Language.Speech~~~$Language~0.0.1.0",
-			"Language.TextToSpeech~~~$Language~0.0.1.0",
-			"Language.OCR~~~$Language~0.0.1.0"
-		)
-		foreach ($capability in $capabilities) {
-			Write-Output "Installing feature: $capability"
-			if ((Get-WindowsCapability -Online -Name $capability).State -ne 'Installed') {
-				Add-WindowsCapability -Online -Name $capability
-			} else {
-				Write-Host "$capability already INSTALLED"
-			}
-		}
-	
-		## Install the language pack with UI, system, and input preferences
-		$job = Install-Language -Language $Language -CopyToSettings -ErrorAction SilentlyContinue
-		# Wait until the installation completes
-		$job | Wait-Job
-		Receive-Job $job -ErrorAction SilentlyContinue
-		Write-Host "✅ Language installation completed."
+        foreach ($capability in $capabilities) {
+            Write-Output "Ensuring feature: $capability"
+            $cap = Get-WindowsCapability -Online -Name $capability -ErrorAction Stop
+            if ($cap.State -ne 'Installed') {
+                Add-WindowsCapability -Online -Name $capability -ErrorAction Stop | Out-Null
+            } else {
+                Write-Host "$capability already INSTALLED"
+            }
+        }
 
-		# sets a user-preferred display language to be used for the Windows user interface (UI).
-		# Log off and loging back on is required for changes to take place.
-		Set-WinUILanguageOverride -Language $Language
-		Set-Culture -CultureInfo $Language
+        # Install language pack + copy to system/new user
+        if (Get-Command Install-Language -ErrorAction SilentlyContinue) {
+            Install-Language -Language $Language -CopyToSettings -ErrorAction Stop | Out-Null
+        } else {
+            throw "Install-Language cmdlet not found. Ensure Windows 11 / International module support."
+        }
 
-		## Set user language list
-		$LangList = New-WinUserLanguageList -Language $Language
-		Set-WinUserLanguageList -LanguageList $LangList -Force
-		Set-WinSystemLocale -SystemLocale $Language
+        Write-Host "✅ Language installation completed."
 
-		## Copy internationl settings to system - Log off and loging back on is required for changes to take place.
-		## Windows 11 only
-		Copy-UserInternationalSettingsToSystem -WelcomeScreen $true -NewUser $true
+        # User UI language (logoff required)
+        Set-WinUILanguageOverride -Language $Language -ErrorAction Stop
 
-		## Set speech language to Australian as well
-		$speechKey = 'HKCU:\Software\Microsoft\Speech_OneCore\Settings'
+        # Culture for formats (dates/numbers)
+        Set-Culture -CultureInfo $Language -ErrorAction Stop
+
+        # User language list + input methods
+        $LangList = New-WinUserLanguageList -Language $Language -ErrorAction Stop
+        Set-WinUserLanguageList -LanguageList $LangList -Force -ErrorAction Stop
+
+        # System locale (affects non-Unicode apps)
+        Set-WinSystemLocale -SystemLocale $Language -ErrorAction Stop
+
+        # Copy intl settings to Welcome screen + new users (Windows 10/11)
+        if (Get-Command Copy-UserInternationalSettingsToSystem -ErrorAction SilentlyContinue) {
+            Copy-UserInternationalSettingsToSystem -WelcomeScreen $true -NewUser $true -ErrorAction Stop
+        }
+
+        # Speech language (OneCore)
+        $speechKey = 'HKCU:\Software\Microsoft\Speech_OneCore\Settings'
         if (-not (Test-Path $speechKey)) { New-Item -Path $speechKey -Force | Out-Null }
         New-ItemProperty -Path $speechKey -Name 'SpeechLanguage' -Value $Language -PropertyType String -Force | Out-Null
 
-		## $voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_JamesM"
-		$voice = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\MSTTS_V110_enAU_CatherineM"
-		if (Test-Path $voice) {
-			CreateIfNotExists "HKCU:\Software\Microsoft\Speech\Voices"
-			Set-ItemProperty -Path "HKCU:\Software\Microsoft\Speech\Voices" -Name "DefaultTokenId" -Value $voice -Type String
-			Get-Item -Path "HKCU:\Software\Microsoft\Speech\Voices"
-		}
+        # Optional: set a default OneCore voice if present
+        $voiceTokenName = "MSTTS_V110_enAU_CatherineM"
+        $voiceTokenHklm = "HKLM:\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\$voiceTokenName"
+        $voiceTokenValue = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\$voiceTokenName"
 
-		Write-Output "$Language pack (and features) has been installed and enabled!"
-		Get-Language
-		Write-Output "You may need to sign out and sign back in for the change to take effect."
-	}
- 	catch {
-		Write-Error "Failed to install language pack: $_"
-	}
-	return
+        if (Test-Path $voiceTokenHklm) {
+            $sapiVoicesKey = "HKCU:\Software\Microsoft\Speech\Voices"
+            if (-not (Test-Path $sapiVoicesKey)) { New-Item -Path $sapiVoicesKey -Force | Out-Null }
+
+            # DefaultTokenId expects the "HKEY_LOCAL_MACHINE\..." style string
+            New-ItemProperty -Path $sapiVoicesKey -Name "DefaultTokenId" -Value $voiceTokenValue -PropertyType String -Force | Out-Null
+        }
+
+        Write-Output "$Language pack (and features) has been installed and enabled."
+
+        if (Get-Command Get-Language -ErrorAction SilentlyContinue) {
+            Get-Language
+        }
+
+        Write-Output "You may need to sign out and sign back in for the change to take effect."
+    }
+    catch {
+        Write-Error "Failed to install language pack: $($_.Exception.Message)"
+        throw
+    }
 }
-SetAustraliaLocation
+
+# If this exists in your profile/module, keep it; otherwise remove it
+if (Get-Command SetAustraliaLocation -ErrorAction SilentlyContinue) {
+    SetAustraliaLocation
+}
 EnableAustralianLanguagePack
