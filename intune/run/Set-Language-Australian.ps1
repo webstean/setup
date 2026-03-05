@@ -9,7 +9,7 @@ function Wait-WindowsUptime {
         $seconds = [int]$uptime.TotalSeconds
 
         if ($seconds -ge $targetSeconds) {
-            # Write-Host "[INFO] Uptime reached $([math]::Round($seconds/60,1)) minute(s)."
+            Write-Host "[INFO] Uptime reached $([math]::Round($seconds/60,1)) minute(s)."
             break
         }
 
