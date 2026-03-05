@@ -48,39 +48,64 @@ function Get-DotNetHostInfo {
     [CmdletBinding()]
     param()
 
+    $languageMode = $ExecutionContext.SessionState.LanguageMode
+
+    # Defaults (core types only)
     $jsonVersion  = '<not loaded>'
     $jsonLocation = '<not loaded>'
+    $isElevated   = $null
 
+    # Probe System.Text.Json (may be blocked; that's fine)
     try {
-        # Probe once; if it loads, capture version + location
         $asm = [System.Text.Json.JsonSerializer].Assembly
         $jsonVersion  = $asm.GetName().Version.ToString()
         $jsonLocation = $asm.Location
-    }
-    catch {
-        # If System.Text.Json can't load (or something blocks it), keep defaults
-    }
-
-    $isElevated = $false
-    try {
-        $isElevated = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).
-            IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     } catch {}
 
-    return [pscustomobject]@{
+    # Elevation check that works in CLM on Windows
+    try {
+        $isElevated = (whoami /groups 2>$null | Select-String -SimpleMatch 'S-1-5-32-544') -ne $null
+    } catch {
+        $isElevated = $null
+    }
+
+    $osDesc = '<unknown>'
+    $fwDesc = '<unknown>'
+    $arch   = '<unknown>'
+
+    try { $osDesc = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription } catch {}
+    try { $fwDesc = [System.Runtime.InteropServices.RuntimeInformation]::FrameworkDescription } catch {}
+    try { $arch   = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString() } catch {}
+
+    # Use a hashtable (core type) so CLM won't error
+    $data = @{
         PowerShellVersion = $PSVersionTable.PSVersion.ToString()
         Edition           = $PSVersionTable.PSEdition
         Host              = $Host.Name
         PSHome            = $PSHOME
-        OS                = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
-        Framework         = [System.Runtime.InteropServices.RuntimeInformation]::FrameworkDescription
-        ProcessArch       = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()
+        LanguageMode      = $languageMode.ToString()
+        OS                = $osDesc
+        Framework         = $fwDesc
+        ProcessArch       = $arch
         IsElevated        = $isElevated
         JsonAssembly      = $jsonVersion
         JsonLocation      = $jsonLocation
     }
+
+    # If not constrained, upgrade the return type to PSCustomObject for nicer display
+    if ($languageMode -ne 'ConstrainedLanguage') {
+        return [pscustomobject]$data
+    }
+
+    return $data
 }
 # Get-DotNetHostInfo
+
+$aw = $(
+            [AppDomain]::CurrentDomain.GetAssemblies() |
+            Where-Object { $_.GetName().Name -eq 'System.Text.Json' } |
+            ForEach-Object { "{0} | {1}" -f $_.GetName().Version, $_.Location }
+        )
 
 function Get-ClmAuditState {
     [CmdletBinding()]
