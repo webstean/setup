@@ -80,7 +80,7 @@ function Get-DotNetHostInfo {
         JsonLocation      = $jsonLocation
     }
 }
-# Get-DotNetHostInfo | Format-List
+# Get-DotNetHostInfo
 
 function Get-ClmAuditState {
     [CmdletBinding()]
