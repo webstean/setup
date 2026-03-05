@@ -2,7 +2,7 @@ function Wait-WindowsUptime {
     $Minutes = 10
     $targetSeconds = $Minutes * 60
     $CheckInterval = 1
-    Write-Host "[INFO] Waiting for system uptime to reach $Minutes minute(s)..."
+    Write-Host "[INFO] Waiting for system uptime to reach atlteast $Minutes minute(s)..."
 
     while ($true) {
         $uptime = (Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
