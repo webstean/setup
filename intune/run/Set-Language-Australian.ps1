@@ -17,7 +17,7 @@ function Wait-WindowsUptime {
         Write-Host "[INFO] Current uptime: $([math]::Round($seconds/60,1)) min — waiting $remaining s more..."
         Start-Sleep -Seconds ([Math]::Min($CheckInterval, $remaining))
     }
-    return $true
+    return
 }
 
 #Requires -RunAsAdministrator
@@ -120,9 +120,4 @@ function Enable-AustralianLanguagePack {
         throw
     }
 }
-
-# If this exists in your profile/module, keep it; otherwise remove it
-if (Get-Command SetAustraliaLocation -ErrorAction SilentlyContinue) {
-    SetAustraliaLocation
-}
-EnableAustralianLanguagePack
+Enable-AustralianLanguagePack
