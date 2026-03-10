@@ -291,14 +291,14 @@ properties:
         id: GitHub.Copilot
         source: winget
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: SlackTechnologies.Slack
-      directives:
-        description: Install SlackTechnologies.Slack
-        allowPrerelease: false
-      settings:
-        id: SlackTechnologies.Slack
-        source: winget
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: SlackTechnologies.Slack
+#      directives:
+#        description: Install SlackTechnologies.Slack
+#        allowPrerelease: false
+#      settings:
+#        id: SlackTechnologies.Slack
+#        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Anthropic.Claude
