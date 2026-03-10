@@ -283,6 +283,15 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: GitHub.Copilot
+      directives:
+        description: Install GitHub.Copilot
+        allowPrerelease: false
+      settings:
+        id: GitHub.Copilot
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: SlackTechnologies.Slack
       directives:
         description: Install SlackTechnologies.Slack
