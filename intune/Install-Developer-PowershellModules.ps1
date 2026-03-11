@@ -17,7 +17,6 @@ if ($IsAdmin) {
 } else {
     $InstallScope = 'CurrentUser'
 }
-
 Write-Host "InstallScope = $InstallScope"
 
 # winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.NuGet
@@ -59,17 +58,126 @@ catch {
 #    Write-Warning "Failed to install .NET SDK Preview: $($_.Exception.Message)"
 #}
 
-## Provider: nuget
-Write-Output "Enabling nuget..."
-if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
-    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$true | Out-Null
+function Install-PSResourceGetSilently {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [ValidateSet('CurrentUser', 'AllUsers')]
+        [string]$Scope = 'AllUsers',
+
+        # Pin versions if you want determinism in CI / gold images
+        [string]$PowerShellGetVersion = '2.2.5',
+        [string]$PackageManagementVersion = '1.4.8.1',
+        [string]$PSResourceGetVersion = '1.1.1',
+
+        [int]$RetryCount = 3,
+        [int]$RetryDelaySeconds = 5
+    )
+
+    $ErrorActionPreference = 'Stop'
+    $ProgressPreference = 'SilentlyContinue'
+
+    function Test-IsAdmin {
+        $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+        $p  = New-Object Security.Principal.WindowsPrincipal($id)
+        return $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    }
+
+    function Invoke-WithRetry {
+        param([scriptblock]$Script, [string]$Action)
+        for ($i = 1; $i -le $RetryCount; $i++) {
+            try { return & $Script }
+            catch {
+                if ($i -ge $RetryCount) { throw }
+                Start-Sleep -Seconds $RetryDelaySeconds
+            }
+        }
+    }
+
+    if ($Scope -eq 'AllUsers' -and -not (Test-IsAdmin)) {
+        throw "Scope=AllUsers requires an elevated PowerShell session (Run as Administrator)."
+    }
+
+    # Step 1: Ensure TLS 1.2 for Gallery access (required on older hosts)
+    [Net.ServicePointManager]::SecurityProtocol =
+        [Net.ServicePointManager]::SecurityProtocol -bor
+        [Net.SecurityProtocolType]::Tls12
+
+    # If running PowerShell 7.4+ PSResourceGet is typically already present; still allow pin/update
+    $names = @('PowerShellGet','PackageManagement','Microsoft.PowerShell.PSResourceGet')
+    $installed = Get-Module -ListAvailable -Name $names | Group-Object Name -AsHashTable -AsString
+
+    # Trust PSGallery to eliminate trust prompts
+    if (Get-Command -Name Set-PSRepository -ErrorAction SilentlyContinue) {
+        $psGallery = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+        if ($psGallery -and $psGallery.InstallationPolicy -ne 'Trusted') {
+            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+        }
+    }
+
+    # Step 2: Ensure NuGet provider is present (needed for PSGet v2 bootstrap on 5.1)
+    if (Get-Command -Name Install-PackageProvider -ErrorAction SilentlyContinue) {
+        Invoke-WithRetry -Action 'Install NuGet provider' -Script {
+            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$false | Out-Null
+        }
+    }
+
+    # Step 3: On Windows PowerShell 5.1, upgrade PackageManagement + PowerShellGet (v2) first
+    # (PSResourceGet install depends on having a functioning module installer)
+    if ($PSVersionTable.PSVersion.Major -lt 6) {
+        Invoke-WithRetry -Action 'Install/Update PackageManagement' -Script {
+            Install-Module -Name PackageManagement -RequiredVersion $PackageManagementVersion `
+                -Scope $Scope -Force -AllowClobber -Confirm:$false
+        }
+
+        Invoke-WithRetry -Action 'Install/Update PowerShellGet v2' -Script {
+            Install-Module -Name PowerShellGet -RequiredVersion $PowerShellGetVersion `
+                -Scope $Scope -Force -AllowClobber -Confirm:$false
+        }
+
+        # Make sure current session can see the updated modules
+        Import-Module PackageManagement -Force
+        Import-Module PowerShellGet      -Force
+    }
+
+    # Step 4: Install PSResourceGet (the “v3” engine)
+    Invoke-WithRetry -Action 'Install/Update Microsoft.PowerShell.PSResourceGet' -Script {
+        Install-Module -Name Microsoft.PowerShell.PSResourceGet -RequiredVersion $PSResourceGetVersion `
+            -Scope $Scope -Force -AllowClobber -Confirm:$false
+    }
+
+    # Load it now (Install-PSResource itself does not auto-import)
+    Import-Module Microsoft.PowerShell.PSResourceGet -Force
+
+    # Step 5: Register PSGallery for PSResourceGet (NuGet v2 endpoint is the safe default)
+    # PSResourceGet has a known limitation around installing dependencies from NuGet v3 feeds. :contentReference[oaicite:2]{index=2}
+    $repoName = 'PSGallery'
+    $repoUri  = 'https://www.powershellgallery.com/api/v2'
+    $existing = Get-PSResourceRepository -Name $repoName -ErrorAction SilentlyContinue
+    if (-not $existing) {
+        Register-PSResourceRepository -Name $repoName -Uri $repoUri -ApiVersion V2 -Trusted
+    } else {
+        # Ensure trusted
+        if (-not $existing.Trusted) {
+            Set-PSResourceRepository -Name $repoName -Trusted
+        }
+    }
+
+    # Report
+    Get-Module -Name $names -ListAvailable |
+        Sort-Object Name, Version -Descending |
+        Select-Object Name, Version, ModuleBase
 }
-Find-PackageProvider -ForceBootstrap
-Set-PackageSource -Name "nuget.org" -Trusted -ErrorAction SilentlyContinue
+Install-PSResourceGetSilently
+
+# PowerShellGet v2 trust (Install-Module)
+Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+
+# PSResourceGet trust (Install-PSResource)
+Register-PSResourceRepository -Name PSGallery -Uri https://www.powershellgallery.com/api/v2 -ApiVersion V2 -Trusted -ErrorAction SilentlyContinue
+Set-PSResourceRepository -Name PSGallery -Trusted -ErrorAction SilentlyContinue
 
 ## Provider: PSGallery
 Write-Output "Enabling and trusting PSGallery..."
-Register-PSRepository -Default -ErrorAction SilentlyContinue
 if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
     Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction SilentlyContinue
 }
@@ -98,57 +206,158 @@ function Install-OrUpdate-Module {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
         [string]$ModuleName,
 
-        [switch]$Prerelease          # Optional: install prerelease versions
+        [ValidateSet('CurrentUser','AllUsers')]
+        [string]$Scope = 'AllUsers',
+
+        [switch]$Prerelease,
+
+        # If set, we attempt to Import-Module after install/update (non-fatal if it fails)
+        [switch]$ImportAfter,
+
+        [int]$RetryCount = 3,
+        [int]$RetryDelaySeconds = 5
     )
 
-    ## Turn off verbose
-    $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
-    
-    # Check if PSResourceGet is available
-    if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
-        Write-Host "PSResourceGet not found. Installing it first..." -ForegroundColor Yellow
-        Install-Module -Name Microsoft.PowerShell.PSResourceGet -Scope $InstallScope -Force
-        Import-Module Microsoft.PowerShell.PSResourceGet
+    $ErrorActionPreference = 'Stop'
+    $ProgressPreference = 'SilentlyContinue'
+
+    function Test-IsAdmin {
+        $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+        $p  = New-Object Security.Principal.WindowsPrincipal($id)
+        $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     }
 
-    # Check if module is already installed
-    $installed = Get-PSResource -Name $ModuleName -ErrorAction SilentlyContinue -Scope $InstallScope
+    function Invoke-WithRetry {
+        param([scriptblock]$Script, [string]$Action)
+        for ($i = 1; $i -le $RetryCount; $i++) {
+            try { return & $Script }
+            catch {
+                if ($i -ge $RetryCount) { throw }
+                Start-Sleep -Seconds $RetryDelaySeconds
+            }
+        }
+    }
+
+    if ($Scope -eq 'AllUsers' -and -not (Test-IsAdmin)) {
+        throw "Scope=AllUsers requires an elevated PowerShell session."
+    }
+
+    # Preserve global verbose default
+    $hadVerboseDefault = $PSDefaultParameterValues.ContainsKey('*:Verbose')
+    $prevVerbose = $PSDefaultParameterValues['*:Verbose']
+    $PSDefaultParameterValues['*:Verbose'] = $false
 
     try {
-        if ($null -eq $installed) {
-            Write-Host "PowerShell Module '$ModuleName' not found. Installing (${InstallScope})..." -ForegroundColor Green
-            if ($prerelease) {
-                Install-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
-            } else {
-                ## Install-PSResource -Name PackageManagement -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope
-                Install-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
+        # TLS 1.2 for older Windows / PS 5.1 gallery access
+        [Net.ServicePointManager]::SecurityProtocol =
+            [Net.ServicePointManager]::SecurityProtocol -bor
+            [Net.SecurityProtocolType]::Tls12
+
+        # Trust PSGallery for legacy Install-Module path (PowerShellGet v2)
+        if (Get-Command Set-PSRepository -ErrorAction SilentlyContinue) {
+            $psg = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+            if ($psg -and $psg.InstallationPolicy -ne 'Trusted') {
+                Set-PSRepository -Name PSGallery -InstallationPolicy Trusted | Out-Null
+            }
+        }
+
+        # If PSResourceGet cmdlets not available, bootstrap silently.
+        if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
+
+            # On Windows PowerShell 5.1, avoid NuGet provider prompts for Install-Module
+            if ($PSVersionTable.PSVersion.Major -lt 6 -and (Get-Command Install-PackageProvider -ErrorAction SilentlyContinue)) {
+                Invoke-WithRetry -Action 'Install NuGet provider' -Script {
+                    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$false | Out-Null
+                }
+            }
+
+            Invoke-WithRetry -Action 'Install Microsoft.PowerShell.PSResourceGet' -Script {
+                Install-Module -Name Microsoft.PowerShell.PSResourceGet -Scope $Scope -Force -AllowClobber -Confirm:$false
+            }
+
+            Import-Module Microsoft.PowerShell.PSResourceGet -Force
+        }
+
+        # Ensure PSResourceGet has PSGallery registered as trusted (NuGet v2 endpoint is safest)
+        $repoName = 'PSGallery'
+        $repoUri  = 'https://www.powershellgallery.com/api/v2'
+
+        $repo = Get-PSResourceRepository -Name $repoName -ErrorAction SilentlyContinue
+        if (-not $repo) {
+            Register-PSResourceRepository -Name $repoName -Uri $repoUri -ApiVersion V2 -Trusted | Out-Null
+        } elseif (-not $repo.Trusted) {
+            Set-PSResourceRepository -Name $repoName -Trusted | Out-Null
+        }
+
+        # Determine install vs update using what's on disk (more reliable than Get-PSResource alone)
+        $alreadyInstalled = @(Get-Module -ListAvailable -Name $ModuleName)
+
+        if ($alreadyInstalled.Count -eq 0) {
+            Write-Host "Installing '$ModuleName' ($Scope)..." -ForegroundColor Green
+
+            Invoke-WithRetry -Action "Install $ModuleName" -Script {
+                $common = @{
+                    Name            = $ModuleName
+                    Repository      = $repoName
+                    Scope           = $Scope
+                    TrustRepository = $true
+                    AcceptLicense   = $true
+                    Quiet           = $true
+                    ErrorAction     = 'Stop'
+                    WarningAction   = 'SilentlyContinue'
+                }
+                if ($Prerelease) { $common.Prerelease = $true }
+                Install-PSResource @common | Out-Null
             }
         }
         else {
-            Write-Host "PowerShell Module '$ModuleName' found. Updating (${InstallScope})..." -ForegroundColor Cyan
-            ## Update-PSResource -Name PackageManagement -AcceptLicense $true -Confirm $false -ErrorAction Stop -WarningAction SilentlyContinue
-            if ($prerelease) {
-                Update-PSResource -Name $ModuleName -Prerelease $true -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
-            } else {
-                Update-PSResource -Name $ModuleName -AcceptLicense -ErrorAction Stop -WarningAction SilentlyContinue -Scope $InstallScope -Quiet
+            Write-Host "Updating '$ModuleName' ($Scope)..." -ForegroundColor Cyan
+
+            Invoke-WithRetry -Action "Update $ModuleName" -Script {
+                $common = @{
+                    Name            = $ModuleName
+                    Repository      = $repoName
+                    Scope           = $Scope
+                    TrustRepository = $true
+                    AcceptLicense   = $true
+                    Quiet           = $true
+                    ErrorAction     = 'Stop'
+                    WarningAction   = 'SilentlyContinue'
+                }
+                if ($Prerelease) { $common.Prerelease = $true }
+                Update-PSResource @common | Out-Null
             }
         }
-        # Optional: import after install/update
-        Import-Module $ModuleName -Force
-        Write-Host "✅ PowerShell '$ModuleName' is installed (and up to date.)" -ForegroundColor Green
+
+        if ($ImportAfter) {
+            try {
+                Import-Module $ModuleName -Force -ErrorAction Stop
+            } catch {
+                Write-Host "⚠️ Installed '$ModuleName' but Import-Module failed: $($_.Exception.Message)" -ForegroundColor Yellow
+            }
+        }
+
+        $latest = Get-Module -ListAvailable -Name $ModuleName | Sort-Object Version -Descending | Select-Object -First 1
+        if ($latest) {
+            Write-Host "✅ '$ModuleName' installed. Version: $($latest.Version)" -ForegroundColor Green
+        } else {
+            Write-Host "✅ '$ModuleName' install/update completed." -ForegroundColor Green
+        }
     }
     catch {
-        Write-Host "❌ Failed to install or update '$ModuleName': $_" -ForegroundColor Red
+        Write-Host "❌ Failed for '$ModuleName': $($_.Exception.Message)" -ForegroundColor Red
+        throw
     }
-
-    ## REturn verbose to previous value
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
+    finally {
+        if ($hadVerboseDefault) { $PSDefaultParameterValues['*:Verbose'] = $prevVerbose }
+        else { $null = $PSDefaultParameterValues.Remove('*:Verbose') }
+    }
 }
 
-## Get rid of deprecated modules
+## Get rid of deprecated modules, in case they are still here
 if (Get-Module -Name AzureAD -ListAvailable -ErrorAction SilentlyContinue) {
     Uninstall-Module AzureAD -Force -ErrorAction SilentlyContinue
 }

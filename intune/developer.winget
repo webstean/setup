@@ -21,6 +21,16 @@ properties:
         source: msstore
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Windows.Camera
+      directives:
+        description: Install Windows.Camera
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: 9WZDNCRFJBBG
+        source: msstore
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.PowerShell
       directives:
         description: Install Microsoft.PowerShell
@@ -273,13 +283,22 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: SlackTechnologies.Slack
+      id: GitHub.Copilot
       directives:
-        description: Install SlackTechnologies.Slack
+        description: Install GitHub.Copilot
         allowPrerelease: false
       settings:
-        id: SlackTechnologies.Slack
+        id: GitHub.Copilot
         source: winget
+
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: SlackTechnologies.Slack
+#      directives:
+#        description: Install SlackTechnologies.Slack
+#        allowPrerelease: false
+#      settings:
+#        id: SlackTechnologies.Slack
+#        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Anthropic.Claude
