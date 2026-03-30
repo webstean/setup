@@ -989,6 +989,19 @@ properties:
 
 
 
+    # VS Code adamwojcikit.pnp-powershell-extension
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.adamwojcikit.pnp-powershell-extension
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install adamwojcikit.pnp-powershell-extension extension
+        allowPrerelease: false
+        securityContext: current
+        edition: stable
+      settings:
+        Name: adamwojcikit.pnp-powershell-extension
+
     # VS Code .NET Development Extensions
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: stable.HashiCorp.terraform
