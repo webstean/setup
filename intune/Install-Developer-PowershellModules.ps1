@@ -365,6 +365,7 @@ if (Get-Module -Name AzureAD.Standard.Preview -ListAvailable -ErrorAction Silent
     Uninstall-Module AzureAD.Standard.Preview -Force -ErrorAction SilentlyContinue
 }
 
+Install-OrUpdate-Module Microsoft.PowerPlatform.EnterprisePolicies
 Install-OrUpdate-Module PSWindowsUpdate
 Install-OrUpdate-Module PackageManagement
 Install-OrUpdate-Module Terminal-Icons
@@ -378,16 +379,7 @@ Install-OrUpdate-Module Az.Functions
 Install-OrUpdate-Module Az.ContainerRegistry
 Install-OrUpdate-Module Microsoft.WinGet.Client
 Install-OrUpdate-Module Microsoft.WinGet.Configuration
-Install-OrUpdate-Module Microsoft.Graph.Applications
-Install-OrUpdate-Module Microsoft.Graph.Authentication
-Install-OrUpdate-Module Microsoft.Graph.DeviceManagement
-Install-OrUpdate-Module Microsoft.Graph.Files
-Install-OrUpdate-Module Microsoft.Graph.Identity.DirectoryManagement
-Install-OrUpdate-Module Microsoft.Graph.Identity.SignIns
-Install-OrUpdate-Module Microsoft.Graph.Intune
-Install-OrUpdate-Module Microsoft.Graph.Groups
-Install-OrUpdate-Module Microsoft.Graph.Mail
-Install-OrUpdate-Module Microsoft.Graph.Users
+Install-OrUpdate-Module Microsoft.Graph
 Install-OrUpdate-Module MicrosoftTeams
 #Install-OrUpdate-Module VMware.PowerCLI ## VMware PowerCLI (its too big - as no longer used much)
 Install-OrUpdate-Module Microsoft.PowerApps.Administration.PowerShell
