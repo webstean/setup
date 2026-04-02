@@ -365,7 +365,6 @@ if (Get-Module -Name AzureAD.Standard.Preview -ListAvailable -ErrorAction Silent
     Uninstall-Module AzureAD.Standard.Preview -Force -ErrorAction SilentlyContinue
 }
 
-Install-OrUpdate-Module Microsoft.PowerPlatform.EnterprisePolicies
 Install-OrUpdate-Module PSWindowsUpdate
 Install-OrUpdate-Module PackageManagement
 Install-OrUpdate-Module Terminal-Icons
@@ -383,6 +382,7 @@ Install-OrUpdate-Module Microsoft.Graph
 Install-OrUpdate-Module MicrosoftTeams
 #Install-OrUpdate-Module VMware.PowerCLI ## VMware PowerCLI (its too big - as no longer used much)
 Install-OrUpdate-Module Microsoft.PowerApps.Administration.PowerShell
+Install-OrUpdate-Module Microsoft.PowerPlatform.EnterprisePolicies
 Install-OrUpdate-Module JWTDetails
 ## Get-PnPTenant
 
