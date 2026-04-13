@@ -3089,3 +3089,22 @@ function Install-OrUpdate-Module {
         else { $null = $PSDefaultParameterValues.Remove('*:Verbose') }
     }
 }
+
+function Invoke-WorkIQQuery {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Query
+    )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    $result = & workiq ask $Query
+
+    if (-not $result) {
+        throw "No response from Work IQ"
+    }
+
+    return $result
+}
