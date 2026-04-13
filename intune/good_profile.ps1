@@ -129,7 +129,7 @@ function Get-ClmAuditState {
         EnvLockdownPolicy   = $envPolicy
         IsConstrained       = ($languageMode -eq 'ConstrainedLanguage')
         IsAudit             = ($systemPolicy -eq 'Audit') -or ($envPolicy -eq '8')
-        IsEnforced          = ($systemPolicy -eq 'Enforce') -or ($envPolicy -eq '4')#
+        IsEnforced          = ($systemPolicy -eq 'Enforce') -or ($envPolicy -eq '4')
 #        Confidence          = if ($systemPolicy) { 'High (SystemPolicy)' }
 #                              elseif ($envPolicy) { 'Medium (Env var)' }
 #                              else { 'Low (cannot determine audit vs enforce here)' }
