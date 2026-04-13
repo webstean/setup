@@ -945,25 +945,6 @@ function Restore-Terminal {
     }
 }
 
-function Get-RDS-Drives {
-    if ($IsLanguagePermissive) {
-        Write-Host "Checking for Mapped Drives..."
-        $CLSIDs = @()
-        foreach($registryKey in (Get-ChildItem "Registry::HKEY_CLASSES_ROOT\CLSID" -Recurse -ErrorAction SilentlyContinue)){
-            If (($registryKey.GetValueNames() | ForEach-Object {$registryKey.GetValue($_)}) -eq "Drive or folder redirected using Remote Desktop") {
-                $CLSIDs += $registryKey
-            }
-        }
-        $drives = @()
-        foreach ($CLSID in $CLSIDs.PSPath) {
-            $drives += (Get-ItemProperty $CLSID)."(default)"
-        }
-    }
-}
-#if ($VirtualMachine -eq $true) {
-#    Get-RDS-Drives
-#}
-
 function Import-Nice-Modules {
     if ( -not [bool](Get-Module -ListAvailable -Name Terminal-Icons | Out-Null )) {
         Import-Module Terminal-Icons -ErrorAction SilentlyContinue
@@ -1013,6 +994,7 @@ function Check-Azure-Environment {
     ) {
         return $false
     }
+    Write-Host "Azure Environment variables defined!"
     return $true
 }
 function Check-Graph-Token {
@@ -1114,10 +1096,10 @@ function Import-Env-File {
             Write-Verbose "Set `$Env:$key = '$val'"
         }
     }
-    if ( ($null -eq $env:AZURE_TENANT_ID ) -and ($null -eq $env:AZURE_CLIENT_ID )) {
-        Write-Host "Something is wrong with $envId file"
-        return 
-    }
+    #if ( ($null -eq $env:AZURE_TENANT_ID ) -and ($null -eq $env:AZURE_CLIENT_ID )) {
+    #    Write-Host "Something is wrong with $envId file"
+    #    return 
+    #}
     if (-not $silent ) {
         Write-Host "Portal Logon: https://entra.microsoft.com/?tenant=$env:AZURE_TENANT_ID"
         if ( $env:AZURE_CLIENT_ID ) {
@@ -1191,6 +1173,7 @@ function Get-Azure-Meta { ##IMDS
         return $false | Out-Null
     }
     $PSDefaultParameterValues['*:Verbose']   = $preserve
+    Write-Host "Running inside AZure..."
     return $true | Out-Null
 }
 
