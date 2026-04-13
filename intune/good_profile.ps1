@@ -2112,22 +2112,19 @@ function Set-FolderAclUsersModify {
 function Get-HttpsCertificateInfo {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory, Position=0)]
+        [Parameter(Mandatory, Position = 0)]
         [ValidateNotNullOrEmpty()]
-        [string]$fqdn,                 # e.g. "example.com" (hostname or IP)
+        [Alias('HostName')]
+        [string]$Fqdn,
 
+        [ValidateRange(1, 65535)]
         [int]$Port = 443,
 
-        # Optional: save the leaf certificate as a .cer file
         [string]$ExportCerPath,
 
-        # Connection timeout (ms)
+        [ValidateRange(1, 300000)]
         [int]$TimeoutMs = 8000,
 
-        # Use proxy (Zscaler etc..)
-        #[bool]$proxy = $true,
-
-        # Optional: constrain TLS versions if needed (useful on older hosts)
         [System.Security.Authentication.SslProtocols]$TlsProtocols = (
             [System.Security.Authentication.SslProtocols]::Tls12 -bor
             [System.Security.Authentication.SslProtocols]::Tls13
@@ -2135,118 +2132,136 @@ function Get-HttpsCertificateInfo {
     )
 
     begin {
-        # Ensure we're not in ConstrainedLanguage (common in locked-down hosts)
         if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
-            Write-Host "Cannot inspect certificates: PowerShell LanguageMode is $($ExecutionContext.SessionState.LanguageMode)."
-            exit
+            throw "Cannot inspect certificates because PowerShell LanguageMode is '$($ExecutionContext.SessionState.LanguageMode)'."
         }
+
         function Get-SubjectAltNames {
-            param([System.Security.Cryptography.X509Certificates.X509Certificate2]$cert)
+            [CmdletBinding()]
+            param(
+                [Parameter(Mandatory)]
+                [System.Security.Cryptography.X509Certificates.X509Certificate2]$Cert
+            )
+
             $out = @()
-            foreach ($ext in $cert.Extensions) {
+
+            foreach ($ext in $Cert.Extensions) {
                 if ($ext.Oid.Value -eq '2.5.29.17') {
                     try {
-                        $san = New-Object System.Security.Cryptography.AsnEncodedData($ext.Oid, $ext.RawData)
+                        $san = [System.Security.Cryptography.AsnEncodedData]::new($ext.Oid, $ext.RawData)
                         $text = $san.Format($true)
+
                         if ($text) {
                             $out += ($text -split "`r?`n" | Where-Object { $_ }) |
-                                    ForEach-Object { ($_ -replace '^\s*DNS Name=\s*','').Trim() } |
-                                    Where-Object { $_ -ne '' }
+                                ForEach-Object { ($_ -replace '^\s*DNS Name=\s*', '').Trim() } |
+                                Where-Object { $_ }
                         }
-                    } catch { }
+                    }
+                    catch {
+                        Write-Verbose "Failed to parse SAN extension: $($_.Exception.Message)"
+                    }
                 }
             }
-            $out | Select-Object -Unique
+
+            return ($out | Select-Object -Unique)
         }
     }
 
     process {
-        # Prepare export path if requested
         if ($ExportCerPath) {
             $dir = Split-Path -Path $ExportCerPath -Parent
-            if ($dir -and -not (Test-Path $dir)) {
+            if ($dir -and -not (Test-Path -LiteralPath $dir)) {
                 New-Item -ItemType Directory -Path $dir -Force | Out-Null
             }
         }
 
-        $client = [System.Net.Sockets.TcpClient]::new()
+        $client = $null
         $stream = $null
-        $ssl    = $null
+        $ssl = $null
+        $chain = $null
 
         try {
-            $connectTask = $client.ConnectAsync($fqdn, $Port)
+            $client = [System.Net.Sockets.TcpClient]::new()
+
+            $connectTask = $client.ConnectAsync($Fqdn, $Port)
             if (-not $connectTask.Wait($TimeoutMs)) {
-                throw "Timeout connecting to ${fqdn}:${Port} after ${TimeoutMs} ms."
+                throw "Timeout connecting to ${Fqdn}:${Port} after ${TimeoutMs} ms."
+            }
+
+            if (-not $client.Connected) {
+                throw "TCP connection to ${Fqdn}:${Port} failed."
             }
 
             $stream = $client.GetStream()
-            $ssl    = [System.Net.Security.SslStream]::new($stream, $false, { param($s,$c,$ch,$e) $true })
+            $ssl = [System.Net.Security.SslStream]::new(
+                $stream,
+                $false,
+                { param($sender, $certificate, $chainArg, $sslPolicyErrors) $true }
+            )
 
-            # Prefer modern overload if available (PS 7 / .NET 5+) to set protocols explicitly
-            $authOptions = [System.Net.Security.SslClientAuthenticationOptions]::new()
-            $authOptions.TargetHost   = $fqdn
-            $authOptions.EnabledSslProtocols = $TlsProtocols
             try {
+                $authOptions = [System.Net.Security.SslClientAuthenticationOptions]::new()
+                $authOptions.TargetHost = $Fqdn
+                $authOptions.EnabledSslProtocols = $TlsProtocols
                 $ssl.AuthenticateAsClient($authOptions)
             }
             catch {
-                # Fallback for older .NET where options overload may not exist
-                $ssl.AuthenticateAsClient($fqdn)
+                Write-Verbose "Modern AuthenticateAsClient overload failed, falling back: $($_.Exception.Message)"
+                $ssl.AuthenticateAsClient($Fqdn)
             }
 
-            $remoteCert = $ssl.RemoteCertificate
-            if (-not $remoteCert) {
-                throw "No certificate presented by ${fqdn}:${Port}."
+            if (-not $ssl.RemoteCertificate) {
+                throw "No certificate was presented by ${Fqdn}:${Port}."
             }
 
-            $cert2 = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($remoteCert)
+            $cert2 = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($ssl.RemoteCertificate)
 
-            # Build a simple chain (no revocation to avoid long waits on locked hosts)
             $chain = [System.Security.Cryptography.X509Certificates.X509Chain]::new()
-            $chain.ChainPolicy.RevocationMode    = [System.Security.Cryptography.X509Certificates.X509RevocationMode]::NoCheck
-            $chain.ChainPolicy.RevocationFlag    = [System.Security.Cryptography.X509Certificates.X509RevocationFlag]::EndCertificateOnly
+            $chain.ChainPolicy.RevocationMode = [System.Security.Cryptography.X509Certificates.X509RevocationMode]::NoCheck
+            $chain.ChainPolicy.RevocationFlag = [System.Security.Cryptography.X509Certificates.X509RevocationFlag]::EndCertificateOnly
             $chain.ChainPolicy.VerificationFlags = [System.Security.Cryptography.X509Certificates.X509VerificationFlags]::IgnoreWrongUsage
             [void]$chain.Build($cert2)
 
-            $san = Get-SubjectAltNames -cert $cert2
+            $san = Get-SubjectAltNames -Cert $cert2
 
             if ($ExportCerPath) {
-                [IO.File]::WriteAllBytes(
+                [System.IO.File]::WriteAllBytes(
                     $ExportCerPath,
                     $cert2.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
                 )
             }
 
-            # $cert2
-            # Emit a clean object
             [PSCustomObject]@{
-                Hostname           = $fqdn
+                Hostname           = $Fqdn
                 Port               = $Port
                 OwnerSubject       = $cert2.Subject
                 SubjectCN          = $cert2.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::DnsName, $false)
                 Issuer             = $cert2.Issuer
-#                NotBefore          = $cert2.NotBefore
-#                NotAfter           = $cert2.NotAfter
-#                IsExpired          = ([DateTime]::UtcNow -ge $cert2.NotAfter.ToUniversalTime())
-#                Thumbprint         = $cert2.Thumbprint
-#                SerialNumber       = $cert2.SerialNumber
-#                SignatureAlgorithm = $cert2.SignatureAlgorithm.FriendlyName
-#                KeyAlgorithm       = $cert2.PublicKey.Oid.FriendlyName
-#                KeySizeBits        = $cert2.PublicKey.Key.KeySize
-#                SANs               = $san
-#                ChainStatus        = $chain.ChainStatus.Status.ToString()
-#                ExportedCerPath    = $ExportCerPath
+                NotBefore          = $cert2.NotBefore
+                NotAfter           = $cert2.NotAfter
+                IsExpired          = ([DateTime]::UtcNow -ge $cert2.NotAfter.ToUniversalTime())
+                Thumbprint         = $cert2.Thumbprint
+                SerialNumber       = $cert2.SerialNumber
+                SignatureAlgorithm = $cert2.SignatureAlgorithm.FriendlyName
+                KeyAlgorithm       = $cert2.PublicKey.Oid.FriendlyName
+                KeySizeBits        = $cert2.PublicKey.Key.KeySize
+                SANs               = $san
+                ChainStatus        = @($chain.ChainStatus | ForEach-Object { $_.Status.ToString() }) -join ', '
+                ExportedCerPath    = $ExportCerPath
             }
         }
+        catch {
+            $message = "Failed to retrieve certificate from ${Fqdn}:${Port}. $($_.Exception.Message)"
+            Write-Error $message
+        }
         finally {
-            ## clean up
+            if ($chain)  { $chain.Dispose() }
             if ($ssl)    { $ssl.Dispose() }
             if ($stream) { $stream.Dispose() }
             if ($client) { $client.Dispose() }
         }
     }
 }
-
 # Examples:
 # Show owner/subject for a site
 # Get-HttpsCertificateInfo -Fqdn "www.microsoft.com"
