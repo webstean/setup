@@ -101,11 +101,11 @@ function Get-DotNetHostInfo {
 }
 # Get-DotNetHostInfo
 
-$aw = $(
-            [AppDomain]::CurrentDomain.GetAssemblies() |
-            Where-Object { $_.GetName().Name -eq 'System.Text.Json' } |
-            ForEach-Object { "{0} | {1}" -f $_.GetName().Version, $_.Location }
-        )
+#$aw = $(
+#            [AppDomain]::CurrentDomain.GetAssemblies() |
+#            Where-Object { $_.GetName().Name -eq 'System.Text.Json' } |
+#            ForEach-Object { "{0} | {1}" -f $_.GetName().Version, $_.Location }
+#        )
 
 function Get-ClmAuditState {
     [CmdletBinding()]
@@ -129,10 +129,10 @@ function Get-ClmAuditState {
         EnvLockdownPolicy   = $envPolicy
         IsConstrained       = ($languageMode -eq 'ConstrainedLanguage')
         IsAudit             = ($systemPolicy -eq 'Audit') -or ($envPolicy -eq '8')
-        IsEnforced          = ($systemPolicy -eq 'Enforce') -or ($envPolicy -eq '4')
-        Confidence          = if ($systemPolicy) { 'High (SystemPolicy)' }
-                              elseif ($envPolicy) { 'Medium (Env var)' }
-                              else { 'Low (cannot determine audit vs enforce here)' }
+        IsEnforced          = ($systemPolicy -eq 'Enforce') -or ($envPolicy -eq '4')#
+#        Confidence          = if ($systemPolicy) { 'High (SystemPolicy)' }
+#                              elseif ($envPolicy) { 'Medium (Env var)' }
+#                              else { 'Low (cannot determine audit vs enforce here)' }
     }
 }
 # Usage:
