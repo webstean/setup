@@ -3106,3 +3106,48 @@ function Invoke-WorkIQQuery {
 
     return $result
 }
+
+function Get-AllMsGraphPages {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Uri = "/identity/conditionalAccess/"
+    )
+
+    Write-Host "Get-AllMsGraphPages: Fetching URI: $Uri"
+    $items = [System.Collections.Generic.List[object]]::new()
+    $next = $Uri
+
+    while ($next) {
+        $response = Invoke-MgGraphRequest -Method GET -Uri $next -OutputType PSObject
+        
+        if ($response -is [System.Collections.IEnumerable] -and $null -ne $response.value) {
+            # Response is a collection with a 'value' property
+            $count = @($response.value).Count
+            Write-Host "Get-AllMsGraphPages: Found $count items in page."
+            foreach ($item in $response.value) {
+                $items.Add($item)
+            }
+            $next = $response.'@odata.nextLink'
+        }
+        elseif ($response -is [System.Collections.IEnumerable]) {
+            # Response is an array-like object without a 'value' property
+             $count = @($response).Count
+            Write-Host "Get-AllMsGraphPages: Response is a collection of $count items."
+            foreach($item in $response){
+                $items.Add($item)
+            }
+            $next = $null
+        } elseif ($null -ne $response) {
+            # Response is a single object
+            Write-Host "Get-AllMsGraphPages: Response is a single object."
+            $items.Add($response)
+            $next = $null
+        } else {
+            # No more data
+            $next = $null
+        }
+    }
+    Write-Host "Get-AllMsGraphPages: Total items retrieved: $($items.Count)"
+    return $items
+}
