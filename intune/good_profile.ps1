@@ -3111,7 +3111,7 @@ function Get-AllMsGraphPages {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [string]$Uri = "/identity/conditionalAccess/"
+        [string]$Uri = "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies"
     )
 
     Write-Host "Get-AllMsGraphPages: Fetching URI: $Uri"
