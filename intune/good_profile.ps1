@@ -3127,6 +3127,22 @@ function Get-AllMsGraphPages {
     $items = [System.Collections.Generic.List[object]]::new()
     $next  = $Uri
 
+    function Write-JsonLog {
+        param([string]$Json)
+
+        if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value @"
+### Graph Response Page
+\`\`\`json
+$Json
+\`\`\`
+"@
+        }
+        else {
+            Write-Host $Json
+        }
+    }
+
     while (-not [string]::IsNullOrWhiteSpace($next)) {
         $attempt = 0
         $response = $null
@@ -3152,10 +3168,9 @@ function Get-AllMsGraphPages {
             break
         }
 
-        # Optional JSON output (raw response per page)
         if ($OutputJson) {
             $json = $response | ConvertTo-Json -Depth 20
-            Write-Output $json
+            Write-JsonLog -Json $json
         }
 
         $valueProperty    = $response.PSObject.Properties['value']
@@ -3163,7 +3178,7 @@ function Get-AllMsGraphPages {
 
         if ($null -ne $valueProperty) {
             foreach ($item in @($valueProperty.Value)) {
-                $items.Add($item)
+                $items.Add($item) | Out-Null
             }
 
             $next = if ($null -ne $nextLinkProperty) {
@@ -3177,12 +3192,12 @@ function Get-AllMsGraphPages {
 
         if ($response -is [array]) {
             foreach ($item in $response) {
-                $items.Add($item)
+                $items.Add($item) | Out-Null
             }
             break
         }
 
-        $items.Add($response)
+        $items.Add($response) | Out-Null
         break
     }
 
