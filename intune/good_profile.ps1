@@ -3110,44 +3110,61 @@ function Invoke-WorkIQQuery {
 function Get-AllMsGraphPages {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
-        [string]$Uri = "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies"
+        [Parameter()]
+        [ValidateNotNullOrEmpty()]
+        [string]$Uri = 'https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies'
     )
 
-    Write-Host "Get-AllMsGraphPages: Fetching URI: $Uri"
-    $items = [System.Collections.Generic.List[object]]::new()
-    $next = $Uri
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
-    while ($next) {
+    Write-Host "Get-AllMsGraphPages: Fetching URI: $Uri"
+
+    $items = [System.Collections.Generic.List[object]]::new()
+    $next  = $Uri
+
+    while (-not [string]::IsNullOrWhiteSpace($next)) {
         $response = Invoke-MgGraphRequest -Method GET -Uri $next -OutputType PSObject
-        
-        if ($response -is [System.Collections.IEnumerable] -and $null -ne $response.value) {
-            # Response is a collection with a 'value' property
-            $count = @($response.value).Count
+
+        if ($null -eq $response) {
+            Write-Host 'Get-AllMsGraphPages: Response was null.'
+            break
+        }
+
+        $hasValueProperty = $null -ne ($response.PSObject.Properties['value'])
+        $nextLinkProperty = $response.PSObject.Properties['@odata.nextLink']
+        $nextLink         = if ($null -ne $nextLinkProperty) { [string]$nextLinkProperty.Value } else { $null }
+
+        if ($hasValueProperty) {
+            $pageItems = @($response.value)
+            $count = $pageItems.Count
             Write-Host "Get-AllMsGraphPages: Found $count items in page."
-            foreach ($item in $response.value) {
+
+            foreach ($item in $pageItems) {
                 $items.Add($item)
             }
-            $next = $response.'@odata.nextLink'
+
+            $next = $nextLink
+            continue
         }
-        elseif ($response -is [System.Collections.IEnumerable]) {
-            # Response is an array-like object without a 'value' property
-             $count = @($response).Count
-            Write-Host "Get-AllMsGraphPages: Response is a collection of $count items."
-            foreach($item in $response){
+
+        if ($response -is [array]) {
+            $count = $response.Count
+            Write-Host "Get-AllMsGraphPages: Response is an array of $count items."
+
+            foreach ($item in $response) {
                 $items.Add($item)
             }
-            $next = $null
-        } elseif ($null -ne $response) {
-            # Response is a single object
-            Write-Host "Get-AllMsGraphPages: Response is a single object."
-            $items.Add($response)
-            $next = $null
-        } else {
-            # No more data
-            $next = $null
+
+            break
         }
+
+        Write-Host 'Get-AllMsGraphPages: Response is a single object.'
+        $items.Add($response)
+        break
     }
+
     Write-Host "Get-AllMsGraphPages: Total items retrieved: $($items.Count)"
-    return $items
+
+    return @($items)
 }
