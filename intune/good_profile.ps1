@@ -3112,59 +3112,66 @@ function Get-AllMsGraphPages {
     param(
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [string]$Uri = 'https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies'
+        [string]$Uri = 'https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies',
+
+        [Parameter()]
+        [int]$MaxRetries = 3
     )
 
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    Write-Host "Get-AllMsGraphPages: Fetching URI: $Uri"
-
     $items = [System.Collections.Generic.List[object]]::new()
     $next  = $Uri
 
     while (-not [string]::IsNullOrWhiteSpace($next)) {
-        $response = Invoke-MgGraphRequest -Method GET -Uri $next -OutputType PSObject
+        $attempt = 0
+        $response = $null
+
+        do {
+            try {
+                $attempt++
+                Write-Host "Get-AllMsGraphPages: Fetching URI: $next"
+                $response = Invoke-MgGraphRequest -Method GET -Uri $next -OutputType PSObject
+                break
+            }
+            catch {
+                if ($attempt -ge $MaxRetries) {
+                    throw
+                }
+
+                Write-Warning "Get-AllMsGraphPages: Request failed on attempt $attempt. Retrying..."
+                Start-Sleep -Seconds ([Math]::Min(2 * $attempt, 10))
+            }
+        } while ($attempt -lt $MaxRetries)
 
         if ($null -eq $response) {
-            Write-Host 'Get-AllMsGraphPages: Response was null.'
             break
         }
 
-        $hasValueProperty = $null -ne ($response.PSObject.Properties['value'])
+        $valueProperty    = $response.PSObject.Properties['value']
         $nextLinkProperty = $response.PSObject.Properties['@odata.nextLink']
-        $nextLink         = if ($null -ne $nextLinkProperty) { [string]$nextLinkProperty.Value } else { $null }
 
-        if ($hasValueProperty) {
-            $pageItems = @($response.value)
-            $count = $pageItems.Count
-            Write-Host "Get-AllMsGraphPages: Found $count items in page."
-
+        if ($null -ne $valueProperty) {
+            $pageItems = @($valueProperty.Value)
             foreach ($item in $pageItems) {
                 $items.Add($item)
             }
 
-            $next = $nextLink
+            $next = if ($null -ne $nextLinkProperty) { [string]$nextLinkProperty.Value } else { $null }
             continue
         }
 
         if ($response -is [array]) {
-            $count = $response.Count
-            Write-Host "Get-AllMsGraphPages: Response is an array of $count items."
-
             foreach ($item in $response) {
                 $items.Add($item)
             }
-
             break
         }
 
-        Write-Host 'Get-AllMsGraphPages: Response is a single object.'
         $items.Add($response)
         break
     }
-
-    Write-Host "Get-AllMsGraphPages: Total items retrieved: $($items.Count)"
 
     return @($items)
 }
