@@ -3115,7 +3115,10 @@ function Get-AllMsGraphPages {
         [string]$Uri = 'https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies',
 
         [Parameter()]
-        [int]$MaxRetries = 3
+        [int]$MaxRetries = 3,
+
+        [Parameter()]
+        [switch]$OutputJson
     )
 
     Set-StrictMode -Version Latest
@@ -3131,7 +3134,7 @@ function Get-AllMsGraphPages {
         do {
             try {
                 $attempt++
-                Write-Host "Get-AllMsGraphPages: Fetching URI: $next"
+                Write-Verbose "Fetching URI: $next"
                 $response = Invoke-MgGraphRequest -Method GET -Uri $next -OutputType PSObject
                 break
             }
@@ -3140,7 +3143,7 @@ function Get-AllMsGraphPages {
                     throw
                 }
 
-                Write-Warning "Get-AllMsGraphPages: Request failed on attempt $attempt. Retrying..."
+                Write-Warning "Request failed (attempt $attempt). Retrying..."
                 Start-Sleep -Seconds ([Math]::Min(2 * $attempt, 10))
             }
         } while ($attempt -lt $MaxRetries)
@@ -3149,16 +3152,26 @@ function Get-AllMsGraphPages {
             break
         }
 
+        # Optional JSON output (raw response per page)
+        if ($OutputJson) {
+            $json = $response | ConvertTo-Json -Depth 20
+            Write-Output $json
+        }
+
         $valueProperty    = $response.PSObject.Properties['value']
         $nextLinkProperty = $response.PSObject.Properties['@odata.nextLink']
 
         if ($null -ne $valueProperty) {
-            $pageItems = @($valueProperty.Value)
-            foreach ($item in $pageItems) {
+            foreach ($item in @($valueProperty.Value)) {
                 $items.Add($item)
             }
 
-            $next = if ($null -ne $nextLinkProperty) { [string]$nextLinkProperty.Value } else { $null }
+            $next = if ($null -ne $nextLinkProperty) {
+                [string]$nextLinkProperty.Value
+            } else {
+                $null
+            }
+
             continue
         }
 
@@ -3172,6 +3185,8 @@ function Get-AllMsGraphPages {
         $items.Add($response)
         break
     }
+
+    Write-Verbose "Total items retrieved: $($items.Count)"
 
     return @($items)
 }
