@@ -3203,5 +3203,5 @@ $Json
 
     Write-Verbose "Total items retrieved: $($items.Count)"
 
-    return @($items)
+    return @($items) | Out-Null
 }
