@@ -3136,25 +3136,27 @@ function Get-AllMsGraphPages {
         )
 
         $jsonToWrite = $Json
+        $isGitHubRunner = -not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)
 
-        if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)) {
-            ## For GitHub Runner
+        if ($isGitHubRunner) {
+            if ($jsonToWrite.Length -gt 20000) {
+                $jsonToWrite = $jsonToWrite.Substring(0, 20000) + "`n...truncated..."
+            }
+
             $content = @(
-                "### All Page Graph Response from $Uri"
+                "### Graph response page from $Uri"
                 '```json'
                 $jsonToWrite
                 '```'
                 ''
-            ) -join "`n" 
+            ) -join "`n"
+
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $content
-            if ($jsonToWrite.Length -gt 20000) {
-                $jsonToWrite = $jsonToWrite.Substring(0, 20000) + "`n...truncated..."
-            }
         } else {
-            Write-Host $content
+            Write-Host $jsonToWrite
         }
     }
-
+    
     $items = [System.Collections.Generic.List[object]]::new()
     $next  = $Uri
 
@@ -3226,5 +3228,5 @@ function Get-AllMsGraphPages {
     }
 
     Write-Verbose "Total items retrieved: $($items.Count)"
-    return @($items) | Out-Null
+    return @($items)
 }
