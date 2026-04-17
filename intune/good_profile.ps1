@@ -3137,8 +3137,8 @@ function Get-AllMsGraphPages {
 
         $jsonToWrite = $Json
 
-        ## For GitHub Runner
         if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)) {
+            ## For GitHub Runner
             $content = @(
                 "### All Page Graph Response from $Uri"
                 '```json'
