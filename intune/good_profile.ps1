@@ -3130,30 +3130,24 @@ function Get-AllMsGraphPages {
     $ErrorActionPreference = 'Stop'
 
     function Write-GraphJsonLog {
-        [CmdletBinding()]
         param(
-            [Parameter(Mandatory)]
             [string]$Uri,
-
-            [Parameter(Mandatory)]
             [string]$Json
         )
 
-        $jsonToWrite    = $Json
-        $originalLength = $Json.Length
         $isGitHubRunner = -not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)
 
         if ($isGitHubRunner) {
-            if ($jsonToWrite.Length -gt 20000) {
-                $jsonToWrite = $jsonToWrite.Substring(0, 20000) + "`n...truncated..."
+            Write-Verbose "GitHub runner detected. Writing JSON output to GITHUB_STEP_SUMMARY."
+
+            if ($Json.Length -gt 20000) {
+                $Json = $Json.Substring(0, 20000) + "`n...truncated..."
             }
 
             $content = @(
                 "### Graph response page from $Uri"
-                ""
-                "- Response size: $originalLength characters"
                 '```json'
-                $jsonToWrite
+                $Json
                 '```'
                 ''
             ) -join "`n"
@@ -3161,9 +3155,8 @@ function Get-AllMsGraphPages {
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $content
         }
         else {
-            Write-Host "Graph response page from $Uri"
-            Write-Host "Response size: $originalLength characters"
-            Write-Host $jsonToWrite
+            Write-Verbose "Graph response page from $Uri (size: $($Json.Length) chars)"
+            #Write-Host $Json
         }
     }
 
@@ -3182,9 +3175,7 @@ function Get-AllMsGraphPages {
                 break
             }
             catch {
-                if ($attempt -ge $MaxRetries) {
-                    throw
-                }
+                if ($attempt -ge $MaxRetries) { throw }
 
                 Write-Warning "Request failed for URI '$next' on attempt $attempt of $MaxRetries. Retrying..."
                 Start-Sleep -Seconds ([Math]::Min(2 * $attempt, 10))
@@ -3196,26 +3187,23 @@ function Get-AllMsGraphPages {
             break
         }
 
+        # Optional per-page debug logging only
         if ($OutputJson) {
-            $json = $response | ConvertTo-Json -Depth $JsonDepth
-            Write-GraphJsonLog -Uri $next -Json $json
+            $pageJson = $response | ConvertTo-Json -Depth $JsonDepth
+            Write-GraphJsonLog -Uri $next -Json $pageJson
         }
 
         $valueProperty    = $response.PSObject.Properties['value']
         $nextLinkProperty = $response.PSObject.Properties['@odata.nextLink']
 
         if ($null -ne $valueProperty) {
-            $pageItems = @($valueProperty.Value)
-            Write-Verbose "Retrieved $($pageItems.Count) item(s) from current page."
-
-            foreach ($item in $pageItems) {
+            foreach ($item in @($valueProperty.Value)) {
                 $items.Add($item) | Out-Null
             }
 
             $next = if ($null -ne $nextLinkProperty) {
                 [string]$nextLinkProperty.Value
-            }
-            else {
+            } else {
                 $null
             }
 
@@ -3223,20 +3211,24 @@ function Get-AllMsGraphPages {
         }
 
         if ($response -is [array]) {
-            Write-Verbose "Retrieved array response with $($response.Count) item(s)."
-
             foreach ($item in $response) {
                 $items.Add($item) | Out-Null
             }
-
             break
         }
 
-        Write-Verbose 'Retrieved single object response.'
         $items.Add($response) | Out-Null
         break
     }
 
     Write-Verbose "Total items retrieved: $($items.Count)"
-    return @($items)
+
+    # FINAL OUTPUT DECISION
+    if ($OutputJson) {
+        Write-Verbose "Returning aggregated JSON output."
+        return ($items | ConvertTo-Json -Depth $JsonDepth)
+    }
+    else {
+        return $items
+    }
 }
