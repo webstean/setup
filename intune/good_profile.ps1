@@ -5,7 +5,7 @@
 #Set-ExecutionPolicy -ExecutionPolicy Unrestricted
 
 ## Show verbose messages
-#$VerbosePreference = 'Continue'
+$VerbosePreference = 'Continue'
 
 function Update-Profile-Force {
     # Define the remote URL
