@@ -3115,6 +3115,7 @@ function Get-AllMsGraphPages {
         [string]$Uri = 'https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies',
 
         [Parameter()]
+        [ValidateRange(1, 10)]
         [int]$MaxRetries = 3,
 
         [Parameter()]
@@ -3124,27 +3125,43 @@ function Get-AllMsGraphPages {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    $items = [System.Collections.Generic.List[object]]::new()
-    $next  = $Uri
+    function Write-GraphJsonLog {
+        [CmdletBinding()]
+        param(
+            [Parameter(Mandatory)]
+            [string]$Uri,
 
-    function Write-JsonLog {
-        param([string]$Json)
+            [Parameter(Mandatory)]
+            [string]$Json
+        )
+
+        $jsonToWrite = $Json
+
+        if ($jsonToWrite.Length -gt 20000) {
+            $jsonToWrite = $jsonToWrite.Substring(0, 20000) + "`n...truncated..."
+        }
+
+        $content = @(
+            "### All Page Graph Response from $Uri"
+            '```json'
+            $jsonToWrite
+            '```'
+            ''
+        ) -join "`n"
 
         if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)) {
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value @"
-### Graph Response Page
-\`\`\`json
-$Json
-\`\`\`
-"@
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $content
         }
         else {
-            Write-Host $Json
+            Write-Host $content
         }
     }
 
+    $items = [System.Collections.Generic.List[object]]::new()
+    $next  = $Uri
+
     while (-not [string]::IsNullOrWhiteSpace($next)) {
-        $attempt = 0
+        $attempt  = 0
         $response = $null
 
         do {
@@ -3159,31 +3176,36 @@ $Json
                     throw
                 }
 
-                Write-Warning "Request failed (attempt $attempt). Retrying..."
+                Write-Warning "Request failed for URI '$next' on attempt $attempt of $MaxRetries. Retrying..."
                 Start-Sleep -Seconds ([Math]::Min(2 * $attempt, 10))
             }
         } while ($attempt -lt $MaxRetries)
 
         if ($null -eq $response) {
+            Write-Verbose "Received null response for URI: $next"
             break
         }
 
         if ($OutputJson) {
             $json = $response | ConvertTo-Json -Depth 20
-            Write-JsonLog -Json $json
+            Write-GraphJsonLog -Uri $next -Json $json
         }
 
         $valueProperty    = $response.PSObject.Properties['value']
         $nextLinkProperty = $response.PSObject.Properties['@odata.nextLink']
 
         if ($null -ne $valueProperty) {
-            foreach ($item in @($valueProperty.Value)) {
+            $pageItems = @($valueProperty.Value)
+            Write-Verbose "Retrieved $($pageItems.Count) item(s) from current page."
+
+            foreach ($item in $pageItems) {
                 $items.Add($item) | Out-Null
             }
 
             $next = if ($null -ne $nextLinkProperty) {
                 [string]$nextLinkProperty.Value
-            } else {
+            }
+            else {
                 $null
             }
 
@@ -3191,17 +3213,20 @@ $Json
         }
 
         if ($response -is [array]) {
+            Write-Verbose "Retrieved array response with $($response.Count) item(s)."
+
             foreach ($item in $response) {
                 $items.Add($item) | Out-Null
             }
+
             break
         }
 
+        Write-Verbose 'Retrieved single object response.'
         $items.Add($response) | Out-Null
         break
     }
 
     Write-Verbose "Total items retrieved: $($items.Count)"
-
-    return @($items) | Out-Null
+    return @($items)
 }
