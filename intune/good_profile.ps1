@@ -3119,7 +3119,11 @@ function Get-AllMsGraphPages {
         [int]$MaxRetries = 3,
 
         [Parameter()]
-        [switch]$OutputJson
+        [switch]$OutputJson,
+
+        [Parameter()]
+        [ValidateRange(1, 100)]
+        [int]$JsonDepth = 100
     )
 
     Set-StrictMode -Version Latest
@@ -3135,7 +3139,8 @@ function Get-AllMsGraphPages {
             [string]$Json
         )
 
-        $jsonToWrite = $Json
+        $jsonToWrite    = $Json
+        $originalLength = $Json.Length
         $isGitHubRunner = -not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)
 
         if ($isGitHubRunner) {
@@ -3145,6 +3150,8 @@ function Get-AllMsGraphPages {
 
             $content = @(
                 "### Graph response page from $Uri"
+                ""
+                "- Response size: $originalLength characters"
                 '```json'
                 $jsonToWrite
                 '```'
@@ -3152,11 +3159,14 @@ function Get-AllMsGraphPages {
             ) -join "`n"
 
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $content
-        } else {
+        }
+        else {
+            Write-Host "Graph response page from $Uri"
+            Write-Host "Response size: $originalLength characters"
             Write-Host $jsonToWrite
         }
     }
-    
+
     $items = [System.Collections.Generic.List[object]]::new()
     $next  = $Uri
 
@@ -3187,7 +3197,7 @@ function Get-AllMsGraphPages {
         }
 
         if ($OutputJson) {
-            $json = $response | ConvertTo-Json -Depth 20
+            $json = $response | ConvertTo-Json -Depth $JsonDepth
             Write-GraphJsonLog -Uri $next -Json $json
         }
 
