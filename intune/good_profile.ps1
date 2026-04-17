@@ -3137,22 +3137,20 @@ function Get-AllMsGraphPages {
 
         $jsonToWrite = $Json
 
-        if ($jsonToWrite.Length -gt 20000) {
-            $jsonToWrite = $jsonToWrite.Substring(0, 20000) + "`n...truncated..."
-        }
-
-        $content = @(
-            "### All Page Graph Response from $Uri"
-            '```json'
-            $jsonToWrite
-            '```'
-            ''
-        ) -join "`n"
-
+        ## For GitHub Runner
         if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)) {
+            $content = @(
+                "### All Page Graph Response from $Uri"
+                '```json'
+                $jsonToWrite
+                '```'
+                ''
+            ) -join "`n" 
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $content
-        }
-        else {
+            if ($jsonToWrite.Length -gt 20000) {
+                $jsonToWrite = $jsonToWrite.Substring(0, 20000) + "`n...truncated..."
+            }
+        } else {
             Write-Host $content
         }
     }
