@@ -3232,3 +3232,59 @@ function Get-AllMsGraphPages {
         return $items
     }
 }
+
+function Write-StepSummary {
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromPipeline)]
+        [AllowNull()]
+        $InputObject,
+
+        [Parameter()]
+        [ValidateSet('info', 'success', 'error', 'debug', 'wait', 'waiting')]
+        [string]$Type = 'info'
+    )
+
+    begin {
+        $useGitHubSummary = -not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)
+
+        $prefixMap = @{
+            info    = 'ℹ️'
+            success = '✅'
+            error   = '❌'
+            debug   = '🔍'
+            wait    = '⏳'
+            waiting = '⏳'
+        }
+
+        $prefix = $prefixMap[$Type]
+    }
+
+    process {
+        $text = if ($null -eq $InputObject) {
+            ''
+        }
+        elseif ($InputObject -is [string]) {
+            $InputObject
+        }
+        else {
+            ($InputObject | Out-String).TrimEnd()
+        }
+
+        $line = "$prefix $text"
+
+        if ($useGitHubSummary) {
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $line
+        }
+
+        Write-Host $line
+
+        if ($Type -eq 'error') {
+            Write-Error $text
+        }
+        elseif ($Type -eq 'debug') {
+            Write-Verbose $text
+        }
+    }
+}
+
