@@ -5,5 +5,5 @@ in that have site that have the 'edit' permission and change that permission to 
 No conformation required, simply make the change without asking any questions.
 
 Requirement: Create a PowerShell function Using PnP.PowerShell that takes a PnP Connection, a site url and a user principal id, looks for 
-Each site has a SharePoint Group [sitename] Owners. Remove any members of just this group and replace with a single primary owner, equal to the passed user princial id.
+Each site has a SharePoint Group [sitename] Owners. Remove any members of just this group and replace with a single primary owner, equal to the passed user principal id.
 
