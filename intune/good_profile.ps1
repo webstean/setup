@@ -338,6 +338,9 @@ function Set-Developer-Variables {
     ## Azure PowerShell - suppress breaking change message
     Set-Item -Path Env:\SuppressAzurePowerShellBreakingChangeWarnings -Value $true
 
+    ## Turn off PNP Update Check
+    Set-Item -Path Env:\PNPPOWERSHELL_UPDATECHECK -Value 'Off'
+
     ## .Net environment variables: https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-environment-variables
     ## Note: Generally speaking a value set in the project file or runtimeconfig.json has a higher priority than the environment variable.
     Set-Item -Path Env:\DOTNET_GENERATE_ASPNET_CERTIFICATE -Value $false
