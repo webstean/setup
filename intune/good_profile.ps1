@@ -111,33 +111,45 @@ function Get-ClmAuditState {
     [CmdletBinding()]
     param()
 
-    $languageMode = $ExecutionContext.SessionState.LanguageMode
-
-    $systemPolicy = $null
-    try {
-        $systemPolicy = [System.Management.Automation.Security.SystemPolicy]::GetSystemLockdownPolicy()
-    } catch { }
+    $languageMode = $ExecutionContext.SessionState.LanguageMode.ToString()
 
     $envPolicy = $null
-    if (Test-Path Env:\__PSLockdownPolicy) {
+    if (Test-Path -LiteralPath 'Env:\__PSLockdownPolicy') {
         $envPolicy = $env:__PSLockdownPolicy
     }
 
+    $isConstrained = $languageMode -eq 'ConstrainedLanguage'
+
+    $isAudit = $false
+    $isEnforced = $false
+    $confidence = 'Low'
+
+    switch ($envPolicy) {
+        '8' {
+            $isAudit = $true
+            $confidence = 'Medium (__PSLockdownPolicy)'
+        }
+        '4' {
+            $isEnforced = $true
+            $confidence = 'Medium (__PSLockdownPolicy)'
+        }
+        default {
+            if ($isConstrained) {
+                $isEnforced = $true
+                $confidence = 'Medium (LanguageMode only)'
+            }
+        }
+    }
+
     [pscustomobject]@{
-        LanguageMode        = $languageMode
-        SystemLockdownMode  = $systemPolicy
-        EnvLockdownPolicy   = $envPolicy
-        IsConstrained       = ($languageMode -eq 'ConstrainedLanguage')
-        IsAudit             = ($systemPolicy -eq 'Audit') -or ($envPolicy -eq '8')
-        IsEnforced          = ($systemPolicy -eq 'Enforce') -or ($envPolicy -eq '4')
-#        Confidence          = if ($systemPolicy) { 'High (SystemPolicy)' }
-#                              elseif ($envPolicy) { 'Medium (Env var)' }
-#                              else { 'Low (cannot determine audit vs enforce here)' }
+        LanguageMode      = $languageMode
+        EnvLockdownPolicy = $envPolicy
+        IsConstrained     = $isConstrained
+        IsAudit           = $isAudit
+        IsEnforced        = $isEnforced
+        Confidence        = $confidence
     }
 }
-# Usage:
-# (Get-ClmAuditState).IsAudit
-
 
 function Get-ConstrainedLanguageState {
     [CmdletBinding()]
