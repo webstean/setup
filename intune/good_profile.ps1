@@ -3288,17 +3288,20 @@ function Write-StepSummary {
       ($InputObject | Out-String).TrimEnd()
     }
 
-    $line = "$prefix $text"
-
+    $line = "${prefix}: $text"
+    
     if ($useGitHubSummary) {
-      Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $line
+      Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $line -Encoding utf8
     }
 
-    if ($Type -eq 'error') {
-      Write-Error $text
-    }
-    elseif ($Type -eq 'debug') {
-      Write-Verbose $text
-    }
-  }
+    switch ($Type) {
+    'error' { Write-Error -Message "$line" }
+    'debug' { Write-Verbose -Verbose -Message "$line" }
+    'info'  { Write-Information -Message "$text" -InformationAction Continue }
+    'success' = { Write-Output "$line" }
+    'wait'    = { Write-Output "$line" }
+    'waiting' = { Write-Output "$line" }
+    'warn'    = { Write-Output "$line" }
+    'warning' = { Write-Output "$line" }
+    } }
 }
