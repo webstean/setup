@@ -3298,10 +3298,10 @@ function Write-StepSummary {
     'error' { Write-Error -Message "$line" }
     'debug' { Write-Verbose -Verbose -Message "$line" }
     'info'  { Write-Information -Message "$text" -InformationAction Continue }
-    'success' = { Write-Output "$line" }
-    'wait'    = { Write-Output "$line" }
-    'waiting' = { Write-Output "$line" }
-    'warn'    = { Write-Output "$line" }
-    'warning' = { Write-Output "$line" }
+    'success' { Write-Output "$line" }
+    'wait'    { Write-Output "$line" }
+    'waiting' { Write-Output "$line" }
+    'warn'    { Write-Output "$line" }
+    'warning' { Write-Output "$line" }
     } }
 }
