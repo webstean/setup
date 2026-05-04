@@ -3264,14 +3264,15 @@ function Write-StepSummary {
     $useGitHubSummary = -not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)
 
     $prefixMap = @{
-      info    = 'ℹ️'
-      success = '✅'
-      error   = '❌'
-      debug   = '🔍'
-      wait    = '⏳'
-      waiting = '⏳'
-      warn    = '⚠️'
-      warning = '⚠️'
+      exception = '❌E❌'
+      info      = 'ℹ️'
+      success   = '✅'
+      error     = '❌'
+      debug     = '🔍'
+      wait      = '⏳'
+      waiting   = '⏳'
+      warn      = '⚠️'
+      warning   = '⚠️'
     }
 
     $prefix = $prefixMap[$Type]
@@ -3289,19 +3290,23 @@ function Write-StepSummary {
     }
 
     $line = "${prefix}: $text"
-    
+
     if ($useGitHubSummary) {
-      Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $line -Encoding utf8
+      Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $line -Encoding UTF8
     }
 
+    $inPipeline = $MyInvocation.ExpectingInput
+
     switch ($Type) {
-    'error' { Write-Error -Message "$line" }
-    'debug' { Write-Verbose -Verbose -Message "$line" }
-    'info'  { Write-Information -Message "$text" -InformationAction Continue }
-    'success' { Write-Output "$line" }
-    'wait'    { Write-Output "$line" }
-    'waiting' { Write-Output "$line" }
-    'warn'    { Write-Output "$line" }
-    'warning' { Write-Output "$line" }
-    } }
+      'exception' { Write-Error -Message "Exception: $($_.Message) at line $($ErrorRecord.InvocationInfo.ScriptLineNumber)" }
+      'error' { Write-Error -Message "$line" }
+      'debug' { Write-Verbose -Verbose -Message "$line" }
+      'info' { Write-Information -Message "$text" -InformationAction Continue }
+      'success' { if (-not $inPipeline) { Write-Output "$line" } }
+      'wait' { if (-not $inPipeline) { Write-Output "$line" } }
+      'waiting' { if (-not $inPipeline) { Write-Output "$line" } }
+      'warn' { Write-Warning -Message "$line" }
+      'warning' { Write-Warning -Message "$line" }
+    }
+  }
 }
