@@ -3256,15 +3256,18 @@ function Write-StepSummary {
     $InputObject,
 
     [Parameter()]
-    [ValidateSet('info', 'warning', 'success', 'error', 'debug', 'wait', 'waiting', 'warn', 'warning')]
-    [string]$Type = 'info'
+    [ValidateSet('info', 'warning', 'success', 'error', 'debug', 'wait', 'waiting', 'warn', 'exception')]
+    [string]$Type = 'info',
+
+    [Parameter()]
+    [switch]$PassThru
   )
 
   begin {
     $useGitHubSummary = -not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)
 
     $prefixMap = @{
-      exception = '❌E❌'
+      exception = '❌'
       info      = 'ℹ️'
       success   = '✅'
       error     = '❌'
@@ -3292,21 +3295,33 @@ function Write-StepSummary {
     $line = "${prefix}: $text"
 
     if ($useGitHubSummary) {
-      Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $line -Encoding UTF8
+      Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $line -Encoding utf8
     }
 
-    $inPipeline = $MyInvocation.ExpectingInput
-
     switch ($Type) {
-      'exception' { Write-Error -Message "Exception: $($_.Message) at line $($ErrorRecord.InvocationInfo.ScriptLineNumber)" }
-      'error' { Write-Error -Message "$line" }
-      'debug' { Write-Verbose -Verbose -Message "$line" }
-      'info' { Write-Information -Message "$text" -InformationAction Continue }
-      'success' { if (-not $inPipeline) { Write-Output "$line" } }
-      'wait' { if (-not $inPipeline) { Write-Output "$line" } }
-      'waiting' { if (-not $inPipeline) { Write-Output "$line" } }
-      'warn' { Write-Warning -Message "$line" }
-      'warning' { Write-Warning -Message "$line" }
+      'error' {
+        Write-Error -Message $line
+      }
+
+      'exception' {
+        Write-Error -Message $line
+      }
+
+      'debug' {
+        Write-Verbose -Message $line
+      }
+
+      { $_ -in @('warn', 'warning') } {
+        Write-Warning -Message $line
+      }
+
+      default {
+        Write-Host $line
+      }
+    }
+
+    if ($PassThru) {
+      $line
     }
   }
 }
