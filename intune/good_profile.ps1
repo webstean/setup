@@ -3336,14 +3336,15 @@ function Get-OfficeDocumentMetadata {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    if (-not (Test-Path -LiteralPath $Path)) {
-        throw "File not found: $Path"
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "File not found: '$Path'. Current directory is: '$((Get-Location).Path)'"
     }
 
-    $extension = [IO.Path]::GetExtension($Path).ToLowerInvariant()
+    $resolvedPath = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath
+    $extension = [IO.Path]::GetExtension($resolvedPath).ToLowerInvariant()
 
     if ($extension -notin @('.docx', '.xlsx', '.pptx')) {
-        throw "Only .docx, .xlsx and .pptx files are supported."
+        throw "Only .docx, .xlsx and .pptx files are supported. File was: $resolvedPath"
     }
 
     Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -3351,12 +3352,12 @@ function Get-OfficeDocumentMetadata {
     $zip = $null
 
     try {
-        $zip = [System.IO.Compression.ZipFile]::OpenRead($Path)
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($resolvedPath)
 
         function Get-ZipEntryText {
             param(
                 [Parameter(Mandatory)]
-                $Zip,
+                [System.IO.Compression.ZipArchive]$Zip,
 
                 [Parameter(Mandatory)]
                 [string]$EntryName
@@ -3368,34 +3369,34 @@ function Get-OfficeDocumentMetadata {
                 return $null
             }
 
-            $reader = [IO.StreamReader]::new($entry.Open())
+            $stream = $entry.Open()
+            $reader = [IO.StreamReader]::new($stream)
 
             try {
                 return $reader.ReadToEnd()
             }
             finally {
                 $reader.Dispose()
+                $stream.Dispose()
             }
         }
 
-        Write-Host ""
-        Write-Host "File: $Path" -ForegroundColor Cyan
-        Write-Host "Type: $extension" -ForegroundColor Cyan
+        Write-Host ''
+        Write-Host "File: $resolvedPath"
+        Write-Host "Type: $extension"
 
-        #
-        # Core Properties
-        #
-        Write-Host ""
-        Write-Host "=== Core Properties ===" -ForegroundColor Yellow
+        Write-Host ''
+        Write-Host '=== Core Properties ==='
 
         $coreXml = Get-ZipEntryText -Zip $zip -EntryName 'docProps/core.xml'
 
-        if (-not [string]::IsNullOrWhiteSpace($coreXml)) {
-
+        if ([string]::IsNullOrWhiteSpace($coreXml)) {
+            Write-Host 'No core properties found.'
+        }
+        else {
             [xml]$coreDoc = $coreXml
 
-            $ns = New-Object System.Xml.XmlNamespaceManager($coreDoc.NameTable)
-
+            $ns = [System.Xml.XmlNamespaceManager]::new($coreDoc.NameTable)
             $ns.AddNamespace('cp', 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties')
             $ns.AddNamespace('dc', 'http://purl.org/dc/elements/1.1/')
             $ns.AddNamespace('dcterms', 'http://purl.org/dc/terms/')
@@ -3413,45 +3414,45 @@ function Get-OfficeDocumentMetadata {
                 Modified       = '//dcterms:modified'
             }
 
-            foreach ($propertyName in $propertyMap.Keys) {
+            $foundCoreProperty = $false
 
+            foreach ($propertyName in $propertyMap.Keys) {
                 $node = $coreDoc.SelectSingleNode($propertyMap[$propertyName], $ns)
 
                 if ($node -and -not [string]::IsNullOrWhiteSpace($node.InnerText)) {
-                    Write-Host ("{0,-20}: {1}" -f $propertyName, $node.InnerText)
+                    $foundCoreProperty = $true
+                    Write-Host ('{0,-24}: {1}' -f $propertyName, $node.InnerText)
                 }
             }
-        }
-        else {
-            Write-Host "No core properties found."
+
+            if (-not $foundCoreProperty) {
+                Write-Host 'No populated core properties found.'
+            }
         }
 
-        #
-        # Custom Properties
-        #
-        Write-Host ""
-        Write-Host "=== Custom Properties ===" -ForegroundColor Yellow
+        Write-Host ''
+        Write-Host '=== Custom Properties ==='
 
         $customXml = Get-ZipEntryText -Zip $zip -EntryName 'docProps/custom.xml'
 
-        if (-not [string]::IsNullOrWhiteSpace($customXml)) {
-
+        if ([string]::IsNullOrWhiteSpace($customXml)) {
+            Write-Host 'No custom properties found.'
+        }
+        else {
             [xml]$customDoc = $customXml
 
-            $ns = New-Object System.Xml.XmlNamespaceManager($customDoc.NameTable)
-
+            $ns = [System.Xml.XmlNamespaceManager]::new($customDoc.NameTable)
             $ns.AddNamespace('cp', 'http://schemas.openxmlformats.org/officeDocument/2006/custom-properties')
 
             $propertyNodes = $customDoc.SelectNodes('//cp:property', $ns)
 
             if ($propertyNodes.Count -eq 0) {
-                Write-Host "No custom properties found."
+                Write-Host 'No custom properties found.'
+
             }
             else {
-
                 foreach ($propertyNode in $propertyNodes) {
-
-                    $propertyName = $propertyNode.name
+                    $propertyName = [string]$propertyNode.name
 
                     if ([string]::IsNullOrWhiteSpace($propertyName)) {
                         continue
@@ -3466,15 +3467,12 @@ function Get-OfficeDocumentMetadata {
                         ''
                     }
 
-                    Write-Host ("{0,-20}: {1}" -f $propertyName, $propertyValue)
+                    Write-Host ('{0,-24}: {1}' -f $propertyName, $propertyValue)
                 }
             }
         }
-        else {
-            Write-Host "No custom properties found."
-        }
 
-        Write-Host ""
+        Write-Host ''
     }
     finally {
         if ($zip) {
