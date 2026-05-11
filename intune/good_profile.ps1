@@ -3326,20 +3326,11 @@ function Write-StepSummary {
   }
 }
 
-function Set-OfficeDocumentMetadata {
-    [CmdletBinding(SupportsShouldProcess)]
+function Get-OfficeDocumentMetadata {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [string]$Path,
-
-        [Parameter()]
-        [hashtable]$CoreProperties = @{},
-
-        [Parameter()]
-        [hashtable]$CustomProperties = @{},
-
-        [Parameter()]
-        [switch]$ClearExistingCustomProperties
+        [string]$Path
     )
 
     Set-StrictMode -Version Latest
@@ -3350,147 +3341,144 @@ function Set-OfficeDocumentMetadata {
     }
 
     $extension = [IO.Path]::GetExtension($Path).ToLowerInvariant()
+
     if ($extension -notin @('.docx', '.xlsx', '.pptx')) {
-        throw "Only .docx, .xlsx and .pptx are supported."
+        throw "Only .docx, .xlsx and .pptx files are supported."
     }
 
     Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-    $tempPath = Join-Path ([IO.Path]::GetTempPath()) ([IO.Path]::GetRandomFileName())
-    Copy-Item -LiteralPath $Path -Destination $tempPath -Force
+    $zip = $null
 
     try {
-        $zip = [System.IO.Compression.ZipFile]::Open($tempPath, 'Update')
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($Path)
 
         function Get-ZipEntryText {
-            param($Zip, [string]$EntryName)
+            param(
+                [Parameter(Mandatory)]
+                $Zip,
+
+                [Parameter(Mandatory)]
+                [string]$EntryName
+            )
 
             $entry = $Zip.GetEntry($EntryName)
-            if (-not $entry) { return $null }
+
+            if (-not $entry) {
+                return $null
+            }
 
             $reader = [IO.StreamReader]::new($entry.Open())
-            try { return $reader.ReadToEnd() }
-            finally { $reader.Dispose() }
-        }
 
-        function Set-ZipEntryText {
-            param($Zip, [string]$EntryName, [string]$Text)
-
-            $entry = $Zip.GetEntry($EntryName)
-            if ($entry) { $entry.Delete() }
-
-            $entry = $Zip.CreateEntry($EntryName)
-            $writer = [IO.StreamWriter]::new($entry.Open(), [Text.UTF8Encoding]::new($false))
-            try { $writer.Write($Text) }
-            finally { $writer.Dispose() }
-        }
-
-        if ($CoreProperties.Count -gt 0) {
-            $coreXml = Get-ZipEntryText -Zip $zip -EntryName 'docProps/core.xml'
-
-            if ([string]::IsNullOrWhiteSpace($coreXml)) {
-                $coreXml = @'
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
- xmlns:dc="http://purl.org/dc/elements/1.1/"
- xmlns:dcterms="http://purl.org/dc/terms/"
- xmlns:dcmitype="http://purl.org/dc/dcmitype/"
- xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-</cp:coreProperties>
-'@
+            try {
+                return $reader.ReadToEnd()
             }
+            finally {
+                $reader.Dispose()
+            }
+        }
+
+        Write-Host ""
+        Write-Host "File: $Path" -ForegroundColor Cyan
+        Write-Host "Type: $extension" -ForegroundColor Cyan
+
+        #
+        # Core Properties
+        #
+        Write-Host ""
+        Write-Host "=== Core Properties ===" -ForegroundColor Yellow
+
+        $coreXml = Get-ZipEntryText -Zip $zip -EntryName 'docProps/core.xml'
+
+        if (-not [string]::IsNullOrWhiteSpace($coreXml)) {
 
             [xml]$coreDoc = $coreXml
-            $root = $coreDoc.DocumentElement
 
-            $coreMap = @{
-                Title       = @{ Prefix = 'dc';      Name = 'title';       Namespace = 'http://purl.org/dc/elements/1.1/' }
-                Subject     = @{ Prefix = 'dc';      Name = 'subject';     Namespace = 'http://purl.org/dc/elements/1.1/' }
-                Creator     = @{ Prefix = 'dc';      Name = 'creator';     Namespace = 'http://purl.org/dc/elements/1.1/' }
-                Description = @{ Prefix = 'dc';      Name = 'description'; Namespace = 'http://purl.org/dc/elements/1.1/' }
-                Keywords    = @{ Prefix = 'cp';      Name = 'keywords';    Namespace = 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties' }
-                Category    = @{ Prefix = 'cp';      Name = 'category';    Namespace = 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties' }
-                LastModifiedBy = @{ Prefix = 'cp';   Name = 'lastModifiedBy'; Namespace = 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties' }
+            $ns = New-Object System.Xml.XmlNamespaceManager($coreDoc.NameTable)
+
+            $ns.AddNamespace('cp', 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties')
+            $ns.AddNamespace('dc', 'http://purl.org/dc/elements/1.1/')
+            $ns.AddNamespace('dcterms', 'http://purl.org/dc/terms/')
+
+            $propertyMap = [ordered]@{
+                Title          = '//dc:title'
+                Subject        = '//dc:subject'
+                Creator        = '//dc:creator'
+                Description    = '//dc:description'
+                Keywords       = '//cp:keywords'
+                Category       = '//cp:category'
+                LastModifiedBy = '//cp:lastModifiedBy'
+                Revision       = '//cp:revision'
+                Created        = '//dcterms:created'
+                Modified       = '//dcterms:modified'
             }
 
-            foreach ($key in $CoreProperties.Keys) {
-                if (-not $coreMap.ContainsKey($key)) {
-                    throw "Unsupported core property '$key'. Supported: $($coreMap.Keys -join ', ')"
+            foreach ($propertyName in $propertyMap.Keys) {
+
+                $node = $coreDoc.SelectSingleNode($propertyMap[$propertyName], $ns)
+
+                if ($node -and -not [string]::IsNullOrWhiteSpace($node.InnerText)) {
+                    Write-Host ("{0,-20}: {1}" -f $propertyName, $node.InnerText)
                 }
-
-                $meta = $coreMap[$key]
-                $node = $root.SelectSingleNode("*[local-name()='$($meta.Name)' and namespace-uri()='$($meta.Namespace)']")
-
-                if (-not $node) {
-                    $node = $coreDoc.CreateElement($meta.Prefix, $meta.Name, $meta.Namespace)
-                    [void]$root.AppendChild($node)
-                }
-
-                $node.InnerText = [string]$CoreProperties[$key]
             }
-
-            Set-ZipEntryText -Zip $zip -EntryName 'docProps/core.xml' -Text $coreDoc.OuterXml
+        }
+        else {
+            Write-Host "No core properties found."
         }
 
-        if ($CustomProperties.Count -gt 0 -or $ClearExistingCustomProperties) {
-            $customXml = @'
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties"
- xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
-</Properties>
-'@
+        #
+        # Custom Properties
+        #
+        Write-Host ""
+        Write-Host "=== Custom Properties ===" -ForegroundColor Yellow
 
-            if (-not $ClearExistingCustomProperties) {
-                $existing = Get-ZipEntryText -Zip $zip -EntryName 'docProps/custom.xml'
-                if (-not [string]::IsNullOrWhiteSpace($existing)) {
-                    $customXml = $existing
-                }
-            }
+        $customXml = Get-ZipEntryText -Zip $zip -EntryName 'docProps/custom.xml'
+
+        if (-not [string]::IsNullOrWhiteSpace($customXml)) {
 
             [xml]$customDoc = $customXml
-            $propertiesNode = $customDoc.DocumentElement
 
-            foreach ($name in $CustomProperties.Keys) {
-                $existingNode = $propertiesNode.SelectSingleNode("*[local-name()='property' and @name='$name']")
-                if ($existingNode) {
-                    [void]$propertiesNode.RemoveChild($existingNode)
-                }
+            $ns = New-Object System.Xml.XmlNamespaceManager($customDoc.NameTable)
 
-                $pidValues = @($propertiesNode.ChildNodes | ForEach-Object { [int]$_.pid })
-                $nextPid = if ($pidValues.Count -gt 0) { ($pidValues | Measure-Object -Maximum).Maximum + 1 } else { 2 }
+            $ns.AddNamespace('cp', 'http://schemas.openxmlformats.org/officeDocument/2006/custom-properties')
 
-                $propertyNode = $customDoc.CreateElement(
-                    'property',
-                    'http://schemas.openxmlformats.org/officeDocument/2006/custom-properties'
-                )
+            $propertyNodes = $customDoc.SelectNodes('//cp:property', $ns)
 
-                $propertyNode.SetAttribute('fmtid', '{D5CDD505-2E9C-101B-9397-08002B2CF9AE}')
-                $propertyNode.SetAttribute('pid', [string]$nextPid)
-                $propertyNode.SetAttribute('name', [string]$name)
-
-                $valueNode = $customDoc.CreateElement(
-                    'vt',
-                    'lpwstr',
-                    'http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes'
-                )
-
-                $valueNode.InnerText = [string]$CustomProperties[$name]
-
-                [void]$propertyNode.AppendChild($valueNode)
-                [void]$propertiesNode.AppendChild($propertyNode)
+            if ($propertyNodes.Count -eq 0) {
+                Write-Host "No custom properties found."
             }
+            else {
 
-            Set-ZipEntryText -Zip $zip -EntryName 'docProps/custom.xml' -Text $customDoc.OuterXml
+                foreach ($propertyNode in $propertyNodes) {
+
+                    $propertyName = $propertyNode.name
+
+                    if ([string]::IsNullOrWhiteSpace($propertyName)) {
+                        continue
+                    }
+
+                    $valueNode = $propertyNode.ChildNodes | Select-Object -First 1
+
+                    $propertyValue = if ($valueNode) {
+                        $valueNode.InnerText
+                    }
+                    else {
+                        ''
+                    }
+
+                    Write-Host ("{0,-20}: {1}" -f $propertyName, $propertyValue)
+                }
+            }
+        }
+        else {
+            Write-Host "No custom properties found."
         }
 
-        $zip.Dispose()
-
-        if ($PSCmdlet.ShouldProcess($Path, 'Update Office document metadata')) {
-            Copy-Item -LiteralPath $tempPath -Destination $Path -Force
-        }
+        Write-Host ""
     }
     finally {
-        if ($zip) { $zip.Dispose() }
-        Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue
+        if ($zip) {
+            $zip.Dispose()
+        }
     }
 }
