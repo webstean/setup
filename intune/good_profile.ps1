@@ -3473,6 +3473,77 @@ function Get-OfficeDocumentMetadata {
         }
 
         Write-Host ''
+        Write-Host '=== App Properties ==='
+
+        $appXml = Get-ZipEntryText -Zip $zip -EntryName 'docProps/app.xml'
+
+        if ([string]::IsNullOrWhiteSpace($appXml)) {
+          Write-Host 'No app properties found.'
+        }
+        else {
+          [xml]$appDoc = $appXml
+          $appNodes = $appDoc.SelectNodes('//*[not(*)]')
+          $appPropertiesShown = 0
+
+          foreach ($appNode in $appNodes) {
+            $name = [string]$appNode.LocalName
+            $value = [string]$appNode.InnerText
+
+            if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($value)) {
+              continue
+            }
+
+            Write-Host ('{0,-24}: {1}' -f $name, $value)
+            $appPropertiesShown++
+          }
+
+          if ($appPropertiesShown -eq 0) {
+            Write-Host 'No populated app properties found.'
+          }
+        }
+
+        Write-Host ''
+        Write-Host '=== Custom XML Parts ==='
+
+        $customXmlPartEntries = @($zip.Entries | Where-Object { $_.FullName -match '^customXml/.+\.xml$' })
+
+        if ($customXmlPartEntries.Count -eq 0) {
+          Write-Host 'No custom XML parts found.'
+        }
+        else {
+          foreach ($customXmlPartEntry in $customXmlPartEntries) {
+            Write-Host ''
+            Write-Host "Part: $($customXmlPartEntry.FullName)"
+
+            $partXml = Get-ZipEntryText -Zip $zip -EntryName $customXmlPartEntry.FullName
+            if ([string]::IsNullOrWhiteSpace($partXml)) {
+              Write-Host '  (empty XML part)'
+              continue
+            }
+
+            [xml]$partDoc = $partXml
+            $partLeafNodes = $partDoc.SelectNodes('//*[not(*)]')
+            $partValuesShown = 0
+
+            foreach ($partLeafNode in $partLeafNodes) {
+              $name = [string]$partLeafNode.LocalName
+              $value = [string]$partLeafNode.InnerText
+
+              if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($value)) {
+                continue
+              }
+
+              Write-Host ('  {0,-22}: {1}' -f $name, $value)
+              $partValuesShown++
+            }
+
+            if ($partValuesShown -eq 0) {
+              Write-Host '  (no populated leaf values found)'
+            }
+          }
+        }
+
+        Write-Host ''
     }
     finally {
         if ($zip) {
