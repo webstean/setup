@@ -4,6 +4,12 @@
 #Set-ExecutionPolicy Unrestricted -Scope CurrentUser
 #Set-ExecutionPolicy -ExecutionPolicy Unrestricted
 
+## Ignore	        Completely discard output
+## SilentlyContinue	Ignore verbose output (default)
+## Continue	        Show verbose messages
+## Stop	            Treat verbose output as terminating error
+## Inquire	        Ask user whether to continue
+## Break	        Enter debugger
 ## Show verbose messages
 $VerbosePreference = 'SilentlyContinue'
 
@@ -1975,8 +1981,6 @@ function Get-EntraID-Info {
 ##if (Get-Command 'azd' -ErrorAction SilentlyContinue) {
 ##    azd auth login --check-status
 ##}
-## Show verbose messages
-$VerbosePreference = 'Continue'
 
 if ( ($env:DEVELOPER -eq "Yes") -and ($IsLanguagePermissive -eq $true) ) { 
     ## dotnet shell completions
