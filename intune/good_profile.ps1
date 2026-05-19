@@ -8,6 +8,7 @@
 ## SilentlyContinue	Ignore verbose output (default)
 ## Continue	        Show verbose messages
 ## Stop	            Treat verbose output as terminating error
+## Suspend          Treat verbose output as terminating error
 ## Inquire	        Ask user whether to continue
 ## Break	        Enter debugger
 ## Show verbose messages
