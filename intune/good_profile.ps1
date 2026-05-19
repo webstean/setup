@@ -13,6 +13,7 @@
 ## Break	        Enter debugger
 ## Show verbose messages
 $VerbosePreference = 'SilentlyContinue'
+$PSDefaultParameterValues['*:Verbose'] = $false
 
 function Update-Profile-Force {
     # Define the remote URL
