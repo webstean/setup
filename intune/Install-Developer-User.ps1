@@ -291,6 +291,7 @@ function Set-MSTerminalSetting {
     Set-JsonValue -JsonObject $json -Path "editor.formatOnSave" -Value $true
     Set-JsonValue -JsonObject $json -Path "files.autoSave" -Value $true
     Set-JsonValue -JsonObject $json -Path "editor.defaultFormatter" -Value "GitHub.copilot-chat"
+    Set-JsonValue -JsonObject $json -Path "powershell.codeFormatting.newLineBeforeElse" -Value $false
            
     #Set-JsonValue -JsonObject $json -Path "startupActions" -Value "newTab -p 'PowerShell'; newTab -p 'Headless Helper'"
     #Set-JsonValue -JsonObject $json -Path "wt -p "Command Prompt" `; split-pane -p "Windows PowerShell" `; split-pane -H wsl.exe
