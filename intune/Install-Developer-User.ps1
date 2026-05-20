@@ -675,7 +675,7 @@ try {
                 dotnet dev-certs https --export-path "$devcertname" --password "$randompwd"
             }
         } else {
-            dotnet dev-certs https --export-path "$devcertname" --password (Get-Item  -ErrorAction SilentlyContinue Env:STRONGPASSWORD).Value
+            dotnet dev-certs https --export-path "$devcertname" --password (Get-Item  -ErrorAction SilentlyContinue Env:STRONGPASSWORD).Value)
         }
     }
 }
