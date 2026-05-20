@@ -73,8 +73,9 @@ function Set-NetworkProfilesToPrivate {
 }
 Set-NetworkProfilesToPrivate
 
+## This won't work on DevBoxes, get access denied
 function Install-WinRM {
-    ## Network profiles MUST be private for WinRM to work
+    ## Network profiles MUST be private for WinRM to work (see above)
     Set-NetworkProfilesToPrivate
 
     ## Open firewall rules for WinRM (HTTP:5985, HTTPS:5986)
@@ -123,23 +124,25 @@ $dotnetTools = @(
         "dotnet-reportgenerator-globaltool",      ## report generator
         "Microsoft.OpenApi.Kiota",                ## code generator (openapi)
         "paket",                                  ## Paket dependency manager
-        "Aspire.Cli",                             ## Aspire CLI # --prerelease
         "upgrade-assistant"                       ## upgrade assistant
     )
 
 function Install-OrUpdate-DotNetTools {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
-        [string[]]$Tools,
+        [Parameter(Mandatory = $false)]
+        [string[]]$Tools = $dotnetTools,
 
         # Use Global by default (installs to $HOME\.dotnet\tools)
+        [Parameter(Mandatory = $false)]
         [switch]$Global = $true,
 
         # If set, installs to this folder instead of global. Mutually exclusive with -Global.
+        [Parameter(Mandatory = $false)]
         [string]$ToolPath = "C:\Program Files\DotNet Tools",
 
         # Include prerelease versions
+        [Parameter(Mandatory = $false)]
         [switch]$Prerelease = $true
     )
 
@@ -228,6 +231,21 @@ function Install-OrUpdate-DotNetTools {
     Invoke-DotNet -Args $listArgs
 }
 Install-OrUpdate-DotNetTools
+
+## Install Aspire CLI
+## https://aspire.dev/get-started/install-cli/
+try {
+    Invoke-RestMethod  -Uri 'https://aspire.dev/install.ps1' | Invoke-Expression
+    aspire --version
+    aspire config set updateNotificationsEnabled false
+    aspire certs trust --non-interactive
+    if ($LASTEXITCODE -ne 0) {
+        throw "Aspire certificate trust failed with exit code $LASTEXITCODE"
+    }
+}
+catch {
+    Write-Host "Aspire CLI - failed to install or there was an error!"
+}
 
 ## Add NuGet source to dotnet if missing (best-effort)
 try {
