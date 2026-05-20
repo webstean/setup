@@ -368,6 +368,7 @@ if (Get-Module -Name AzureAD.Standard.Preview -ListAvailable -ErrorAction Silent
 Install-OrUpdate-Module PSWindowsUpdate
 Install-OrUpdate-Module PackageManagement
 Install-OrUpdate-Module Terminal-Icons
+Install-OrUpdate-Module Az.Tools.Migration
 Install-OrUpdate-Module Az.Accounts
 Install-OrUpdate-Module Az.Storage
 Install-OrUpdate-Module Az.Compute
