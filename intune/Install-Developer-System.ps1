@@ -232,17 +232,45 @@ function Install-OrUpdate-DotNetTools {
 }
 Install-OrUpdate-DotNetTools
 
+#        -FriendlyName = "$certName" `
 ## Create Certifciate
-$CertYears = 3
-$cert = New-SelfSignedCertificate `
-        -Subject "CN=Developer" `
-        -CertStoreLocation 'Cert:\CurrentUser\My' `
+$certName = 'Developer Code Signing'
+$certLocation = 'Cert:\CurrentUser\My'
+$cscert = New-SelfSignedCertificate `
+        -Subject "CN=$certName" `
+        -Type CodeSigningCert `
+        -CertStoreLocation "$CertLocation" `
         -KeyExportPolicy Exportable `
         -KeySpec Signature `
         -KeyLength 2048 `
         -KeyAlgorithm RSA `
         -HashAlgorithm SHA256 `
-        -NotAfter (Get-Date).AddYears($CertYears)
+        -NotAfter (Get-Date).AddYears($CertYears) `
+        -Verbose
+$cscert.Subject
+$cscert.EnhancedKeyUsageList
+$cscert.Thumprint
+
+$certName = 'Developer TLS'
+$certLocation = 'Cert:\CurrentUser\My'
+$tlscert = New-SelfSignedCertificate `
+        -Subject "CN=$certName" `
+        -Type SSLServerAuthentication `
+        -DnsName 'localhost, *.dev.localhost, *.dev.internal, host.docker.internal, host.containers.internal, 127.0.0.1, 0000:0000:0000:0000:0000:0000:0000:0001' `
+        -CertStoreLocation "$CertLocation" `
+        -KeyExportPolicy Exportable `
+        -KeySpec Signature `
+        -KeyLength 2048 `
+        -KeyAlgorithm RSA `
+        -HashAlgorithm SHA256 `
+        -NotAfter (Get-Date).AddYears($CertYears) `
+        -Verbose
+$tlscert.Subject
+$tlscert.EnhancedKeyUsageList
+$tlscert.Thumprint
+
+##$cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($pfxPath, $passCert, [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable)
+        
 
 ## Install Aspire CLI
 ## https://aspire.dev/get-started/install-cli/
