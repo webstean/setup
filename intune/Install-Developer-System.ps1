@@ -232,6 +232,18 @@ function Install-OrUpdate-DotNetTools {
 }
 Install-OrUpdate-DotNetTools
 
+## Create Certifciate
+$CertYears = 3
+$cert = New-SelfSignedCertificate `
+        -Subject "CN=Developer" `
+        -CertStoreLocation 'Cert:\CurrentUser\My' `
+        -KeyExportPolicy Exportable `
+        -KeySpec Signature `
+        -KeyLength 2048 `
+        -KeyAlgorithm RSA `
+        -HashAlgorithm SHA256 `
+        -NotAfter (Get-Date).AddYears($CertYears)
+
 ## Install Aspire CLI
 ## https://aspire.dev/get-started/install-cli/
 try {
