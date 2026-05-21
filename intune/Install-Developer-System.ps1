@@ -48,6 +48,7 @@ function Set-RdpQueryDirPrefetch {
         return $false
     }
 }
+Set-RdpQueryDirPrefetch
 
 function Test-DeveloperMode {
     $regPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
