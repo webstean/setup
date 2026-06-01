@@ -3255,81 +3255,79 @@ function Get-AllMsGraphPages {
 }
 
 function Write-StepSummary {
-  [CmdletBinding()]
-  param(
-    [Parameter(ValueFromPipeline)]
-    [AllowNull()]
-    $InputObject,
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromPipeline)]
+        [AllowNull()]
+        $InputObject,
 
-    [Parameter()]
-    [ValidateSet('info', 'warning', 'success', 'error', 'debug', 'wait', 'waiting', 'warn', 'exception')]
-    [string]$Type = 'info',
+        [Parameter()]
+        [ValidateSet('info', 'warning', 'success', 'error', 'debug', 'wait', 'waiting', 'warn', 'exception')]
+        [string]$Type = 'info',
 
-    [Parameter()]
-    [switch]$PassThru
-  )
+        [Parameter()]
+        [switch]$PassThru
+    )
 
-  begin {
-    $useGitHubSummary = -not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)
+    begin {
+        $useGitHubSummary = -not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)
 
-    $prefixMap = @{
-      exception = '❌'
-      info      = 'ℹ️'
-      success   = '✅'
-      error     = '❌'
-      debug     = '🔍'
-      wait      = '⏳'
-      waiting   = '⏳'
-      warn      = '⚠️'
-      warning   = '⚠️'
+        $prefixMap = @{
+            exception = '❌'
+            info      = 'ℹ️'
+            success   = '✅'
+            error     = '❌'
+            debug     = '🔍'
+            wait      = '⏳'
+            waiting   = '⏳'
+            warn      = '⚠️'
+            warning   = '⚠️'
+        }
+
+        $prefix = $prefixMap[$Type]
     }
 
-    $prefix = $prefixMap[$Type]
-  }
+    process {
+        $text = if ($null -eq $InputObject) {
+            ''
+        } elseif ($InputObject -is [string]) {
+            $InputObject
+        } else {
+            ($InputObject | Out-String).TrimEnd()
+        }
 
-  process {
-    $text = if ($null -eq $InputObject) {
-      ''
+        $line = "${prefix}: $text"
+
+        if ($useGitHubSummary) {
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $line -Encoding utf8
+        }
+
+        switch ($Type) {
+            'error' {
+                Write-Error -Message $line
+            }
+
+            'exception' {
+                Write-Error -Message $line
+            }
+
+            'debug' {
+                Write-Verbose -Message $line
+            }
+
+            { $_ -in @('warn', 'warning') } {
+                Write-Warning -Message $line
+            }
+
+            default {
+                Write-Host $line
+            }
+        }
+
+        if ($PassThru) {
+            $line
+        }
     }
-    elseif ($InputObject -is [string]) {
-      $InputObject
-    }
-    else {
-      ($InputObject | Out-String).TrimEnd()
-    }
-
-    $line = "${prefix}: $text"
-
-    if ($useGitHubSummary) {
-      Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $line -Encoding utf8
-    }
-
-    switch ($Type) {
-      'error' {
-        Write-Error -Message $line
-      }
-
-      'exception' {
-        Write-Error -Message $line
-      }
-
-      'debug' {
-        Write-Verbose -Message $line
-      }
-
-      { $_ -in @('warn', 'warning') } {
-        Write-Warning -Message $line
-      }
-
-      default {
-        Write-Host $line
-      }
-    }
-
-    if ($PassThru) {
-      $line
-    }
-  }
 }
 
 function Get-OfficeDocumentMetadata {
