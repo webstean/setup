@@ -1313,4 +1313,10 @@ if (Test-Path $wauConfig) {
 
 Add-Type -AssemblyName System.Windows.Forms
 
+openfiles /local on
+## SUCCESS: The system global flag 'maintain objects list' is enabled.
+##         This will take effect after the system is restarted.
+
+
+
 
