@@ -357,6 +357,15 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.Coreutils
+      directives:
+        description: Installing Microsoft.Coreutils
+        allowPrerelease: true
+      settings:
+        id: Microsoft.Coreutils
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: RedHat.Podman-Desktop
       dependsOn:
         - RedHat.Podman
