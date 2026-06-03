@@ -76,22 +76,26 @@ function Install-LatestDotNetWindowsDesktopRuntime {
 
 ## Base URL for raw GitHub content (public`)
 $baseUrl = "https://raw.githubusercontent.com/webstean/setup//main/intune/"
-
 ## List of script files to download and run
 $filesToDownload = @(
-    "Config-Normal-Machine.ps1",
-    "developer.winget",
-    "Install-Developer-Fonts.ps1",
-    "Install-Developer-PowershellModules.ps1",
-    "Install-Developer-System.ps1",
-    "Install-Developer-User.ps1",
+    'Config-Normal-Machine.ps1',
+    'developer.winget',
+    'Install-Developer-Fonts.ps1',
+    'Install-Developer-PowershellModules.ps1',
+    'Install-Developer-System.ps1',
+    'Install-Developer-User.ps1',
     ##"Install-Global-Secure-Access-Client.ps1",
-    "Install-Windows-Admin-Centre.ps1",
-    "Setup-StarShip-Shell.ps1",
-    "starship_pill.toml",
-    "logo.png",
-    "wallpaper.jpg"
+    'Install-Windows-Admin-Centre.ps1',
+    'Setup-StarShip-Shell.ps1',
+    'starship_pill.toml',
+    'logo.png',
+    'wallpaper.jpg'
     # Add more filenames as needed
+)
+
+## full URL this
+$extrafilesToDownload = @(
+    'https://raw.githubusercontent.com/microsoft/WindowsDeveloperConfig/refs/heads/main/windows-dev-config/dev-config.winget'
 )
 
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
@@ -187,13 +191,21 @@ function New-EmptyTempDirectory {
     # Return the path as string
     return $fullPath
 }
-$destination = New-EmptyTempDirectory
 
+$destination = New-EmptyTempDirectory
 # Just download the files - do not execute
 function Invoke-GitHub-Download {
-    foreach ($file in $filesToDownload) {
-        $url = "$baseUrl/$file"
-        $filedestination = Join-Path -Path $destination -ChildPath $file
+    foreach ($fileName in $filesToDownload) {
+        $url = "$baseUrl/$fileName"
+        $filedestination = Join-Path -Path $destination -ChildPath $fileName
+        Write-Output "Downloading (no execute): $url... to $filedestination"
+        Invoke-WebRequest -Uri $url -OutFile $filedestination -UseBasicParsing
+    }
+}
+function Invoke-ExtraFile-Download {
+    foreach ($url in $extrafilesToDownload) {
+        $fileName = [System.IO.Path]::GetFileName(([uri]$url).AbsolutePath)
+        $filedestination = Join-Path -Path $destination -ChildPath $fileName
         Write-Output "Downloading (no execute): $url... to $filedestination"
         Invoke-WebRequest -Uri $url -OutFile $filedestination -UseBasicParsing
     }
