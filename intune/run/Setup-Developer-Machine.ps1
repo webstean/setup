@@ -413,13 +413,21 @@ function Invoke-IfFileExists {
 function Invoke-WingetConfiguration-Developer {
     #winget configure validate --file developer.winget --ignore-warnings --disable-interactivity --verbose-logs
     #winget configure show     --file developer.winget --ignore-warnings --disable-interactivity --verbose-logs
+    winget configure --enable
+    winget settings --enable  ProxyCommandLineOptions ## valid values are: LocalManifestFiles, BypassCertificatePinningForMicrosoftStore, InstallerHashOverride, LocalArchiveMalwareScanOverride, ProxyCommandLineOptions
+    
+    if ( Test-Path "${destination}\dev-config.winget" ) {
+        winget configure --file ${destination}\dev-config.winget --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
+    } else {
+        Write-Host "${destination}\dev-config.winget from Microsoft not found!!"
+        exit 1
+    }
     if ( Test-Path "${destination}\developer.winget" ) {
         #winget configure --file developer.winget --accept-configuration-agreements --suppress-initial-details --disable-interactivity --verbose-logs
-        winget configure --enable
-        winget settings --enable  ProxyCommandLineOptions ## valid values are: LocalManifestFiles, BypassCertificatePinningForMicrosoftStore, InstallerHashOverride, LocalArchiveMalwareScanOverride, ProxyCommandLineOptions
         winget configure --file ${destination}\developer.winget --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
     } else {
         Write-Host "${destination}\developer.winget not found!!"
+        exit 1
     }
     return ;
     ## get-childitem     $env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir\
