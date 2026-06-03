@@ -31,15 +31,6 @@ properties:
         source: msstore
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.PowerShell
-      directives:
-        description: Install Microsoft.PowerShell
-        allowPrerelease: false
-      settings:
-        id: Microsoft.PowerShell
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.Company.Portal
       directives:
         description: Install Microsoft.Company.Portal
@@ -57,15 +48,6 @@ properties:
         id: 9NCTDW2W1BH8
         source: msstore
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.WindowsApp
-      directives:
-        description: Install Microsoft.WindowsApp
-        allowPrerelease: false
-      settings:
-        id: Microsoft.WindowsApp
-        source: winget
-
 # $HasTouch = (Get-CimInstance Win32_PnPEntity | Where-Object Name -eq 'HID-compliant touch screen').Count -gt 0
 # $HasTouch
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -76,28 +58,6 @@ properties:
       settings:
         id: Microsoft.WindowsJournal
         source: winget
-
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: installWSL
-#      directives:
-#        description: Ensure WSL is installed
-#        allowPrerelease: false
-#        securityContext: elevated
-#      settings:
-#        id: Microsoft.WSL
-#        source: winget
-
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: Install.Ubuntu
-#      dependsOn:
-#        - installWSL
-#      directives:
-#        description: Install Ubuntu for WSL
-#        allowPrerelease: true
-#        securityContext: elevated
-#      settings:
-#        id: 9PDXGNCFSCZV
-#        source: msstore
 
     - resource: xPSDesiredStateConfiguration/xScript
       id: variable.developer
@@ -162,96 +122,6 @@ properties:
             Write-Host "Set LOGON Wallpaper"
           }
 
-#    - resource: xPSDesiredStateConfiguration/xScript
-#      id: Script.Set.Lock.Wallpaper
-#      directives:
-#        description: Set Developer LOCK wallpaper
-#        securityContext: elevated
-#      dependsOn:
-#        - Script.Set.User.Wallpaper
-#      settings:
-#        GetScript: return $false
-#        TestScript: return $false
-#        SetScript: |
-#          $wallpaper = "default-wallpaper.jpg"
-#          $regPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
-#          $regName = "wallpaper"
-#          $location = "$env:ALLUSERSPROFILE"
-#          $wallpaperlocation = "${location}\${wallpaper}"
-#          if (Test-Path "$wallpaperlocation" ) {          
-#            Set-ItemProperty -Path $regPath -Name $regName -Value $wallpaperlocation
-#            Write-Host "Set LOGON Wallpaper"
-#          }
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.VisualStudioCode.General
-      directives:
-        description: Removing Microsoft.VisualStudioCode   ### Remove this one, use the Insiders Edition
-        allowPrerelease: false
-        securityContext: current
-      settings:
-        id: Microsoft.VisualStudioCode
-        source: winget
-        ## ensure: Absent  ## needs to be installed otherwise extensions do not install
-    
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.VisualStudioCode
-      directives:
-        description: Install Visual Studio Code Insiders
-        securityContext: current
-      settings:
-        id: Microsoft.VisualStudioCode.Insiders
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.DotNet.SDK.8
-      directives:
-        description: Installing Microsoft.DotNet.SDK.8
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: Microsoft.DotNet.SDK.8
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.DotNet.SDK.9
-      directives:
-        description: Installing Microsoft.DotNet.SDK.9
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: Microsoft.DotNet.SDK.9
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.DotNet.SDK.10
-      directives:
-        description: Installing Microsoft.DotNet.SDK.10
-        allowPrerelease: true
-        securityContext: elevated
-      settings:
-        id: Microsoft.DotNet.SDK.10
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.DotNet.SDK.Preview
-      directives:
-        description: Installing Microsoft.DotNet.SDK.Preview
-        allowPrerelease: true
-        securityContext: elevated
-      settings:
-        id: Microsoft.DotNet.SDK.Preview
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: GitHub.GitHubDesktop
-      directives:
-        description: Installing GitHub.GitHubDesktop
-        allowPrerelease: false
-        securityContext: current
-      settings:
-        id: GitHub.GitHubDesktop
-        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: RicoSuter.NSwagStudio
@@ -263,33 +133,6 @@ properties:
         id: RicoSuter.NSwagStudio
         source: winget
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Python.PythonInstallManager
-      directives:
-        description: Installing Python.PythonInstallManager
-        allowPrerelease: false
-        securityContext: current
-      settings:
-        id: Python.PythonInstallManager
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.AIShell
-      directives:
-        description: Install Microsoft.AIShell (aish)
-        allowPrerelease: true
-      settings:
-        id: Microsoft.AIShell
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: GitHub.Copilot
-      directives:
-        description: Install GitHub.Copilot
-        allowPrerelease: false
-      settings:
-        id: GitHub.Copilot
-        source: winget
 
 #    - resource: Microsoft.WinGet.DSC/WinGetPackage
 #      id: SlackTechnologies.Slack
@@ -325,15 +168,6 @@ properties:
         allowPrerelease: false
       settings:
         id: Microsoft.etl2pcapng
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: GnuWin32.UnZip
-      directives:
-        description: Install GnuWin32.UnZip
-        allowPrerelease: false
-      settings:
-        id: GnuWin32.UnZip
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -389,9 +223,6 @@ properties:
         SetScript: |
           [System.Environment]::SetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME","podman","Machine")
           [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:DOCKER_HOST', 'Machine')
-
-## containers.containerClient Podman
-## containers.orchestratorClient Podman Compose
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Kubernetes.kubectl
