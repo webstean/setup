@@ -9,14 +9,14 @@ $ErrorActionPreference = 'Stop'
 ## ==> QUIC is not supported for Internet Access, but is supported for Private Access and Microsoft 365 workloads.
 ## These changes won't be fully effective until after reboot.
 function CreateIfNotExists {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [string]$Path
     )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
     if (-not (Test-Path -Path $Path)) {
         New-Item -Path $Path -Force | Out-Null
@@ -24,9 +24,6 @@ function CreateIfNotExists {
 }
 
 function Ensure-RegistryValue {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -50,6 +47,9 @@ function Ensure-RegistryValue {
         [ValidateSet('STRING', 'DWORD', 'QWORD', 'BINARY', 'MULTISTRING', 'EXPANDSTRING')]
         [string]$Type = 'String'
     )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
     $path = "$Hive`:\$SubKey"
     try {
@@ -168,11 +168,11 @@ DisableInbuiltDNS
 DisableQUIC
 
 function Set-NetworkProfilesToPrivate {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
     )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
     $networks = Get-NetConnectionProfile
 
@@ -207,23 +207,23 @@ function Disable-MsnFeedsAndWidgets {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    Write-Host "`n🔧 Disabling MSN Feeds, Widgets, and Search Highlights..."
+    Write-Host "`nDisabling MSN Feeds, Widgets, and Search Highlights..."
 
     try {
         New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Dsh" -Force | Out-Null
         New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Dsh" -Name "AllowNewsAndInterests" -PropertyType DWord -Value 0 -Force | Out-Null
-        Write-Host "�� Widgets disabled via policy (HKLM)."
+        Write-Host "Widgets disabled via policy (HKLM)."
     }
     catch {
-        Write-Warning "❌ Failed to set system-wide widget policy: $($_.Exception.Message)"
+        Write-Warning "Failed to set system-wide widget policy: $($_.Exception.Message)"
     }
 
     try {
         Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarDa" -Value 0 -Force -ErrorAction SilentlyContinue | Out-Null
-        Write-Host "✅ Taskbar widgets disabled for current user."
+        Write-Host "Taskbar widgets disabled for current user."
     }
     catch {
-        Write-Warning "❌ Failed to disable taskbar widgets: $($_.Exception.Message)"
+        Write-Warning "Failed to disable taskbar widgets: $($_.Exception.Message)"
     }
 
     try {
@@ -231,20 +231,20 @@ function Disable-MsnFeedsAndWidgets {
         New-Item -Path $searchKey -Force | Out-Null
         New-ItemProperty -Path $searchKey -Name "IsDynamicSearchBoxEnabled" -Value 0 -PropertyType DWord -Force | Out-Null
         New-ItemProperty -Path $searchKey -Name "IsDynamicSearchBoxEnabledOnTablet" -Value 0 -PropertyType DWord -Force | Out-Null
-        Write-Host "✅ Search highlights disabled."
+        Write-Host "Search highlights disabled."
     }
     catch {
-        Write-Warning "❌ Failed to configure search highlights: $($_.Exception.Message)"
+        Write-Warning "Failed to configure search highlights: $($_.Exception.Message)"
     }
 
     try {
         $feedsKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Feeds"
         New-Item -Path $feedsKey -Force -ErrorAction SilentlyContinue | Out-Null
         New-ItemProperty -Path $feedsKey -Name "ShellFeedsTaskbarViewMode" -Value 2 -PropertyType DWord -Force -ErrorAction SilentlyContinue | Out-Null
-        Write-Host "✅ Personalized content in feeds disabled."
+        Write-Host "Personalized content in feeds disabled."
     }
     catch {
-        Write-Warning "❌ Failed to disable feeds view: $($_.Exception.Message)"
+        Write-Warning "Failed to disable feeds view: $($_.Exception.Message)"
     }
 }
 Disable-MsnFeedsAndWidgets
@@ -470,7 +470,7 @@ function HideMusicFromExplorer {
     Set-ItemProperty -Path $propertyBagKey -Name $valueName -Type String -Value "Hide"
     Set-ItemProperty -Path $wowPropertyBagKey -Name $valueName -Type String -Value "Hide"
 
-    Write-Host "🎵 Music folder will be hidden from 'This PC' permanently." -ForegroundColor Green
+    Write-Host "Music folder will be hidden from 'This PC' permanently." -ForegroundColor Green
 }
 HideMusicFromExplorer
 
@@ -525,7 +525,7 @@ function Set-EdgeNoFirstRun {
     }
 
     New-ItemProperty -Path $userCtaPath -Name "SignInCtaShownCount" -Value 1 -PropertyType DWord -Force | Out-Null
-    Write-Host "✅ Microsoft Edge configured to skip first run, auto sign-in, and force sync (subject to device/account setup)."
+    Write-Host "Microsoft Edge configured to skip first run, auto sign-in, and force sync (subject to device/account setup)."
 }
 Set-EdgeNoFirstRun
 
@@ -546,7 +546,7 @@ function Hide-WindowsSecurityFamilyOptions {
     }
 
     New-ItemProperty -Path $keyPath -Name $valueName -Value 1 -PropertyType DWord -Force | Out-Null
-    Write-Host "✅ 'Family options' hidden in Windows Security app." -ForegroundColor Green
+    Write-Host "'Family options' hidden in Windows Security app." -ForegroundColor Green
 }
 Hide-WindowsSecurityFamilyOptions
 
@@ -559,7 +559,7 @@ function DisableMediaSharing {
     }
 
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\WindowsMediaPlayer" -Name "PreventLibrarySharing" -Type DWord -Value 1
-    Write-Host "✅ Disabled Media Sharing" -ForegroundColor Green
+    Write-Host "Disabled Media Sharing" -ForegroundColor Green
 }
 DisableMediaSharing
 
@@ -568,14 +568,14 @@ function Disable-WindowsGaming {
     $ErrorActionPreference = 'Stop'
 
     function Ensure-Key {
-        Set-StrictMode -Version Latest
-        $ErrorActionPreference = 'Stop'
-
         param(
             [Parameter(Mandatory = $true)]
             [ValidateNotNullOrEmpty()]
             [string]$Path
         )
+
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
 
         if (-not (Test-Path -Path $Path)) {
             New-Item -Path $Path -Force | Out-Null
@@ -583,9 +583,6 @@ function Disable-WindowsGaming {
     }
 
     function Set-Dword {
-        Set-StrictMode -Version Latest
-        $ErrorActionPreference = 'Stop'
-
         param(
             [Parameter(Mandatory = $true)]
             [ValidateNotNullOrEmpty()]
@@ -599,6 +596,9 @@ function Disable-WindowsGaming {
             [ValidateNotNull()]
             [int]$Value
         )
+
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
 
         Ensure-Key -Path $Path
         New-ItemProperty -Path $Path -Name $Name -PropertyType DWord -Value $Value -Force | Out-Null
@@ -730,9 +730,6 @@ function Disable-WindowsGaming {
 }
 
 function Set-SettingsPageVisibility {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
         [Parameter(Mandatory = $false)]
         [ValidateSet('Hide', 'ShowOnly')]
@@ -759,27 +756,30 @@ function Set-SettingsPageVisibility {
         [bool]$Get = $false
     )
 
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     $KeyPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     $ValueName = 'SettingsPageVisibility'
 
     $needsWrite = -not $Get
     if ($needsWrite -and -not $Clear -and -not $Remove -and -not $Add -and [string]::IsNullOrWhiteSpace($Mode)) {
-        throw "No action specified. Use -Mode with -Pages, or -Add, -Remove, -Clear, or -Get."
+        throw ('No action specified. Use -Mode with -Pages, or -Add, -Remove, -Clear, or -Get.')
     }
 
     if ($needsWrite -and (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) {
-        throw "Run elevated (Administrator) to modify HKLM."
+        throw 'Run elevated (Administrator) to modify HKLM.'
     }
 
     function Parse-Value {
-        Set-StrictMode -Version Latest
-        $ErrorActionPreference = 'Stop'
-
         param(
             [Parameter(Mandatory = $false)]
             [AllowNull()]
             [string]$ValueText = $null
         )
+
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
 
         if ([string]::IsNullOrWhiteSpace($ValueText)) {
             return @{ Mode = $null; Pages = @() }
@@ -800,9 +800,6 @@ function Set-SettingsPageVisibility {
     }
 
     function Build-Value {
-        Set-StrictMode -Version Latest
-        $ErrorActionPreference = 'Stop'
-
         param(
             [Parameter(Mandatory = $true)]
             [ValidateNotNullOrEmpty()]
@@ -812,6 +809,9 @@ function Set-SettingsPageVisibility {
             [ValidateNotNull()]
             [string[]]$InputPages
         )
+
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
 
         $uniquePages = $InputPages | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
         switch ($InputMode) {
@@ -853,7 +853,7 @@ function Set-SettingsPageVisibility {
 
     if ($Clear) {
         Remove-ItemProperty -Path $KeyPath -Name $ValueName -ErrorAction SilentlyContinue
-        Write-Verbose "Policy cleared."
+        Write-Verbose 'Policy cleared.'
         return
     }
 
@@ -863,7 +863,7 @@ function Set-SettingsPageVisibility {
 
     if (($Mode) -and (-not $Add) -and (-not $Remove)) {
         if ($Pages.Count -eq 0) {
-            throw "You must supply -Pages when using -Mode to overwrite."
+            throw 'You must supply -Pages when using -Mode to overwrite.'
         }
 
         $newRaw = Build-Value -InputMode $Mode -InputPages $Pages
@@ -873,13 +873,13 @@ function Set-SettingsPageVisibility {
 
     if ($Add) {
         if ($Pages.Count -eq 0) {
-            throw "Use -Add with one or more -Pages."
+            throw 'Use -Add with one or more -Pages.'
         }
 
         $targetMode = $curMode
         if ([string]::IsNullOrWhiteSpace($targetMode)) {
             if ([string]::IsNullOrWhiteSpace($Mode)) {
-                throw "No existing value. Use -Add together with -Mode Hide or ShowOnly to establish the mode."
+                throw 'No existing value. Use -Add together with -Mode Hide or ShowOnly to establish the mode.'
             }
 
             $targetMode = $Mode
@@ -898,11 +898,11 @@ function Set-SettingsPageVisibility {
 
     if ($Remove) {
         if ($Pages.Count -eq 0) {
-            throw "Use -Remove with one or more -Pages."
+            throw 'Use -Remove with one or more -Pages.'
         }
 
         if ([string]::IsNullOrWhiteSpace($curMode)) {
-            Write-Verbose "Nothing to remove; value not set."
+            Write-Verbose 'Nothing to remove; value not set.'
             return
         }
 
@@ -912,7 +912,7 @@ function Set-SettingsPageVisibility {
         return
     }
 
-    throw "No valid action specified. Use one of: -Mode Hide/ShowOnly (with -Pages), -Add, -Remove, -Clear, or -Get."
+    throw 'No valid action specified. Use one of: -Mode Hide/ShowOnly (with -Pages), -Add, -Remove, -Clear, or -Get.'
 }
 
 Disable-WindowsGaming
@@ -948,14 +948,14 @@ function EnableClipboardHistorySync {
 EnableClipboardHistorySync
 
 function Set-DefaultTerminalToWindowsTerminal {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
         [Parameter(Mandatory = $false)]
         [ValidateNotNull()]
         [bool]$AllUsers = $false
     )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
     $terminalMoniker = 'Windows.Terminal'
     $hkcu = 'HKCU:\Console'
@@ -971,14 +971,11 @@ function Set-DefaultTerminalToWindowsTerminal {
 
     $wtInstalled = Get-AppxPackage -Name 'Microsoft.WindowsTerminal' -AllUsers -ErrorAction SilentlyContinue
     if (-not $wtInstalled) {
-        Write-Warning "Windows Terminal not found. Install from Microsoft Store or winget, then re-run."
+        Write-Warning 'Windows Terminal not found. Install from Microsoft Store or winget, then re-run.'
         return $false
     }
 
     function Set-Delegation {
-        Set-StrictMode -Version Latest
-        $ErrorActionPreference = 'Stop'
-
         param(
             [Parameter(Mandatory = $true)]
             [ValidateNotNullOrEmpty()]
@@ -988,6 +985,9 @@ function Set-DefaultTerminalToWindowsTerminal {
             [ValidateNotNullOrEmpty()]
             [string]$SubKey
         )
+
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
 
         $path = Join-Path -Path $Root -ChildPath $SubKey
         if (-not (Test-Path -Path $path)) {
@@ -999,19 +999,17 @@ function Set-DefaultTerminalToWindowsTerminal {
     }
 
     try {
-        Set-Delegation -Root $hkcu -SubKey ''
-        foreach ($t in $targets) {
-            Set-Delegation -Root $hkcu -SubKey $t
+        foreach ($target in $targets) {
+            Set-Delegation -Root $hkcu -SubKey $target
         }
 
         if ($AllUsers) {
-            Set-Delegation -Root $hklm -SubKey ''
-            foreach ($t in $targets) {
-                Set-Delegation -Root $hklm -SubKey $t
+            foreach ($target in $targets) {
+                Set-Delegation -Root $hklm -SubKey $target
             }
         }
 
-        Write-Host "✅ Default terminal set to Windows Terminal."
+        Write-Host 'Default terminal set to Windows Terminal.'
         return $true
     }
     catch {
@@ -1019,5 +1017,3 @@ function Set-DefaultTerminalToWindowsTerminal {
         return $false
     }
 }
-
-Set-DefaultTerminalToWindowsTerminal -AllUsers $false | Out-Null
