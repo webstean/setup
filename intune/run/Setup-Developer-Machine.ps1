@@ -10,9 +10,6 @@ $global:TranscriptStarted = $false
 $global:destination = $null
 
 function Write-Log {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -23,14 +20,14 @@ function Write-Log {
         [string]$Level = 'INFO'
     )
 
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     Write-Host "[$timestamp] [$Level] $Message"
 }
 
 function Invoke-WindowsPowerShell {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -40,6 +37,9 @@ function Invoke-WindowsPowerShell {
         [ValidateNotNull()]
         [bool]$AsAdmin = $true
     )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
     $ps51 = Join-Path -Path $env:WINDIR -ChildPath 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $arguments = @(
@@ -58,9 +58,6 @@ function Invoke-WindowsPowerShell {
 }
 
 function Install-LatestDotNetWindowsDesktopRuntime {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
         [Parameter(Mandatory = $false)]
         [ValidateNotNullOrEmpty()]
@@ -72,6 +69,9 @@ function Install-LatestDotNetWindowsDesktopRuntime {
         [ValidateSet('x64', 'x86', 'arm64')]
         [string]$Architecture = 'x64'
     )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
     if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
         throw 'winget not found. Run Install-WinGetPrereqsAndAppInstaller first.'
@@ -85,15 +85,15 @@ function Install-LatestDotNetWindowsDesktopRuntime {
         --architecture $Architecture
 
     & "$env:ProgramFiles\dotnet\dotnet.exe" --list-runtimes |
-        Select-String -Pattern "Microsoft\.WindowsDesktop\.App $Major\." |
-        ForEach-Object { $_.Line }
+    Select-String -Pattern "Microsoft\.WindowsDesktop\.App $Major\." |
+    ForEach-Object { $_.Line }
 }
 
 function New-EmptyTempDirectory {
+    param()
+
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
-
-    param()
 
     $basePath = $env:TEMP
     if ([string]::IsNullOrWhiteSpace($basePath)) {
@@ -112,9 +112,6 @@ function New-EmptyTempDirectory {
 }
 
 function Invoke-DownloadFile {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -124,6 +121,9 @@ function Invoke-DownloadFile {
         [ValidateNotNullOrEmpty()]
         [string]$OutFile
     )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
     $parent = Split-Path -Path $OutFile -Parent
     if (-not [string]::IsNullOrWhiteSpace($parent) -and -not (Test-Path -LiteralPath $parent)) {
@@ -135,9 +135,6 @@ function Invoke-DownloadFile {
 }
 
 function Invoke-GitHub-Download {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -152,6 +149,9 @@ function Invoke-GitHub-Download {
         [string]$Destination
     )
 
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     foreach ($fileName in $FilesToDownload) {
         $url = ($BaseUrl.TrimEnd('/') + '/' + $fileName)
         $fileDestination = Join-Path -Path $Destination -ChildPath $fileName
@@ -160,9 +160,6 @@ function Invoke-GitHub-Download {
 }
 
 function Invoke-ExtraFile-Download {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNull()]
@@ -173,6 +170,9 @@ function Invoke-ExtraFile-Download {
         [string]$Destination
     )
 
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     foreach ($url in $ExtraFilesToDownload) {
         $fileName = [System.IO.Path]::GetFileName(([System.Uri]$url).AbsolutePath)
         $fileDestination = Join-Path -Path $Destination -ChildPath $fileName
@@ -181,9 +181,6 @@ function Invoke-ExtraFile-Download {
 }
 
 function Invoke-AzBlob-Download {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -217,6 +214,9 @@ function Invoke-AzBlob-Download {
         [ValidateRange(1, 300)]
         [int]$RetryDelaySeconds = 2
     )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
     $sas = $SasToken.Trim()
     if ($sas -and -not $sas.StartsWith('?')) {
@@ -252,8 +252,7 @@ function Invoke-AzBlob-Download {
                 $headers = @{ 'x-ms-version' = '2020-10-02' }
                 Invoke-WebRequest -Uri $uri -OutFile $fileDestination -Headers $headers -ErrorAction Stop
                 $downloaded = $true
-            }
-            catch {
+            } catch {
                 if ($attempt -ge $MaxRetries) {
                     throw "Failed to download '$file' after $MaxRetries attempt(s). $($_.Exception.Message)"
                 }
@@ -267,9 +266,6 @@ function Invoke-AzBlob-Download {
 }
 
 function Invoke-ScriptReliably {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -304,6 +300,9 @@ function Invoke-ScriptReliably {
         [bool]$Hidden = $false
     )
 
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     $full = (Resolve-Path -LiteralPath $ScriptPath).Path
     if (Get-Item -LiteralPath $full -Stream Zone.Identifier -ErrorAction SilentlyContinue) {
         Unblock-File -LiteralPath $full -ErrorAction SilentlyContinue
@@ -311,11 +310,9 @@ function Invoke-ScriptReliably {
 
     if ($UsePwsh -and (Get-Command pwsh.exe -ErrorAction SilentlyContinue)) {
         $hostExe = (Get-Command pwsh.exe -ErrorAction SilentlyContinue).Source
-    }
-    elseif ($Force64Bit -and $env:PROCESSOR_ARCHITECTURE -ne 'AMD64' -and $env:PROCESSOR_ARCHITEW6432) {
+    } elseif ($Force64Bit -and $env:PROCESSOR_ARCHITECTURE -ne 'AMD64' -and $env:PROCESSOR_ARCHITEW6432) {
         $hostExe = Join-Path -Path $env:WINDIR -ChildPath 'SysNative\WindowsPowerShell\v1.0\powershell.exe'
-    }
-    else {
+    } else {
         $hostExe = Join-Path -Path $env:WINDIR -ChildPath 'System32\WindowsPowerShell\v1.0\powershell.exe'
     }
 
@@ -369,15 +366,13 @@ function Invoke-ScriptReliably {
         if (-not $proc.WaitForExit($TimeoutSeconds * 1000)) {
             try {
                 $proc.Kill()
-            }
-            catch {
+            } catch {
                 Write-Log -Message "Failed to kill timed-out process for $ScriptPath. $($_.Exception.Message)" -Level 'WARN'
             }
 
             throw "Timed out after $TimeoutSeconds seconds. See logs: '$outFile', '$errFile'."
         }
-    }
-    else {
+    } else {
         $proc.WaitForExit()
     }
 
@@ -396,9 +391,6 @@ function Invoke-ScriptReliably {
 }
 
 function Invoke-IfFileExists {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -408,6 +400,9 @@ function Invoke-IfFileExists {
         [ValidateNotNull()]
         [bool]$UsePwsh = $true
     )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
     if (-not (Test-Path -LiteralPath $Path)) {
         Write-Log -Message "Script was not found: $Path" -Level 'WARN'
@@ -420,14 +415,14 @@ function Invoke-IfFileExists {
 }
 
 function Invoke-WingetConfiguration-Developer {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
     param(
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [string]$Destination
     )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
     winget configure --enable
     winget settings --enable ProxyCommandLineOptions
@@ -436,11 +431,11 @@ function Invoke-WingetConfiguration-Developer {
     $developerConfig = Join-Path -Path $Destination -ChildPath 'developer.winget'
 
     if (-not (Test-Path -LiteralPath $microsoftConfig)) {
-        throw "$microsoftConfig from Microsoft not found."
+        throw "'$microsoftConfig' from Microsoft not found."
     }
 
     if (-not (Test-Path -LiteralPath $developerConfig)) {
-        throw "$developerConfig not found."
+        throw "'$developerConfig' not found."
     }
 
     winget configure --file $microsoftConfig --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
@@ -448,18 +443,17 @@ function Invoke-WingetConfiguration-Developer {
 }
 
 function Initialize-TranscriptLogging {
+    param()
+
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
-
-    param()
 
     $domainName = if ([string]::IsNullOrWhiteSpace($env:USERDOMAIN)) { 'UnknownDomain' } else { $env:USERDOMAIN }
     $transcriptDir = Join-Path -Path $env:ProgramData -ChildPath "$domainName\Transcripts"
 
     $commandName = if ([string]::IsNullOrWhiteSpace($PSCommandPath)) {
         'setup-developer-machine.ps1'
-    }
-    else {
+    } else {
         Split-Path -Path $PSCommandPath -Leaf
     }
 
@@ -482,10 +476,10 @@ function Initialize-TranscriptLogging {
 }
 
 function Ensure-WinGetInstalled {
+    param()
+
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
-
-    param()
 
     $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
     if ($null -ne $winget) {
@@ -606,26 +600,22 @@ try {
             $csw.Stop()
             Write-Log -Message "$developerScript completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
         }
-    }
-    else {
+    } else {
         Write-Log -Message 'Skipping developer-only steps because IsDevBox is not True.'
     }
 
     Write-Log -Message '******************= All scripts executed =******************************'
     $elapsed.Stop()
     Write-Log -Message "All steps completed in $($elapsed.Elapsed.TotalMinutes.ToString('F2')) minutes."
-}
-catch {
+} catch {
     Write-Error "Error executing script: $($_.Exception.Message)"
     throw
-}
-finally {
+} finally {
     if ($global:TranscriptStarted) {
         try {
             Stop-Transcript | Out-Null
             Write-Host 'Transcript stopped.'
-        }
-        catch {
+        } catch {
             Write-Warning "Failed to stop transcript cleanly. $($_.Exception.Message)"
         }
     }
