@@ -322,7 +322,6 @@ function DisableRecoveryAndReset {
 
         throw "Failed to disable Windows RE. Output: $disableOutput"
     }
-
     Write-Host 'Windows RE disabled.'
 }
 DisableRecoveryAndReset
@@ -331,6 +330,7 @@ function DisableAutoplay {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    Write-Output "Disable Autoplay..."
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" -Name "DisableAutoplay" -Type DWord -Value 1
     Ensure-RegistryValue -Hive HKCU -SubKey 'Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers' -Name 'DisableAutoplay' -Value 1 -Type 'DWORD'
 }
@@ -339,6 +339,8 @@ DisableAutoplay
 function DisableAutorun {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
+
+    Write-Output "Disable Autorun..."
 
     if (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer")) {
         New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" | Out-Null
@@ -352,6 +354,7 @@ function EnableNTFSLongPaths {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    Write-Output "Enable NTFS Long Paths..."
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Type DWord -Value 1
 }
 EnableNTFSLongPaths
@@ -360,6 +363,7 @@ function DisableNTFSLastAccess {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    Write-Output "Turn off NTFS Last Access Time..."
     fsutil behavior set DisableLastAccess 1 | Out-Null
 }
 DisableNTFSLastAccess
@@ -368,6 +372,7 @@ function EnableAutoRebootOnCrash {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    Write-Output "Enable Auto Reboot on Windows Crash..."
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Name "AutoReboot" -Type DWord -Value 1
 }
 EnableAutoRebootOnCrash
@@ -376,6 +381,7 @@ function ShowNetworkOnLockScreen {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    Write-Output "Don't display network location on Lock Screen..."
     Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Name "DontDisplayNetworkSelectionUI" -ErrorAction SilentlyContinue
 }
 ShowNetworkOnLockScreen
