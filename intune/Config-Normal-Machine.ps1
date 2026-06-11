@@ -321,7 +321,6 @@ function DisableRecoveryAndReset {
             Write-Host 'Windows RE is already disabled.'
             return
         }
-
         throw "Failed to disable Windows RE. Output: $disableOutput"
     }
     Write-Host 'Windows RE disabled.'
@@ -1087,3 +1086,4 @@ function Set-DefaultTerminalToWindowsTerminal {
         return $false
     }
 }
+Write-Output "**Finished Normal Machine config script**"
