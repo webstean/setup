@@ -354,7 +354,7 @@ function EnableNTFSLongPaths {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    Write-Output "Enable NTFS Long Paths..."
+    Write-Output "Enabling NTFS Long Paths..."
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Type DWord -Value 1
 }
 EnableNTFSLongPaths
@@ -363,7 +363,7 @@ function DisableNTFSLastAccess {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    Write-Output "Turn off NTFS Last Access Time..."
+    Write-Output "Turning off NTFS Last Access Time..."
     fsutil behavior set DisableLastAccess 1 | Out-Null
 }
 DisableNTFSLastAccess
@@ -372,7 +372,7 @@ function EnableAutoRebootOnCrash {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    Write-Output "Enable Auto Reboot on Windows Crash..."
+    Write-Output "Enabling Auto Reboot on Windows Crash..."
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Name "AutoReboot" -Type DWord -Value 1
 }
 EnableAutoRebootOnCrash
@@ -444,6 +444,7 @@ function DisableStartupSound {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    Write-Output "Disabling Startup Sound..."
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\BootAnimation" -Name "DisableStartupSound" -Type DWord -Value 1
 }
 DisableStartupSound
@@ -452,6 +453,7 @@ function DisableVerboseStatus {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    Write-Output "Disabling Verbose Status..."
     if ((Get-CimInstance -Class "Win32_OperatingSystem").ProductType -eq 1) {
         Remove-ItemProperty -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System" -Name "VerboseStatus" -ErrorAction SilentlyContinue
     }
@@ -465,6 +467,7 @@ function DisableSharingWizard {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    Write-Output "Disabling Sharing Wizard..."
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "SharingWizardOn" -Type DWord -Value 0
 }
 DisableSharingWizard
@@ -473,6 +476,7 @@ function ShowThisPCOnDesktop {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    Write-Output "Showing 'This PC' on Desktop..."
     if (-not (Test-Path -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu")) {
         New-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu" -Force | Out-Null
     }
