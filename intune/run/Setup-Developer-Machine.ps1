@@ -1,65 +1,80 @@
 #Requires -RunAsAdministrator
 
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
 ## Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/intune/run/Setup-Developer-Machine.ps1' -OutFile ".\Setup-Developer-Machine.ps1"
 
 $elapsed = [System.Diagnostics.Stopwatch]::StartNew()
+$global:TranscriptStarted = $false
+$global:destination = $null
 
-## global function: to run Windows Powershell
-function Invoke-WindowsPowerShell {
-    [CmdletBinding()]
+function Write-Log {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     param(
         [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Message,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Level = 'INFO'
+    )
+
+    $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    Write-Host "[$timestamp] [$Level] $Message"
+}
+
+function Invoke-WindowsPowerShell {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [string]$ScriptBlock,
 
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
         [bool]$AsAdmin = $true
     )
 
-    $ps51 = "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe"
-
-    $args = @(
-        '-NoProfile', '-ExecutionPolicy', 'Bypass'
+    $ps51 = Join-Path -Path $env:WINDIR -ChildPath 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $arguments = @(
+        '-NoLogo',
+        '-NoProfile',
+        '-ExecutionPolicy', 'Bypass',
         '-Command', $ScriptBlock
     )
 
     if ($AsAdmin) {
-        Start-Process -FilePath $ps51 -ArgumentList $args -Verb RunAs -Wait
+        Start-Process -FilePath $ps51 -ArgumentList $arguments -Verb RunAs -Wait -ErrorAction Stop | Out-Null
+        return
     }
-    else {
-        & $ps51 @args
-    }
+
+    & $ps51 @arguments
 }
 
-function Install-DotNetDesktopRuntime {
-    param(
-        [string]$DownloadUrl = "https://download.visualstudio.microsoft.com/download/pr/.../windowsdesktop-runtime-9.0.10-win-x64.exe",
-        [string]$TempPath = "$env:TEMP\dotnet_desktop_runtime.exe"
-    )
-
-    Write-Host "Downloading .NET Desktop Runtime..."
-    Invoke-WebRequest -Uri $DownloadUrl -OutFile $TempPath
-
-    Write-Host "Installing .NET Desktop Runtime silently..."
-    Start-Process -FilePath $TempPath `
-        -ArgumentList "/install /quiet /norestart" `
-        -Wait -NoNewWindow
-
-    Write-Host "Installation finished."
-}
-## Run
-#Install-DotNetDesktopRuntime
-
-## Once winget is installed
 function Install-LatestDotNetWindowsDesktopRuntime {
-    [CmdletBinding()]
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     param(
-        [ValidateSet("9","8")]
-        [string]$Major = "9",
-        [ValidateSet("x64","x86","arm64")]
-        [string]$Architecture = "x64"
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateSet('9', '8')]
+        [string]$Major = '9',
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateSet('x64', 'x86', 'arm64')]
+        [string]$Architecture = 'x64'
     )
 
     if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
-        throw "winget not found. Run Install-WinGetPrereqsAndAppInstaller first."
+        throw 'winget not found. Run Install-WinGetPrereqsAndAppInstaller first.'
     }
 
     $id = "Microsoft.DotNet.DesktopRuntime.$Major"
@@ -73,453 +88,549 @@ function Install-LatestDotNetWindowsDesktopRuntime {
         Select-String -Pattern "Microsoft\.WindowsDesktop\.App $Major\." |
         ForEach-Object { $_.Line }
 }
-#
 
-## Base URL for raw GitHub content (public`)
-$baseUrl = "https://raw.githubusercontent.com/webstean/setup//main/intune/"
-## List of script files to download and run
-$filesToDownload = @(
-    'Config-Normal-Machine.ps1',
-    'developer.winget',
-    'Install-Developer-Fonts.ps1',
-    'Install-Developer-PowershellModules.ps1',
-    'Install-Developer-System.ps1',
-    'Install-Developer-User.ps1',
-    ##"Install-Global-Secure-Access-Client.ps1",
-    'Install-Windows-Admin-Centre.ps1',
-    'Setup-StarShip-Shell.ps1',
-    'starship_pill.toml',
-    'logo.png',
-    'wallpaper.jpg'
-    # Add more filenames as needed
-)
-
-## full URL this
-$extrafilesToDownload = @(
-    'https://raw.githubusercontent.com/microsoft/WindowsDeveloperConfig/refs/heads/main/windows-dev-config/dev-config.winget'
-)
-
-Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
-if ($ExecutionContext.SessionState.LanguageMode -ne "FullLanguage") {
-    Write-Output "PowerShell is NOT running in FullLanguage mode. Current mode: $($ExecutionContext.SessionState.LanguageMode)"  
-}
-Write-Output "Current Powershell Language mode is $($ExecutionContext.SessionState.LanguageMode)"  
-Get-ExecutionPolicy -List | Format-Table -AutoSize
-
-# Be aware, if running via Intune, then logs will be created in: "$($env:ProgramData)\Microsoft\IntuneManagementExtension\Logs"
-
-# Local folder to save downloaded scripts
-$TranscriptDir  = "$($env:ProgramData)\$($env:USERDOMAIN)\Transcripts"
-$TranscriptFile = "$($env:ProgramData)\$($env:USERDOMAIN)\Transcripts\$($(Split-Path $PSCommandPath -Leaf).ToLower().Replace(".ps1",".log"))"
-if (-not (Test-Path "$TranscriptDir")) {
-    New-Item -Path "$TranscriptDir" -ItemType Directory | Out-Null
-}
-## Start again with Transcript File if it over 4MB in size
-if (Test-Path "$TranscriptFile") {
-    Get-ChildItem -File $TranscriptFile | Where-Object Length -gt 4MB | Clear-Content -Force
-}
-Start-Transcript -Path $TranscriptFile -Append -Force -IncludeInvocationHeader -ErrorAction SilentlyContinue
-## For the transcript: Running in Azure Automation
-if ($env:AUTOMATION_ASSET_ACCOUNTID) {
-    Write-Output "Running in Azure Automation: $env:AUTOMATION_ASSET_ACCOUNTID"
-}
-
-Write-Output "Retrieving current user information..." 
-$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-Write-Output "Current User is: $currentUser" 
-$systemcontext = [System.Security.Principal.WindowsIdentity]::GetCurrent().IsSystem
-Write-Output "System Context : $systemcontext" 
-Write-Output "Env: User Profile: $env:USERPROFILE" 
-
-Write-Host ("Setting PowerShell to UTF-8 output encoding...")
-[console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
-
-# Check if winget is installed
-$winget = Get-Command winget -ErrorAction SilentlyContinue
-if ($winget) {
-    Write-Host "✅ Winget is already installed. Version:" 
-    winget --version
-} else {
-    Write-Host "⚠️ Winget is not installed. Installing..."
-    #Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe
-
-    # Winget comes with the "App Installer" package from Microsoft Store
-    # Try to install App Installer using winget’s official MSIX package
-    $url = "https://aka.ms/getwinget"
-    $installerPath = "$env:TEMP\AppInstaller.msixbundle"
-
-    Write-Host "Downloading Winget installer..."
-    Invoke-WebRequest -Uri $url -OutFile $installerPath
-
-    Write-Host "Installing Winget..."
-    Add-AppxPackage -Path $installerPath
-
-    # Verify installation
-    $winget = Get-Command winget -ErrorAction SilentlyContinue
-    if ($winget) {
-        Write-Host "✅ Winget installed successfully. Version:" 
-        winget --version
-        winget source export
-        
-    } else {
-        Write-Host "❌ Winget installation failed. You may need to update Windows or install manually from Microsoft Store."
-        exit 1
-    }
-}
-winget configure --enable
-winget install Microsoft.Powershell --silent --accept-package-agreements --accept-source-agreements
-
-# Local folder to save downloaded scripts
 function New-EmptyTempDirectory {
-    [CmdletBinding()]
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     param()
 
-    # $env:TEMP gives us the temp folder path
     $basePath = $env:TEMP
+    if ([string]::IsNullOrWhiteSpace($basePath)) {
+        throw 'TEMP environment variable is not set.'
+    }
 
-    # Use New-Guid (PowerShell 5+) to generate a unique name
     $uniqueName = (New-Guid).Guid
     $fullPath = Join-Path -Path $basePath -ChildPath $uniqueName
 
-    # Ensure it's empty: remove if somehow it already exists
     if (Test-Path -LiteralPath $fullPath) {
         Remove-Item -LiteralPath $fullPath -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    # Create the empty directory
     $null = New-Item -ItemType Directory -Path $fullPath -Force
-
-    # Return the path as string
     return $fullPath
 }
 
-$destination = New-EmptyTempDirectory
-# Just download the files - do not execute
+function Invoke-DownloadFile {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Uri,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$OutFile
+    )
+
+    $parent = Split-Path -Path $OutFile -Parent
+    if (-not [string]::IsNullOrWhiteSpace($parent) -and -not (Test-Path -LiteralPath $parent)) {
+        $null = New-Item -ItemType Directory -Path $parent -Force
+    }
+
+    Write-Log -Message "Downloading: $Uri -> $OutFile"
+    Invoke-WebRequest -Uri $Uri -OutFile $OutFile -ErrorAction Stop
+}
+
 function Invoke-GitHub-Download {
-    foreach ($fileName in $filesToDownload) {
-        $url = "$baseUrl/$fileName"
-        $filedestination = Join-Path -Path $destination -ChildPath $fileName
-        Write-Output "Downloading (no execute): $url... to $filedestination"
-        Invoke-WebRequest -Uri $url -OutFile $filedestination -UseBasicParsing
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$BaseUrl,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [string[]]$FilesToDownload,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Destination
+    )
+
+    foreach ($fileName in $FilesToDownload) {
+        $url = ($BaseUrl.TrimEnd('/') + '/' + $fileName)
+        $fileDestination = Join-Path -Path $Destination -ChildPath $fileName
+        Invoke-DownloadFile -Uri $url -OutFile $fileDestination
     }
 }
+
 function Invoke-ExtraFile-Download {
-    foreach ($url in $extrafilesToDownload) {
-        $fileName = [System.IO.Path]::GetFileName(([uri]$url).AbsolutePath)
-        $filedestination = Join-Path -Path $destination -ChildPath $fileName
-        Write-Output "Downloading (no execute): $url... to $filedestination"
-        Invoke-WebRequest -Uri $url -OutFile $filedestination -UseBasicParsing
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [string[]]$ExtraFilesToDownload,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Destination
+    )
+
+    foreach ($url in $ExtraFilesToDownload) {
+        $fileName = [System.IO.Path]::GetFileName(([System.Uri]$url).AbsolutePath)
+        $fileDestination = Join-Path -Path $Destination -ChildPath $fileName
+        Invoke-DownloadFile -Uri $url -OutFile $fileDestination
     }
 }
 
 function Invoke-AzBlob-Download {
-    <#
-    .SYNOPSIS
-        Download a list of blobs from Azure Blob Storage using a SAS token.
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
-    .PARAMETER StorageAccount
-        Storage account name (e.g., mystorageacct)
-
-    .PARAMETER Container
-        Container name (e.g., tools)
-
-    .PARAMETER SasToken
-        SAS token string. Can start with '?' or not.
-
-    .PARAMETER FilesToDownload
-        Array of blob paths relative to the container (e.g., 'folder/tool.exe')
-
-    .PARAMETER Destination
-        Local destination folder. Subfolders are created as needed.
-
-    .PARAMETER Overwrite
-        Overwrite existing files if present.
-
-    .PARAMETER MaxRetries
-        Number of retries per file (default: 3)
-
-    .PARAMETER RetryDelaySeconds
-        Base delay between retries, backoff is linear (default: 2)
-    #>
-    [CmdletBinding()]
     param(
-        [Parameter(Mandatory)][string]$StorageAccount,
-        [Parameter(Mandatory)][string]$Container,
-        [Parameter(Mandatory)][string]$SasToken,
-        [Parameter(Mandatory)][string[]]$FilesToDownload = $filesToDownload,
-        [Parameter(Mandatory)][string]$Destination = $destination,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$StorageAccount,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Container,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SasToken,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [string[]]$FilesToDownload = @(),
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Destination = $global:destination,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
         [bool]$Overwrite = $true,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateRange(1, 20)]
         [int]$MaxRetries = 3,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateRange(1, 300)]
         [int]$RetryDelaySeconds = 2
     )
 
-    # Normalize SAS (ensure it starts with '?')
     $sas = $SasToken.Trim()
-    if ($sas -and -not $sas.StartsWith('?')) { $sas = '?' + $sas }
+    if ($sas -and -not $sas.StartsWith('?')) {
+        $sas = '?' + $sas
+    }
 
-    # Base URL (public cloud)
     $baseUrl = "https://$StorageAccount.blob.core.windows.net/$Container"
 
-    # Ensure destination exists
     if (-not (Test-Path -LiteralPath $Destination)) {
-        New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+        $null = New-Item -ItemType Directory -Path $Destination -Force
     }
 
     foreach ($file in $FilesToDownload) {
-        # Encode path parts safely (keeps slashes, escapes spaces etc.)
         $escapedPath = [System.Uri]::EscapeUriString($file)
         $uri = "$baseUrl/$escapedPath$sas"
-
         $fileDestination = Join-Path -Path $Destination -ChildPath $file
         $destDir = Split-Path -Path $fileDestination -Parent
+
         if (-not (Test-Path -LiteralPath $destDir)) {
-            New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+            $null = New-Item -ItemType Directory -Path $destDir -Force
         }
 
         if ((-not $Overwrite) -and (Test-Path -LiteralPath $fileDestination)) {
-            Write-Output "Skip (exists): $fileDestination"
+            Write-Log -Message "Skip (exists): $fileDestination" -Level 'WARN'
             continue
         }
-
-        Write-Output "Downloading: $uri -> $fileDestination"
 
         $attempt = 0
         $downloaded = $false
         while (-not $downloaded -and $attempt -lt $MaxRetries) {
             $attempt++
             try {
-                # Optional header helps some environments; harmless otherwise
                 $headers = @{ 'x-ms-version' = '2020-10-02' }
-                Invoke-WebRequest -Uri $uri -OutFile $fileDestination -UseBasicParsing -Headers $headers -ErrorAction Stop
+                Invoke-WebRequest -Uri $uri -OutFile $fileDestination -Headers $headers -ErrorAction Stop
                 $downloaded = $true
             }
             catch {
                 if ($attempt -ge $MaxRetries) {
-                    Write-Warning "Failed to download '$file' after $MaxRetries attempt(s). Error: $($_.Exception.Message)"
-                } else {
-                    $sleep = $RetryDelaySeconds * $attempt
-                    Write-Output "Retry $attempt/$MaxRetries in ${sleep}s for '$file'..."
-                    Start-Sleep -Seconds $sleep
+                    throw "Failed to download '$file' after $MaxRetries attempt(s). $($_.Exception.Message)"
                 }
+
+                $sleep = $RetryDelaySeconds * $attempt
+                Write-Log -Message "Retry $attempt/$MaxRetries in ${sleep}s for '$file'." -Level 'WARN'
+                Start-Sleep -Seconds $sleep
             }
         }
     }
 }
 
 function Invoke-ScriptReliably {
-    [CmdletBinding()]
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     param(
-        [Parameter(Mandatory)][string]$ScriptPath,
-        [string[]]$ScriptArgs,
-        [switch]$UsePwsh = $true,  # prefer PowerShell 7 if available
-        [switch]$Elevate = $false, # run as admin (UAC prompt)
-        [switch]$Force64Bit =$false,       # ensure 64-bit host on 64-bit Windows
-        [string]$WorkingDirectory = $(Split-Path -Path $ScriptPath),
-        [int]$TimeoutSeconds = 0,  # 0 = no timeout
-        [switch]$Hidden = $false   # hide window
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ScriptPath,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [string[]]$ScriptArgs = @(),
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [bool]$UsePwsh = $true,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [bool]$Elevate = $false,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [bool]$Force64Bit = $false,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [string]$WorkingDirectory = (Split-Path -Path $ScriptPath -Parent),
+
+        [Parameter(Mandatory = $false)]
+        [ValidateRange(0, 86400)]
+        [int]$TimeoutSeconds = 0,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [bool]$Hidden = $false
     )
 
-    # Resolve and pre-flight
     $full = (Resolve-Path -LiteralPath $ScriptPath).Path
     if (Get-Item -LiteralPath $full -Stream Zone.Identifier -ErrorAction SilentlyContinue) {
         Unblock-File -LiteralPath $full -ErrorAction SilentlyContinue
     }
 
-    # Choose host: pwsh.exe (if asked/available) or Windows PowerShell (64-bit if requested)
     if ($UsePwsh -and (Get-Command pwsh.exe -ErrorAction SilentlyContinue)) {
-        $hostExe = (Get-Command pwsh.exe).Source
-    } else {
-        if ($Force64Bit -and $env:PROCESSOR_ARCHITECTURE -ne 'AMD64' -and $env:PROCESSOR_ARCHITEW6432) {
-            # 32-bit process on 64-bit OS -> force 64-bit PowerShell via SysNative
-            $hostExe = "$env:WINDIR\SysNative\WindowsPowerShell\v1.0\powershell.exe"
-        } else {
-            $hostExe = "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe"
-        }
+        $hostExe = (Get-Command pwsh.exe -ErrorAction SilentlyContinue).Source
+    }
+    elseif ($Force64Bit -and $env:PROCESSOR_ARCHITECTURE -ne 'AMD64' -and $env:PROCESSOR_ARCHITEW6432) {
+        $hostExe = Join-Path -Path $env:WINDIR -ChildPath 'SysNative\WindowsPowerShell\v1.0\powershell.exe'
+    }
+    else {
+        $hostExe = Join-Path -Path $env:WINDIR -ChildPath 'System32\WindowsPowerShell\v1.0\powershell.exe'
     }
 
-    # Build arguments
     $argList = @(
-        '-NoLogo','-NoProfile','-NonInteractive',
-        '-ExecutionPolicy','Bypass',
-        '-File', "`"$full`""
+        '-NoLogo',
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy', 'Bypass',
+        '-File', $full
     )
-    if ($ScriptArgs) { $argList += @('--') + $ScriptArgs }
+    if ($ScriptArgs.Count -gt 0) {
+        $argList += $ScriptArgs
+    }
 
-    # Log files next to the script
-    $outFile = [IO.Path]::ChangeExtension($full, '.out.log')
-    $errFile = [IO.Path]::ChangeExtension($full, '.err.log')
+    $outFile = [System.IO.Path]::ChangeExtension($full, '.out.log')
+    $errFile = [System.IO.Path]::ChangeExtension($full, '.err.log')
+
+    if ($Elevate) {
+        $elevatedArguments = $argList | ForEach-Object {
+            if ($_ -match '\s') { '"' + $_.Replace('"', '""') + '"' } else { $_ }
+        }
+
+        Start-Process -FilePath $hostExe -ArgumentList $elevatedArguments -WorkingDirectory $WorkingDirectory -Verb RunAs -Wait -ErrorAction Stop | Out-Null
+        return [pscustomobject]@{
+            ExitCode   = 0
+            StdOutLog  = ''
+            StdErrLog  = ''
+            Host       = $hostExe
+            WorkingDir = $WorkingDirectory
+        }
+    }
 
     $startInfo = @{
-        FilePath                = $hostExe
-        ArgumentList            = $argList
-        WorkingDirectory        = $WorkingDirectory
-        RedirectStandardOutput  = $outFile
-        RedirectStandardError   = $errFile
-        Wait                    = $true
-        PassThru                = $true
-        ErrorAction             = 'Stop'
-    }
-    if ($Elevate) { $startInfo.Verb = 'RunAs' }
-    if ($Hidden)  { $startInfo.WindowStyle = 'Hidden' }
-
-    try {
-        $proc = Start-Process @startInfo
-    }
-    catch {
-       Write-Warning "❌ Script Execution couldn't start: $_"
+        FilePath               = $hostExe
+        ArgumentList           = $argList
+        WorkingDirectory       = $WorkingDirectory
+        RedirectStandardOutput = $outFile
+        RedirectStandardError  = $errFile
+        Wait                   = $true
+        PassThru               = $true
+        ErrorAction            = 'Stop'
     }
 
-    # Optional timeout
+    if ($Hidden) {
+        $startInfo.WindowStyle = 'Hidden'
+    }
+
+    $proc = Start-Process @startInfo
+
     if ($TimeoutSeconds -gt 0 -and -not $proc.HasExited) {
         if (-not $proc.WaitForExit($TimeoutSeconds * 1000)) {
-            try { $proc.Kill() } catch {}
-            throw "Timed out after $TimeoutSeconds seconds. See logs: `"$outFile`", `"$errFile`"."
+            try {
+                $proc.Kill()
+            }
+            catch {
+                Write-Log -Message "Failed to kill timed-out process for $ScriptPath. $($_.Exception.Message)" -Level 'WARN'
+            }
+
+            throw "Timed out after $TimeoutSeconds seconds. See logs: '$outFile', '$errFile'."
         }
-    } else {
+    }
+    else {
         $proc.WaitForExit()
     }
 
     if ($proc.ExitCode -ne 0) {
         $err = Get-Content -LiteralPath $errFile -Raw -ErrorAction SilentlyContinue
-        #throw "Script failed with exit code $($proc.ExitCode). $err"
+        throw "Script failed with exit code $($proc.ExitCode). $err"
     }
 
-    [pscustomobject]@{
-        ExitCode     = $proc.ExitCode
-        StdOutLog    = $outFile
-        StdErrLog    = $errFile
-        Host         = $hostExe
-        WorkingDir   = $WorkingDirectory
+    return [pscustomobject]@{
+        ExitCode   = $proc.ExitCode
+        StdOutLog  = $outFile
+        StdErrLog  = $errFile
+        Host       = $hostExe
+        WorkingDir = $WorkingDirectory
     }
 }
 
 function Invoke-IfFileExists {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
-    [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
-        [string]$Path
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Path,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [bool]$UsePwsh = $true
     )
 
-    if (Test-Path -LiteralPath $Path) {
-        Write-Host "EXECUTING: Stated $Path.."
-        & $Path
-        Write-Host "EXECUTING: Finished $Path.."
+    if (-not (Test-Path -LiteralPath $Path)) {
+        Write-Log -Message "Script was not found: $Path" -Level 'WARN'
+        return
     }
-    else {
-        Write-Host "Failed to execute as script was not found: $Path"
-    }
+
+    Write-Log -Message "EXECUTING: Started $Path"
+    $result = Invoke-ScriptReliably -ScriptPath $Path -UsePwsh $UsePwsh -Elevate $false -Force64Bit $true
+    Write-Log -Message "EXECUTING: Finished $Path with exit code $($result.ExitCode)"
 }
 
 function Invoke-WingetConfiguration-Developer {
-    #winget configure validate --file developer.winget --ignore-warnings --disable-interactivity --verbose-logs
-    #winget configure show     --file developer.winget --ignore-warnings --disable-interactivity --verbose-logs
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Destination
+    )
+
     winget configure --enable
-    winget settings --enable  ProxyCommandLineOptions ## valid values are: LocalManifestFiles, BypassCertificatePinningForMicrosoftStore, InstallerHashOverride, LocalArchiveMalwareScanOverride, ProxyCommandLineOptions
-    
-    if ( Test-Path "${destination}\dev-config.winget" ) {
-        winget configure --file ${destination}\dev-config.winget --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
-    } else {
-        Write-Host "${destination}\dev-config.winget from Microsoft not found!!"
-        exit 1
+    winget settings --enable ProxyCommandLineOptions
+
+    $microsoftConfig = Join-Path -Path $Destination -ChildPath 'dev-config.winget'
+    $developerConfig = Join-Path -Path $Destination -ChildPath 'developer.winget'
+
+    if (-not (Test-Path -LiteralPath $microsoftConfig)) {
+        throw "$microsoftConfig from Microsoft not found."
     }
-    if ( Test-Path "${destination}\developer.winget" ) {
-        #winget configure --file developer.winget --accept-configuration-agreements --suppress-initial-details --disable-interactivity --verbose-logs
-        winget configure --file ${destination}\developer.winget --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
-    } else {
-        Write-Host "${destination}\developer.winget not found!!"
-        exit 1
+
+    if (-not (Test-Path -LiteralPath $developerConfig)) {
+        throw "$developerConfig not found."
     }
-    return ;
-    ## get-childitem     $env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir\
-    #if (-not (Get-Module -ListAvailable -Name Microsoft.WinGet.Client)) {
-    #Install-Module Microsoft.WinGet.Client -Force -Scope CurrentUser
-    #}
-    #if (-not (Get-Module -Name Microsoft.WinGet.Client)) {
-    #Import-Module Microsoft.WinGet.Client
-    #}
-    #if (-not (Get-Module -Name Microsoft.WinGet.Configuration)) {
-    #Import-Module Microsoft.WinGet.Configuration
-    #}
-    #$configSet = Get-WinGetConfiguration -File developer.winget
-    #Invoke-WinGetConfiguration -Set $configSet -AcceptConfigurationAgreements
+
+    winget configure --file $microsoftConfig --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
+    winget configure --file $developerConfig --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
 }
 
-## Execute downloaded scripts
+function Initialize-TranscriptLogging {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    param()
+
+    $domainName = if ([string]::IsNullOrWhiteSpace($env:USERDOMAIN)) { 'UnknownDomain' } else { $env:USERDOMAIN }
+    $transcriptDir = Join-Path -Path $env:ProgramData -ChildPath "$domainName\Transcripts"
+
+    $commandName = if ([string]::IsNullOrWhiteSpace($PSCommandPath)) {
+        'setup-developer-machine.ps1'
+    }
+    else {
+        Split-Path -Path $PSCommandPath -Leaf
+    }
+
+    $transcriptFile = Join-Path -Path $transcriptDir -ChildPath ($commandName.ToLowerInvariant().Replace('.ps1', '.log'))
+
+    if (-not (Test-Path -LiteralPath $transcriptDir)) {
+        $null = New-Item -Path $transcriptDir -ItemType Directory -Force
+    }
+
+    if (Test-Path -LiteralPath $transcriptFile) {
+        $existing = Get-Item -LiteralPath $transcriptFile -ErrorAction Stop
+        if ($existing.Length -gt 4MB) {
+            Clear-Content -LiteralPath $transcriptFile -Force
+        }
+    }
+
+    Start-Transcript -Path $transcriptFile -Append -Force -IncludeInvocationHeader
+    $global:TranscriptStarted = $true
+    return $transcriptFile
+}
+
+function Ensure-WinGetInstalled {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    param()
+
+    $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
+    if ($null -ne $winget) {
+        Write-Log -Message 'Winget is already installed.'
+        & winget --version
+        return
+    }
+
+    Write-Log -Message 'Winget is not installed. Installing App Installer bundle.' -Level 'WARN'
+    $url = 'https://aka.ms/getwinget'
+    $installerPath = Join-Path -Path $env:TEMP -ChildPath 'AppInstaller.msixbundle'
+
+    Invoke-DownloadFile -Uri $url -OutFile $installerPath
+    Add-AppxPackage -Path $installerPath -ErrorAction Stop
+
+    $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
+    if ($null -eq $winget) {
+        throw 'Winget installation failed. You may need to update Windows or install manually from Microsoft Store.'
+    }
+
+    Write-Log -Message 'Winget installed successfully.'
+    & winget --version
+}
+
 try {
-    Write-Host "******************= Scripts to EXECUTE =******************************"
-    Invoke-GitHub-Download
-    If ( Test-Path "$destination\wallpaper.jpg" ) {
-        #Copy-Item "wallpaper.jpg" "$env:ALLUSERSPROFILE\default-wallpaper.jpg" -Force -ErrorAction SilentlyContinue
-        Copy-Item "$destination\wallpaper.jpg" "$env:ALLUSERSPROFILE\default-wallpaper.jpg" -Force -ErrorAction SilentlyContinue
+    $baseUrl = 'https://raw.githubusercontent.com/webstean/setup/main/intune'
+    $filesToDownload = @(
+        'Config-Normal-Machine.ps1',
+        'developer.winget',
+        'Install-Developer-Fonts.ps1',
+        'Install-Developer-PowershellModules.ps1',
+        'Install-Developer-System.ps1',
+        'Install-Developer-User.ps1',
+        'Install-Windows-Admin-Centre.ps1',
+        'Setup-StarShip-Shell.ps1',
+        'starship_pill.toml',
+        'logo.png',
+        'wallpaper.jpg'
+    )
+
+    $extraFilesToDownload = @(
+        'https://raw.githubusercontent.com/microsoft/WindowsDeveloperConfig/refs/heads/main/windows-dev-config/dev-config.winget'
+    )
+
+    Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
+    if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
+        Write-Log -Message "PowerShell is NOT running in FullLanguage mode. Current mode: $($ExecutionContext.SessionState.LanguageMode)" -Level 'WARN'
     }
-    If ( Test-Path "$destination\logo.png" ) {
-        #Copy-Item "logo.png" "$env:ALLUSERSPROFILE\logo.png" -Force -ErrorAction SilentlyContinue
-        Copy-Item "$destination\logo.png" "$env:ALLUSERSPROFILE\logo.png" -Force -ErrorAction SilentlyContinue
+
+    Write-Log -Message "Current PowerShell Language mode is $($ExecutionContext.SessionState.LanguageMode)"
+    Get-ExecutionPolicy -List | Format-Table -AutoSize
+
+    $transcriptFile = Initialize-TranscriptLogging
+    Write-Log -Message "Transcript started: $transcriptFile"
+
+    if ($env:AUTOMATION_ASSET_ACCOUNTID) {
+        Write-Log -Message "Running in Azure Automation: $env:AUTOMATION_ASSET_ACCOUNTID"
     }
-   
-    ### Normal Machine ###
+
+    Write-Log -Message 'Retrieving current user information...'
+    $currentIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    Write-Log -Message "Current User is: $($currentIdentity.Name)"
+    Write-Log -Message "System Context: $($currentIdentity.IsSystem)"
+    Write-Log -Message "Env: User Profile: $env:USERPROFILE"
+
+    Write-Log -Message 'Setting PowerShell to UTF-8 output encoding...'
+    [Console]::InputEncoding = [System.Text.UTF8Encoding]::new()
+    [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+
+    Ensure-WinGetInstalled
+    winget configure --enable
+    winget install Microsoft.PowerShell --silent --accept-package-agreements --accept-source-agreements
+
+    $global:destination = New-EmptyTempDirectory
+    Write-Log -Message "Working directory: $global:destination"
+
+    Write-Log -Message 'Downloading repository assets...'
+    Invoke-GitHub-Download -BaseUrl $baseUrl -FilesToDownload $filesToDownload -Destination $global:destination
+    Invoke-ExtraFile-Download -ExtraFilesToDownload $extraFilesToDownload -Destination $global:destination
+
+    $wallpaperPath = Join-Path -Path $global:destination -ChildPath 'wallpaper.jpg'
+    if (Test-Path -LiteralPath $wallpaperPath) {
+        Copy-Item -LiteralPath $wallpaperPath -Destination "$env:ALLUSERSPROFILE\default-wallpaper.jpg" -Force -ErrorAction SilentlyContinue
+    }
+
+    $logoPath = Join-Path -Path $global:destination -ChildPath 'logo.png'
+    if (Test-Path -LiteralPath $logoPath) {
+        Copy-Item -LiteralPath $logoPath -Destination "$env:ALLUSERSPROFILE\logo.png" -Force -ErrorAction SilentlyContinue
+    }
+
+    Write-Log -Message '******************= Scripts to EXECUTE =******************************'
+
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
-    Invoke-IfFileExists "$destination\Config-Normal-Machine.ps1"
+    Invoke-IfFileExists -Path (Join-Path -Path $global:destination -ChildPath 'Config-Normal-Machine.ps1')
     $csw.Stop()
-    Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
+    Write-Log -Message "Config-Normal-Machine completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
 
-    if ($env:IsDevBox -eq "True" -or $true) {
-        Write-Host "*** This is a Develper Machine ***"
-
-        ### DEVELOPER Machine ###
-        $csw = [System.Diagnostics.Stopwatch]::StartNew()
-        Invoke-WingetConfiguration-Developer
-        $csw.Stop()
-        Write-Host "⏳ winget configuration completed in $($csw.Elapsed.Minutes) minutes."
+    if ($env:IsDevBox -eq 'True') {
+        Write-Log -Message '*** This is a Developer Machine ***'
 
         $csw = [System.Diagnostics.Stopwatch]::StartNew()
-        Invoke-IfFileExists "$destination\Install-Developer-PowerShellModules.ps1"
+        Invoke-WingetConfiguration-Developer -Destination $global:destination
         $csw.Stop()
-        Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
-    
-        $csw = [System.Diagnostics.Stopwatch]::StartNew()
-        Invoke-IfFileExists "$destination\Install-Global-Secure-Access-Client.ps1"
-        $csw.Stop()
-        Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
-    
-        $csw = [System.Diagnostics.Stopwatch]::StartNew()
-        Invoke-IfFileExists "$destination\Install-Windows-Admin-Centre.ps1"
-        $csw.Stop()
-        Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
-    
-        $csw = [System.Diagnostics.Stopwatch]::StartNew()
-        Invoke-IfFileExists "$destination\Install-Developer-Fonts.ps1" ## need ZIP from PowerShell modules
-        $csw.Stop()
-        Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
-    
-        $csw = [System.Diagnostics.Stopwatch]::StartNew()
-        Invoke-IfFileExists "$destination\Install-Developer-System.ps1" ## installs dotnet, that we need later
-        $csw.Stop()
-        Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
-    
-        $csw = [System.Diagnostics.Stopwatch]::StartNew()
-        Invoke-IfFileExists "$destination\Install-Developer-User.ps1"
-        $csw.Stop()
-        Write-Host "⏳ Script completed in $($csw.Elapsed.Minutes) minutes."
+        Write-Log -Message "winget configuration completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
+
+        $developerScripts = @(
+            'Install-Developer-PowershellModules.ps1',
+            'Install-Global-Secure-Access-Client.ps1',
+            'Install-Windows-Admin-Centre.ps1',
+            'Install-Developer-Fonts.ps1',
+            'Install-Developer-System.ps1',
+            'Install-Developer-User.ps1'
+        )
+
+        foreach ($developerScript in $developerScripts) {
+            $csw = [System.Diagnostics.Stopwatch]::StartNew()
+            Invoke-IfFileExists -Path (Join-Path -Path $global:destination -ChildPath $developerScript)
+            $csw.Stop()
+            Write-Log -Message "$developerScript completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
+        }
     }
-    
-    Write-Host "******************= All scripts executed =******************************"
+    else {
+        Write-Log -Message 'Skipping developer-only steps because IsDevBox is not True.'
+    }
+
+    Write-Log -Message '******************= All scripts executed =******************************'
     $elapsed.Stop()
-    Write-Host "⏳ All STEPS completed in $($elapsed.Elapsed.Minutes) minutes."
+    Write-Log -Message "All steps completed in $($elapsed.Elapsed.TotalMinutes.ToString('F2')) minutes."
 }
 catch {
-    Write-Error "Error executing script: $_"
+    Write-Error "Error executing script: $($_.Exception.Message)"
+    throw
+}
+finally {
+    if ($global:TranscriptStarted) {
+        try {
+            Stop-Transcript | Out-Null
+            Write-Host 'Transcript stopped.'
+        }
+        catch {
+            Write-Warning "Failed to stop transcript cleanly. $($_.Exception.Message)"
+        }
+    }
+
+    Write-Host 'COMPLETED.'
 }
 
-## Cleanup
-#sfc /scannow
-#dism.exe /Online /Cleanup-Image /RestoreHealth
-
-## Stop transcript no matter what
-Stop-Transcript
-Write-Host "Transcript stopped."
-Write-Host "COMPLETED."
-
 return $true
-
