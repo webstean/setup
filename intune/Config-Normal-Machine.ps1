@@ -55,76 +55,238 @@ function CreateIfNotExists {
     }
 }
 
-function Ensure-RegistryValue {
+function Set-RegistryValue {
+    <#
+        .SYNOPSIS
+            Idempotently create or update a registry value.
+
+        .DESCRIPTION
+            Robust replacement for the original Set-RegistryValue.
+            - Accepts hive aliases (HKLM, HKCU, HKCR, HKU, HKCC, plus the long
+              HKEY_* names and trailing ':' forms).
+            - Accepts type aliases in any case (String, DWORD, REG_SZ, ...).
+            - Coerces $Value to the requested registry type.
+            - Creates parent keys as needed, including deep paths.
+            - Detects existing values: returns 'Unchanged' when value+type
+              already match, 'Updated' when overwriting, 'Created' for new
+              values, 'Failed' on error.
+            - Re-creates the value when the existing kind doesn't match the
+              requested kind (PowerShell can't change kind in place).
+            - Honours -WhatIf / -Confirm.
+            - Never throws (returns a status object); callers can opt into
+              throwing via -ErrorAction Stop on Write-Error if needed.
+
+        .EXAMPLE
+            Set-RegistryValue -Hive HKLM -SubKey 'SOFTWARE\Contoso' -Name 'Url' -Value 'https://x' -Type String
+
+        .EXAMPLE
+            Set-RegistryValue -Hive HKCU -SubKey 'Software\Foo' -Name 'Bar' -Value 1 -Type DWORD -WhatIf
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Low')]
+    [OutputType([pscustomobject])]
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateSet('HKLM', 'HKCU')]
         [string]$Hive,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [ValidateNotNullOrEmpty()]
+        [Alias('Key')]
         [string]$SubKey,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [ValidateNotNullOrEmpty()]
+        [Alias('PropertyName')]
         [string]$Name,
 
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
+        [AllowEmptyCollection()]
         [object]$Value,
 
-        [Parameter(Mandatory = $false)]
+        [Parameter(ValueFromPipelineByPropertyName = $true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateSet('String', 'DWord', 'QWord', 'Binary', 'MultiString', 'ExpandString',
-            'STRING', 'DWORD', 'QWORD', 'BINARY', 'MULTISTRING', 'EXPANDSTRING')]
+        [Alias('PropertyType', 'Kind')]
         [string]$Type = 'String'
     )
 
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
+    begin {
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
 
-    # Map the legacy UPPERCASE aliases to the PascalCase values that
-    # New-ItemProperty -PropertyType actually accepts.
-    $typeMap = @{
-        'STRING'       = 'String'
-        'DWORD'        = 'DWord'
-        'QWORD'        = 'QWord'
-        'BINARY'       = 'Binary'
-        'MULTISTRING'  = 'MultiString'
-        'EXPANDSTRING' = 'ExpandString'
-    }
-    if ($typeMap.ContainsKey($Type)) {
-        $Type = $typeMap[$Type]
-    }
-
-    $path = "$Hive`:\$SubKey"
-    try {
-        if (-not (Test-Path -Path $path)) {
-            New-Item -Path $path -Force | Out-Null
+        $hiveMap = @{
+            'HKLM' = 'HKLM'; 'HKEY_LOCAL_MACHINE' = 'HKLM'
+            'HKCU' = 'HKCU'; 'HKEY_CURRENT_USER' = 'HKCU'
+            'HKCR' = 'HKCR'; 'HKEY_CLASSES_ROOT' = 'HKCR'
+            'HKU' = 'HKU'; 'HKEY_USERS' = 'HKU'
+            'HKCC' = 'HKCC'; 'HKEY_CURRENT_CONFIG' = 'HKCC'
         }
 
-        New-ItemProperty -Path $path -Name $Name -Value $Value -PropertyType $Type -Force | Out-Null
-        return [pscustomobject]@{
-            Path   = $path
-            Name   = $Name
-            Value  = $Value
-            Type   = $Type
-            Status = 'OK'
+        $typeMap = @{
+            'STRING' = 'String'; 'REG_SZ' = 'String'
+            'DWORD' = 'DWord'; 'REG_DWORD' = 'DWord'
+            'QWORD' = 'QWord'; 'REG_QWORD' = 'QWord'
+            'BINARY' = 'Binary'; 'REG_BINARY' = 'Binary'
+            'MULTISTRING' = 'MultiString'; 'REG_MULTI_SZ' = 'MultiString'
+            'EXPANDSTRING' = 'ExpandString'; 'REG_EXPAND_SZ' = 'ExpandString'
         }
-    } catch {
-        return [pscustomobject]@{
-            Path   = $path
-            Name   = $Name
-            Error  = $_.Exception.Message
-            Status = 'FAILED'
+    }
+
+    process {
+        # ---- Normalize hive ----
+        $hiveKey = $Hive.Trim().TrimEnd(':').ToUpperInvariant()
+        if (-not $hiveMap.ContainsKey($hiveKey)) {
+            return [pscustomobject]@{
+                Path   = "$Hive\$SubKey"
+                Name   = $Name
+                Type   = $Type
+                Status = 'Failed'
+                Error  = "Unsupported hive '$Hive'. Use HKLM, HKCU, HKCR, HKU or HKCC."
+            }
+        }
+        $resolvedHive = $hiveMap[$hiveKey]
+
+        # ---- Normalize subkey (strip drive prefixes, leading slashes, swap /) ----
+        $cleanSub = $SubKey.Trim().Replace('/', '\')
+        $cleanSub = $cleanSub -replace '^(HKLM|HKCU|HKCR|HKU|HKCC):\\?', ''
+        $cleanSub = $cleanSub -replace '^(HKEY_LOCAL_MACHINE|HKEY_CURRENT_USER|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\', ''
+        $cleanSub = $cleanSub.TrimStart('\')
+
+        # ---- Normalize type ----
+        $typeKey = $Type.Trim().ToUpperInvariant()
+        if ($typeMap.ContainsKey($typeKey)) {
+            $resolvedType = $typeMap[$typeKey]
+        } else {
+            return [pscustomobject]@{
+                Path   = "${resolvedHive}:\$cleanSub"
+                Name   = $Name
+                Type   = $Type
+                Status = 'Failed'
+                Error  = "Unsupported registry type '$Type'."
+            }
+        }
+
+        $path = "${resolvedHive}:\$cleanSub"
+
+        # ---- Coerce $Value into the requested registry kind ----
+        try {
+            $coerced =
+            switch ($resolvedType) {
+                'DWord' { [int]$Value }
+                'QWord' { [long]$Value }
+                'Binary' {
+                    if ($null -eq $Value) { [byte[]]@() }
+                    elseif ($Value -is [byte[]]) { , $Value }
+                    elseif ($Value -is [string]) { [System.Text.Encoding]::UTF8.GetBytes([string]$Value) }
+                    elseif ($Value -is [System.Collections.IEnumerable]) {
+                        , ([byte[]]@($Value | ForEach-Object { [byte]$_ }))
+                    } else {
+                        throw 'Binary values must be a byte[] (or convertible).'
+                    }
+                }
+                'MultiString' {
+                    if ($null -eq $Value) { , [string[]]@() }
+                    elseif ($Value -is [string[]]) { , $Value }
+                    elseif ($Value -is [string]) { , @([string]$Value) }
+                    elseif ($Value -is [System.Collections.IEnumerable]) {
+                        , ([string[]]@($Value | ForEach-Object { [string]$_ }))
+                    } else {
+                        , @([string]$Value)
+                    }
+                }
+                default { [string]$Value }   # String / ExpandString
+            }
+        } catch {
+            return [pscustomobject]@{
+                Path   = $path
+                Name   = $Name
+                Type   = $resolvedType
+                Status = 'Failed'
+                Error  = "Value coercion failed: $($_.Exception.Message)"
+            }
+        }
+
+        try {
+            # ---- Ensure parent key exists ----
+            if (-not (Test-Path -LiteralPath $path)) {
+                if ($PSCmdlet.ShouldProcess($path, 'Create registry key')) {
+                    New-Item -Path $path -Force -ErrorAction Stop | Out-Null
+                }
+            }
+
+            # ---- Discover existing value (if any) ----
+            $existing = $null
+            $existingKind = $null
+            try {
+                $regKey = Get-Item -LiteralPath $path -ErrorAction Stop
+                $existingKind = $regKey.GetValueKind($Name)        # throws if missing
+                $existing = $regKey.GetValue($Name, $null, 'DoNotExpandEnvironmentNames')
+            } catch {
+                $existingKind = $null
+                $existing = $null
+            }
+
+            $status = 'Created'
+
+            if ($null -ne $existingKind) {
+                $status = 'Updated'
+                $existingKindString = [string]$existingKind
+
+                if ($existingKindString -ne $resolvedType) {
+                    # Different kind — must remove and recreate
+                    Write-Verbose "Replacing $existingKindString value '$Name' at '$path' with $resolvedType."
+                    if ($PSCmdlet.ShouldProcess("$path!$Name", "Remove existing $existingKindString value")) {
+                        Remove-ItemProperty -LiteralPath $path -Name $Name -Force -ErrorAction Stop
+                    }
+                } else {
+                    # Same kind — short-circuit if equal (idempotency)
+                    $isEqual = $false
+                    try {
+                        $isEqual =
+                        switch ($resolvedType) {
+                            'Binary' { -not (Compare-Object $existing $coerced -SyncWindow 0) }
+                            'MultiString' { -not (Compare-Object $existing $coerced -SyncWindow 0) }
+                            default { $existing -eq $coerced }
+                        }
+                    } catch {
+                        $isEqual = $false
+                    }
+
+                    if ($isEqual) {
+                        return [pscustomobject]@{
+                            Path   = $path
+                            Name   = $Name
+                            Value  = $coerced
+                            Type   = $resolvedType
+                            Status = 'Unchanged'
+                        }
+                    }
+                }
+            }
+
+            if ($PSCmdlet.ShouldProcess("$path!$Name", "Set $resolvedType value")) {
+                New-ItemProperty -LiteralPath $path -Name $Name -Value $coerced -PropertyType $resolvedType -Force -ErrorAction Stop | Out-Null
+            }
+
+            return [pscustomobject]@{
+                Path   = $path
+                Name   = $Name
+                Value  = $coerced
+                Type   = $resolvedType
+                Status = $status
+            }
+        } catch {
+            return [pscustomobject]@{
+                Path   = $path
+                Name   = $Name
+                Type   = $resolvedType
+                Status = 'Failed'
+                Error  = $_.Exception.Message
+            }
         }
     }
 }
-# Approved-verb alias for new code; existing call sites keep using Ensure-RegistryValue.
-Set-Alias -Name Set-RegistryValue -Value Ensure-RegistryValue -Scope Script -ErrorAction SilentlyContinue
-## Example:
-#Ensure-RegistryValue -Hive HKLM -SubKey 'SOFTWARE\Contoso\MyApp' -Name 'ServerUrl' -Value 'https://example.local' -Type 'String'
+#Set-RegistryValue -Hive HKLM -SubKey 'SOFTWARE\Contoso\MyApp' -Name 'ServerUrl' -Value 'https://example.local' -Type 'String'
 
 # Check if winget is installed
 $winget = Get-Command winget -ErrorAction SilentlyContinue
@@ -384,7 +546,7 @@ function DisableAutoplay {
 
     Write-Output 'Disable Autoplay...'
     Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers' -Name 'DisableAutoplay' -Type DWord -Value 1
-    Ensure-RegistryValue -Hive HKCU -SubKey 'Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers' -Name 'DisableAutoplay' -Value 1 -Type 'DWORD'
+    Set-RegistryValue -Hive HKCU -SubKey 'Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers' -Name 'DisableAutoplay' -Value 1 -Type 'DWORD'
 }
 DisableAutoplay
 
@@ -1049,8 +1211,8 @@ function EnableClipboardHistorySync {
 
     Write-Output 'Enabling Clipboard history...'
     $regPath = 'Software\Microsoft\Clipboard'
-    Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name 'EnableClipboardHistory' -Value 1 -Type 'DWORD'
-    Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name 'CloudClipboardAutomaticUpload' -Value 0 -Type 'DWORD'
+    Set-RegistryValue -Hive HKCU -SubKey $regPath -Name 'EnableClipboardHistory' -Value 1 -Type 'DWORD'
+    Set-RegistryValue -Hive HKCU -SubKey $regPath -Name 'CloudClipboardAutomaticUpload' -Value 0 -Type 'DWORD'
     Get-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System' -Name AllowClipboardHistory -ErrorAction SilentlyContinue
     Write-Output 'Clipboard history has been enabled.'
 }
