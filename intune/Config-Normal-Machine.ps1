@@ -1,10 +1,10 @@
-﻿#Requires -RunAsAdministrator
+#Requires -RunAsAdministrator
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 ## Current Statue: Global Secure Access Client (windows)
-## ==> IPv4 is preferred and it suggested you disabled IPv6 is you have issues: https://learn.microsoft.com/en-us/entra/global-secure-access/troubleshoot-global-secure-access-client-diagnostics-health[...]
+## ==> IPv4 is preferred and it suggested you disabled IPv6 is you have issues: https://learn.microsoft.com/en-us/entra/global-secure-access/troubleshoot-global-secure-access-client-diagnostics-health
 ## ==> DNS over HTTP not supported: https://learn.microsoft.com/en-us/entra/global-secure-access/troubleshoot-global-secure-access-client-diagnostics-health-check#dns-over-https-not-supported
 ## ==> QUIC is not supported for Internet Access, but is supported for Private Access and Microsoft 365 workloads.
 ## These changes won't be fully effective until after reboot.
@@ -171,7 +171,8 @@ function Set-NetworkProfilesToPrivate {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    param()
+    param(
+    )
 
     $networks = Get-NetConnectionProfile
 
@@ -998,67 +999,25 @@ function Set-DefaultTerminalToWindowsTerminal {
     }
 
     try {
-        foreach ($target in $targets) {
-            Set-Delegation -Root $hkcu -SubKey $target
+        Set-Delegation -Root $hkcu -SubKey ''
+        foreach ($t in $targets) {
+            Set-Delegation -Root $hkcu -SubKey $t
         }
-
-        $forceV2Path = Join-Path -Path $hkcu -ChildPath '%%Startup'
-        if (-not (Test-Path -Path $forceV2Path)) {
-            New-Item -Path $forceV2Path -Force | Out-Null
-        }
-
-        New-ItemProperty -Path $forceV2Path -Name ForceV2 -PropertyType DWord -Value 1 -Force | Out-Null
 
         if ($AllUsers) {
-            if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-                Write-Warning "AllUsers requested but session not elevated. Skipping HKLM."
-            }
-            else {
-                Set-Delegation -Root $hklm -SubKey '%%Startup'
-                foreach ($target in $targets[1..($targets.Count - 1)]) {
-                    Set-Delegation -Root $hklm -SubKey $target
-                }
-
-                New-ItemProperty -Path (Join-Path -Path $hklm -ChildPath '%%Startup') -Name ForceV2 -PropertyType DWord -Value 1 -Force | Out-Null
+            Set-Delegation -Root $hklm -SubKey ''
+            foreach ($t in $targets) {
+                Set-Delegation -Root $hklm -SubKey $t
             }
         }
 
-        Write-Host "✅ Windows Terminal set as the default terminal for common hosts."
-        Write-Host "Tip: Close all consoles (conhost.exe) and relaunch, or sign out/in."
+        Write-Host "✅ Default terminal set to Windows Terminal."
         return $true
     }
     catch {
-        Write-Warning "❌ Failed: $($_.Exception.Message)"
+        Write-Warning "Failed to set default terminal: $($_.Exception.Message)"
         return $false
     }
 }
-Set-DefaultTerminalToWindowsTerminal -AllUsers $true
 
-function DisableSearchonStartMenu {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
-    $path = "HKCU:\Software\Policies\Microsoft\Windows\Explorer"
-    if (-not (Test-Path -Path $path)) {
-        New-Item -Path $path -Force | Out-Null
-    }
-
-    New-ItemProperty -Path $path -Name "DisableSearchBoxSuggestions" -Value 1 -PropertyType DWord -Force | Out-Null
-}
-DisableSearchonStartMenu
-
-Write-Output "Configuring Media..."
-
-function UninstallMediaPlayer {
-    Set-StrictMode -Version Latest
-    $ErrorActionPreference = 'Stop'
-
-    try {
-        Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WindowsMediaPlayer" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
-        Get-WindowsCapability -Online | Where-Object { $_.Name -like "Media.WindowsMediaPlayer*" } | Remove-WindowsCapability -Online | Out-Null
-    }
-    catch {
-        Write-Warning "❌ Failed to uninstall Windows Media Player (yuk!): $($_.Exception.Message)"
-    }
-}
-UninstallMediaPlayer
+Set-DefaultTerminalToWindowsTerminal -AllUsers $false | Out-Null
