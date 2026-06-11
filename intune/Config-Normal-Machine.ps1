@@ -774,194 +774,214 @@ function Disable-WindowsGaming {
     Write-Verbose "Done. Some changes apply after sign-out or Explorer restart."
     return [pscustomobject]$summary
 }
+Disable-WindowsGaming
 
 function Set-SettingsPageVisibility {
+    [CmdletBinding(DefaultParameterSetName = 'Get')]
     param(
-        [Parameter(Mandatory = $false)]
+        [Parameter(ParameterSetName = 'Set')]
+        [Parameter(ParameterSetName = 'Add')]
         [ValidateSet('Hide', 'ShowOnly')]
-        [string]$Mode = 'Hide',
+        [string] $Mode,
 
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [string[]]$Pages = @(),
+        [Parameter(ParameterSetName = 'Set', Mandatory)]
+        [Parameter(ParameterSetName = 'Add', Mandatory)]
+        [Parameter(ParameterSetName = 'Remove', Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string[]] $Pages,
 
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [bool]$Add = $false,
+        [Parameter(ParameterSetName = 'Add', Mandatory)]
+        [switch] $Add,
 
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [bool]$Remove = $false,
+        [Parameter(ParameterSetName = 'Remove', Mandatory)]
+        [switch] $Remove,
 
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [bool]$Clear = $false,
+        [Parameter(ParameterSetName = 'Clear', Mandatory)]
+        [switch] $Clear,
 
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNull()]
-        [bool]$Get = $false
+        [Parameter(ParameterSetName = 'Get')]
+        [switch] $Get
     )
 
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    $KeyPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    $KeyPath   = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
     $ValueName = 'SettingsPageVisibility'
 
-    $needsWrite = -not $Get
-    if ($needsWrite -and -not $Clear -and -not $Remove -and -not $Add -and [string]::IsNullOrWhiteSpace($Mode)) {
-        throw ('No action specified. Use -Mode with -Pages, or -Add, -Remove, -Clear, or -Get.')
+    function Test-IsAdministrator {
+        $identity  = [Security.Principal.WindowsIdentity]::GetCurrent()
+        $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+
+        return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     }
 
-    if ($needsWrite -and (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) {
-        throw 'Run elevated (Administrator) to modify HKLM.'
+    function Get-CurrentValue {
+        if (-not (Test-Path -Path $KeyPath)) {
+            return $null
+        }
+
+        try {
+            return Get-ItemPropertyValue -Path $KeyPath -Name $ValueName -ErrorAction Stop
+        }
+        catch [System.Management.Automation.ItemNotFoundException] {
+            return $null
+        }
+        catch {
+            return $null
+        }
     }
 
-    function Parse-Value {
+    function ConvertFrom-SettingsPageVisibilityValue {
         param(
-            [Parameter(Mandatory = $false)]
             [AllowNull()]
-            [string]$ValueText = $null
+            [string] $Value
         )
 
-        Set-StrictMode -Version Latest
-        $ErrorActionPreference = 'Stop'
-
-        if ([string]::IsNullOrWhiteSpace($ValueText)) {
-            return @{ Mode = $null; Pages = @() }
-        }
-
-        $parts = $ValueText.Split(':', 2)
-        $parsedMode = $parts[0].Trim().ToLowerInvariant()
-        $parsedPages = @()
-
-        if ($parts.Count -gt 1 -and -not [string]::IsNullOrWhiteSpace($parts[1])) {
-            $parsedPages = $parts[1].Split(';') | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-        }
-
-        return @{
-            Mode  = if ($parsedMode -eq 'hide') { 'Hide' } elseif ($parsedMode -eq 'showonly') { 'ShowOnly' } else { $null }
-            Pages = $parsedPages
-        }
-    }
-
-    function Build-Value {
-        param(
-            [Parameter(Mandatory = $true)]
-            [ValidateNotNullOrEmpty()]
-            [string]$InputMode,
-
-            [Parameter(Mandatory = $true)]
-            [ValidateNotNull()]
-            [string[]]$InputPages
-        )
-
-        Set-StrictMode -Version Latest
-        $ErrorActionPreference = 'Stop'
-
-        $uniquePages = $InputPages | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
-        switch ($InputMode) {
-            'Hide' { return ('hide:' + ($uniquePages -join ';')) }
-            'ShowOnly' { return ('showonly:' + ($uniquePages -join ';')) }
-            default { throw "Invalid mode '$InputMode' when building value." }
-        }
-    }
-
-    if (-not (Test-Path -Path $KeyPath)) {
-        if ($Get) {
+        if ([string]::IsNullOrWhiteSpace($Value)) {
             return [pscustomobject]@{
                 Mode  = $null
                 Pages = @()
-                Raw   = $null
-                Path  = "$KeyPath\$ValueName"
             }
         }
 
-        New-Item -Path $KeyPath -Force | Out-Null
+        $parts = $Value.Split(':', 2)
+        $modeText = $parts[0].Trim().ToLowerInvariant()
+
+        $parsedMode = switch ($modeText) {
+            'hide'     { 'Hide' }
+            'showonly' { 'ShowOnly' }
+            default    { $null }
+        }
+
+        $parsedPages = @()
+
+        if ($parts.Count -eq 2 -and -not [string]::IsNullOrWhiteSpace($parts[1])) {
+            $parsedPages = $parts[1].Split(';') |
+                ForEach-Object { $_.Trim() } |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        }
+
+        [pscustomobject]@{
+            Mode  = $parsedMode
+            Pages = @($parsedPages)
+        }
     }
 
-    $currentRaw = (Get-ItemProperty -Path $KeyPath -Name $ValueName -ErrorAction SilentlyContinue).$ValueName
-    $parsed = Parse-Value -ValueText $currentRaw
-    $curMode = $parsed.Mode
-    $curPages = [System.Collections.Generic.List[string]]::new()
-    foreach ($page in $parsed.Pages) {
-        [void]$curPages.Add($page)
+    function ConvertTo-SettingsPageVisibilityValue {
+        param(
+            [Parameter(Mandatory)]
+            [ValidateSet('Hide', 'ShowOnly')]
+            [string] $Mode,
+
+            [Parameter(Mandatory)]
+            [string[]] $Pages
+        )
+
+        $cleanPages = $Pages |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Sort-Object -Unique
+
+        if ($cleanPages.Count -eq 0) {
+            return $null
+        }
+
+        switch ($Mode) {
+            'Hide'     { return "hide:$($cleanPages -join ';')" }
+            'ShowOnly' { return "showonly:$($cleanPages -join ';')" }
+        }
     }
 
-    if ($Get) {
+    $currentRaw = Get-CurrentValue
+    $current    = ConvertFrom-SettingsPageVisibilityValue -Value $currentRaw
+
+    if ($PSCmdlet.ParameterSetName -eq 'Get') {
         return [pscustomobject]@{
-            Mode  = $curMode
-            Pages = $parsed.Pages
+            Mode  = $current.Mode
+            Pages = $current.Pages
             Raw   = $currentRaw
             Path  = "$KeyPath\$ValueName"
         }
     }
 
+    if (-not (Test-IsAdministrator)) {
+        throw 'Run elevated as Administrator to modify HKLM.'
+    }
+
+    if (-not (Test-Path -Path $KeyPath)) {
+        New-Item -Path $KeyPath -Force | Out-Null
+    }
+
     if ($Clear) {
         Remove-ItemProperty -Path $KeyPath -Name $ValueName -ErrorAction SilentlyContinue
-        Write-Verbose 'Policy cleared.'
         return
     }
 
-    if (($Mode -or $Add -or $Remove) -and $Pages.Count -gt 0) {
-        $Pages = $Pages | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-    }
-
-    if (($Mode) -and (-not $Add) -and (-not $Remove)) {
-        if ($Pages.Count -eq 0) {
-            throw 'You must supply -Pages when using -Mode to overwrite.'
+    if ($PSCmdlet.ParameterSetName -eq 'Set') {
+        if ([string]::IsNullOrWhiteSpace($Mode)) {
+            throw 'Use -Mode Hide or -Mode ShowOnly when setting the full page list.'
         }
 
-        $newRaw = Build-Value -InputMode $Mode -InputPages $Pages
+        $newRaw = ConvertTo-SettingsPageVisibilityValue -Mode $Mode -Pages $Pages
+
+        if ([string]::IsNullOrWhiteSpace($newRaw)) {
+            Remove-ItemProperty -Path $KeyPath -Name $ValueName -ErrorAction SilentlyContinue
+            return
+        }
+
         New-ItemProperty -Path $KeyPath -Name $ValueName -PropertyType String -Value $newRaw -Force | Out-Null
         return
     }
 
     if ($Add) {
-        if ($Pages.Count -eq 0) {
-            throw 'Use -Add with one or more -Pages.'
-        }
+        $targetMode = $current.Mode
 
-        $targetMode = $curMode
         if ([string]::IsNullOrWhiteSpace($targetMode)) {
             if ([string]::IsNullOrWhiteSpace($Mode)) {
-                throw 'No existing value. Use -Add together with -Mode Hide or ShowOnly to establish the mode.'
+                throw 'No existing SettingsPageVisibility value. Use -Add with -Mode Hide or -Mode ShowOnly.'
             }
 
             $targetMode = $Mode
         }
 
-        foreach ($page in $Pages) {
-            if (-not $curPages.Contains($page)) {
-                [void]$curPages.Add($page)
-            }
-        }
+        $combinedPages = @($current.Pages + $Pages)
 
-        $newRaw = Build-Value -InputMode $targetMode -InputPages $curPages.ToArray()
+        $newRaw = ConvertTo-SettingsPageVisibilityValue -Mode $targetMode -Pages $combinedPages
         New-ItemProperty -Path $KeyPath -Name $ValueName -PropertyType String -Value $newRaw -Force | Out-Null
         return
     }
 
     if ($Remove) {
-        if ($Pages.Count -eq 0) {
-            throw 'Use -Remove with one or more -Pages.'
-        }
-
-        if ([string]::IsNullOrWhiteSpace($curMode)) {
-            Write-Verbose 'Nothing to remove; value not set.'
+        if ([string]::IsNullOrWhiteSpace($current.Mode)) {
             return
         }
 
-        $remaining = $curPages | Where-Object { $Pages -notcontains $_ }
-        $newRaw = Build-Value -InputMode $curMode -InputPages $remaining
+        $removeLookup = [System.Collections.Generic.HashSet[string]]::new(
+            [System.StringComparer]::OrdinalIgnoreCase
+        )
+
+        foreach ($page in $Pages) {
+            [void] $removeLookup.Add($page.Trim())
+        }
+
+        $remainingPages = @(
+            $current.Pages | Where-Object {
+                -not $removeLookup.Contains($_)
+            }
+        )
+
+        $newRaw = ConvertTo-SettingsPageVisibilityValue -Mode $current.Mode -Pages $remainingPages
+
+        if ([string]::IsNullOrWhiteSpace($newRaw)) {
+            Remove-ItemProperty -Path $KeyPath -Name $ValueName -ErrorAction SilentlyContinue
+            return
+        }
+
         New-ItemProperty -Path $KeyPath -Name $ValueName -PropertyType String -Value $newRaw -Force | Out-Null
         return
     }
-
-    throw 'No valid action specified. Use one of: -Mode Hide/ShowOnly (with -Pages), -Add, -Remove, -Clear, or -Get.'
 }
-
-Disable-WindowsGaming
 Set-SettingsPageVisibility -Get $true | Format-List
 
 Set-SettingsPageVisibility -Mode Hide -Pages @(
