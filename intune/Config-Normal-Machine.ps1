@@ -774,7 +774,7 @@ function Disable-WindowsGaming {
     Write-Verbose "Done. Some changes apply after sign-out or Explorer restart."
     return [pscustomobject]$summary
 }
-Disable-WindowsGaming
+Disable-WindowsGaming | Out-Null
 
 function Set-SettingsPageVisibility {
     [CmdletBinding(DefaultParameterSetName = 'Get')]
@@ -982,7 +982,8 @@ function Set-SettingsPageVisibility {
         return
     }
 }
-Set-SettingsPageVisibility -Get $true | Format-List
+
+#Set-SettingsPageVisibility -Get $true | Format-List
 
 Set-SettingsPageVisibility -Mode Hide -Pages @(
     'family-group',
@@ -997,17 +998,16 @@ Set-SettingsPageVisibility -Mode Hide -Pages @(
     'autoplay'
 )
 
-Set-SettingsPageVisibility -Get $true | Format-List
+#Set-SettingsPageVisibility -Get $true | Format-List
 
 function EnableClipboardHistorySync {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    Write-Output "Enabling Clipboard history..."
     $regPath = "Software\Microsoft\Clipboard"
-
     Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name "EnableClipboardHistory" -Value 1 -Type 'DWORD'
     Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name "CloudClipboardAutomaticUpload" -Value 0 -Type 'DWORD'
-
     Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Name AllowClipboardHistory -ErrorAction SilentlyContinue
     Write-Output "Clipboard history has been enabled."
 }
@@ -1023,6 +1023,8 @@ function Set-DefaultTerminalToWindowsTerminal {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    Write-Output "Settings Default Terminal to be MSTerminal..."
+    
     $terminalMoniker = 'Windows.Terminal'
     $hkcu = 'HKCU:\Console'
     $hklm = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Console'
