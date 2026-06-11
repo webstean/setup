@@ -138,6 +138,7 @@ function DisableInbuiltDNS {
 
     $disableBuiltInDNS = 0x00
 
+    Write-Output "Disabling Browser InBuilt DNS..."
     ## Disabled Inbuilt DNS for Microsoft Edge
     CreateIfNotExists -Path "HKLM:\SOFTWARE\Policies\Microsoft"
     CreateIfNotExists -Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
@@ -155,6 +156,7 @@ function DisableQUIC {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    Write-Output "Disabling network QUIC protocol..."
     ## QUIC is currently supported WITH Private Access and Microsoft 365 workloads but NOT in Internet Access
     $disableQUIC = 0x00
     Set-ItemProperty -Path "HKLM:\Software\Policies\Microsoft\Edge" -Name "QuicAllowed" -Value $disableQUIC -Type DWord -Force
