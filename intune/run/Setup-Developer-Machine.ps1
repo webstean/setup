@@ -428,6 +428,7 @@ try {
         'Install-Developer-PowershellModules.ps1',
         'Install-Developer-System.ps1',
         'Install-Developer-User.ps1',
+        'Install-Global-Secure-Access-Client.ps1',
         'Install-Windows-Admin-Centre.ps1',
         'Setup-StarShip-Shell.ps1',
         'starship_pill.toml',
@@ -492,31 +493,25 @@ try {
     $csw.Stop()
     Write-Log -Message "Config-Normal-Machine completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
 
-    if ($env:IsDevBox -eq 'True') {
-        Write-Log -Message '*** This is a Developer Machine ***'
+    $csw = [System.Diagnostics.Stopwatch]::StartNew()
+    Invoke-WingetConfiguration-Developer -Destination $global:destination
+    $csw.Stop()
+    Write-Log -Message "winget configuration completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
 
+    $developerScripts = @(
+        'Install-Developer-PowershellModules.ps1',
+        'Install-Global-Secure-Access-Client.ps1',
+        'Install-Windows-Admin-Centre.ps1',
+        'Install-Developer-Fonts.ps1',
+        'Install-Developer-System.ps1',
+        'Install-Developer-User.ps1'
+    )
+
+    foreach ($developerScript in $developerScripts) {
         $csw = [System.Diagnostics.Stopwatch]::StartNew()
-        Invoke-WingetConfiguration-Developer -Destination $global:destination
+        Invoke-IfFileExists -Path (Join-Path -Path $global:destination -ChildPath $developerScript)
         $csw.Stop()
-        Write-Log -Message "winget configuration completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
-
-        $developerScripts = @(
-            'Install-Developer-PowershellModules.ps1',
-            'Install-Global-Secure-Access-Client.ps1',
-            'Install-Windows-Admin-Centre.ps1',
-            'Install-Developer-Fonts.ps1',
-            'Install-Developer-System.ps1',
-            'Install-Developer-User.ps1'
-        )
-
-        foreach ($developerScript in $developerScripts) {
-            $csw = [System.Diagnostics.Stopwatch]::StartNew()
-            Invoke-IfFileExists -Path (Join-Path -Path $global:destination -ChildPath $developerScript)
-            $csw.Stop()
-            Write-Log -Message "$developerScript completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
-        }
-    } else {
-        Write-Log -Message 'Skipping developer-only steps because IsDevBox is not True.'
+        Write-Log -Message "$developerScript completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
     }
 
     Write-Log -Message '******************= All scripts executed =******************************'
