@@ -307,7 +307,23 @@ function DisableRecoveryAndReset {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    reagentc /disable 2>&1 | Out-Null
+    $reAgentOutput = & reagentc /info 2>&1 | Out-String
+    if ($reAgentOutput -match 'Windows RE status:\s+Disabled') {
+        Write-Host 'Windows RE is already disabled.'
+        return
+    }
+
+    $disableOutput = & reagentc /disable 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0) {
+        if ($disableOutput -match 'Windows RE is already disabled') {
+            Write-Host 'Windows RE is already disabled.'
+            return
+        }
+
+        throw "Failed to disable Windows RE. Output: $disableOutput"
+    }
+
+    Write-Host 'Windows RE disabled.'
 }
 DisableRecoveryAndReset
 
