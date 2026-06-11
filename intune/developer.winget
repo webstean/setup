@@ -233,16 +233,6 @@ properties:
         id: Kubernetes.kubectl
         source: winget
 
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: Azure.VPN
-#      directives:
-#        description: Installing Azure VPN Client
-#        allowPrerelease: false
-#        securityContext: current
-#      settings:
-#        id: 9NP355QT2SQB
-#        source: msstore
-
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.Azd
       directives:
@@ -730,16 +720,6 @@ properties:
       settings:
         HttpsUrl: https://github.com/webstean/setup
         RootDirectory: "C:/WorkSpaces"
-
-    # NodeJS
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: OpenJS.NodeJS.LTS
-      directives:
-        description: Install OpenJS.NodeJS.LTS (dependency for many VS Code extensions)
-        securityContext: current
-      settings:
-        id: OpenJS.NodeJS.LTS
-        source: winget
 
     # Java (open source)
     - resource: Microsoft.WinGet.DSC/WinGetPackage
