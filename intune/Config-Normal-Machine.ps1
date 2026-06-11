@@ -390,35 +390,55 @@ function DisableAccessibilityKeys {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    Write-Output "Disabiling Accessability Keys..."
     Set-ItemProperty -Path "HKCU:\Control Panel\Accessibility\StickyKeys" -Name "Flags" -Type String -Value "506"
     Set-ItemProperty -Path "HKCU:\Control Panel\Accessibility\ToggleKeys" -Name "Flags" -Type String -Value "58"
     Set-ItemProperty -Path "HKCU:\Control Panel\Accessibility\Keyboard Response" -Name "Flags" -Type String -Value "122"
 }
 
-Write-Output "Configuring Sounds..."
+function Set-SoundSchemeNone {
+    [CmdletBinding()]
+    param()
 
-function SetSoundSchemeNone {
+    Write-Output "Setting Sound Scheme to None..."
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    $SoundScheme = ".None"
-    Get-ChildItem -Path "HKCU:\AppEvents\Schemes\Apps\*\*" | ForEach-Object {
-        if (-not (Test-Path -Path "$($_.PsPath)\$($SoundScheme)")) {
-            New-Item -Path "$($_.PsPath)\$($SoundScheme)" | Out-Null
-        }
+    $SoundScheme = '.None'
+    $SchemesPath = 'HKCU:\AppEvents\Schemes'
+    $AppsPath = 'HKCU:\AppEvents\Schemes\Apps'
 
-        if (-not (Test-Path -Path "$($_.PsPath)\.Current")) {
-            New-Item -Path "$($_.PsPath)\.Current" | Out-Null
-        }
-
-        $data = (Get-ItemProperty -Path "$($_.PsPath)\$($SoundScheme)" -Name "(Default)" -ErrorAction SilentlyContinue)."(Default)"
-        Set-ItemProperty -Path "$($_.PsPath)\$($SoundScheme)" -Name "(Default)" -Type String -Value $data
-        Set-ItemProperty -Path "$($_.PsPath)\.Current" -Name "(Default)" -Type String -Value $data
+    if (-not (Test-Path $AppsPath)) {
+        throw "Registry path not found: $AppsPath"
     }
 
-    Set-ItemProperty -Path "HKCU:\AppEvents\Schemes" -Name "(Default)" -Type String -Value $SoundScheme
+    Get-ChildItem -Path $AppsPath | ForEach-Object {
+        $AppKey = $_.PSPath
+
+        Get-ChildItem -Path $AppKey | ForEach-Object {
+            $EventKey = $_.PSPath
+
+            $NoneKey = Join-Path $EventKey '.None'
+            $CurrentKey = Join-Path $EventKey '.Current'
+
+            if (-not (Test-Path $NoneKey)) {
+                New-Item -Path $NoneKey -Force | Out-Null
+            }
+
+            if (-not (Test-Path $CurrentKey)) {
+                New-Item -Path $CurrentKey -Force | Out-Null
+            }
+
+            # None means no sound, so default value should be empty.
+            Set-Item -Path $NoneKey -Value ''
+            Set-Item -Path $CurrentKey -Value ''
+        }
+    }
+
+    # Set selected Windows sound scheme to "No Sounds"
+    Set-Item -Path $SchemesPath -Value $SoundScheme
 }
-SetSoundSchemeNone
+Set-SoundSchemeNone
 
 function DisableStartupSound {
     Set-StrictMode -Version Latest
