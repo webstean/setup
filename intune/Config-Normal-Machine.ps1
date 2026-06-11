@@ -1,34 +1,78 @@
 ﻿#Requires -RunAsAdministrator
 
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
 ## Current Statue: Global Secure Access Client (windows)
 ## ==> IPv4 is preferred and it suggested you disabled IPv6 is you have issues: https://learn.microsoft.com/en-us/entra/global-secure-access/troubleshoot-global-secure-access-client-diagnostics-health[...]
 ## ==> DNS over HTTP not supported: https://learn.microsoft.com/en-us/entra/global-secure-access/troubleshoot-global-secure-access-client-diagnostics-health-check#dns-over-https-not-supported
 ## ==> QUIC is not supported for Internet Access, but is supported for Private Access and Microsoft 365 workloads.
 ## These changes won't be fully effective until after reboot.
 function CreateIfNotExists {
-    param($Path)
-    if (-NOT (Test-Path $Path)) {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Path
+    )
+
+    if (-not (Test-Path -Path $Path)) {
         New-Item -Path $Path -Force | Out-Null
     }
 }
 
 function Ensure-RegistryValue {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     param(
-        [Parameter(Mandatory)] [ValidateSet('HKLM', 'HKCU')] [string] $Hive,
-        [Parameter(Mandatory)] [string] $SubKey,
-        [Parameter(Mandatory)] [string] $Name,
-        [Parameter(Mandatory)] [object] $Value,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateSet('HKLM', 'HKCU')]
+        [string]$Hive,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SubKey,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [object]$Value,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
         [ValidateSet('STRING', 'DWORD', 'QWORD', 'BINARY', 'MULTISTRING', 'EXPANDSTRING')]
-        [string] $Type = 'String'
+        [string]$Type = 'String'
     )
+
     $path = "$Hive`:\$SubKey"
     try {
-        if (-not (Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
+        if (-not (Test-Path -Path $path)) {
+            New-Item -Path $path -Force | Out-Null
+        }
+
         New-ItemProperty -Path $path -Name $Name -Value $Value -PropertyType $Type -Force | Out-Null
-        return [pscustomobject]@{ Path = $path; Name = $Name; Value = $Value; Type = $Type; Status = 'OK' }
+        return [pscustomobject]@{
+            Path   = $path
+            Name   = $Name
+            Value  = $Value
+            Type   = $Type
+            Status = 'OK'
+        }
     }
     catch {
-        return [pscustomobject]@{ Path = $path; Name = $Name; Error = $_.Exception.Message; Status = 'FAILED' }
+        return [pscustomobject]@{
+            Path   = $path
+            Name   = $Name
+            Error  = $_.Exception.Message
+            Status = 'FAILED'
+        }
     }
 }
 ## Example:
@@ -37,7 +81,7 @@ function Ensure-RegistryValue {
 # Check if winget is installed
 $winget = Get-Command winget -ErrorAction SilentlyContinue
 if ($winget) {
-    Write-Host "✅ Winget is already installed. Version:" 
+    Write-Host "✅ Winget is already installed. Version:"
     winget --version
 }
 else {
@@ -57,7 +101,7 @@ else {
     # Verify installation
     $winget = Get-Command winget -ErrorAction SilentlyContinue
     if ($winget) {
-        Write-Host "✅ Winget installed successfully. Version:" 
+        Write-Host "✅ Winget installed successfully. Version:"
         winget --version
         winget source export
     }
@@ -70,37 +114,50 @@ else {
 Write-Output "Configuring..."
 
 function PreferIPv4 {
-    ## Prefer IPv4 over IPv6 with 0x20, disable  IPv6 with 0xff, revert to default with 0x00.
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    ## Prefer IPv4 over IPv6 with 0x20, disable IPv6 with 0xff, revert to default with 0x00.
     $setting = 0x20
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" -Name "DisabledComponents" -Type DWord -Value $setting
 }
+
 function UnbindIPv6 {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     # More radical - typically not necessary
-    Get-NetAdapterBinding | Where-Object ComponentID -eq 'ms_tcpip6' | ForEach-Object {
+    Get-NetAdapterBinding | Where-Object { $_.ComponentID -eq 'ms_tcpip6' } | ForEach-Object {
         Disable-NetAdapterBinding -Name $_.Name -ComponentID 'ms_tcpip6'
     }
 }
 
 function DisableInbuiltDNS {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     $disableBuiltInDNS = 0x00
-    ## Disabled Inbuilt DNS for the Microsoft Edge
-    CreateIfNotExists "HKLM:\SOFTWARE\Policies\Microsoft"
-    CreateIfNotExists "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+
+    ## Disabled Inbuilt DNS for Microsoft Edge
+    CreateIfNotExists -Path "HKLM:\SOFTWARE\Policies\Microsoft"
+    CreateIfNotExists -Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name "DnsOverHttpsMode" -Value "off"
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Name "BuiltInDnsClientEnabled" -Type DWord -Value $disableBuiltInDNS
-    ## Disabled Inbuilt DNS for the Google Chrome
-    CreateIfNotExists "HKLM:\SOFTWARE\Policies\Google"
-    CreateIfNotExists "HKLM:\SOFTWARE\Policies\Google\Chrome"
+
+    ## Disabled Inbuilt DNS for Google Chrome
+    CreateIfNotExists -Path "HKLM:\SOFTWARE\Policies\Google"
+    CreateIfNotExists -Path "HKLM:\SOFTWARE\Policies\Google\Chrome"
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Google\Chrome" -Name "DnsOverHttpsMode" -Value "off"
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Google\Chrome" -Name "BuiltInDnsClientEnabled" -Type DWord -Value $disableBuiltInDNS
 }
+
 function DisableQUIC {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     ## QUIC is currently supported WITH Private Access and Microsoft 365 workloads but NOT in Internet Access
     $disableQUIC = 0x00
-    ##$enableQUIC = 0x01
-    ## Disable QUIC protocol in Microsoft Edge
     Set-ItemProperty -Path "HKLM:\Software\Policies\Microsoft\Edge" -Name "QuicAllowed" -Value $disableQUIC -Type DWord -Force
-    ## Disable QUIC protocol in Google Chrome
     Set-ItemProperty -Path "HKLM:\Software\Policies\Google\Chrome" -Name "QuicAllowed" -Value $disableQUIC -Type DWord -Force
 }
 
@@ -111,8 +168,10 @@ DisableInbuiltDNS
 DisableQUIC
 
 function Set-NetworkProfilesToPrivate {
-    [CmdletBinding()]
-    param ()
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    param()
 
     $networks = Get-NetConnectionProfile
 
@@ -126,105 +185,107 @@ function Set-NetworkProfilesToPrivate {
         }
     }
 
-    # Verify
     Get-NetConnectionProfile
 }
 
 # WANT MORE OPTIONS, see: https://github.com/petrak-dan/Win11-Initial-Setup-Script/blob/main/Win10.psm1
 # Disable News and Interests feed in Taskbar
-Function DisableNewsAndInterests {
-    If (!(Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds")) {
+function DisableNewsAndInterests {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    if (-not (Test-Path -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds")) {
         New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds" | Out-Null
     }
+
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds" -Name "EnableFeeds" -Type DWord -Value 0
 }
 DisableNewsAndInterests
 
 function Disable-MsnFeedsAndWidgets {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     Write-Host "`n🔧 Disabling MSN Feeds, Widgets, and Search Highlights..."
 
-    # 1. Disable Widgets in Taskbar via system policy
     try {
         New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Dsh" -Force | Out-Null
         New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Dsh" -Name "AllowNewsAndInterests" -PropertyType DWord -Value 0 -Force | Out-Null
-        Write-Host "✅ Widgets disabled via policy (HKLM)."
+        Write-Host "�� Widgets disabled via policy (HKLM)."
     }
     catch {
-        Write-Warning "❌ Failed to set system-wide widget policy: $_"
+        Write-Warning "❌ Failed to set system-wide widget policy: $($_.Exception.Message)"
     }
 
-    # 2. Disable Widgets for current user
     try {
-        ## Need extra permissions
         Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "TaskbarDa" -Value 0 -Force -ErrorAction SilentlyContinue | Out-Null
         Write-Host "✅ Taskbar widgets disabled for current user."
     }
     catch {
-        Write-Warning "❌ Failed to disable taskbar widgets: $_"
+        Write-Warning "❌ Failed to disable taskbar widgets: $($_.Exception.Message)"
     }
 
-    # 3. Disable Search Highlights
     try {
         $searchKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings"
-        New-Item -Path $searchKey -Force | Out-Null ## Get weird error message: Attempted to perform an unauthorized operation.
+        New-Item -Path $searchKey -Force | Out-Null
         New-ItemProperty -Path $searchKey -Name "IsDynamicSearchBoxEnabled" -Value 0 -PropertyType DWord -Force | Out-Null
         New-ItemProperty -Path $searchKey -Name "IsDynamicSearchBoxEnabledOnTablet" -Value 0 -PropertyType DWord -Force | Out-Null
         Write-Host "✅ Search highlights disabled."
     }
     catch {
-        Write-Warning "❌ Failed to configure search highlights: $_"
+        Write-Warning "❌ Failed to configure search highlights: $($_.Exception.Message)"
     }
 
-    # 4. Disable personalized feeds content (need more permissions)
     try {
         $feedsKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Feeds"
         New-Item -Path $feedsKey -Force -ErrorAction SilentlyContinue | Out-Null
-        ## Need permissions
         New-ItemProperty -Path $feedsKey -Name "ShellFeedsTaskbarViewMode" -Value 2 -PropertyType DWord -Force -ErrorAction SilentlyContinue | Out-Null
         Write-Host "✅ Personalized content in feeds disabled."
     }
     catch {
-        Write-Warning "❌ Failed to disable feeds view: $_"
+        Write-Warning "❌ Failed to disable feeds view: $($_.Exception.Message)"
     }
 }
 Disable-MsnFeedsAndWidgets
 
-# Enable location on Windows 10/11
-Function EnableLocation {
+function EnableLocation {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors" -Name "DisableLocation" -ErrorAction SilentlyContinue
     Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors" -Name "DisableLocationScripting" -ErrorAction SilentlyContinue
 
-    ## Enable location services system-wide
     $cfgKey = 'HKLM:\SYSTEM\CurrentControlSet\Services\lfsvc\Service\Configuration'
-    if (-not (Test-Path $cfgKey)) {
+    if (-not (Test-Path -Path $cfgKey)) {
         New-Item -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\lfsvc\Service' -Name 'Configuration' -Force | Out-Null
     }
+
     New-ItemProperty -Path $cfgKey -Name 'Status' -PropertyType DWord -Value 1 -Force | Out-Null
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\lfsvc\Service\Configuration" -Name "Status" -Value 1
 
-    ## Allow apps to access location
     $capCU = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location'
-    if (-not (Test-Path $capCU)) {
-        New-Item -Path $capCU -Force | Out-Null 
+    if (-not (Test-Path -Path $capCU)) {
+        New-Item -Path $capCU -Force | Out-Null
     }
+
     New-ItemProperty -Path $capCU -Name 'Value' -PropertyType String -Value 'Allow' -Force | Out-Null
     Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" -Name "Value" -Value "Allow"
 
     Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" -Name "Value"
-    ## this will be set to DENY if there is a Group Policy, MDM controlling this
-    ## Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" -Name "Value"
 
-    ## Setup location service to Automation and Restart
     Set-Service -Name lfsvc -StartupType Automatic -ErrorAction SilentlyContinue
-    Restart-Service lfsvc
+    Restart-Service -Name lfsvc
 }
 # EnableLocation
 
-# Disable Feedback
-Function DisableFeedback {
-    If (!(Test-Path "HKCU:\Software\Microsoft\Siuf\Rules")) {
+function DisableFeedback {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    if (-not (Test-Path -Path "HKCU:\Software\Microsoft\Siuf\Rules")) {
         New-Item -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Force | Out-Null
     }
+
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Siuf\Rules" -Name "NumberOfSIUFInPeriod" -Type DWord -Value 0
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection" -Name "DoNotShowFeedbackNotifications" -Type DWord -Value 1
     Disable-ScheduledTask -TaskName "Microsoft\Windows\Feedback\Siuf\DmClient" -ErrorAction SilentlyContinue | Out-Null
@@ -232,63 +293,80 @@ Function DisableFeedback {
 }
 DisableFeedback
 
-# Disable Error reporting
-Function DisableErrorReporting {
+function DisableErrorReporting {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting" -Name "Disabled" -Type DWord -Value 1
     Disable-ScheduledTask -TaskName "Microsoft\Windows\Windows Error Reporting\QueueReporting" | Out-Null
 }
 DisableErrorReporting
 
-# Disable System Recovery and Factory reset
-# Warning: This tweak completely removes the option to enter the system recovery during boot and the possibility to perform a factory reset
-Function DisableRecoveryAndReset {
+function DisableRecoveryAndReset {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     reagentc /disable 2>&1 | Out-Null
 }
-DisableRecoveryAndReset ## this does NOT work with Intune enrolled Autopilot devices anyway
+DisableRecoveryAndReset
 
-# Disable Autoplay
-Function DisableAutoplay {
+function DisableAutoplay {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers" -Name "DisableAutoplay" -Type DWord -Value 1
-    Ensure-RegistryValue -Hive HKCU -SubKey 'Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers' -Name 'DisableAutoplay' -Value '1' -Type 'DWORD'
+    Ensure-RegistryValue -Hive HKCU -SubKey 'Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers' -Name 'DisableAutoplay' -Value 1 -Type 'DWORD'
 }
 DisableAutoplay
 
-# Disable Autorun for all drives
-Function DisableAutorun {
-    If (!(Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer")) {
+function DisableAutorun {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    if (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer")) {
         New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" | Out-Null
     }
+
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoDriveTypeAutoRun" -Type DWord -Value 255
 }
 DisableAutorun
 
-# Enable NTFS paths with length over 260 characters
-Function EnableNTFSLongPaths {
+function EnableNTFSLongPaths {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Type DWord -Value 1
 }
 EnableNTFSLongPaths
 
-# Disable updating of NTFS last access timestamps
-Function DisableNTFSLastAccess {
-    # User Managed, Last Access Updates Disabled
+function DisableNTFSLastAccess {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     fsutil behavior set DisableLastAccess 1 | Out-Null
 }
 DisableNTFSLastAccess
 
-# Enable automatic reboot on crash (BSOD)
-Function EnableAutoRebootOnCrash {
+function EnableAutoRebootOnCrash {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Name "AutoReboot" -Type DWord -Value 1
 }
 EnableAutoRebootOnCrash
 
-# Show network options on lock screen
-Function ShowNetworkOnLockScreen {
+function ShowNetworkOnLockScreen {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     Remove-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Name "DontDisplayNetworkSelectionUI" -ErrorAction SilentlyContinue
 }
 ShowNetworkOnLockScreen
 
-# Disable accessibility keys prompts (Sticky keys, Toggle keys, Filter keys)
-Function DisableAccessibilityKeys {
+function DisableAccessibilityKeys {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     Set-ItemProperty -Path "HKCU:\Control Panel\Accessibility\StickyKeys" -Name "Flags" -Type String -Value "506"
     Set-ItemProperty -Path "HKCU:\Control Panel\Accessibility\ToggleKeys" -Name "Flags" -Type String -Value "58"
     Set-ItemProperty -Path "HKCU:\Control Panel\Accessibility\Keyboard Response" -Name "Flags" -Type String -Value "122"
@@ -296,240 +374,691 @@ Function DisableAccessibilityKeys {
 
 Write-Output "Configuring Sounds..."
 
-# Set sound scheme to No Sounds
-Function SetSoundSchemeNone {
+function SetSoundSchemeNone {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     $SoundScheme = ".None"
     Get-ChildItem -Path "HKCU:\AppEvents\Schemes\Apps\*\*" | ForEach-Object {
-        # If scheme keys do not exist in an event, create empty ones (similar behavior to Sound control panel).
-        If (!(Test-Path "$($_.PsPath)\$($SoundScheme)")) {
+        if (-not (Test-Path -Path "$($_.PsPath)\$($SoundScheme)")) {
             New-Item -Path "$($_.PsPath)\$($SoundScheme)" | Out-Null
         }
-        If (!(Test-Path "$($_.PsPath)\.Current")) {
+
+        if (-not (Test-Path -Path "$($_.PsPath)\.Current")) {
             New-Item -Path "$($_.PsPath)\.Current" | Out-Null
         }
-        # Get a regular string from any possible kind of value, i.e. resolve REG_EXPAND_SZ, copy REG_SZ or empty from non-existing.
-        $Data = (Get-ItemProperty -Path "$($_.PsPath)\$($SoundScheme)" -Name "(Default)" -ErrorAction SilentlyContinue)."(Default)"
-        # Replace any kind of value with a regular string (similar behavior to Sound control panel).
-        Set-ItemProperty -Path "$($_.PsPath)\$($SoundScheme)" -Name "(Default)" -Type String -Value $Data
-        # Copy data from source scheme to current.
-        Set-ItemProperty -Path "$($_.PsPath)\.Current" -Name "(Default)" -Type String -Value $Data
+
+        $data = (Get-ItemProperty -Path "$($_.PsPath)\$($SoundScheme)" -Name "(Default)" -ErrorAction SilentlyContinue)."(Default)"
+        Set-ItemProperty -Path "$($_.PsPath)\$($SoundScheme)" -Name "(Default)" -Type String -Value $data
+        Set-ItemProperty -Path "$($_.PsPath)\.Current" -Name "(Default)" -Type String -Value $data
     }
+
     Set-ItemProperty -Path "HKCU:\AppEvents\Schemes" -Name "(Default)" -Type String -Value $SoundScheme
 }
 SetSoundSchemeNone
 
-# Disable playing Windows Startup sound
-Function DisableStartupSound {
+function DisableStartupSound {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\BootAnimation" -Name "DisableStartupSound" -Type DWord -Value 1
 }
 DisableStartupSound
 
-# Disable verbose startup/shutdown status messages
-Function DisableVerboseStatus {
-    If ((Get-CimInstance -Class "Win32_OperatingSystem").ProductType -eq 1) {
+function DisableVerboseStatus {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    if ((Get-CimInstance -Class "Win32_OperatingSystem").ProductType -eq 1) {
         Remove-ItemProperty -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System" -Name "VerboseStatus" -ErrorAction SilentlyContinue
     }
-    Else {
+    else {
         Set-ItemProperty -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System" -Name "VerboseStatus" -Type DWord -Value 0
     }
 }
 DisableVerboseStatus
 
-# Disable Sharing Wizard
-Function DisableSharingWizard {
+function DisableSharingWizard {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "SharingWizardOn" -Type DWord -Value 0
 }
 DisableSharingWizard
 
-# Show This PC shortcut on desktop
-Function ShowThisPCOnDesktop {
-    If (!(Test-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu")) {
+function ShowThisPCOnDesktop {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    if (-not (Test-Path -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu")) {
         New-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu" -Force | Out-Null
     }
+
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu" -Name "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" -Type DWord -Value 0
-    If (!(Test-Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel")) {
+
+    if (-not (Test-Path -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel")) {
         New-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" -Force | Out-Null
     }
+
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel" -Name "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" -Type DWord -Value 0
 }
 ShowThisPCOnDesktop
 
-# Hide Music icon from Explorer namespace - Hides the icon also from personal folders and open/save dialogs
-Function HideMusicFromExplorer {
-    # Require admin rights
-    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
-        ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+function HideMusicFromExplorer {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         Write-Warning "Run this function from an elevated PowerShell session (Run as Administrator)."
         return
     }
 
     $musicGuid = "{a0c69a99-21c8-4671-8703-7934162fcf1d}"
-
-    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\$musicGuid\PropertyBag" -Name "ThisPCPolicy" -Type String -Value "Hide"
-    Set-ItemProperty -Path "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\$musicGuid\PropertyBag" -Name "ThisPCPolicy" -Type String -Value "Hide"
     $propertyBagKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\$musicGuid\PropertyBag"
+    $wowPropertyBagKey = "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\FolderDescriptions\$musicGuid\PropertyBag"
     $valueName = "ThisPCPolicy"
 
-    # Ensure the PropertyBag key exists
-    if (-not (Test-Path $propertyBagKey)) {
+    if (-not (Test-Path -Path $propertyBagKey)) {
         New-Item -Path $propertyBagKey -Force | Out-Null
     }
 
-    # Set ThisPCPolicy=Hide
-    New-ItemProperty -Path $propertyBagKey `
-        -Name $valueName `
-        -Value "Hide" `
-        -PropertyType String `
-        -Force | Out-Null
+    if (-not (Test-Path -Path $wowPropertyBagKey)) {
+        New-Item -Path $wowPropertyBagKey -Force | Out-Null
+    }
+
+    Set-ItemProperty -Path $propertyBagKey -Name $valueName -Type String -Value "Hide"
+    Set-ItemProperty -Path $wowPropertyBagKey -Name $valueName -Type String -Value "Hide"
 
     Write-Host "🎵 Music folder will be hidden from 'This PC' permanently." -ForegroundColor Green
 }
-HideMusicFromExplorer ## does not work
+HideMusicFromExplorer
 
-# Disable Internet Explorer warning when closing multiple tabs.
-Function DisableIEandEdgeWarnings {
-    If (!(Test-Path "HKCU:\Software\Microsoft\Internet Explorer\TabbedBrowsing")) {
+function DisableIEandEdgeWarnings {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    if (-not (Test-Path -Path "HKCU:\Software\Microsoft\Internet Explorer\TabbedBrowsing")) {
         New-Item -Path "HKCU:\Software\Microsoft\Internet Explorer\TabbedBrowsing" -Force | Out-Null
     }
+
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Internet Explorer\TabbedBrowsing" -Name "WarnOnClose" -Type DWord -Value 0
-    if (!(Test-Path "HKCU:\Software\Policies\Microsoft\Edge")) {
+
+    if (-not (Test-Path -Path "HKCU:\Software\Policies\Microsoft\Edge")) {
         New-Item -Path "HKCU:\Software\Policies\Microsoft\Edge" -Force | Out-Null
     }
+
     Set-ItemProperty -Path "HKCU:\Software\Policies\Microsoft\Edge" -Name "RestoreOnStartup" -Type DWord -Value 1
 }
 DisableIEandEdgeWarnings
 
 function Set-EdgeNoFirstRun {
-    <#
-    .SYNOPSIS
-        Configures Microsoft Edge to skip first run, suppress import prompts,
-        and auto sign-in + sync without user prompts (where supported).
-
-    .DESCRIPTION
-        Sets Microsoft Edge enterprise policy registry keys so:
-          - First run experience is hidden
-          - Import / add-profile / default-browser prompts are suppressed
-          - Browser sign-in is forced
-          - Automatic sign-in with the current account is enabled
-          - Sync is forced on and cannot be disabled by the user
-
-        Notes:
-        - Auto sign-in + sync assumes the device/account setup supports it
-          (e.g. Entra ID or AD with Seamless SSO / hybrid join).
-        - Policies are applied via HKLM, so they affect all users on the device.
-    #>
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
     $edgePolicyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
 
-    # Create policy path if not exists
-    if (-not (Test-Path $edgePolicyPath)) {
+    if (-not (Test-Path -Path $edgePolicyPath)) {
         New-Item -Path $edgePolicyPath -Force | Out-Null
     }
 
-    # Core "no first run" + profile/import prompts + auto sign-in + forced sync
     $policies = @{
-        # Your original "no first run / no import" bits
-        "HideFirstRunExperience"               = 1  # Hide first-run UI
-        "ImportFavorites"                      = 0  # Don't import favorites
-        "AutoImportAtFirstRun"                 = 0  # No auto-import wizard
-        "BrowserAddProfileEnabled"             = 0  # Prevent add-profile prompts
-        "DefaultBrowserSettingEnabled"         = 0  # Don't prompt to be default
-
-        # 🔐 Identity / sign-in / sync
-        # Allow/force browser sign-in so a profile is always signed in
-        # 0 = Disabled, 1 = Enabled, 2 = Force sign-in
+        "HideFirstRunExperience"               = 1
+        "ImportFavorites"                      = 0
+        "AutoImportAtFirstRun"                 = 0
+        "BrowserAddProfileEnabled"             = 0
+        "DefaultBrowserSettingEnabled"         = 0
         "BrowserSignin"                        = 2
-
-        # Enable automatic sign-in from web/OS to browser
-        # These two must match and be 1 to enable auto sign-in
         "WebToBrowserSignInEnabled"            = 1
         "SeamlessWebToBrowserSignInEnabled"    = 1
-
-        # Auto sign in with on-prem AD account when no Entra account
-        # (only applies in domain-joined scenarios)
         "ConfigureOnPremisesAccountAutoSignIn" = 1
-
-        # Force sync on and prevent turning it off
         "ForceSync"                            = 1
     }
 
     foreach ($policy in $policies.GetEnumerator()) {
-        New-ItemProperty -Path $edgePolicyPath `
-            -Name $policy.Key `
-            -Value $policy.Value `
-            -PropertyType DWord `
-            -Force | Out-Null
+        New-ItemProperty -Path $edgePolicyPath -Name $policy.Key -Value $policy.Value -PropertyType DWord -Force | Out-Null
     }
 
-    # Optional: user hive tweak to reduce sign-in CTA noise
     $userCtaPath = "HKCU:\Software\Microsoft\Edge\SignIn"
-    if (-not (Test-Path $userCtaPath)) {
+    if (-not (Test-Path -Path $userCtaPath)) {
         New-Item -Path $userCtaPath -Force | Out-Null
     }
-    New-ItemProperty -Path $userCtaPath `
-        -Name "SignInCtaShownCount" `
-        -Value 1 `
-        -PropertyType DWord `
-        -Force | Out-Null
 
+    New-ItemProperty -Path $userCtaPath -Name "SignInCtaShownCount" -Value 1 -PropertyType DWord -Force | Out-Null
     Write-Host "✅ Microsoft Edge configured to skip first run, auto sign-in, and force sync (subject to device/account setup)."
 }
 Set-EdgeNoFirstRun
 
 function Hide-WindowsSecurityFamilyOptions {
-    <#
-    .SYNOPSIS
-        Hides the "Family options" section in the Windows Security app.
-
-    .DESCRIPTION
-        Sets a registry value under
-        HKLM:\SOFTWARE\Microsoft\Windows Defender Security Center\Family options
-        to disable the "Family options" UI section.
-    #>
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
 
     $keyPath = "HKLM:\SOFTWARE\Microsoft\Windows Defender Security Center\Family options"
     $valueName = "UILockdown"
 
-    # Ensure running elevated
-    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
-        ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         Write-Warning "Run this function as Administrator to modify HKLM."
         return
     }
 
-    if (-not (Test-Path $keyPath)) {
+    if (-not (Test-Path -Path $keyPath)) {
         New-Item -Path $keyPath -Force | Out-Null
     }
 
-    New-ItemProperty -Path $keyPath `
-        -Name $valueName `
-        -Value 1 `
-        -PropertyType DWord `
-        -Force | Out-Null
-
+    New-ItemProperty -Path $keyPath -Name $valueName -Value 1 -PropertyType DWord -Force | Out-Null
     Write-Host "✅ 'Family options' hidden in Windows Security app." -ForegroundColor Green
 }
 Hide-WindowsSecurityFamilyOptions
 
-# Disable Windows Media Player's media sharing feature
-Function DisableMediaSharing {
-    If (!(Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\WindowsMediaPlayer")) {
+function DisableMediaSharing {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    if (-not (Test-Path -Path "HKLM:\SOFTWARE\Policies\Microsoft\WindowsMediaPlayer")) {
         New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\WindowsMediaPlayer" -Force | Out-Null
     }
+
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\WindowsMediaPlayer" -Name "PreventLibrarySharing" -Type DWord -Value 1
-    Write-Host "✅ 'Disabled Media Sharing" -ForegroundColor Green
+    Write-Host "✅ Disabled Media Sharing" -ForegroundColor Green
 }
 DisableMediaSharing
 
-# Install .NET Framework 2.0, 3.0 and 3.5 runtimes - Requires internet connection
-# Take ages to install!!
-Function InstallNET23 {
-    Write-Output "Installing DotNet 2, 3 and 3.5 for compatibility..."
-    If ((Get-CimInstance -Class "Win32_OperatingSystem").ProductType -eq 1) {
-        Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "NetFx3" } | Enable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
+function Disable-WindowsGaming {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    function Ensure-Key {
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+
+        param(
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Path
+        )
+
+        if (-not (Test-Path -Path $Path)) {
+            New-Item -Path $Path -Force | Out-Null
+        }
     }
-    Else {
-        Install-WindowsFeature -Name "NET-Framework-Core" -WarningAction SilentlyContinue | Out-Null
+
+    function Set-Dword {
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+
+        param(
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Path,
+
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Name,
+
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNull()]
+            [int]$Value
+        )
+
+        Ensure-Key -Path $Path
+        New-ItemProperty -Path $Path -Name $Name -PropertyType DWord -Value $Value -Force | Out-Null
+    }
+
+    $summary = [ordered]@{
+        GameBarProcessesStopped = $false
+        GameDVREnforcedPolicy   = $false
+        GameDVREnabledHKCU      = $false
+        GameConfigDvrDisabled   = $false
+        GameBarUiDisabled       = $false
+        GameModeAutoDisabled    = $false
+        RunEntriesRemoved       = @()
+        ServicesDisabled        = @()
+        TasksDisabled           = @()
+        Notes                   = @()
+    }
+
+    Write-Verbose "Stopping Game Bar processes if running..."
+    try {
+        Get-Process -Name XboxGameBar, GameBar, GameBarFT -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        $summary.GameBarProcessesStopped = $true
+    }
+    catch {
+        $summary.Notes += "Could not stop Game Bar processes: $($_.Exception.Message)"
+    }
+
+    try {
+        Set-Dword -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR' -Name 'AllowGameDVR' -Value 0
+        $summary.GameDVREnforcedPolicy = $true
+    }
+    catch {
+        $summary.Notes += "Policy write failed: $($_.Exception.Message)"
+    }
+
+    try {
+        Set-Dword -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR' -Name 'AppCaptureEnabled' -Value 0
+        $summary.GameDVREnabledHKCU = $true
+    }
+    catch {
+        $summary.Notes += "HKCU GameDVR write failed: $($_.Exception.Message)"
+    }
+
+    try {
+        Set-Dword -Path 'HKCU:\System\GameConfigStore' -Name 'GameDVR_Enabled' -Value 0
+        $summary.GameConfigDvrDisabled = $true
+    }
+    catch {
+        $summary.Notes += "HKCU GameConfigStore write failed: $($_.Exception.Message)"
+    }
+
+    try {
+        $hkcuBar = 'HKCU:\Software\Microsoft\GameBar'
+        Set-Dword -Path $hkcuBar -Name 'ShowStartupPanel' -Value 0
+        Set-Dword -Path $hkcuBar -Name 'UseNexusForGameBarEnabled' -Value 0
+        Set-Dword -Path $hkcuBar -Name 'OpenGameBar' -Value 0
+        Set-Dword -Path $hkcuBar -Name 'AutoGameModeEnabled' -Value 0
+        $summary.GameBarUiDisabled = $true
+        $summary.GameModeAutoDisabled = $true
+    }
+    catch {
+        $summary.Notes += "GameBar settings write failed: $($_.Exception.Message)"
+    }
+
+    $runCU = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+    foreach ($name in 'XboxGameBar', 'GameBar') {
+        try {
+            if (Get-ItemProperty -Path $runCU -Name $name -ErrorAction SilentlyContinue) {
+                Remove-ItemProperty -Path $runCU -Name $name -Force -ErrorAction SilentlyContinue
+                $summary.RunEntriesRemoved += $name
+            }
+        }
+        catch {
+            $summary.Notes += "Failed removing Run entry ${name}: $($_.Exception.Message)"
+        }
+    }
+
+    $svcNames = 'XblAuthManager', 'XblGameSave', 'XboxGipSvc', 'XboxNetApiSvc'
+    foreach ($svc in $svcNames) {
+        $service = Get-Service -Name $svc -ErrorAction SilentlyContinue
+        if ($service) {
+            try {
+                if ($service.Status -ne 'Stopped') {
+                    Stop-Service -Name $svc -Force -ErrorAction SilentlyContinue
+                }
+
+                Set-Service -Name $svc -StartupType Disabled -ErrorAction SilentlyContinue
+                $summary.ServicesDisabled += $svc
+            }
+            catch {
+                $summary.Notes += "Service $svc change failed: $($_.Exception.Message)"
+            }
+        }
+    }
+
+    $taskItems = @(
+        @{ Path = '\Microsoft\XblGameSave\'; Name = 'XblGameSaveTask' },
+        @{ Path = '\Microsoft\XblGameSave\'; Name = 'XblGameSaveTaskLogon' }
+    )
+    foreach ($task in $taskItems) {
+        try {
+            $scheduledTask = Get-ScheduledTask -TaskPath $task.Path -TaskName $task.Name -ErrorAction SilentlyContinue
+            if ($scheduledTask) {
+                Disable-ScheduledTask -TaskPath $task.Path -TaskName $task.Name | Out-Null
+                $summary.TasksDisabled += ($task.Path + $task.Name)
+            }
+        }
+        catch {
+            $summary.Notes += "Task disable failed for $($task.Path)$($task.Name): $($_.Exception.Message)"
+        }
+    }
+
+    try {
+        Get-AppxPackage -Name 'Microsoft.XboxGamingOverlay' -AllUsers -ErrorAction SilentlyContinue |
+            ForEach-Object {
+                try {
+                    Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppxManifest.xml" -ErrorAction SilentlyContinue | Out-Null
+                }
+                catch {
+                }
+            }
+    }
+    catch {
+        $summary.Notes += "Overlay package handling skipped: $($_.Exception.Message)"
+    }
+
+    Write-Verbose "Done. Some changes apply after sign-out or Explorer restart."
+    return [pscustomobject]$summary
+}
+
+function Set-SettingsPageVisibility {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    param(
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('Hide', 'ShowOnly')]
+        [string]$Mode = 'Hide',
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [string[]]$Pages = @(),
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [bool]$Add = $false,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [bool]$Remove = $false,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [bool]$Clear = $false,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [bool]$Get = $false
+    )
+
+    $KeyPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'
+    $ValueName = 'SettingsPageVisibility'
+
+    $needsWrite = -not $Get
+    if ($needsWrite -and -not $Clear -and -not $Remove -and -not $Add -and [string]::IsNullOrWhiteSpace($Mode)) {
+        throw "No action specified. Use -Mode with -Pages, or -Add, -Remove, -Clear, or -Get."
+    }
+
+    if ($needsWrite -and (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) {
+        throw "Run elevated (Administrator) to modify HKLM."
+    }
+
+    function Parse-Value {
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+
+        param(
+            [Parameter(Mandatory = $false)]
+            [AllowNull()]
+            [string]$ValueText = $null
+        )
+
+        if ([string]::IsNullOrWhiteSpace($ValueText)) {
+            return @{ Mode = $null; Pages = @() }
+        }
+
+        $parts = $ValueText.Split(':', 2)
+        $parsedMode = $parts[0].Trim().ToLowerInvariant()
+        $parsedPages = @()
+
+        if ($parts.Count -gt 1 -and -not [string]::IsNullOrWhiteSpace($parts[1])) {
+            $parsedPages = $parts[1].Split(';') | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        }
+
+        return @{
+            Mode  = if ($parsedMode -eq 'hide') { 'Hide' } elseif ($parsedMode -eq 'showonly') { 'ShowOnly' } else { $null }
+            Pages = $parsedPages
+        }
+    }
+
+    function Build-Value {
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+
+        param(
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$InputMode,
+
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNull()]
+            [string[]]$InputPages
+        )
+
+        $uniquePages = $InputPages | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+        switch ($InputMode) {
+            'Hide' { return ('hide:' + ($uniquePages -join ';')) }
+            'ShowOnly' { return ('showonly:' + ($uniquePages -join ';')) }
+            default { throw "Invalid mode '$InputMode' when building value." }
+        }
+    }
+
+    if (-not (Test-Path -Path $KeyPath)) {
+        if ($Get) {
+            return [pscustomobject]@{
+                Mode  = $null
+                Pages = @()
+                Raw   = $null
+                Path  = "$KeyPath\$ValueName"
+            }
+        }
+
+        New-Item -Path $KeyPath -Force | Out-Null
+    }
+
+    $currentRaw = (Get-ItemProperty -Path $KeyPath -Name $ValueName -ErrorAction SilentlyContinue).$ValueName
+    $parsed = Parse-Value -ValueText $currentRaw
+    $curMode = $parsed.Mode
+    $curPages = [System.Collections.Generic.List[string]]::new()
+    foreach ($page in $parsed.Pages) {
+        [void]$curPages.Add($page)
+    }
+
+    if ($Get) {
+        return [pscustomobject]@{
+            Mode  = $curMode
+            Pages = $parsed.Pages
+            Raw   = $currentRaw
+            Path  = "$KeyPath\$ValueName"
+        }
+    }
+
+    if ($Clear) {
+        Remove-ItemProperty -Path $KeyPath -Name $ValueName -ErrorAction SilentlyContinue
+        Write-Verbose "Policy cleared."
+        return
+    }
+
+    if (($Mode -or $Add -or $Remove) -and $Pages.Count -gt 0) {
+        $Pages = $Pages | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    }
+
+    if (($Mode) -and (-not $Add) -and (-not $Remove)) {
+        if ($Pages.Count -eq 0) {
+            throw "You must supply -Pages when using -Mode to overwrite."
+        }
+
+        $newRaw = Build-Value -InputMode $Mode -InputPages $Pages
+        New-ItemProperty -Path $KeyPath -Name $ValueName -PropertyType String -Value $newRaw -Force | Out-Null
+        return
+    }
+
+    if ($Add) {
+        if ($Pages.Count -eq 0) {
+            throw "Use -Add with one or more -Pages."
+        }
+
+        $targetMode = $curMode
+        if ([string]::IsNullOrWhiteSpace($targetMode)) {
+            if ([string]::IsNullOrWhiteSpace($Mode)) {
+                throw "No existing value. Use -Add together with -Mode Hide or ShowOnly to establish the mode."
+            }
+
+            $targetMode = $Mode
+        }
+
+        foreach ($page in $Pages) {
+            if (-not $curPages.Contains($page)) {
+                [void]$curPages.Add($page)
+            }
+        }
+
+        $newRaw = Build-Value -InputMode $targetMode -InputPages $curPages.ToArray()
+        New-ItemProperty -Path $KeyPath -Name $ValueName -PropertyType String -Value $newRaw -Force | Out-Null
+        return
+    }
+
+    if ($Remove) {
+        if ($Pages.Count -eq 0) {
+            throw "Use -Remove with one or more -Pages."
+        }
+
+        if ([string]::IsNullOrWhiteSpace($curMode)) {
+            Write-Verbose "Nothing to remove; value not set."
+            return
+        }
+
+        $remaining = $curPages | Where-Object { $Pages -notcontains $_ }
+        $newRaw = Build-Value -InputMode $curMode -InputPages $remaining
+        New-ItemProperty -Path $KeyPath -Name $ValueName -PropertyType String -Value $newRaw -Force | Out-Null
+        return
+    }
+
+    throw "No valid action specified. Use one of: -Mode Hide/ShowOnly (with -Pages), -Add, -Remove, -Clear, or -Get."
+}
+
+Disable-WindowsGaming
+Set-SettingsPageVisibility -Get $true | Format-List
+
+Set-SettingsPageVisibility -Mode Hide -Pages @(
+    'family-group',
+    'otherusers',
+    'gaming',
+    'lockscreen',
+    'windowsinsider',
+    'windowsinsider-optin',
+    'troubleshoot',
+    'map',
+    'maps-downloadmaps',
+    'autoplay'
+)
+
+Set-SettingsPageVisibility -Get $true | Format-List
+
+function EnableClipboardHistorySync {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    $regPath = "Software\Microsoft\Clipboard"
+
+    Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name "EnableClipboardHistory" -Value 1 -Type 'DWORD'
+    Ensure-RegistryValue -Hive HKCU -SubKey $regPath -Name "CloudClipboardAutomaticUpload" -Value 0 -Type 'DWORD'
+
+    Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" -Name AllowClipboardHistory -ErrorAction SilentlyContinue
+    Write-Output "Clipboard history has been enabled."
+}
+EnableClipboardHistorySync
+
+function Set-DefaultTerminalToWindowsTerminal {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    param(
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [bool]$AllUsers = $false
+    )
+
+    $terminalMoniker = 'Windows.Terminal'
+    $hkcu = 'HKCU:\Console'
+    $hklm = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Console'
+    $targets = @(
+        '%%Startup',
+        '%SystemRoot%_system32_cmd.exe',
+        '%SystemRoot%_System32_WindowsPowerShell_v1.0_powershell.exe',
+        '%ProgramFiles%_PowerShell_7_pwsh.exe',
+        '%ProgramFiles(x86)%_PowerShell_7_pwsh.exe',
+        '%SystemRoot%_system32_wsl.exe'
+    )
+
+    $wtInstalled = Get-AppxPackage -Name 'Microsoft.WindowsTerminal' -AllUsers -ErrorAction SilentlyContinue
+    if (-not $wtInstalled) {
+        Write-Warning "Windows Terminal not found. Install from Microsoft Store or winget, then re-run."
+        return $false
+    }
+
+    function Set-Delegation {
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+
+        param(
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Root,
+
+            [Parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$SubKey
+        )
+
+        $path = Join-Path -Path $Root -ChildPath $SubKey
+        if (-not (Test-Path -Path $path)) {
+            New-Item -Path $path -Force | Out-Null
+        }
+
+        Set-ItemProperty -Path $path -Name DelegationConsole -Value $terminalMoniker -Type String
+        Set-ItemProperty -Path $path -Name DelegationTerminal -Value $terminalMoniker -Type String
+    }
+
+    try {
+        foreach ($target in $targets) {
+            Set-Delegation -Root $hkcu -SubKey $target
+        }
+
+        $forceV2Path = Join-Path -Path $hkcu -ChildPath '%%Startup'
+        if (-not (Test-Path -Path $forceV2Path)) {
+            New-Item -Path $forceV2Path -Force | Out-Null
+        }
+
+        New-ItemProperty -Path $forceV2Path -Name ForceV2 -PropertyType DWord -Value 1 -Force | Out-Null
+
+        if ($AllUsers) {
+            if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+                Write-Warning "AllUsers requested but session not elevated. Skipping HKLM."
+            }
+            else {
+                Set-Delegation -Root $hklm -SubKey '%%Startup'
+                foreach ($target in $targets[1..($targets.Count - 1)]) {
+                    Set-Delegation -Root $hklm -SubKey $target
+                }
+
+                New-ItemProperty -Path (Join-Path -Path $hklm -ChildPath '%%Startup') -Name ForceV2 -PropertyType DWord -Value 1 -Force | Out-Null
+            }
+        }
+
+        Write-Host "✅ Windows Terminal set as the default terminal for common hosts."
+        Write-Host "Tip: Close all consoles (conhost.exe) and relaunch, or sign out/in."
+        return $true
+    }
+    catch {
+        Write-Warning "❌ Failed: $($_.Exception.Message)"
+        return $false
     }
 }
-# InstallNET23
+Set-DefaultTerminalToWindowsTerminal -AllUsers $true
+
+function DisableSearchonStartMenu {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    $path = "HKCU:\Software\Policies\Microsoft\Windows\Explorer"
+    if (-not (Test-Path -Path $path)) {
+        New-Item -Path $path -Force | Out-Null
+    }
+
+    New-ItemProperty -Path $path -Name "DisableSearchBoxSuggestions" -Value 1 -PropertyType DWord -Force | Out-Null
+}
+DisableSearchonStartMenu
+
+Write-Output "Configuring Media..."
+
+function UninstallMediaPlayer {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    try {
+        Get-WindowsOptionalFeature -Online | Where-Object { $_.FeatureName -eq "WindowsMediaPlayer" } | Disable-WindowsOptionalFeature -Online -NoRestart -WarningAction SilentlyContinue | Out-Null
+        Get-WindowsCapability -Online | Where-Object { $_.Name -like "Media.WindowsMediaPlayer*" } | Remove-WindowsCapability -Online | Out-Null
+    }
+    catch {
+        Write-Warning "❌ Failed to uninstall Windows Media Player (yuk!): $($_.Exception.Message)"
+    }
+}
+UninstallMediaPlayer
