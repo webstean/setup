@@ -8,17 +8,16 @@ $elapsed = [System.Diagnostics.Stopwatch]::StartNew()
 function Invoke-WindowsPowerShell {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = $true)]
         [string]$ScriptBlock,
 
-        [switch]$AsAdmin
+        [bool]$AsAdmin = $true
     )
 
     $ps51 = "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe"
 
     $args = @(
-        '-NoProfile'
-        '-ExecutionPolicy', 'Bypass'
+        '-NoProfile', '-ExecutionPolicy', 'Bypass'
         '-Command', $ScriptBlock
     )
 
