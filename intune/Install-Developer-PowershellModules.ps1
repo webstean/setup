@@ -20,11 +20,11 @@ if ($IsAdmin) {
 Write-Host "InstallScope = $InstallScope"
 
 # winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.NuGet
-Write-Host "Installing .NET SDK 9..."
+Write-Host "Installing .NET SDK 10..."
 try {
-    winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.9
+    winget install --silent --accept-source-agreements --accept-package-agreements --exact --id=Microsoft.DotNet.SDK.10
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✅ .NET SDK 9 installed successfully" -ForegroundColor Green
+        Write-Host "✅ .NET SDK 10 installed successfully" -ForegroundColor Green
     }
 }
 catch {
@@ -168,13 +168,6 @@ function Install-PSResourceGetSilently {
         Select-Object Name, Version, ModuleBase
 }
 Install-PSResourceGetSilently
-
-# PowerShellGet v2 trust (Install-Module)
-Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-
-# PSResourceGet trust (Install-PSResource)
-Register-PSResourceRepository -Name PSGallery -Uri https://www.powershellgallery.com/api/v2 -ApiVersion V2 -Trusted -ErrorAction SilentlyContinue
-Set-PSResourceRepository -Name PSGallery -Trusted -ErrorAction SilentlyContinue
 
 ## Provider: PSGallery
 Write-Output "Enabling and trusting PSGallery..."
