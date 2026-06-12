@@ -124,30 +124,6 @@ properties:
 
     # VS Code extensions
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.github.copilot
-      dependsOn:
-        - Microsoft.VisualStudioCode
-      directives:
-        description: Install GitHub Copilot extension
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        Edition: Stable
-        Name: GitHub.copilot
-
-    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.github.copilot-chat
-      dependsOn:
-        - Microsoft.VisualStudioCode
-      directives:
-        description: Install GitHub Copilot Chat extension
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        Edition: Stable
-        Name: GitHub.copilot-chat
-
-    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: stable.ms-vscode.powershell
       dependsOn:
         - Microsoft.VisualStudioCode
@@ -156,7 +132,6 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
         Name: ms-vscode.powershell
 
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
@@ -168,7 +143,6 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
         Name: ms-azuretools.vscode-containers
 
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
@@ -180,7 +154,6 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
         Name: redhat.vscode-yaml
 
     # MCP npm packages
@@ -204,7 +177,6 @@ properties:
             '@modelcontextprotocol/server-sequential-thinking',
             '@azure/mcp',
             '@softeria/ms-365-mcp-server',
-            '@memori.ai/mcp-sharepoint',
             'terraform-mcp-server'
           )
 
@@ -217,32 +189,12 @@ properties:
           return $true
         SetScript: |
           npm install -g `
-            @modelcontextprotocol/server-filesystem `
-            @modelcontextprotocol/server-memory `
-            @modelcontextprotocol/server-sequential-thinking `
-            @azure/mcp `
-            @softeria/ms-365-mcp-server `
-            @memori.ai/mcp-sharepoint `
-            terraform-mcp-server
-
-    # MCP Python packages
-    - resource: PSDscResources/Script
-      id: Install.Python.Mcp.Tools
-      dependsOn:
-        - Python.Python.3.13
-        - astral-sh.uv
-      directives:
-        description: Install Python MCP-related tooling
-        securityContext: current
-      settings:
-        GetScript: |
-          return @{
-            Result = "Python MCP tool install check"
-          }
-        TestScript: |
-          uv tool list 2>$null | Select-String -Pattern 'markitdown' -Quiet
-        SetScript: |
-          uv tool install markitdown
+            '@modelcontextprotocol/server-filesystem' `
+            '@modelcontextprotocol/server-memory' `
+            '@modelcontextprotocol/server-sequential-thinking' `
+            '@azure/mcp' `
+            '@softeria/ms-365-mcp-server' `
+            'terraform-mcp-server'
 
     # Pull GitHub official MCP server container image via Podman
     - resource: PSDscResources/Script
@@ -323,13 +275,6 @@ properties:
                 args = @(
                   '-y',
                   '@softeria/ms-365-mcp-server'
-                )
-              }
-              sharepoint = @{
-                command = 'npx'
-                args = @(
-                  '-y',
-                  '@memori.ai/mcp-sharepoint'
                 )
               }
               terraform = @{
