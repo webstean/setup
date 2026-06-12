@@ -3266,7 +3266,7 @@ function Write-StepSummary {
         [string]$Type = 'info',
 
         [Parameter()]
-        [switch]$PassThru
+        [switch]$PassThru,
 
         [Parameter()]
         [bool]$ShowTimeStamp = $false
