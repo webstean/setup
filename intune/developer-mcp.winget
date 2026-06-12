@@ -29,7 +29,7 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        id: Git.Git
+        id: Microsoft.Git
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -102,6 +102,26 @@ properties:
         id: Microsoft.OpenAPI.Kiota
         source: winget
 
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: RedHat.Podman
+      directives:
+        description: Install Podman
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: RedHat.Podman
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.AzureCLI
+      directives:
+        description: Install Microsoft Azure CLI
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Microsoft.AzureCLI
+        source: winget
+
     # VS Code extensions
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: stable.github.copilot
@@ -109,7 +129,7 @@ properties:
         - Microsoft.VisualStudioCode
       directives:
         description: Install GitHub Copilot extension
-        allowPrerelease: false
+        allowPrerelease: true
         securityContext: current
       settings:
         Edition: Stable
@@ -121,7 +141,7 @@ properties:
         - Microsoft.VisualStudioCode
       directives:
         description: Install GitHub Copilot Chat extension
-        allowPrerelease: false
+        allowPrerelease: true
         securityContext: current
       settings:
         Edition: Stable
@@ -133,7 +153,7 @@ properties:
         - Microsoft.VisualStudioCode
       directives:
         description: Install PowerShell extension
-        allowPrerelease: false
+        allowPrerelease: true
         securityContext: current
       settings:
         Edition: Stable
@@ -145,7 +165,7 @@ properties:
         - Microsoft.VisualStudioCode
       directives:
         description: Install Containers extension
-        allowPrerelease: false
+        allowPrerelease: true
         securityContext: current
       settings:
         Edition: Stable
@@ -157,17 +177,18 @@ properties:
         - Microsoft.VisualStudioCode
       directives:
         description: Install YAML extension
-        allowPrerelease: false
+        allowPrerelease: true
         securityContext: current
       settings:
         Edition: Stable
         Name: redhat.vscode-yaml
 
     # MCP npm packages
-    - resource: xPSDesiredStateConfiguration/xScript
+    - resource: PSDscResources/Script
       id: Install.Npm.Mcp.Servers
       dependsOn:
         - OpenJS.NodeJS.LTS
+        - Microsoft.AzureCLI
       directives:
         description: Install npm-based MCP servers
         securityContext: current
@@ -180,7 +201,11 @@ properties:
           $commands = @(
             '@modelcontextprotocol/server-filesystem',
             '@modelcontextprotocol/server-memory',
-            '@modelcontextprotocol/server-sequential-thinking'
+            '@modelcontextprotocol/server-sequential-thinking',
+            '@azure/mcp',
+            '@softeria/ms-365-mcp-server',
+            '@memori.ai/mcp-sharepoint',
+            'terraform-mcp-server'
           )
 
           foreach ($package in $commands) {
@@ -189,16 +214,19 @@ properties:
               return $false
             }
           }
-
           return $true
         SetScript: |
           npm install -g `
             @modelcontextprotocol/server-filesystem `
             @modelcontextprotocol/server-memory `
-            @modelcontextprotocol/server-sequential-thinking
+            @modelcontextprotocol/server-sequential-thinking `
+            @azure/mcp `
+            @softeria/ms-365-mcp-server `
+            @memori.ai/mcp-sharepoint `
+            terraform-mcp-server
 
     # MCP Python packages
-    - resource: xPSDesiredStateConfiguration/xScript
+    - resource: PSDscResources/Script
       id: Install.Python.Mcp.Tools
       dependsOn:
         - Python.Python.3.13
@@ -216,32 +244,33 @@ properties:
         SetScript: |
           uv tool install markitdown
 
-    # Pull GitHub official MCP server Docker image
-    - resource: xPSDesiredStateConfiguration/xScript
+    # Pull GitHub official MCP server container image via Podman
+    - resource: PSDscResources/Script
       id: Pull.GitHub.Mcp.Server.Container
       dependsOn:
-        - Docker.DockerDesktop
+        - RedHat.Podman
       directives:
-        description: Pull official GitHub MCP Server Docker image
+        description: Pull official GitHub MCP Server container image with Podman
         securityContext: current
       settings:
         GetScript: |
           return @{
-            Result = "GitHub MCP Docker image check"
+            Result = "GitHub MCP container image check"
           }
         TestScript: |
-          docker image inspect ghcr.io/github/github-mcp-server:latest *> $null
+          podman image exists ghcr.io/github/github-mcp-server:latest
           return ($LASTEXITCODE -eq 0)
         SetScript: |
-          docker pull ghcr.io/github/github-mcp-server:latest
+          podman pull ghcr.io/github/github-mcp-server:latest
 
     # Create a sample VS Code MCP configuration file
-    - resource: xPSDesiredStateConfiguration/xScript
+    - resource: PSDscResources/Script
       id: Configure.VSCode.MCP
       dependsOn:
         - Microsoft.VisualStudioCode
         - Install.Npm.Mcp.Servers
         - Pull.GitHub.Mcp.Server.Container
+        - Microsoft.AzureCLI
       directives:
         description: Create sample VS Code MCP configuration
         securityContext: current
@@ -282,8 +311,36 @@ properties:
                   '@modelcontextprotocol/server-sequential-thinking'
                 )
               }
+              azure = @{
+                command = 'npx'
+                args = @(
+                  '-y',
+                  '@azure/mcp'
+                )
+              }
+              m365graph = @{
+                command = 'npx'
+                args = @(
+                  '-y',
+                  '@softeria/ms-365-mcp-server'
+                )
+              }
+              sharepoint = @{
+                command = 'npx'
+                args = @(
+                  '-y',
+                  '@memori.ai/mcp-sharepoint'
+                )
+              }
+              terraform = @{
+                command = 'npx'
+                args = @(
+                  '-y',
+                  'terraform-mcp-server'
+                )
+              }
               github = @{
-                command = 'docker'
+                command = 'podman'
                 args = @(
                   'run',
                   '-i',
