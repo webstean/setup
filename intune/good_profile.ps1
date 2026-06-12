@@ -16,7 +16,6 @@ $VerbosePreference = 'SilentlyContinue'
 $PSDefaultParameterValues['*:Verbose'] = $false
 
 function Update-ProfileForce {
-    [CmdletBinding(SupportsShouldProcess)]
     param(
         [string] $Uri = 'https://raw.githubusercontent.com/webstean/setup/main/intune/good_profile.ps1',
 
@@ -90,15 +89,13 @@ function Update-ProfileForce {
         Write-Host "Backup created: $backupPath" -ForegroundColor DarkCyan
     }
 
-    if ($PSCmdlet.ShouldProcess($ProfilePath, 'Overwrite PowerShell profile')) {
-        Set-Content `
-            -Path $ProfilePath `
-            -Value $newContent `
-            -Encoding $Encoding `
-            -Force
+    Set-Content `
+        -Path $ProfilePath `
+        -Value $newContent `
+        -Encoding $Encoding `
+        -Force
 
-        Write-Host "Profile updated: $ProfilePath" -ForegroundColor Green
-    }
+    Write-Host "Profile updated: $ProfilePath" -ForegroundColor Green
 }
 #Update-Profile-Force
 
@@ -249,7 +246,6 @@ function Invoke-WindowsPowerShell {
         & $ps51 @args
     }
 }
-
 
 ## FullLanguage: No restrictions (default in most PowerShell sessions)
 ## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
@@ -521,10 +517,6 @@ function Initialize-PSReadLineSmart {
         [bool]$UsePluginIfAvailable = $true
     )
 
-    if ( -not ($IsLanguagePermissive)) { return }
-
-    if ( -not ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15)) { return }
-
     $result = [pscustomobject]@{
         PSVersion            = $PSVersionTable.PSVersion.ToString()
         PSEdition            = $PSVersionTable.PSEdition
@@ -534,6 +526,22 @@ function Initialize-PSReadLineSmart {
         PredictionViewStyle  = $null
         KeybindingsApplied   = @()
         Notes                = @()
+    }
+
+    if (-not $IsLanguagePermissive) {
+        $result.Notes += "Skipped: language mode is not permissive."
+        return $result
+    }
+
+    try {
+        $window = $Host.UI.RawUI.WindowSize
+        if (-not ($window.Width -ge 54 -and $window.Height -ge 15)) {
+            $result.Notes += "Skipped: console window too small for prediction UI."
+            return $result
+        }
+    } catch {
+        $result.Notes += "Skipped: host does not expose RawUI window size."
+        return $result
     }
 
     # 1) Load newest PSReadLine available (quietly)
@@ -594,27 +602,26 @@ function Initialize-PSReadLineSmart {
 
     # 3) Decide PredictionViewStyle
     if ($hasPredictionView) {
-        $viewToSet = $null
+        $candidates = @()
         switch ($ViewStyle) {
-            'Inline' { $viewToSet = 'InlineView' }
-            'List'   { $viewToSet = 'ListView' }
+            'Inline' { $candidates = @('InlineView') }
+            'List'   { $candidates = @('ListView') }
             'Auto'   {
                 # Prefer Inline when available; fallback to List
-                # If Inline throws, we’ll try List and then skip.
-                $viewToSet = 'InlineView'
+                $candidates = @('InlineView', 'ListView')
             }
         }
 
-        if ($viewToSet) {
+        if ($candidates.Count -gt 0) {
             $applied = $false
-            foreach ($candidate in @($viewToSet, 'ListView')) {
+            foreach ($candidate in $candidates) {
                 if ($applied) { break }
                 try {
                     Set-PSReadLineOption -PredictionViewStyle $candidate
                     $result.PredictionViewStyle = $candidate
                     $applied = $true
                 } catch {
-                    # try next candidate if we're in Auto and Inline failed
+                    # Try next candidate (Auto mode) if available.
                 }
             }
             if (-not $applied) { $result.Notes += "Could not set any PredictionViewStyle on this build." }
