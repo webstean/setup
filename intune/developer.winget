@@ -647,7 +647,6 @@ properties:
           ShowNewUpdatesToastNotification: false
         ShortcutGuide:
           Enabled: false
-          OverlayOpacity: 1
         FancyZones:
           Enabled: true
           FancyzonesEditorHotkey: "Shift+Ctrl+Alt+F"
@@ -694,38 +693,40 @@ properties:
 #        securityContext: current
 #      settings:
 #        HttpsUrl: https://github.com/lscph1929/lscph-azterraform.git
-#        RootDirectory: "C:/WorkSpaces"
+#        RootDirectory: "C:\WorkSpaces"
 
 #    - resource: GitDsc/GitClone
-#      id: github.com/stomble/stm-cloud-scaffold.git
+#      id: github.com.stomble.stm-cloud-scaffold.git
 #      directives:
 #        description: Clone the stomble/stm-cloud-scaffold private repository
 #        allowPrerelease: false
 #        securityContext: current
 #      settings:
 #        HttpsUrl: https://github.com/stomble/stm-cloud-scaffold.git
-#        RootDirectory: "C:/WorkSpaces"
+#        RootDirectory: "C:\WorkSpaces"
 
 #    - resource: GitDsc/GitClone
-#      id: github.com/lscph1929/scripts.git
+#      id: github.com.lscph1929.scripts.git
 #      directives:
 #        description: Clone the lscph1929/scripts private repository
 #        allowPrerelease: false
 #        securityContext: current
 #      settings:
 #        HttpsUrl: https://github.com/lscph1929/scripts.git
-#        RootDirectory: "C:/WorkSpaces"
+#        RootDirectory: "C:\WorkSpaces"
 
     # Git Clone
     - resource: GitDsc/GitClone
-      id: github.com/webstean/setup
+      id: github.com.webstean.setup
+      dependsOn:
+        - Git.Git
       directives:
         description: Clone the webstean/setup public repository
-        allowPrerelease: false
+        allowPrerelease: true
         securityContext: current
       settings:
-        HttpsUrl: https://github.com/webstean/setup
-        RootDirectory: "C:/WorkSpaces"
+        HttpsUrl: https://github.com/webstean/setup.git
+        RootDirectory: C:\WorkSpaces
 
     # Java (open source)
     - resource: Microsoft.WinGet.DSC/WinGetPackage
