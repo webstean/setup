@@ -667,6 +667,16 @@ function Initialize-PSReadLineSmart {
 }
 Initialize-PSReadLineSmart
 
+function which {
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string]$Command
+    )
+
+    Get-Command $Command -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+}
+remove-alias cat -ErrorAction SilentlyContinue
+
 # Run Starship if installed
 function Invoke-Starship-TransientFunction {
     &starship module character
