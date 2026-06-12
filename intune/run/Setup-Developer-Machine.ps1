@@ -688,9 +688,11 @@ try {
     throw
 } finally {
     $elapsed.Stop()
-    Write-Log -Message "Script execution total time: $($elapsed.Elapsed.TotalMinutes.ToString('F2')) minutes." -Level 'INFO'
+    $scriptElapsedMinutes = '{0:F2}' -f $elapsed.Elapsed.TotalMinutes
+    Write-Log -Message "Script execution total time: $scriptElapsedMinutes minutes." -Level 'INFO'
     $totalElapsed.Stop()
-    Write-Log -Message "Total running time was: $($totalElapsed.Elapsed.TotalMinutes.ToString('F2')) minutes." -Level 'INFO'
+    $totalElapsedMinutes = '{0:F2}' -f $totalElapsed.Elapsed.TotalMinutes
+    Write-Log -Message "Total running time was: $totalElapsedMinutes minutes." -Level 'INFO'
 
     if ($global:TranscriptStarted) {
         try {
