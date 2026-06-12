@@ -69,115 +69,193 @@ function Install-PSResourceGetSilently {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [ValidateSet('CurrentUser', 'AllUsers')]
-        [string]$Scope = 'AllUsers',
+        [string] $Scope = 'AllUsers',
 
-        # Pin versions if you want determinism in CI / gold images
-        [string]$PowerShellGetVersion = '2.2.5',
-        [string]$PackageManagementVersion = '1.4.8.1',
-        [string]$PSResourceGetVersion = '1.1.1',
+        [string] $PowerShellGetVersion = 'Latest',
+        [string] $PackageManagementVersion = 'Latest',
+        [string] $PSResourceGetVersion = 'Latest',
 
-        [int]$RetryCount = 3,
-        [int]$RetryDelaySeconds = 5
+        [int] $RetryCount = 3,
+        [int] $RetryDelaySeconds = 5
     )
 
+    Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
 
-    $names = @('PowerShellGet','PackageManagement','Microsoft.PowerShell.PSResourceGet')
+    $names = @(
+        'PowerShellGet',
+        'PackageManagement',
+        'Microsoft.PowerShell.PSResourceGet'
+    )
 
     function Test-IsAdmin {
         $id = [Security.Principal.WindowsIdentity]::GetCurrent()
-        $p  = New-Object Security.Principal.WindowsPrincipal($id)
+        $p = [Security.Principal.WindowsPrincipal]::new($id)
         return $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     }
 
+    function Test-VersionOrLatest {
+        param(
+            [Parameter(Mandatory)]
+            [string] $Name,
+
+            [Parameter(Mandatory)]
+            [string] $Value
+        )
+
+        if ($Value -ieq 'Latest') {
+            return
+        }
+
+        $parsedVersion = $null
+        if (-not [System.Version]::TryParse($Value, [ref] $parsedVersion)) {
+            throw "Parameter '$Name' must be 'Latest' or a valid version number. Value: '$Value'"
+        }
+    }
+
+    function Install-ModuleVersion {
+        param(
+            [Parameter(Mandatory)]
+            [string] $Name,
+
+            [Parameter(Mandatory)]
+            [string] $Version,
+
+            [Parameter(Mandatory)]
+            [string] $Scope
+        )
+
+        $params = @{
+            Name         = $Name
+            Scope        = $Scope
+            Force        = $true
+            AllowClobber = $true
+            Confirm      = $false
+            ErrorAction  = 'Stop'
+        }
+
+        if ($Version -ine 'Latest') {
+            $params.RequiredVersion = $Version
+        }
+
+        Install-Module @params
+    }
+
     function Invoke-WithRetry {
-        param([scriptblock]$Script, [string]$Action)
+        param(
+            [Parameter(Mandatory)]
+            [scriptblock] $Script,
+
+            [Parameter(Mandatory)]
+            [string] $Action
+        )
+
         for ($i = 1; $i -le $RetryCount; $i++) {
-            try { return & $Script }
+            try {
+                return & $Script
+            }
             catch {
-                if ($i -ge $RetryCount) { throw }
+                if ($i -ge $RetryCount) {
+                    throw "Failed action '$Action'. $($_.Exception.Message)"
+                }
+
                 Start-Sleep -Seconds $RetryDelaySeconds
             }
         }
     }
 
+    Test-VersionOrLatest -Name 'PowerShellGetVersion' -Value $PowerShellGetVersion
+    Test-VersionOrLatest -Name 'PackageManagementVersion' -Value $PackageManagementVersion
+    Test-VersionOrLatest -Name 'PSResourceGetVersion' -Value $PSResourceGetVersion
+
     if ($Scope -eq 'AllUsers' -and -not (Test-IsAdmin)) {
-        throw "Scope=AllUsers requires an elevated PowerShell session (Run as Administrator)."
+        throw 'Scope AllUsers requires an elevated PowerShell session.'
     }
 
-    try {
-        Invoke-WebRequest -Uri 'https://www.powershellgallery.com' -UseBasicParsing -ErrorAction Stop | Out-Null
-    }
-    catch {
-        throw 'No Internet or proxy/firewall blocking access to PowerShell Gallery'
-    }
-
-    # Step 1: Ensure TLS 1.2 for Gallery access (required on older hosts)
     [Net.ServicePointManager]::SecurityProtocol =
         [Net.ServicePointManager]::SecurityProtocol -bor
         [Net.SecurityProtocolType]::Tls12
 
-    # Trust PSGallery to eliminate trust prompts
-    $repoName = 'PSGallery'
-    $repoUri  = 'https://www.powershellgallery.com/api/v2'
-    $existing = Get-PSResourceRepository -Name $repoName -ErrorAction SilentlyContinue
-    if (-not $existing) {
-        Register-PSResourceRepository -Name $repoName -Uri $repoUri -ApiVersion V2 -Trusted
+    try {
+        Invoke-WebRequest `
+            -Uri 'https://www.powershellgallery.com' `
+            -UseBasicParsing `
+            -ErrorAction Stop |
+            Out-Null
     }
-    ## Provider: PSGallery
-    Write-Output "Enabling and trusting PSGallery..."
-    if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
-        Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction SilentlyContinue
-    }
-    if ((Get-PSResourceRepository -Name PSGallery).Trusted -ne $true) {
-        Set-PSResourceRepository -Name 'PSGallery' -Trusted -ErrorAction SilentlyContinue
-    }
-    if ((Get-PSResourceRepository -Name PSGallery).IsAllowedByPolicy -ne $true) {
-        Set-PSResourceRepository -Name 'PSGallery' -IsAllowedByPolicy $true -ErrorAction SilentlyContinue
+    catch {
+        throw 'No Internet, proxy, or firewall is blocking access to PowerShell Gallery.'
     }
 
-    # Step 2: Ensure NuGet provider is present (needed for PSGet v2 bootstrap on 5.1)
-    # If running PowerShell 7.4+ PSResourceGet is typically already present; still allow pin/update
-    if (-not (Get-Command -Name Install-PackageProvider -ErrorAction SilentlyContinue)) {
-        Invoke-WithRetry -Action 'Install NuGet provider' -Script {
-            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$false | Out-Null
-        }
+    if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+        Register-PSRepository -Default
     }
 
-    # Step 3: On Windows PowerShell 5.1, upgrade PackageManagement + PowerShellGet (v2) first
-    # (PSResourceGet install depends on having a functioning module installer)
+    Set-PSRepository `
+        -Name PSGallery `
+        -InstallationPolicy Trusted `
+        -ErrorAction Stop
+
     if ($PSVersionTable.PSVersion.Major -lt 6) {
-        Write-Output "Running on Windows PowerShell (yuk!)..."
-        Invoke-WithRetry -Action 'Install/Update PackageManagement' -Script {
-            Install-Module -Name PackageManagement -RequiredVersion $PackageManagementVersion `
-                -Scope $Scope -Force -AllowClobber -Confirm:$false
+        if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)) {
+            Invoke-WithRetry -Action 'Install NuGet provider' -Script {
+                Install-PackageProvider `
+                    -Name NuGet `
+                    -MinimumVersion 2.8.5.201 `
+                    -Force `
+                    -Confirm:$false |
+                    Out-Null
+            }
         }
 
-        Invoke-WithRetry -Action 'Install/Update PowerShellGet v2' -Script {
-            Install-Module -Name PowerShellGet -RequiredVersion $PowerShellGetVersion `
-                -Scope $Scope -Force -AllowClobber -Confirm:$false
+        Invoke-WithRetry -Action 'Install PackageManagement' -Script {
+            Install-ModuleVersion `
+                -Name 'PackageManagement' `
+                -Version $PackageManagementVersion `
+                -Scope $Scope
         }
 
-        # Make sure current session can see the updated modules
+        Invoke-WithRetry -Action 'Install PowerShellGet' -Script {
+            Install-ModuleVersion `
+                -Name 'PowerShellGet' `
+                -Version $PowerShellGetVersion `
+                -Scope $Scope
+        }
+
+        Remove-Module PackageManagement -Force -ErrorAction SilentlyContinue
+        Remove-Module PowerShellGet -Force -ErrorAction SilentlyContinue
+
         Import-Module PackageManagement -Force
-        Import-Module PowerShellGet      -Force
+        Import-Module PowerShellGet -Force
     }
 
-    # Step 4: Install PSResourceGet (the “v3” engine)
-    Invoke-WithRetry -Action 'Install/Update Microsoft.PowerShell.PSResourceGet' -Script {
-        Install-Module -Name Microsoft.PowerShell.PSResourceGet -RequiredVersion $PSResourceGetVersion `
-            -Scope $Scope -Force -AllowClobber -Confirm:$false
-        # Load it now (Install-PSResource itself does not auto-import)
-        Remove-Module Microsoft.PowerShell.PSResourceGet -Force -ErrorAction SilentlyContinue
-        Import-Module Microsoft.PowerShell.PSResourceGet -Force -ErrorAction SilentlyContinue
-   }
+    Invoke-WithRetry -Action 'Install Microsoft.PowerShell.PSResourceGet' -Script {
+        Install-ModuleVersion `
+            -Name 'Microsoft.PowerShell.PSResourceGet' `
+            -Version $PSResourceGetVersion `
+            -Scope $Scope
+    }
 
- 
-    # Step 5: Register PSGallery for PSResourceGet (NuGet v2 endpoint is the safe default)
-    # PSResourceGet has a known limitation around installing dependencies from NuGet v3 feeds. :contentReference[oaicite:2]{index=2}
+    Remove-Module Microsoft.PowerShell.PSResourceGet -Force -ErrorAction SilentlyContinue
+    Import-Module Microsoft.PowerShell.PSResourceGet -Force
 
-    # Report
+    if (Get-Command Get-PSResourceRepository -ErrorAction SilentlyContinue) {
+        $repo = Get-PSResourceRepository -Name PSGallery -ErrorAction SilentlyContinue
+
+        if (-not $repo) {
+            Register-PSResourceRepository `
+                -Name PSGallery `
+                -Uri 'https://www.powershellgallery.com/api/v2' `
+                -Trusted
+        }
+        elseif (-not $repo.Trusted) {
+            Set-PSResourceRepository `
+                -Name PSGallery `
+                -Trusted
+        }
+    }
+
     Get-Module -Name $names -ListAvailable |
         Sort-Object Name, Version -Descending |
         Select-Object Name, Version, ModuleBase
