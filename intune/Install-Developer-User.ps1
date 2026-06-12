@@ -866,10 +866,6 @@ function Set-PodmanConfig {
 
     ## try Spark Workbook
     docker run -it -p 8888:8888 -e ACCEPT_EULA=yes mcr.microsoft.com/mmlspark/release
-    
-
-
-        
     #>
 
     [CmdletBinding(SupportsShouldProcess)]
@@ -1166,4 +1162,25 @@ if ($HasTouch) {
         --silent
 }
 
+function Download-SharePointMigrationToolInstaller {
+    [CmdletBinding()]
+    param(
+        [string] $Uri = 'https://spmt.sharepointonline.com/install/default.htm',
+        [string] $OutFile = "$env:TEMP\SPMT-Install.html"
+    )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+    $ProgressPreference = 'SilentlyContinue'
+
+    Write-Output "Downloading SharePoint Migration Tool (SPMT) to '$OutFile'"
+    Invoke-WebRequest `
+        -Uri $Uri `
+        -OutFile $OutFile `
+        -UseBasicParsing `
+        -ErrorAction Stop
+
+    Start-Process $OutFile
+}
+Download-SharePointMigrationToolInstaller
 
