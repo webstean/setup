@@ -5,7 +5,7 @@
 $LanguageMode = $ExecutionContext.SessionState.LanguageMode
 switch ($LanguageMode) {
     'ConstrainedLanguage' {
-        Write-Host 'Powershell: Some policy WDAC (Windows Defender Application Control) is actively enforcing CLM (Constrained Language Mode)'
+        Write-Host 'Powershell: WDAC (Windows Defender Application Control) is actively enforcing CLM (Constrained Language Mode)'
         $IsAdmin = $null -ne (whoami /groups | Select-String "S-1-5-32-544")
     }
     'FullLanguage' {
