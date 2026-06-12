@@ -104,8 +104,11 @@ function Install-PSResourceGetSilently {
         throw "Scope=AllUsers requires an elevated PowerShell session (Run as Administrator)."
     }
 
-    if (-not (Invoke-WebRequest https://www.powershellgallery.com) {
-        throw 'No Intenret, Proxy or network blocking access to PowerShell Gallery'
+    try {
+        Invoke-WebRequest -Uri 'https://www.powershellgallery.com' -UseBasicParsing -ErrorAction Stop | Out-Null
+    }
+    catch {
+        throw 'No Internet or proxy/firewall blocking access to PowerShell Gallery'
     }
 
     # Step 1: Ensure TLS 1.2 for Gallery access (required on older hosts)
