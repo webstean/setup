@@ -989,19 +989,6 @@ properties:
       settings:
         Name: redhat.vscode-yaml
 
-    # VS Code GitHub Copilot extension
-    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: github.copilot-chat
-      dependsOn:
-        - Microsoft.VisualStudioCode
-        - Git.Git
-      directives:
-        description: Install github.copilot-chat
-        allowPrerelease: false
-        securityContext: elevated
-      settings:
-        Name: github.copilot-chat
-
     # VS Code GitHub Copilot for Azure extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: ms-azuretools.vscode-azure-github-copilot
