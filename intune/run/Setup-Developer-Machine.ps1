@@ -344,15 +344,15 @@ function Set-WingetConfiguration-Developer {
     winget configure --enable
     winget settings --enable ProxyCommandLineOptions
 
-    $developerConfig = Join-Path -Path $Destination -ChildPath 'developer.winget'
-    $microsoftConfig = Join-Path -Path $Destination -ChildPath 'dev-config.winget'
+    $script:developerConfig = Join-Path -Path $Destination -ChildPath 'developer.winget'
+    $script:microsoftConfig = Join-Path -Path $Destination -ChildPath 'dev-config.winget'
 
-    if (-not (Test-Path -LiteralPath $microsoftConfig)) {
-        throw "'$microsoftConfig' from Microsoft not found."
+    if (-not (Test-Path -LiteralPath $script:microsoftConfig)) {
+        throw "'$script:microsoftConfig' from Microsoft not found."
     }
 
-    if (-not (Test-Path -LiteralPath $developerConfig)) {
-        throw "'$developerConfig' not found."
+    if (-not (Test-Path -LiteralPath $script:developerConfig)) {
+        throw "'$script:developerConfig' not found."
     }
 }
 
@@ -432,7 +432,7 @@ try {
         'Install-Windows-Admin-Centre.ps1',
         'Setup-StarShip-Shell.ps1',
         'starship_pill.toml',
-        'logo.png',
+        'logo1.png',
         'logo2.jpg',
         'logo3.png',
         'wallpaper.jpg'
@@ -442,66 +442,173 @@ try {
         'https://raw.githubusercontent.com/microsoft/WindowsDeveloperConfig/refs/heads/main/windows-dev-config/dev-config.winget'
     )
 
-    Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
-    if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
-        Write-Log -Message "PowerShell is NOT running in FullLanguage mode. Current mode: $($ExecutionContext.SessionState.LanguageMode)" -Level 'WARN'
+    try {
+        Write-Log -Message 'Initializing PowerShell execution policy...'
+        Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process -Force
+        if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
+            Write-Log -Message "PowerShell is NOT running in FullLanguage mode. Current mode: $($ExecutionContext.SessionState.LanguageMode)" -Level 'WARN'
+        }
+
+        Write-Log -Message "Current PowerShell Language mode is $($ExecutionContext.SessionState.LanguageMode)"
+        Get-ExecutionPolicy -List | Format-Table -AutoSize
+    } catch {
+        Write-Log -Message "Error during PowerShell initialization: $($_.Exception.Message)" -Level 'ERROR'
+        Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
+        throw
     }
 
-    Write-Log -Message "Current PowerShell Language mode is $($ExecutionContext.SessionState.LanguageMode)"
-    Get-ExecutionPolicy -List | Format-Table -AutoSize
-
-    $transcriptFile = Initialize-TranscriptLogging
-    Write-Log -Message "Transcript started: $transcriptFile"
+    try {
+        Write-Log -Message 'Initializing transcript logging...'
+        $transcriptFile = Initialize-TranscriptLogging
+        Write-Log -Message "Transcript started: $transcriptFile"
+    } catch {
+        Write-Log -Message "Error initializing transcript: $($_.Exception.Message)" -Level 'ERROR'
+        Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
+        throw
+    }
 
     if ($env:AUTOMATION_ASSET_ACCOUNTID) {
         Write-Log -Message "Running in Azure Automation: $env:AUTOMATION_ASSET_ACCOUNTID"
     }
 
-    Write-Log -Message 'Retrieving current user information...'
-    $currentIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-    Write-Log -Message "Current User is: $($currentIdentity.Name)"
-    Write-Log -Message "System Context: $($currentIdentity.IsSystem)"
-    Write-Log -Message "Env: User Profile: $env:USERPROFILE"
-
-    Write-Log -Message 'Setting PowerShell to UTF-8 output encoding...'
-    [Console]::InputEncoding = [System.Text.UTF8Encoding]::new()
-    [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
-
-    Install-WinGetIfMissing
-    winget configure --enable
-    winget install Microsoft.PowerShell --silent --accept-package-agreements --accept-source-agreements
-
-    $global:destination = New-EmptyTempDirectory
-    Write-Log -Message "Working directory: $global:destination"
-
-    Write-Log -Message 'Downloading repository assets...'
-    Invoke-GitHub-Download -BaseUrl $baseUrl -FilesToDownload $filesToDownload -Destination $global:destination
-    Invoke-ExtraFile-Download -ExtraFilesToDownload $extraFilesToDownload -Destination $global:destination
-
-    $wallpaperPath = Join-Path -Path $global:destination -ChildPath 'wallpaper.jpg'
-    if (Test-Path -LiteralPath $wallpaperPath) {
-        Copy-Item -LiteralPath $wallpaperPath -Destination "$env:ALLUSERSPROFILE\default-wallpaper.jpg" -Force -ErrorAction SilentlyContinue
+    try {
+        Write-Log -Message 'Retrieving current user information...'
+        $currentIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+        Write-Log -Message "Current User is: $($currentIdentity.Name)"
+        Write-Log -Message "System Context: $($currentIdentity.IsSystem)"
+        Write-Log -Message "Env: User Profile: $env:USERPROFILE"
+    } catch {
+        Write-Log -Message "Error retrieving user information: $($_.Exception.Message)" -Level 'WARN'
     }
 
-    #$logoPath = Join-Path -Path $global:destination -ChildPath 'logo1.png'
-    $logoPath = Join-Path -Path $global:destination -ChildPath 'logo2.jpg'
-    #$logoPath = Join-Path -Path $global:destination -ChildPath 'logo3.png'
-    if (Test-Path -LiteralPath $logoPath) {
-        Copy-Item -LiteralPath $logoPath -Destination "$env:ALLUSERSPROFILE\logo.jpg" -Force -ErrorAction SilentlyContinue
+    try {
+        Write-Log -Message 'Setting PowerShell to UTF-8 output encoding...'
+        [Console]::InputEncoding = [System.Text.UTF8Encoding]::new()
+        [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+    } catch {
+        Write-Log -Message "Error setting UTF-8 encoding: $($_.Exception.Message)" -Level 'WARN'
+    }
+
+    try {
+        Write-Log -Message 'Installing/verifying WinGet...'
+        Install-WinGetIfMissing
+    } catch {
+        Write-Log -Message "Error installing WinGet: $($_.Exception.Message)" -Level 'ERROR'
+        Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
+        throw
+    }
+
+    try {
+        Write-Log -Message 'Enabling WinGet configuration feature...'
+        winget configure --enable
+    } catch {
+        Write-Log -Message "Error enabling WinGet configuration: $($_.Exception.Message)" -Level 'ERROR'
+        Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
+        throw
+    }
+
+    try {
+        Write-Log -Message 'Installing Microsoft.PowerShell...'
+        winget install Microsoft.PowerShell --silent --accept-package-agreements --accept-source-agreements
+    } catch {
+        Write-Log -Message "Error installing Microsoft.PowerShell: $($_.Exception.Message)" -Level 'WARN'
+        Write-Log -Message 'Continuing despite PowerShell installation error...'
+    }
+
+    try {
+        Write-Log -Message 'Creating temporary working directory...'
+        $global:destination = New-EmptyTempDirectory
+        Write-Log -Message "Working directory: $global:destination"
+    } catch {
+        Write-Log -Message "Error creating temp directory: $($_.Exception.Message)" -Level 'ERROR'
+        Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
+        throw
+    }
+
+    try {
+        Write-Log -Message 'Downloading repository assets from GitHub...'
+        Invoke-GitHub-Download -BaseUrl $baseUrl -FilesToDownload $filesToDownload -Destination $global:destination
+    } catch {
+        Write-Log -Message "Error downloading GitHub files: $($_.Exception.Message)" -Level 'ERROR'
+        Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
+        Write-Log -Message "Failed files: $($filesToDownload -join ', ')" -Level 'ERROR'
+        throw
+    }
+
+    try {
+        Write-Log -Message 'Downloading extra configuration files...'
+        Invoke-ExtraFile-Download -ExtraFilesToDownload $extraFilesToDownload -Destination $global:destination
+    } catch {
+        Write-Log -Message "Error downloading extra files: $($_.Exception.Message)" -Level 'ERROR'
+        Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
+        Write-Log -Message "Failed URLs: $($extraFilesToDownload -join ', ')" -Level 'ERROR'
+        throw
+    }
+
+    try {
+        $wallpaperPath = Join-Path -Path $global:destination -ChildPath 'wallpaper.jpg'
+        if (Test-Path -LiteralPath $wallpaperPath) {
+            Write-Log -Message "Copying wallpaper to $env:ALLUSERSPROFILE..."
+            Copy-Item -LiteralPath $wallpaperPath -Destination "$env:ALLUSERSPROFILE\default-wallpaper.jpg" -Force -ErrorAction Stop
+            Write-Log -Message 'Wallpaper copied successfully.'
+        } else {
+            Write-Log -Message 'Wallpaper file not found.' -Level 'WARN'
+        }
+    } catch {
+        Write-Log -Message "Error copying wallpaper: $($_.Exception.Message)" -Level 'WARN'
+    }
+
+    try {
+        #$logoPath = Join-Path -Path $global:destination -ChildPath 'logo1.png'
+        $logoPath = Join-Path -Path $global:destination -ChildPath 'logo2.jpg'
+        #$logoPath = Join-Path -Path $global:destination -ChildPath 'logo3.png'
+        if (Test-Path -LiteralPath $logoPath) {
+            Write-Log -Message "Copying logo to $env:ALLUSERSPROFILE..."
+            Copy-Item -LiteralPath $logoPath -Destination "$env:ALLUSERSPROFILE\logo.jpg" -Force -ErrorAction Stop
+            Write-Log -Message 'Logo copied successfully.'
+        } else {
+            Write-Log -Message 'Logo file not found.' -Level 'WARN'
+        }
+    } catch {
+        Write-Log -Message "Error copying logo: $($_.Exception.Message)" -Level 'WARN'
     }
 
     Write-Log -Message '******************= Scripts to EXECUTE =******************************'
 
-    $csw = [System.Diagnostics.Stopwatch]::StartNew()
-    Invoke-IfFileExists -Path (Join-Path -Path $global:destination -ChildPath 'Config-Normal-Machine.ps1')
-    $csw.Stop()
-    Write-Log -Message "Config-Normal-Machine completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
+    try {
+        $csw = [System.Diagnostics.Stopwatch]::StartNew()
+        Invoke-IfFileExists -Path (Join-Path -Path $global:destination -ChildPath 'Config-Normal-Machine.ps1')
+        $csw.Stop()
+        Write-Log -Message "Config-Normal-Machine completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
+    } catch {
+        Write-Log -Message "Error executing Config-Normal-Machine.ps1: $($_.Exception.Message)" -Level 'ERROR'
+        Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
+        throw
+    }
 
-    $csw = [System.Diagnostics.Stopwatch]::StartNew()
-    Set-WingetConfiguration-Developer -Destination $global:destination
-    winget configure --file "$script:developerConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
-    $csw.Stop()
-    Write-Log -Message "winget configuration completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
+    try {
+        $csw = [System.Diagnostics.Stopwatch]::StartNew()
+        Write-Log -Message 'Configuring WinGet for developer environment...'
+        Set-WingetConfiguration-Developer -Destination $global:destination
+        $csw.Stop()
+        Write-Log -Message "WinGet configuration setup completed in $($csw.Elapsed.TotalSeconds.ToString('F2')) seconds."
+    } catch {
+        Write-Log -Message "Error configuring WinGet: $($_.Exception.Message)" -Level 'ERROR'
+        Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
+        throw
+    }
+
+    try {
+        $csw = [System.Diagnostics.Stopwatch]::StartNew()
+        Write-Log -Message "Applying developer WinGet configuration from: $script:developerConfig"
+        winget configure --file "$script:developerConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
+        $csw.Stop()
+        Write-Log -Message "Developer winget configuration completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
+    } catch {
+        Write-Log -Message "Error applying developer winget configuration: $($_.Exception.Message)" -Level 'ERROR'
+        Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
+        throw
+    }
 
     $developerScripts = @(
         'Install-Developer-PowershellModules.ps1',
@@ -512,37 +619,87 @@ try {
         'Install-Developer-User.ps1'
     )
 
+    $scriptCount = 0
+    $scriptFailures = @()
     foreach ($developerScript in $developerScripts) {
-        $csw = [System.Diagnostics.Stopwatch]::StartNew()
-        Invoke-IfFileExists -Path (Join-Path -Path $global:destination -ChildPath $developerScript)
-        $csw.Stop()
-        Write-Log -Message "$developerScript completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
+        $scriptCount++
+        try {
+            $scriptPath = Join-Path -Path $global:destination -ChildPath $developerScript
+            if (-not (Test-Path -LiteralPath $scriptPath)) {
+                Write-Log -Message "Script not found: $scriptPath" -Level 'WARN'
+                $scriptFailures += $developerScript
+                continue
+            }
+            $csw = [System.Diagnostics.Stopwatch]::StartNew()
+            Write-Log -Message "[$scriptCount/$($developerScripts.Count)] Executing $developerScript..."
+            Invoke-IfFileExists -Path $scriptPath
+            $csw.Stop()
+            Write-Log -Message "[$scriptCount/$($developerScripts.Count)] $developerScript completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
+        } catch {
+            Write-Log -Message "Error executing $developerScript: $($_.Exception.Message)" -Level 'ERROR'
+            Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
+            $scriptFailures += $developerScript
+            Write-Log -Message "Continuing with next script despite error in $developerScript" -Level 'WARN'
+        }
+    }
+
+    if ($scriptFailures.Count -gt 0) {
+        Write-Log -Message "Warning: $($scriptFailures.Count) developer script(s) failed or were not found: $($scriptFailures -join ', ')" -Level 'WARN'
     }
 
     Write-Log -Message '******************= All scripts executed =******************************'
     $elapsed.Stop()
 
     Write-Log -Message '******************= Started WinGetConfiguration (Microsoft)=******************************'
-    $csw = [System.Diagnostics.Stopwatch]::StartNew()
-    Set-WingetConfiguration-Developer -Destination $global:destination
-    ## The Microsoft supplied config, include functionality to reboot and restart the iwinget configruration
-    ## So it needs to be the last thing we do
-    winget configure --file "$script:microsoftConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
-    $csw.Stop()
-    Write-Log -Message "All winget confguration steps completed in $($elapsed.Elapsed.TotalMinutes.ToString('F2')) minutes. - winget might enforce a reboot"
+    try {
+        $csw = [System.Diagnostics.Stopwatch]::StartNew()
+        Write-Log -Message 'Setting up WinGet configuration for Microsoft dev-config...'
+        Set-WingetConfiguration-Developer -Destination $global:destination
+        Write-Log -Message "Applying Microsoft WinGet configuration from: $script:microsoftConfig"
+        ## The Microsoft supplied config, include functionality to reboot and restart the winget configuration
+        ## So it needs to be the last thing we do
+        winget configure --file "$script:microsoftConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
+        $csw.Stop()
+        Write-Log -Message "All winget configuration steps completed in $($elapsed.Elapsed.TotalMinutes.ToString('F2')) minutes. WinGet may enforce a reboot."
+    } catch {
+        Write-Log -Message "Error applying Microsoft WinGet configuration: $($_.Exception.Message)" -Level 'ERROR'
+        Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
+        Write-Log -Message "Config file: $script:microsoftConfig" -Level 'ERROR'
+        throw
+    }
 } catch {
-    Write-Error "Error executing script: $($_.Exception.Message)"
+    $errorDetails = @{
+        Message        = $_.Exception.Message
+        StackTrace     = $_.Exception.StackTrace
+        InvocationInfo = $_.InvocationInfo
+        ExceptionType  = $_.Exception.GetType().FullName
+        LineNumber     = $_.InvocationInfo.ScriptLineNumber
+        ScriptName     = $_.InvocationInfo.ScriptName
+    }
+
+    Write-Error "Fatal error executing script: $($_.Exception.Message)" -ErrorAction Continue
+    Write-Log -Message "FATAL ERROR: $($_.Exception.Message)" -Level 'ERROR'
+    Write-Log -Message "Exception Type: $($errorDetails.ExceptionType)" -Level 'ERROR'
+    Write-Log -Message "Stack Trace: $($errorDetails.StackTrace)" -Level 'ERROR'
+    Write-Log -Message "Script: $($errorDetails.ScriptName), Line: $($errorDetails.LineNumber)" -Level 'ERROR'
+    Write-Log -Message "Full Error Details: $(ConvertTo-Json $errorDetails)" -Level 'ERROR'
     throw
 } finally {
+    $elapsed.Stop()
+    Write-Log -Message "Script execution total time: $($elapsed.Elapsed.TotalMinutes.ToString('F2')) minutes." -Level 'INFO'
+
     if ($global:TranscriptStarted) {
         try {
+            Write-Log -Message 'Finalizing transcript logging...'
             Stop-Transcript | Out-Null
             Write-Host 'Transcript stopped.'
         } catch {
             Write-Warning "Failed to stop transcript cleanly. $($_.Exception.Message)"
+            Write-Log -Message "Warning: Could not stop transcript cleanly: $($_.Exception.Message)" -Level 'WARN'
         }
     }
 
+    Write-Log -Message '================ SCRIPT EXECUTION COMPLETED ================'
     Write-Host 'COMPLETED.'
 }
 
