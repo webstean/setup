@@ -233,60 +233,6 @@ function Install-OrUpdate-DotNetTools {
 }
 Install-OrUpdate-DotNetTools
 
-# Types: CodeSigningCert, DocumentEncryptionCert, SSLServerAuthentication
-#        -FriendlyName = "$certName" `
-
-## Create Certifciate
-$certName = 'Developer Code Signing'
-$certLocation = 'Cert:\CurrentUser\My' ## 'Cert:\CurrentUser\Root'
-$cscert = New-SelfSignedCertificate `
-        -FriendlyName 'DeveloperCodeSigning' `
-        -Subject "CN=$certName" `
-        -Type CodeSigningCert `
-        -CertStoreLocation "$CertLocation" `
-        -KeyExportPolicy Exportable `
-        -KeySpec Signature `
-        -KeyLength 2048 `
-        -KeyAlgorithm RSA `
-        -HashAlgorithm SHA256 `
-        -NotAfter (Get-Date).AddYears($CertYears) `
-        -Verbose
-$cscert | Select-Object Subject, Thumbprint, NotAfter, @{
-        Name = 'EKU'
-        Expression = {
-            $_.EnhancedKeyUsageList.FriendlyName -join ', '
-        }
-    }
-Export-Certificate -Cert $cscert -FilePath "$env:TEMP\codesign.cer"
-Import-Certificate -FilePath "$env:TEMP\codesign.cer" -CertStoreLocation 'Cert:\CurrentUser\TrustedPublisher'
-Import-Certificate -FilePath "$env:TEMP\codesign.cer" -CertStoreLocation 'Cert:\CurrentUser\Root'
-#$result = Set-AuthenticodeSignature -FilePath $file -Certificate $cscert -HashAlgorithm SHA256
-
-$certName = 'Developer TLS'
-$certLocation = 'Cert:\CurrentUser\My' ## 'Cert:\CurrentUser\Root'
-$tlscert = New-SelfSignedCertificate `
-        -FriendlyName 'DeveloperTLS' `
-        -Subject "CN=$certName" `
-        -Type SSLServerAuthentication `
-        -DnsName 'localhost, *.dev.localhost, *.dev.internal, host.docker.internal, host.containers.internal, 127.0.0.1, 0000:0000:0000:0000:0000:0000:0000:0001' `
-        -CertStoreLocation "$CertLocation" `
-        -KeyExportPolicy Exportable `
-        -KeySpec Signature `
-        -KeyLength 2048 `
-        -KeyAlgorithm RSA `
-        -HashAlgorithm SHA256 `
-        -NotAfter (Get-Date).AddYears($CertYears) `
-        -Verbose
-$tlscert | Select-Object Subject, Thumbprint, NotAfter, @{
-        Name = 'EKU'
-        Expression = {
-            $_.EnhancedKeyUsageList.FriendlyName -join ', '
-        }
-    }
-
-##$cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($pfxPath, $passCert, [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable)
-        
-
 ## Install Aspire CLI
 ## https://aspire.dev/get-started/install-cli/
 try {
