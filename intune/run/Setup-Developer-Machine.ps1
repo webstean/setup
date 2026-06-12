@@ -423,6 +423,7 @@ try {
     $filesToDownload = @(
         'Config-Normal-Machine.ps1',
         'developer.winget',
+        'developer-mcp.winget',
         'Install-Developer-Fonts.ps1',
         'Install-Developer-PowershellModules.ps1',
         'Install-Developer-System.ps1',
