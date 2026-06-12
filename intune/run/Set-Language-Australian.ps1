@@ -139,7 +139,7 @@ function Set-OneCoreSpeechDefaults {
     $null = New-ItemProperty -Path $sapiVoicesKey -Name 'DefaultTokenId' -Value $voiceTokenValue -PropertyType String -Force
 }
 
-function Enable-AustralianLanguagePack {
+function Enable-LanguagePack {
     [CmdletBinding()]
     param(
         [ValidateNotNullOrEmpty()]
@@ -215,5 +215,4 @@ function Enable-AustralianLanguagePack {
         throw
     }
 }
-
-Enable-AustralianLanguagePack
+Enable-LanguagePack -LanguageTag 'en-AU'
