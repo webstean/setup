@@ -3413,6 +3413,8 @@ function Write-StepSummary {
         } else {
             $line = "${prefix}: $text"
         }
+
+        
         
         if ($useGitHubSummary) {
             Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $line -Encoding utf8
