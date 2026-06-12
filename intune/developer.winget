@@ -1065,6 +1065,20 @@ properties:
       settings:
         Name: ms-vscode.remote-server
 
+    # Extension: ms-vscode.remote-server (Remote Tools)
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: ms-azuretools.vscode-azure-mcp-server
+      dependsOn:
+        - Microsoft.VisualStudioCode
+        - NodeJS
+        - Microsoft.AzureCLI
+      directives:
+        description: Install VSCode extension-> ms-azuretools.vscode-azure-mcp-server
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        Name: ms-azuretools.vscode-azure-mcp-server
+
     # Remove GitLens
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: eamodio.gitlens.remove
