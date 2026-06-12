@@ -475,7 +475,7 @@ function Set-Developer-Variables {
 }
 Set-Developer-Variables
 
-#Only works for Powershell naked (no starship,Oh My Posh etc..)
+#Only works for Powershell naked (not starship,Oh My Posh etc..)
 function prompt {
 
     if ( $IsAdmin ) {
@@ -737,7 +737,7 @@ if ( ($env:IsDevBox ) -and (Get-Command "devbox") )  {
     else {
         Write-Host -ForegroundColor Cyan "Welcome to your Dev Box"
     }
-    if ( [bool](Get-Command jq.exe -ErrorAction SilentlyContinue )) {
+    if ( [bool](Get-Command -Name jq.exe -ErrorAction SilentlyContinue )) {
         devbox metadata get list-all | jq
         devbox ai status | jq
     } else {
@@ -748,9 +748,6 @@ if ( ($env:IsDevBox ) -and (Get-Command "devbox") )  {
 
 $ompConfig = "$env:POSH_THEMES_PATH\cloud-native-azure.omp.json"
 $ompConfig = "C:\Program Files\WindowsApps\ohmyposh.cli_27.5.0.0_x64__96v55e8n804z4\themes\cloud-native-azure.omp.json"
-
-## Check for Starship
-#(Get-Command -ErrorAction SilentlyContinue starship.exe).Source
 
 ## Check for Starship
 if ($env:STARSHIP_CONFIG -and (Test-Path "$env:STARSHIP_CONFIG" -PathType Leaf) -and $IsLanguagePermissive ) {
@@ -859,6 +856,7 @@ function cdw {
 }
 
 function free {
+    if (-not ($IsLanguagePermissive -eq $true )) { return }
     (Get-Volume -DriveLetter C).SizeRemaining | ForEach-Object {
         $sizeInGB = [math]::Round($_ / 1GB, 2)
         if ($sizeInGB -lt 5) {
@@ -1246,146 +1244,12 @@ function Get-Azure-Meta { ##IMDS
         return $false | Out-Null
     }
     $PSDefaultParameterValues['*:Verbose']   = $preserve
-    Write-Host "Running inside AZure..."
+    Write-Host "Running inside Azure..."
     return $true | Out-Null
 }
 
 ## See: https://www.chanceofsecurity.com/post/microsoft-entra-pim-bulk-role-activation-tool
-function Enable-PIMRole {
-    [CmdletBinding(SupportsShouldProcess)]
-    param(
-        # Default to Global Reader
-        [Parameter()]
-        [string]$RoleName = "Global Reader",
 
-        [Parameter()]
-        [string]$Justification = "DA",
-
-        [Parameter()]
-        [object]$Duration = "00:08:00",
-
-        [Parameter()]
-        [string]$DirectoryScopeId = "/",
-
-        [Parameter()]
-        [string]$TicketNumber,
-
-        [Parameter()]
-        [string]$TicketSystem,
-
-        [int]$TimeoutSeconds = 120
-    )
-    ## Turn off verbose
-    $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose'] = $false
-
-    ## if ( -not ($IsLanguagePermissive)) { return } 
-
-    function Convert-ToIso8601Duration([object]$ts) {
-        if ($ts -is [string]) { $ts = [System.TimeSpan]::Parse($ts) }
-        if ($ts -isnot [System.TimeSpan]) { throw "Duration must be a TimeSpan or 'HH:MM:SS' string." }
-        $h=[int][math]::Floor($ts.TotalHours); $m=$ts.Minutes; $s=$ts.Seconds
-        "PT" + ($(if($h){"$hH"})+$(if($m){"$mM"})+$(if($s -or (-not $h -and -not $m)){"$sS"}))
-    }
-
-    ## 
-    function Check-Graph {
-        Write-Host "Importing Microsoft Graph modules..."
-        Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
-        Import-Module Microsoft.Graph.Users -ErrorAction Stop
-        $ctx = Get-MgContext
-        if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "User.Read")) {
-            if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
-            Connect-MgGraph -NoWelcome -Scopes "User.Read" -ErrorAction Stop | Out-Null
-        }
-        if (-not $ctx -or -not $ctx.Account -or ($ctx.Scopes -notcontains "RoleAssignmentSchedule.Read.Directory")) {
-            if ($ctx) { Disconnect-MgGraph -ErrorAction SilentlyContinue }
-            Connect-MgGraph -NoWelcome -Scopes "RoleAssignmentSchedule.Read.Directory" -ErrorAction Stop | Out-Null
-        }
-    }
-
-    function Get-MyUserId {
-        $ctx = Get-MgContext
-        $ctx.account
-        if ($ctx -and $ctx.Account -and $ctx.Account.Id) { return $ctx.Account.Id }
-        return $false
-    }
-
-    try {
-        Write-Host "Trying to activate $RoleName..."
-        Check-Graph
-        $principalId = Get-MyUserId
-
-        # Pull eligibilities
-        $ctx.roles
-        $eligible = Get-MgRoleManagementDirectoryRoleEligibilitySchedule -All | Where-Object { $_.PrincipalId -eq $principalId }
-
-        if (-not $eligible) {
-            throw "No PIM-eligible directory roles found for the signed-in user."
-        }
-
-        # ---- Build activation request --------------------------------------
-        $isoDur = Convert-ToIso8601Duration $Duration
-        $body = @{
-            action           = "selfActivate"
-            justification    = $Justification
-            directoryScopeId = $DirectoryScopeId
-            principalId      = $principalId
-            roleDefinitionId = $RoleDefinitionId
-            scheduleInfo     = @{
-                startDateTime = (Get-Date).ToUniversalTime()
-                expiration    = @{
-                    type     = "AfterDuration"
-                    duration = $isoDur
-                }
-            }
-        }
-
-        if ($TicketNumber -or $TicketSystem) {
-            $tn = if ($TicketNumber) { $TicketNumber } else { "" }
-            $ts = if ($TicketSystem) { $TicketSystem } else { "" }
-
-            $body.ticketInfo = @{
-                ticketNumber = $tn
-                ticketSystem = $ts
-            }
-        }
-
-        if ($PSCmdlet.ShouldProcess("RoleDefinitionId=$RoleDefinitionId for PrincipalId=$principalId", "PIM self-activate")) {
-            $req = New-MgRoleManagementDirectoryRoleAssignmentScheduleRequest -BodyParameter $body -ErrorAction Stop
-        }
-
-        # ---- Poll until active --------------------------------------------
-        $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
-        do {
-            Start-Sleep -Seconds 3
-            $active = Get-MgRoleManagementDirectoryRoleAssignmentSchedule -All |
-                      Where-Object { $_.PrincipalId -eq $principalId -and $_.RoleDefinitionId -eq $RoleDefinitionId }
-        } while (-not $active -and (Get-Date) -lt $deadline)
-
-        if (-not $active) {
-            Write-Warning "Activation submitted (Id=$($req.Id)), but role did not appear active within $TimeoutSeconds seconds."
-            return $req
-        }
-
-        [pscustomobject]@{
-            RequestId        = $req.Id
-            RoleDefinitionId = $RoleDefinitionId
-            RoleName         = if ($PSCmdlet.ParameterSetName -eq 'ByName') { $RoleName } else { $active[0].RoleDefinitionDisplayName }
-            PrincipalId      = $principalId
-            ActiveAssignment = $active | Select-Object Id, StartDateTime, EndDateTime, Status, RoleDefinitionId, DirectoryScopeId
-        }
-    }
-    catch {
-        if ( $IsLanguagePermissive) { 
-            throw "Failed to activate PIM role ($RoleName): $($_.Exception.Message)"
-        } else {
-            throw "Error occured trying to activate $RoleName"
-        }
-    }
-
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
-}
 ## Enable-PIMRole
 ## Connect-MgGraph -NoWelcome
 ## $user = Get-MgUserMe

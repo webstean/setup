@@ -175,9 +175,9 @@ properties:
             '@modelcontextprotocol/server-filesystem',
             '@modelcontextprotocol/server-memory',
             '@modelcontextprotocol/server-sequential-thinking',
-            '@azure/mcp',
             '@softeria/ms-365-mcp-server',
-            'terraform-mcp-server'
+            'terraform-mcp-server',
+            '@playwright/mcp'
           )
 
           foreach ($package in $commands) {
@@ -188,13 +188,32 @@ properties:
           }
           return $true
         SetScript: |
-          npm install -g `
-            '@modelcontextprotocol/server-filesystem' `
-            '@modelcontextprotocol/server-memory' `
-            '@modelcontextprotocol/server-sequential-thinking' `
-            '@azure/mcp' `
-            '@softeria/ms-365-mcp-server' `
-            'terraform-mcp-server'
+          $commands = @(
+            '@modelcontextprotocol/server-filesystem',
+            '@modelcontextprotocol/server-memory',
+            '@modelcontextprotocol/server-sequential-thinking',
+            '@softeria/ms-365-mcp-server',
+            'terraform-mcp-server',
+            '@playwright/mcp'
+          )
+
+          foreach ($package in $commands) {
+            npm list -g $package --depth=0 2>$null | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+              continue
+            }
+
+            npm install -g $package
+            if ($LASTEXITCODE -eq 0) {
+              continue
+            }
+
+            # Retry once with --force for transient file-lock/update scenarios.
+            npm install -g --force $package
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to install npm MCP package: $package"
+            }
+          }
 
     # Pull GitHub official MCP server container image via Podman
     - resource: PSDscResources/Script
@@ -263,13 +282,6 @@ properties:
                   '@modelcontextprotocol/server-sequential-thinking'
                 )
               }
-              azure = @{
-                command = 'npx'
-                args = @(
-                  '-y',
-                  '@azure/mcp'
-                )
-              }
               m365graph = @{
                 command = 'npx'
                 args = @(
@@ -284,29 +296,23 @@ properties:
                   'terraform-mcp-server'
                 )
               }
-              github = @{
-                command = 'podman'
+              playwright = @{
+                command = 'npx'
                 args = @(
-                  'run',
-                  '-i',
-                  '--rm',
-                  '-e',
-                  'GITHUB_PERSONAL_ACCESS_TOKEN',
-                  'ghcr.io/github/github-mcp-server'
+                  '-y',
+                  '@playwright/mcp'
                 )
-                env = @{
-                  GITHUB_PERSONAL_ACCESS_TOKEN = '${input:github_token}'
-                }
+              }
+              github = @{
+                command = 'pwsh'
+                args = @(
+                  '-NoLogo',
+                  '-NoProfile',
+                  '-Command',
+                  "$token = gh auth token; if ([string]::IsNullOrWhiteSpace($token)) { throw 'GitHub CLI is not authenticated. Run: gh auth login' }; $env:GITHUB_PERSONAL_ACCESS_TOKEN = $token; podman run -i --rm -e GITHUB_PERSONAL_ACCESS_TOKEN ghcr.io/github/github-mcp-server"
+                )
               }
             }
-            inputs = @(
-              @{
-                id = 'github_token'
-                type = 'promptString'
-                description = 'GitHub Personal Access Token for GitHub MCP Server'
-                password = $true
-              }
-            )
           }
 
           $mcp |
