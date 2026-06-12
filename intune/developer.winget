@@ -875,7 +875,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: .NET Install Tool extension
+        description: Install VSCode extenssion-> .NET Install Tool extension
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -887,7 +887,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Dev Containers extension
+        description: Install VSCode extenssion-> ms-vscode-remote.remote-containers
         allowPrerelease: true
         securityContext: elevated
       settings:
@@ -899,7 +899,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install ms-dotnettools.csdevkit
+        description: Install VSCode extenssion-> ms-dotnettools.csdevkit
         allowPrerelease: true
         securityContext: elevated
       settings:
