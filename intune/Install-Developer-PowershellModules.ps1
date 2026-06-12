@@ -7,6 +7,9 @@ switch ($LanguageMode) {
     'ConstrainedLanguage' {
         Write-Host 'Powershell: WDAC (Windows Defender Application Control) is actively enforcing CLM (Constrained Language Mode)'
         $IsAdmin = $null -ne (whoami /groups | Select-String "S-1-5-32-544")
+        if ($IsAdmin) {
+            throw 'This script cannot run, with PowerShell in Constrained Language Mode'
+        }
     }
     'FullLanguage' {
         Write-Host 'PowerShell: Either no policy exists OR CLM (Constrained Language Mode) policy is in audit mode'
