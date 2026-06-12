@@ -3,7 +3,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-## Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/intune/run/Setup-Developer-Machine.ps1' -OutFile ".\Setup-Developer-Machine.ps1"
+## Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/intune/run/Setup-Developer-Machine.ps1' -OutFile '.\Setup-Developer-Machine.ps1'
 
 $elapsed = [System.Diagnostics.Stopwatch]::StartNew()
 $global:TranscriptStarted = $false
