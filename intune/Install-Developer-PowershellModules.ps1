@@ -286,7 +286,7 @@ function Install-OrUpdate-Module {
         [ValidateSet('CurrentUser','AllUsers')]
         [string]$Scope = 'AllUsers',
 
-        [switch]$Prerelease,
+        [bool]$Prerelease = $true,
 
         # If set, we attempt to Import-Module after install/update (non-fatal if it fails)
         [bool]$ImportAfter = $true,
@@ -295,6 +295,7 @@ function Install-OrUpdate-Module {
         [int]$RetryDelaySeconds = 5
     )
 
+    Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
 
