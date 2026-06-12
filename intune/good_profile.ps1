@@ -899,121 +899,6 @@ function checkdiskspace {
 }
 checkdiskspace
 
-function grep {
-    [CmdletBinding()]
-    param (
-        [Parameter(Position = 0, Mandatory = $true)]
-        [string]$Pattern,
-
-        [Parameter(Position = 1, ValueFromRemainingArguments = $true)]
-        [string[]]$Files
-    )
-
-    # Only run on Windows
-    if ((Get-Variable -Name IsWindows -ErrorAction SilentlyContinue) -and (-not $IsWindows)) {
-        Write-Warning "This grep function is only available on Windows"
-        return
-    }
-    if (-not (Get-Variable -Name IsWindows -ErrorAction SilentlyContinue) -and 
-        [System.Environment]::OSVersion.Platform -ne "Win32NT") {
-        Write-Warning "This grep function is only available on Windows"
-        return
-    }
-
-    foreach ($file in $Files) {
-        # Expand wildcards manually
-        $resolvedFiles = Get-ChildItem -Path $file -File -ErrorAction SilentlyContinue
-        if ($resolvedFiles.Count -eq 0) {
-            Write-Warning "No matching file for: $file"
-            continue
-        }
-
-        foreach ($resolvedFile in $resolvedFiles) {
-            $filePath = $resolvedFile.Name
-            $lines = Get-Content -LiteralPath $filePath
-
-            for ($i = 0; $i -lt $lines.Length; $i++) {
-                $line = $lines[$i]
-                if ($line -match $Pattern) {
-                    Write-Output "${filePath}:$line"
-                }
-            }
-        }
-    }
-}
-
-function curl {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true, Position = 0)]
-        [string]$Url,
-
-        [string]$Method = "GET",
-
-        [string]$Output,
-
-        [string[]]$Headers,
-
-        [string]$Data,
-
-        [switch]$VerboseOutput
-    )
-
-    # Only run on Windows
-    if ((Get-Variable -Name IsWindows -ErrorAction SilentlyContinue) -and (-not $IsWindows)) {
-        Write-Warning "This grep function is only available on Windows"
-        return
-    }
-    if (-not (Get-Variable -Name IsWindows -ErrorAction SilentlyContinue) -and 
-        [System.Environment]::OSVersion.Platform -ne "Win32NT") {
-        Write-Warning "This grep function is only available on Windows"
-        return
-    }
-
-    # Create headers hashtable if headers are provided
-    $headersTable = @{}
-    if ($Headers) {
-        foreach ($header in $Headers) {
-            $key, $value = $header -split ":", 2
-            $headersTable[$key.Trim()] = $value.Trim()
-        }
-    }
-
-    # Build Invoke-RestMethod parameters
-    $invokeParams = @{
-        Uri     = $Url
-        Method  = $Method.ToUpper()
-        Headers = $headersTable
-    }
-
-    if ($Data) {
-        $invokeParams["Body"] = $Data
-        $invokeParams["ContentType"] = "application/x-www-form-urlencoded"
-    }
-
-    try {
-        if ($Output) {
-            # Use Invoke-WebRequest to download file
-            Invoke-WebRequest @invokeParams -OutFile $Output
-            Write-Output "Saved to $Output"
-        }
-        else {
-            $response = Invoke-RestMethod @invokeParams
-            Write-Output $response
-        }
-    }
-    catch {
-        Write-Error "Error: $_"
-    }
-
-    if ($VerboseOutput) {
-        Write-Verbose "URL: $Url"
-        Write-Verbose "Method: $Method"
-        if ($Headers) { Write-Verbose "Headers: $Headers" }
-        if ($Data) { Write-Verbose "Data: $Data" }
-    }
-}
-
 function Restore-Terminal {
     <#
     .SYNOPSIS
@@ -1037,12 +922,14 @@ function Restore-Terminal {
 }
 
 function Import-Nice-Modules {
-    if (Get-Module -ListAvailable -Name Terminal-Icons) {
-        Import-Module Terminal-Icons -ErrorAction SilentlyContinue
+    if (-not [bool](Get-Module -ListAvailable -Name Terminal-Icons -ErrorAction SilentlyContinue)) {
+        Install-PSResource -Name Terminal-Icons -ErrorAction SilentlyContinue
     }
-    if (Get-Module -ListAvailable -Name Az.Tools.Predictor) {
-        Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue
+    if (-not [bool](Get-Module -ListAvailable -Name Az.Tools.Predictor -ErrorAction SilentlyContinue)) {
+        Install-PSResource -Name Az.Tools.Predictor -ErrorAction SilentlyContinue
     }    
+    Import-Module -Name Terminal-Icons -ErrorAction SilentlyContinue
+    Import-Module -Name Az.Tools.Predictor -ErrorAction SilentlyContinue
 }
 Import-Nice-Modules
 
