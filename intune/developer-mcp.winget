@@ -43,7 +43,7 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: OpenJS.NodeJS.LTS
+      id: NodeJS
       directives:
         description: Install Node.js LTS
         allowPrerelease: false
@@ -160,7 +160,7 @@ properties:
     - resource: PSDscResources/Script
       id: Install.Npm.Mcp.Servers
       dependsOn:
-        - OpenJS.NodeJS.LTS
+        - NodeJS
         - Microsoft.AzureCLI
       directives:
         description: Install npm-based MCP servers

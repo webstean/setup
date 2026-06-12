@@ -266,6 +266,37 @@ properties:
         id: OpenJS.NodeJS.LTS
         source: winget
 
+    - resource: PSDscResources/Script
+      id: npm.microsoft.workiq
+      dependsOn:
+        - NodeJS
+      directives:
+        description: Install @microsoft/workiq globally with npm
+        securityContext: elevated
+      settings:
+        GetScript: |
+          $npm = (Get-Command npm.cmd -ErrorAction SilentlyContinue).Source
+          if (-not $npm) {
+            return @{ Result = 'npm.cmd not found' }
+          }
+
+          $output = & $npm list --global @microsoft/workiq --depth=0 2>$null | Out-String
+          return @{ Result = $output }
+        TestScript: |
+          $npm = (Get-Command npm.cmd -ErrorAction SilentlyContinue).Source
+          if (-not $npm) {
+            return $false
+          }
+
+          $output = & $npm list --global @microsoft/workiq --depth=0 2>$null | Out-String
+          return $LASTEXITCODE -eq 0 -and $output -match '@microsoft/workiq@'
+        SetScript: |
+          $npm = (Get-Command npm.cmd -ErrorAction Stop).Source
+          & $npm install --global @microsoft/workiq
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to install @microsoft/workiq with npm.'
+          }
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.Bicep
       directives:
