@@ -2,12 +2,16 @@
 
 ## Installing developer orientated PowerShell modules
 
-$IsLanguagePermissive = $ExecutionContext.SessionState.LanguageMode -ne 'ConstrainedLanguage'
-if ($IsLanguagePermissive) {
-    $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-} else {
-    # Check language mode — must not be ConstrainedLanguage for method invocation
-    $IsAdmin = $null -ne (whoami /groups | Select-String "S-1-5-32-544")
+$LanguageMode = $ExecutionContext.SessionState.LanguageMode
+switch ($LanguageMode) {
+    'ConstrainedLanguage' {
+        Write-Host 'Powershell: Some policy WDAC (Windows Defender Application Control) is actively enforcing CLM (Constrained Language Mode)'
+        $IsAdmin = $null -ne (whoami /groups | Select-String "S-1-5-32-544")
+    }
+    'FullLanguage' {
+        Write-Host 'PowerShell: Either no policy exists OR CLM (Constrained Language Mode) policy is in audit mode'
+        $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    }
 }
 
 # Set install scope variable based on elevation
