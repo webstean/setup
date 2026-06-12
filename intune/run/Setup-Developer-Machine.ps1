@@ -6,6 +6,8 @@ $ErrorActionPreference = 'Stop'
 ## Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/intune/run/Setup-Developer-Machine.ps1' -OutFile '.\Setup-Developer-Machine.ps1'
 
 $elapsed = [System.Diagnostics.Stopwatch]::StartNew()
+$totalElapsed = [System.Diagnostics.Stopwatch]::StartNew()
+
 $global:TranscriptStarted = $false
 $global:destination = $null
 
@@ -687,6 +689,8 @@ try {
 } finally {
     $elapsed.Stop()
     Write-Log -Message "Script execution total time: $($elapsed.Elapsed.TotalMinutes.ToString('F2')) minutes." -Level 'INFO'
+    $totalElapsed.Stop()
+    Write-Log -Message "Total running time was: $($totalElapsed.Elapsed.TotalMinutes.ToString('F2')) minutes." -Level 'INFO'
 
     if ($global:TranscriptStarted) {
         try {
@@ -702,5 +706,4 @@ try {
     Write-Log -Message '================ SCRIPT EXECUTION COMPLETED ================'
     Write-Host 'COMPLETED.'
 }
-
 return $true
