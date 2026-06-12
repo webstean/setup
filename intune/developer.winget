@@ -48,15 +48,13 @@ properties:
         id: 9NCTDW2W1BH8
         source: msstore
 
-# $HasTouch = (Get-CimInstance Win32_PnPEntity | Where-Object Name -eq 'HID-compliant touch screen').Count -gt 0
-# $HasTouch
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Microsoft.WindowsJournal
+      id: Microsoft.VisualStudioCode
       directives:
-        description: Install Microsoft.WindowsJournal (Works with fingers, mouse, or pen on touchscreen devices)
-        allowPrerelease: false
+        description: Install Visual Studio Code
+        securityContext: current
       settings:
-        id: Microsoft.WindowsJournal
+        id: Microsoft.VisualStudioCode
         source: winget
 
     - resource: xPSDesiredStateConfiguration/xScript
