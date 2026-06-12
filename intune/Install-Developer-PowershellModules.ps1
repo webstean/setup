@@ -140,7 +140,7 @@ function Install-PSResourceGetSilently {
     }
 
     # Step 2: Ensure NuGet provider is present (needed for PSGet v2 bootstrap on 5.1)
-    if (Get-Command -Name Install-PackageProvider -ErrorAction SilentlyContinue) {
+    if (-not (Get-Command -Name Install-PackageProvider -ErrorAction SilentlyContinue)) {
         Invoke-WithRetry -Action 'Install NuGet provider' -Script {
             Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$false | Out-Null
         }
