@@ -1152,4 +1152,18 @@ $character
 Set-StarshipConfig
 #Invoke-Expression (&starship init powershell)
 
+$HasTouch = Get-PnpDevice -Class HIDClass -ErrorAction SilentlyContinue |
+    Where-Object {
+        $_.FriendlyName -match 'touch|digitizer|pen'
+    }
+
+if ($HasTouch) {
+    winget install `
+        --id Microsoft.WindowsJournal `
+        --source winget `
+        --accept-package-agreements `
+        --accept-source-agreements `
+        --silent
+}
+
 
