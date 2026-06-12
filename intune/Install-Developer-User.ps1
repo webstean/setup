@@ -239,7 +239,13 @@ function Set-MSTerminalSetting {
     if ($PSVersionTable.PSEdition -eq 'Desktop') {
         return ## This is Windows PowerShell - exit because ConvertTo-Json does not support enough depth
     }
-    
+
+    if (Test-Path("$env:ALLUSERSPROFILE\logo.png") -PathType Leaf) {
+        $BackgroundImage = "$env:ALLUSERSPROFILE\logo.png"
+    } elseif (Test-Path "$env:ALLUSERSPROFILE\logo.jpg" -PathType Leaf) {
+        $BackgroundImage = "$env:ALLUSERSPROFILE\logo.jpg"
+    }
+
     Write-Output "Settings file: $settingsfile"
 
     ## Check if the settings file exists
@@ -302,10 +308,12 @@ function Set-MSTerminalSetting {
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.bellStyle" -Value "none"
 
     $Workspace = "$env:SystemDrive\WORKSPACES"
-    if ( Test-Path "${Workspace}" ) {
+    if ( -not ( Test-Path "${Workspace}" -PathType Container) ) {
+        New-Item -Path "${Workspace}" -ItemType Directory | Out-Null
+    }
+    if ( Test-Path "${Workspace}" -PathType Container) {
         Set-JsonValue -JsonObject $json -Path "profiles.defaults.startingDirectory" -Value "${Workspace}"
     }
-    
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.useAcrylic" -Value $true
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.useAcrylicInTabRow" -Value $true
     Set-JsonValue -JsonObject $json -Path "profiles.defaults.acrylicOpacity" -Value 0.75
@@ -328,7 +336,7 @@ function Set-MSTerminalSetting {
             Copy-Item "$PSScriptRoot/logo.png" "$env:ALLUSERSPROFILE\logo.png" -Force
             Set-JsonValue -JsonObject $json -Path "profiles.defaults.backgroundImage" -Value "$env:ALLUSERSPROFILE\logo.png"
         } else {
-            Write-Host "Warning: $BackgroundImage NOT found!"
+            Write-Host "Warning: '$BackgroundImage' was NOT found!"
         }
     }
 

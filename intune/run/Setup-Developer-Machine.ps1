@@ -432,6 +432,8 @@ try {
         'Setup-StarShip-Shell.ps1',
         'starship_pill.toml',
         'logo.png',
+        'logo2.jpg',
+        'logo3.png',
         'wallpaper.jpg'
     )
 
@@ -480,9 +482,11 @@ try {
         Copy-Item -LiteralPath $wallpaperPath -Destination "$env:ALLUSERSPROFILE\default-wallpaper.jpg" -Force -ErrorAction SilentlyContinue
     }
 
-    $logoPath = Join-Path -Path $global:destination -ChildPath 'logo.png'
+    #$logoPath = Join-Path -Path $global:destination -ChildPath 'logo1.png'
+    $logoPath = Join-Path -Path $global:destination -ChildPath 'logo2.jpg'
+    #$logoPath = Join-Path -Path $global:destination -ChildPath 'logo3.png'
     if (Test-Path -LiteralPath $logoPath) {
-        Copy-Item -LiteralPath $logoPath -Destination "$env:ALLUSERSPROFILE\logo.png" -Force -ErrorAction SilentlyContinue
+        Copy-Item -LiteralPath $logoPath -Destination "$env:ALLUSERSPROFILE\logo.jpg" -Force -ErrorAction SilentlyContinue
     }
 
     Write-Log -Message '******************= Scripts to EXECUTE =******************************'
