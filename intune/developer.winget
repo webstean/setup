@@ -430,7 +430,6 @@ properties:
       settings:
         id: Microsoft.WindowsTerminal
         source: winget
-
  
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.OpenAPI.Kiota
