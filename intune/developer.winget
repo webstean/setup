@@ -106,6 +106,8 @@ properties:
             Set-ItemProperty -Path $regPath -Name $regName -Value $wallpaperlocation
             rundll32.exe user32.dll, UpdatePerUserSystemParameters
             Write-Host "Set USER Wallpaper"
+          } else {
+            Write-Host "Wallpaper '$wallpaperlocation' was not found!"          
           }
 
     - resource: PSDscResources/Script
@@ -127,6 +129,8 @@ properties:
           if (Test-Path "$wallpaperlocation" ) {          
             Set-ItemProperty -Path $regPath -Name $regName -Value $wallpaperlocation
             Write-Host "Set LOGON Wallpaper"
+          } else {
+            Write-Host "Wallpaper '$wallpaperlocation' was not found!"          
           }
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
