@@ -3320,7 +3320,6 @@ function Write-StepSummary {
 
         [Parameter()]
         [bool]$ShowTimeStamp = $false
-    
     )
 
     begin {
