@@ -608,7 +608,6 @@ properties:
 #        description: Ensure Windows Sandbox is enabled
 #      settings:
 #        Name: Containers-DisposableClientVM
-#        Edition: Stable
 #        Ensure: Present
 
 #    - resource: Microsoft.WindowsSandbox.DSC/WindowsSandbox
@@ -746,23 +745,23 @@ properties:
       id: ms-java-jdk
       directives:
         description: Install Microsoft Open JDK 25
+        allowPrerelease: true
         securityContext: elevated
       settings:
         id: Microsoft.OpenJDK.25
         source: winget
 
 #  - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-#    id: stable.mhutchie.git-graph
+#    id: mhutchie.git-graph
 #    directives:
 #      description: Install Git Graph for visual Git history
 #      allowPrerelease: false
 #    settings:
-#      Edition: Stable
 #      Name: mhutchie.git-graph
 
     # VS Code Icon Extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.vscode-icons-team.vscode-icons
+      id: vscode-icons-team.vscode-icons
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
@@ -786,7 +785,7 @@ properties:
 
     # VS Code .NET Development Extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.vscode-ms-dotnettools.csharp
+      id: vscode-ms-dotnettools.csharp
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
@@ -798,7 +797,7 @@ properties:
 
     # VS Code Aspire Extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.microsoft-aspire.aspire-vscode
+      id: microsoft-aspire.aspire-vscode
       dependsOn:
         - Microsoft.VisualStudioCode
         - Microsoft.Aspire
@@ -811,7 +810,7 @@ properties:
 
     # VS Code adamwojcikit.pnp-powershell-extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.adamwojcikit.pnp-powershell-extension
+      id: adamwojcikit.pnp-powershell-extension
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
@@ -823,7 +822,7 @@ properties:
 
     # VS Code .NET Development Extensions
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.42Crunch.vscode-openapi
+      id: 42Crunch.vscode-openapi
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
@@ -915,7 +914,6 @@ properties:
 #        description: Install VSCode extension-> Go.extension
 #        allowPrerelease: true
 #        securityContext: elevated
-#        edition: stable
 #      settings:
 #        Name: golang.Go
 
@@ -945,7 +943,7 @@ properties:
 
     # VS Code Containers tools extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.ms-azuretools.vscode-containers
+      id: ms-azuretools.vscode-containers
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
@@ -957,7 +955,7 @@ properties:
 
     # VS Code Terraform extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.vscode-hashicorp.terraform
+      id: vscode-hashicorp.terraform
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
@@ -969,7 +967,7 @@ properties:
 
     # VS Code Microsoft Terraform extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.vscode-ms-azuretools.vscode-azureterraform
+      id: vscode-ms-azuretools.vscode-azureterraform
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
@@ -981,7 +979,7 @@ properties:
 
     # VS Code RedHat YML extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.redhat.vscode-yaml
+      id: redhat.vscode-yaml
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
@@ -1019,7 +1017,7 @@ properties:
 
     # VS Code ms-playwright.playwright extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.ms-playwright.playwright
+      id: ms-playwright.playwright
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
@@ -1031,7 +1029,7 @@ properties:
 
     # VS Code
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.ms-azuretools.vscode-azure-github-copilot
+      id: ms-azuretools.vscode-azure-github-copilot
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
@@ -1043,7 +1041,7 @@ properties:
 
     # Extension: ms-vscode.vscode-node-azure-pack (Azure Tools)
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.ms-vscode.vscode-node-azure-pack
+      id: ms-vscode.vscode-node-azure-pack
       dependsOn:
         - Microsoft.VisualStudioCode
         - NodeJS
@@ -1056,12 +1054,12 @@ properties:
 
     # Extension: ms-vscode.remote-server (Remote Tools)
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.ms-vscode.remote-server
+      id: ms-vscode.remote-server
       dependsOn:
         - Microsoft.VisualStudioCode
         - NodeJS
       directives:
-        description: Install ms-vscode.remote-server
+        description: Install VSCode extension-> ms-vscode.remote-server
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -1069,11 +1067,11 @@ properties:
 
     # Remove GitLens
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.eamodio.gitlens.remove
+      id: eamodio.gitlens.remove
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Remove GitLens extension
+        description: Remove VSCode extension-> eamodio.gitlens
         allowPrerelease: false
         securityContext: elevated
       settings:
