@@ -1,123 +1,219 @@
+#Requires -RunAsAdministrator
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+function Write-Status {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Message,
+
+        [ValidateSet('INFO', 'WARN', 'ERROR')]
+        [string]$Level = 'INFO'
+    )
+
+    Write-Host "[$Level] $Message"
+}
+
 function Wait-WindowsUptime {
-    $Minutes = 10
+    [CmdletBinding()]
+    param(
+        [ValidateRange(0, 1440)]
+        [int]$Minutes = 10,
+
+        [ValidateRange(1, 60)]
+        [int]$CheckIntervalSeconds = 5
+    )
+
+    if ($Minutes -eq 0) {
+        return
+    }
+
     $targetSeconds = $Minutes * 60
-    $CheckInterval = 1
-    Write-Host "[INFO] Waiting for system uptime to reach atlteast $Minutes minute(s)..."
+    Write-Status -Message "Waiting for system uptime to reach at least $Minutes minute(s)..."
 
     while ($true) {
-        $uptime = (Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+        $uptime = (Get-Date) - (Get-CimInstance Win32_OperatingSystem -ErrorAction Stop).LastBootUpTime
         $seconds = [int]$uptime.TotalSeconds
 
         if ($seconds -ge $targetSeconds) {
-            Write-Host "[INFO] Uptime reached $([math]::Round($seconds/60,1)) minute(s)."
+            Write-Status -Message "Uptime reached $([math]::Round($seconds / 60, 1)) minute(s)."
             break
         }
 
         $remaining = $targetSeconds - $seconds
-        Write-Host "[INFO] Current uptime: $([math]::Round($seconds/60,1)) min — waiting $remaining s more..."
-        Start-Sleep -Seconds ([Math]::Min($CheckInterval, $remaining))
+        Write-Status -Message "Current uptime: $([math]::Round($seconds / 60, 1)) min; waiting $remaining second(s) more..."
+        Start-Sleep -Seconds ([Math]::Min($CheckIntervalSeconds, $remaining))
     }
-    return
 }
 
-#Requires -RunAsAdministrator
-function Enable-AustralianLanguagePack {
+function Install-WindowsCapabilityIfPresent {
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter(Mandatory)]
+        [string]$LanguageTag,
 
-    if (Get-Command Wait-WindowsUptime -ErrorAction SilentlyContinue) {
-        Wait-WindowsUptime
+        [Parameter(Mandatory)]
+        [ValidateSet('Basic', 'OCR', 'Speech', 'TextToSpeech', 'Handwriting')]
+        [string]$CapabilityType,
+
+        [bool]$Required = $false
+    )
+
+    $pattern = "Language.$CapabilityType~~~$LanguageTag~*"
+    $capability = Get-WindowsCapability -Online | Where-Object { $_.Name -like $pattern } | Select-Object -First 1
+
+    if (-not $capability) {
+        $message = "Capability type '$CapabilityType' is not published for $LanguageTag on this OS image."
+        if ($Required) {
+            throw $message
+        }
+
+        Write-Status -Level 'WARN' -Message $message
+        return $false
     }
 
-    $LanguageTag = "en-AU" # Australian English
+    if ($capability.State -eq 'Installed') {
+        Write-Status -Message "$($capability.Name) already installed."
+        return $true
+    }
 
-    $ci = [System.Globalization.CultureInfo]::GetCultureInfo($LanguageTag)
-    $lcid        = $ci.LCID
-    $DisplayName = $ci.DisplayName
-    $Language    = $ci.Name
+    Write-Status -Message "Installing $($capability.Name)..."
+    $null = Add-WindowsCapability -Online -Name $capability.Name -ErrorAction Stop
 
-    Write-Host "lcid        = $lcid"        # 3081
-    Write-Host "DisplayName = $DisplayName" # English (Australia)
-    Write-Host "Language    = $Language"    # en-AU
-    Write-Output "Installing language pack: $DisplayName"
+    $installedCapability = Get-WindowsCapability -Online -Name $capability.Name -ErrorAction Stop
+    if ($installedCapability.State -ne 'Installed') {
+        throw "Capability '$($capability.Name)' did not reach Installed state. Current state: $($installedCapability.State)."
+    }
+
+    return $true
+}
+
+function Test-LanguageInstalled {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$LanguageTag
+    )
+
+    if (Get-Command Get-InstalledLanguage -ErrorAction SilentlyContinue) {
+        $installed = Get-InstalledLanguage | Where-Object { $_.LanguageId -eq $LanguageTag }
+        return $null -ne $installed
+    }
+
+    $languageList = Get-WinUserLanguageList -ErrorAction SilentlyContinue
+    return $null -ne ($languageList | Where-Object { $_.LanguageTag -eq $LanguageTag })
+}
+
+function Set-OneCoreSpeechDefaults {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$LanguageTag
+    )
+
+    $speechKey = 'HKCU:\Software\Microsoft\Speech_OneCore\Settings'
+    if (-not (Test-Path -LiteralPath $speechKey)) {
+        $null = New-Item -Path $speechKey -Force
+    }
+
+    $null = New-ItemProperty -Path $speechKey -Name 'SpeechLanguage' -Value $LanguageTag -PropertyType String -Force
+
+    $voicePrefix = 'MSTTS_V110_' + $LanguageTag.Replace('-', '')
+    $voiceKey = 'HKLM:\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens'
+    $voice = Get-ChildItem -Path $voiceKey -ErrorAction SilentlyContinue |
+        Where-Object { $_.PSChildName -like "$voicePrefix*" } |
+        Select-Object -First 1
+
+    if (-not $voice) {
+        Write-Status -Level 'WARN' -Message "No OneCore default voice token found for $LanguageTag."
+        return
+    }
+
+    $sapiVoicesKey = 'HKCU:\Software\Microsoft\Speech\Voices'
+    if (-not (Test-Path -LiteralPath $sapiVoicesKey)) {
+        $null = New-Item -Path $sapiVoicesKey -Force
+    }
+
+    $voiceTokenValue = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\' + $voice.PSChildName
+    $null = New-ItemProperty -Path $sapiVoicesKey -Name 'DefaultTokenId' -Value $voiceTokenValue -PropertyType String -Force
+}
+
+function Enable-AustralianLanguagePack {
+    [CmdletBinding()]
+    param(
+        [ValidateNotNullOrEmpty()]
+        [string]$LanguageTag = 'en-AU',
+
+        [ValidateRange(0, 1440)]
+        [int]$MinimumUptimeMinutes = 10
+    )
+
+    Wait-WindowsUptime -Minutes $MinimumUptimeMinutes
+
+    $cultureInfo = [System.Globalization.CultureInfo]::GetCultureInfo($LanguageTag)
+    Write-Status -Message "LCID: $($cultureInfo.LCID)"
+    Write-Status -Message "Display name: $($cultureInfo.DisplayName)"
+    Write-Status -Message "Language tag: $LanguageTag"
 
     try {
-        # Install language capabilities (FODs)
-        $capabilities = @(
-            "Language.Basic~~~$Language~0.0.1.0",
-            "Language.Speech~~~$Language~0.0.1.0",
-            "Language.TextToSpeech~~~$Language~0.0.1.0",
-            "Language.OCR~~~$Language~0.0.1.0"
-            # Optional:
-            "Language.Handwriting~~~$Language~0.0.1.0"
-        )
-
-        foreach ($capability in $capabilities) {
-            Write-Output "Ensuring feature: $capability"
-            $cap = Get-WindowsCapability -Online -Name $capability -ErrorAction Stop
-            if ($cap.State -ne 'Installed') {
-                Add-WindowsCapability -Online -Name $capability -ErrorAction Stop | Out-Null
-            } else {
-                Write-Host "$capability already INSTALLED"
-            }
-        }
-
-        # Install language pack + copy to system/new user
         if (Get-Command Install-Language -ErrorAction SilentlyContinue) {
-            Install-Language -Language $Language -CopyToSettings -ErrorAction Stop | Out-Null
+            Write-Status -Message "Invoking Install-Language for $LanguageTag..."
+            $null = Install-Language -Language $LanguageTag -CopyToSettings -ErrorAction Stop
         } else {
-            throw "Install-Language cmdlet not found. Ensure Windows 11 / International module support."
+            Write-Status -Level 'WARN' -Message 'Install-Language cmdlet not found; continuing with capability-based installation only.'
         }
 
-        Write-Host "✅ Language installation completed."
+        $mandatoryCapabilityTypes = @('Basic')
+        $optionalCapabilityTypes = @('OCR', 'Speech', 'TextToSpeech', 'Handwriting')
 
-        # User UI language (logoff required)
-        Set-WinUILanguageOverride -Language $Language -ErrorAction Stop
+        foreach ($capabilityType in $mandatoryCapabilityTypes) {
+            $null = Install-WindowsCapabilityIfPresent -LanguageTag $LanguageTag -CapabilityType $capabilityType -Required $true
+        }
 
-        # Culture for formats (dates/numbers)
-        Set-Culture -CultureInfo $Language -ErrorAction Stop
+        foreach ($capabilityType in $optionalCapabilityTypes) {
+            $null = Install-WindowsCapabilityIfPresent -LanguageTag $LanguageTag -CapabilityType $capabilityType
+        }
 
-        # User language list + input methods
-        $LangList = New-WinUserLanguageList -Language $Language -ErrorAction Stop
-        Set-WinUserLanguageList -LanguageList $LangList -Force -ErrorAction Stop
+        if (-not (Test-LanguageInstalled -LanguageTag $LanguageTag)) {
+            throw "Language '$LanguageTag' is still not reported as installed after setup completed."
+        }
 
-        # System locale (affects non-Unicode apps)
-        Set-WinSystemLocale -SystemLocale $Language -ErrorAction Stop
+        Write-Status -Message 'Applying user and system language settings...'
+        Set-WinUILanguageOverride -Language $LanguageTag -ErrorAction Stop
+        Set-Culture -CultureInfo $LanguageTag -ErrorAction Stop
 
-        # Copy intl settings to Welcome screen + new users (Windows 10/11)
+        $languageList = New-WinUserLanguageList -Language $LanguageTag -ErrorAction Stop
+        Set-WinUserLanguageList -LanguageList $languageList -Force -ErrorAction Stop
+        Set-WinSystemLocale -SystemLocale $LanguageTag -ErrorAction Stop
+        Set-WinHomeLocation -GeoId 12 -ErrorAction SilentlyContinue
+
         if (Get-Command Copy-UserInternationalSettingsToSystem -ErrorAction SilentlyContinue) {
             Copy-UserInternationalSettingsToSystem -WelcomeScreen $true -NewUser $true -ErrorAction Stop
         }
 
-        # Speech language (OneCore)
-        $speechKey = 'HKCU:\Software\Microsoft\Speech_OneCore\Settings'
-        if (-not (Test-Path $speechKey)) { New-Item -Path $speechKey -Force | Out-Null }
-        New-ItemProperty -Path $speechKey -Name 'SpeechLanguage' -Value $Language -PropertyType String -Force | Out-Null
+        Set-OneCoreSpeechDefaults -LanguageTag $LanguageTag
 
-        # Optional: set a default OneCore voice if present
-        $voiceTokenName = "MSTTS_V110_enAU_CatherineM"
-        $voiceTokenHklm = "HKLM:\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\$voiceTokenName"
-        $voiceTokenValue = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens\$voiceTokenName"
-
-        if (Test-Path $voiceTokenHklm) {
-            $sapiVoicesKey = "HKCU:\Software\Microsoft\Speech\Voices"
-            if (-not (Test-Path $sapiVoicesKey)) { New-Item -Path $sapiVoicesKey -Force | Out-Null }
-
-            # DefaultTokenId expects the "HKEY_LOCAL_MACHINE\..." style string
-            New-ItemProperty -Path $sapiVoicesKey -Name "DefaultTokenId" -Value $voiceTokenValue -PropertyType String -Force | Out-Null
+        $summary = @{
+            LanguageTag = $LanguageTag
+            Installed = (Test-LanguageInstalled -LanguageTag $LanguageTag)
+            UserCulture = (Get-Culture).Name
+            SystemLocale = (Get-WinSystemLocale).Name
+            UILanguageOverride = (Get-WinUILanguageOverride).Name
         }
 
-        Write-Output "$Language pack (and features) has been installed and enabled."
-
-        if (Get-Command Get-Language -ErrorAction SilentlyContinue) {
-            Get-Language
-        }
-
-        Write-Output "You may need to sign out and sign back in for the change to take effect."
+        Write-Output $summary
+        Write-Status -Message "$LanguageTag has been installed and applied. Sign out or restart if the shell does not pick up the new UI language immediately."
     }
     catch {
-        Write-Error "Failed to install language pack: $($_.Exception.Message)"
+        $message = $_.Exception.Message
+        if ($message -match '0x800f0954|0x800f081e|0x800f0950') {
+            $message += ' This often means the language feature source is unavailable through Windows Update, WSUS, or the local image.'
+        }
+
+        Write-Error "Failed to install language pack for ${LanguageTag}: $message"
         throw
     }
 }
+
 Enable-AustralianLanguagePack
