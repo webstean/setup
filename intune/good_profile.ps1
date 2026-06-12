@@ -97,7 +97,7 @@ function Update-ProfileForce {
 
     Write-Host "Profile updated: $ProfilePath" -ForegroundColor Green
 }
-#Update-Profile-Force
+#Update-ProfileForce
 
 function Get-DotNetHostInfo {
     [CmdletBinding()]
@@ -119,7 +119,7 @@ function Get-DotNetHostInfo {
 
     # Elevation check that works in CLM on Windows
     try {
-        $isElevated = (whoami /groups 2>$null | Select-String -SimpleMatch 'S-1-5-32-544') -ne $null
+        $isElevated = $null -ne (whoami /groups 2>$null | Select-String -SimpleMatch 'S-1-5-32-544')
     } catch {
         $isElevated = $null
     }
@@ -233,17 +233,17 @@ function Invoke-WindowsPowerShell {
 
     $ps51 = "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe"
 
-    $args = @(
+    $psArgs = @(
         '-NoProfile'
         '-ExecutionPolicy', 'Bypass'
         '-Command', $ScriptBlock
     )
 
     if ($AsAdmin) {
-        Start-Process -FilePath $ps51 -ArgumentList $args -Verb RunAs -Wait
+        Start-Process -FilePath $ps51 -ArgumentList $psArgs -Verb RunAs -Wait
     }
     else {
-        & $ps51 @args
+        & $ps51 @psArgs
     }
 }
 
@@ -1024,10 +1024,10 @@ function Restore-Terminal {
 }
 
 function Import-Nice-Modules {
-    if ( -not [bool](Get-Module -ListAvailable -Name Terminal-Icons | Out-Null )) {
+    if (Get-Module -ListAvailable -Name Terminal-Icons) {
         Import-Module Terminal-Icons -ErrorAction SilentlyContinue
     }
-    if ( -not [bool](Get-Module -ListAvailable -Name Az.Tools.Predictor | Out-Null )) {
+    if (Get-Module -ListAvailable -Name Az.Tools.Predictor) {
         Import-Module Az.Tools.Predictor -ErrorAction SilentlyContinue
     }    
 }
@@ -1037,52 +1037,63 @@ function Set-Azure-Environment {
     
     if ( -not ( $env:DEVELOPER -eq "Yes" )) { return }
 
-    $subscription_id = (Get-AzSubscription -ErrorAction SilentlyContinue).Id | Out-Null
+    $subscription_id = Get-AzSubscription -ErrorAction SilentlyContinue |
+        Select-Object -First 1 -ExpandProperty Id
     if (-not [string]::IsNullOrEmpty($subscription_id)) {
         Set-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Value $subscription_id
     } else {
         Remove-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Force -ErrorAction SilentlyContinue
     }
-    $tenant_id = (Get-AzTenant -ErrorAction SilentlyContinue).Id | Out-Null
+    $tenant = Get-AzTenant -ErrorAction SilentlyContinue | Select-Object -First 1
+    $tenant_id = $tenant.Id
     if (-not [string]::IsNullOrEmpty($tenant_id)) {
         Set-Item -Path Env:\AZURE_TENANT_ID -Value $tenant_id
     } else {
         Remove-Item -Path Env:\AZURE_TENANT_ID -Force -ErrorAction SilentlyContinue
     }
-    $tenant_name = (Get-AzTenant -ErrorAction SilentlyContinue).Name | Out-Null
+    $tenant_name = $tenant.Name
     if (-not [string]::IsNullOrEmpty($tenant_name)) {
         Set-Item -Path Env:\AZURE_TENANT_NAME -Value $tenant_name
     } else {
         Remove-Item -Path Env:\AZURE_TENANT_NAME -Force -ErrorAction SilentlyContinue
     }
-    if (-not [string]::IsNullOrEmpty($UPN)) {
-        Set-Item -Path Env:\AZURE_USERNAME -Value $UPN
+    $userUpn = if (-not [string]::IsNullOrEmpty($env:UPN)) { $env:UPN } else { $UPN }
+    if (-not [string]::IsNullOrEmpty($userUpn)) {
+        Set-Item -Path Env:\AZURE_USERNAME -Value $userUpn
     } else {
         Remove-Item -Path Env:\AZURE_USERNAME -Force -ErrorAction SilentlyContinue
     }
 }
 #Set-Azure-Developer-Environment
 
-function Check-Azure-Environment {
-    ## If we have AZURE environment variables then we are good
-    if (
-        -not [string]::IsNullOrEmpty($env:AZURE_CLIENT_ID) -or
-        -not [string]::IsNullOrEmpty($env:AZURE_SUBSCRIPTION_ID) -or
-        -not [string]::IsNullOrEmpty($env:AZURE_TENANT_ID)
-    ) {
-        return $false
+function Test-AzureEnvironment {
+    ## Require key Azure identifiers before writing defaults.
+    $required = @('AZURE_SUBSCRIPTION_ID', 'AZURE_TENANT_ID')
+    $missing = @()
+
+    foreach ($name in $required) {
+        $value = (Get-Item -Path "Env:$name" -ErrorAction SilentlyContinue).Value
+        if ([string]::IsNullOrEmpty($value)) {
+            $missing += $name
+        }
     }
-    Write-Host "Azure Environment variables defined!"
-    return $true
+
+    if ($missing.Count -eq 0) {
+        Write-Host "Azure environment variables defined."
+        return $true
+    }
+
+    Write-Host "Missing required Azure environment variables: $($missing -join ', ')"
+    return $false
 }
-function Check-Graph-Token {
+function Test-GraphToken {
     ## If we have ACCESS_TOKEN variable we are good
     if ( -not [string]::IsNullOrEmpty($env:ACCESS_TOKEN) ) {
         return $true
     }
     return $false
 }
-function Check-Sharepoint-Token {
+function Test-SharePointToken {
     ## If we have ACCESS_TOKEN_SHAREPOINT variable we are good
     if ( -not [string]::IsNullOrEmpty($env:ACCESS_TOKEN_SHAREPOINT) ) {
         return $true
@@ -1090,18 +1101,18 @@ function Check-Sharepoint-Token {
     return $false
 }
 
-function Create-Default-Env-File {
+function New-DefaultEnvFile {
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose']   = $false
     
-    if ( (Check-Azure-Environment) -eq $true ) {
+    if ((Test-AzureEnvironment) -eq $true) {
         Write-Host "Writing out default .env file"
         @"
 # $env:AZURE_TENANT_NAME .env file
 AZURE_SUBSCRIPTION_ID=$env:AZURE_SUBSCRIPTION_ID
 AZURE_TENANT_ID=$env:AZURE_TENANT_ID
-AZURE_USERNAME=$env:UPN
+AZURE_USERNAME=$env:AZURE_USERNAME
 "@ | Out-File -Encoding UTF8 -FilePath "$HOME/.env-default"
         Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env-default" -Force
         Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env" -Force
@@ -1109,8 +1120,10 @@ AZURE_USERNAME=$env:UPN
         Write-Host "Not enough environment variables defined!"
         Write-Host " Run: Set-Azure-Environment" 
     }
+
+    $PSDefaultParameterValues['*:Verbose'] = $preserve
 }
-#Create-Default-Env-File
+#New-DefaultEnvFile
 
 function Import-Env-File {
     param(
@@ -2170,10 +2183,10 @@ function Set-FolderAclUsersModify {
         $inheritFlags = '(OI)(CI)'
 
         function Invoke-Icacls {
-            param([string[]]$Args)
-            Write-Verbose ("icacls {0}" -f ($Args -join ' '))
-            if ($PSCmdlet.ShouldProcess("icacls $($Args -join ' ')")) {
-                & icacls @Args
+            param([string[]]$IcaArgs)
+            Write-Verbose ("icacls {0}" -f ($IcaArgs -join ' '))
+            if ($PSCmdlet.ShouldProcess("icacls $($IcaArgs -join ' ')")) {
+                & icacls @IcaArgs
             }
         }
 
@@ -2332,7 +2345,7 @@ function Get-HttpsCertificateInfo {
             $ssl = [System.Net.Security.SslStream]::new(
                 $stream,
                 $false,
-                { param($sender, $certificate, $chainArg, $sslPolicyErrors) $true }
+                { param($sslSender, $certificate, $chainArg, $sslPolicyErrors) $true }
             )
 
             try {
