@@ -995,7 +995,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install Microsoft Terraform extension
+        description: Install VSCode extension-> azure terraform
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -1007,7 +1007,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install Red Hat YAML extension
+        description: Install VSCode extension-> Red Hat YAML extension
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -1037,18 +1037,6 @@ properties:
         securityContext: elevated
       settings:
         Name: ms-playwright.playwright
-
-    # VS Code
-    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: ms-azuretools.vscode-azure-github-copilot
-      dependsOn:
-        - Microsoft.VisualStudioCode
-      directives:
-        description: Install GitHub Copilot Chat (PreRelease) extension
-        allowPrerelease: false
-        securityContext: elevated
-      settings:
-        Name: ms-azuretools.vscode-azure-github-copilot
 
     # Extension: ms-vscode.vscode-node-azure-pack (Azure Tools)
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
