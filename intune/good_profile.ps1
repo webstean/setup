@@ -675,7 +675,7 @@ function which {
 
     Get-Command $Command -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
 }
-remove-alias cat -ErrorAction SilentlyContinue
+if (Get-Command 'cat.exe' -ErrorAction SilentlyContinue) { remove-alias cat -ErrorAction SilentlyContinue }
 
 # Run Starship if installed
 function Invoke-Starship-TransientFunction {
