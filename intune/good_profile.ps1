@@ -1249,7 +1249,201 @@ function Get-Azure-Meta { ##IMDS
 }
 
 ## See: https://www.chanceofsecurity.com/post/microsoft-entra-pim-bulk-role-activation-tool
+function Enable-PIMRole {
+    param(
+        [string] $RoleName = 'Global Reader',
+        [string] $Justification = 'DA',
+        [object] $Duration = '08:00:00',
+        [string] $DirectoryScopeId = '/',
+        [string] $TicketNumber,
+        [string] $TicketSystem,
+        [int] $TimeoutSeconds = 120
+    )
 
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    $isConstrainedLanguage =
+        $ExecutionContext.SessionState.LanguageMode -eq 'ConstrainedLanguage'
+
+    function Convert-ToIso8601Duration {
+        param([object] $InputObject)
+
+        if ($InputObject -is [string]) {
+            $parts = $InputObject.Split(':')
+
+            if ($parts.Count -ne 3) {
+                throw 'Duration must be HH:MM:SS.'
+            }
+
+            $hours = [int] $parts[0]
+            $minutes = [int] $parts[1]
+            $seconds = [int] $parts[2]
+        }
+        elseif ($InputObject -is [timespan]) {
+            $hours = [int] [math]::Floor($InputObject.TotalHours)
+            $minutes = $InputObject.Minutes
+            $seconds = $InputObject.Seconds
+        }
+        else {
+            throw 'Duration must be a TimeSpan or HH:MM:SS string.'
+        }
+
+        if (($hours + $minutes + $seconds) -le 0) {
+            throw 'Duration must be greater than zero.'
+        }
+
+        $value = 'PT'
+
+        if ($hours -gt 0) { $value += "$($hours)H" }
+        if ($minutes -gt 0) { $value += "$($minutes)M" }
+        if ($seconds -gt 0 -or $value -eq 'PT') { $value += "$($seconds)S" }
+
+        return $value
+    }
+
+    function Connect-RequiredGraph {
+        Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
+        Import-Module Microsoft.Graph.Users -ErrorAction Stop
+        Import-Module Microsoft.Graph.Identity.Governance -ErrorAction Stop
+
+        $requiredScopes = @(
+            'User.Read',
+            'RoleEligibilitySchedule.Read.Directory',
+            'RoleAssignmentSchedule.Read.Directory',
+            'RoleAssignmentSchedule.ReadWrite.Directory',
+            'RoleManagement.Read.Directory'
+        )
+
+        $ctx = Get-MgContext
+        $needConnect = $false
+
+        if (-not $ctx -or -not $ctx.Account) {
+            $needConnect = $true
+        }
+        else {
+            foreach ($scope in $requiredScopes) {
+                if ($ctx.Scopes -notcontains $scope) {
+                    $needConnect = $true
+                }
+            }
+        }
+
+        if ($needConnect) {
+            if ($ctx) {
+                Disconnect-MgGraph -ErrorAction SilentlyContinue | Out-Null
+            }
+
+            Connect-MgGraph `
+                -NoWelcome `
+                -Scopes $requiredScopes `
+                -ErrorAction Stop |
+                Out-Null
+        }
+    }
+
+    try {
+        Connect-RequiredGraph
+
+        $ctx = Get-MgContext
+
+        if (-not $ctx -or -not $ctx.Account) {
+            throw 'Not connected to Microsoft Graph.'
+        }
+
+        $me = Get-MgUser `
+            -UserId $ctx.Account `
+            -Property Id,UserPrincipalName,DisplayName `
+            -ErrorAction Stop
+
+        $principalId = $me.Id
+
+        $roleDefinition = Get-MgRoleManagementDirectoryRoleDefinition -All |
+            Where-Object { $_.DisplayName -eq $RoleName } |
+            Select-Object -First 1
+
+        if (-not $roleDefinition) {
+            throw "Directory role '$RoleName' was not found."
+        }
+
+        $roleDefinitionId = $roleDefinition.Id
+
+        $eligible = Get-MgRoleManagementDirectoryRoleEligibilitySchedule -All |
+            Where-Object {
+                $_.PrincipalId -eq $principalId -and
+                $_.RoleDefinitionId -eq $roleDefinitionId -and
+                $_.DirectoryScopeId -eq $DirectoryScopeId
+            } |
+            Select-Object -First 1
+
+        if (-not $eligible) {
+            throw "Signed-in user is not PIM eligible for '$RoleName' at scope '$DirectoryScopeId'."
+        }
+
+        $isoDuration = Convert-ToIso8601Duration -InputObject $Duration
+
+        $body = @{
+            action           = 'selfActivate'
+            justification    = $Justification
+            directoryScopeId = $DirectoryScopeId
+            principalId      = $principalId
+            roleDefinitionId = $roleDefinitionId
+            scheduleInfo     = @{
+                startDateTime = (Get-Date).ToUniversalTime().ToString('o')
+                expiration    = @{
+                    type     = 'AfterDuration'
+                    duration = $isoDuration
+                }
+            }
+        }
+
+        if ($TicketNumber -or $TicketSystem) {
+            $body.ticketInfo = @{
+                ticketNumber = if ($TicketNumber) { $TicketNumber } else { '' }
+                ticketSystem = if ($TicketSystem) { $TicketSystem } else { '' }
+            }
+        }
+
+        $request = New-MgRoleManagementDirectoryRoleAssignmentScheduleRequest `
+            -BodyParameter $body `
+            -ErrorAction Stop
+
+        $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+        $active = $null
+
+        do {
+            Start-Sleep -Seconds 3
+
+            $active = Get-MgRoleManagementDirectoryRoleAssignmentSchedule -All |
+                Where-Object {
+                    $_.PrincipalId -eq $principalId -and
+                    $_.RoleDefinitionId -eq $roleDefinitionId -and
+                    $_.DirectoryScopeId -eq $DirectoryScopeId
+                }
+        }
+        while (-not $active -and (Get-Date) -lt $deadline)
+
+        [pscustomobject]@{
+            RequestId        = $request.Id
+            RoleName         = $RoleName
+            RoleDefinitionId = $roleDefinitionId
+            PrincipalId      = $principalId
+            DirectoryScopeId = $DirectoryScopeId
+            Duration         = $isoDuration
+            LanguageMode     = $ExecutionContext.SessionState.LanguageMode
+            Active           = [bool] $active
+            ActiveAssignment = $active |
+                Select-Object Id, StartDateTime, EndDateTime, Status, RoleDefinitionId, DirectoryScopeId
+        }
+    }
+    catch {
+        if ($isConstrainedLanguage) {
+            throw "Failed to activate PIM role '$RoleName'. PowerShell is running in ConstrainedLanguage mode. $($_.Exception.Message)"
+        }
+
+        throw "Failed to activate PIM role '$RoleName'. $($_.Exception.Message)"
+    }
+}
 ## Enable-PIMRole
 ## Connect-MgGraph -NoWelcome
 ## $user = Get-MgUserMe
