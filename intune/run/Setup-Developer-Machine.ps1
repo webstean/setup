@@ -389,7 +389,7 @@ function Initialize-TranscriptLogging {
     return $transcriptFile
 }
 
-function Ensure-WinGetInstalled {
+function Install-WinGetIfMissing {
     param()
 
     Set-StrictMode -Version Latest
@@ -466,7 +466,7 @@ try {
     [Console]::InputEncoding = [System.Text.UTF8Encoding]::new()
     [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 
-    Ensure-WinGetInstalled
+    Install-WinGetIfMissing
     winget configure --enable
     winget install Microsoft.PowerShell --silent --accept-package-agreements --accept-source-agreements
 
