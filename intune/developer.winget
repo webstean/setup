@@ -50,6 +50,8 @@ properties:
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.VisualStudioCode
+      dependsOn:
+        - Git.Git
       directives:
         description: Install Visual Studio Code
         securityContext: elevated
@@ -688,13 +690,33 @@ properties:
         #TextExtractor:
         #  Enabled: true
 
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Git.Git
+#      directives:
+#        description: Install Git.Git
+#        allowPrerelease: false
+#      settings:
+#        id: Git.Git
+#        source: winget
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Git.Git
       directives:
-        description: Install Git.Git
+        description: Install Microsoft.Git
         allowPrerelease: false
       settings:
-        id: Git.Git
+        id: Microsoft.Git
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: GitHub.Cli
+      dependsOn:
+        - Git.Git
+      directives:
+        description: Install GitHub.Cli
+        allowPrerelease: false
+      settings:
+        id: GitHub.Cli
         source: winget
 
 #    - resource: GitDsc/GitClone
@@ -753,8 +775,10 @@ properties:
 
 #  - resource: Microsoft.VSCode.Dsc/VSCodeExtension
 #    id: mhutchie.git-graph
+#     dependsOn:
+#        - Git.Git
 #    directives:
-#      description: Install Git Graph for visual Git history
+#      description: Install VSCode extension-> Git Graph for visual Git history
 #      allowPrerelease: false
 #    settings:
 #      Name: mhutchie.git-graph
@@ -765,7 +789,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install vscode-icons-team.vscode-icons extension
+        description: Install VSCode extension-> vscode-icons-team.vscode-icons
         allowPrerelease: false
         securityContext: elevated
       settings:
