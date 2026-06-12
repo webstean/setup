@@ -1033,19 +1033,6 @@ properties:
       settings:
         Name: ms-playwright.playwright
 
-    # VS Code GitHub Copilot Chat extension
-    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.GitHub.copilot-chat
-      dependsOn:
-        - Microsoft.VisualStudioCode
-        - Git.Git
-      directives:
-        description: Install GitHub Copilot Chat (PreRelease) extension
-        allowPrerelease: false
-        securityContext: elevated
-      settings:
-        Name: GitHub.copilot-chat
-
     # VS Code
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: stable.ms-azuretools.vscode-azure-github-copilot
