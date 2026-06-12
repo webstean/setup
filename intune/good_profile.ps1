@@ -1,5 +1,30 @@
 ## Note: This FILE is ASCII encoded, for compatibility with Windows Powershell, so any Unicode characters need to be eliminated
 
+InvalidArgument: C:\Users\vid9na6\OneDrive - DTP\Documents\PowerShell\Microsoft.PowerShell_profile.ps1:199
+Line |
+ 199 |      [pscustomobject]@{
+     |      ~~~~~~~~~~~~~~~~~~
+     | Cannot convert value to type "System.Management.Automation.LanguagePrimitives+InternalPSCustomObject". Only core
+     | types are supported in this language mode.
+UTF-8 output encoding enabled
+PowerShell Language Mode is: ConstrainedLanguage (most advanced things won't work here)
+Current context permisisons is        : USER
+Setting Developer environment variables...
+InvalidArgument: C:\Users\vid9na6\OneDrive - DTP\Documents\PowerShell\Microsoft.PowerShell_profile.ps1:520
+Line |
+ 520 |      $result = [pscustomobject]@{
+     |      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Cannot convert value to type "System.Management.Automation.LanguagePrimitives+InternalPSCustomObject". Only core
+     | types are supported in this language mode.
+InvalidOperation: C:\Users\vid9na6\OneDrive - DTP\Documents\PowerShell\Microsoft.PowerShell_profile.ps1:532
+Line |
+ 532 |          $result.Notes += "Skipped: language mode is not permissive."
+     |          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | The property 'Notes' cannot be found on this object. Verify that the property exists and can be set.
+Loading personal and system profiles took 2529ms.
+
+
+
 #Set-ExecutionPolicy Unrestricted -Scope Process
 #Set-ExecutionPolicy Unrestricted -Scope CurrentUser
 #Set-ExecutionPolicy -ExecutionPolicy Unrestricted
