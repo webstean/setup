@@ -168,11 +168,12 @@ function Install-PSResourceGetSilently {
     Invoke-WithRetry -Action 'Install/Update Microsoft.PowerShell.PSResourceGet' -Script {
         Install-Module -Name Microsoft.PowerShell.PSResourceGet -RequiredVersion $PSResourceGetVersion `
             -Scope $Scope -Force -AllowClobber -Confirm:$false
-    }
+        # Load it now (Install-PSResource itself does not auto-import)
+        Remove-Module Microsoft.PowerShell.PSResourceGet -Force -ErrorAction SilentlyContinue
+        Import-Module Microsoft.PowerShell.PSResourceGet -Force -ErrorAction SilentlyContinue
+   }
 
-    # Load it now (Install-PSResource itself does not auto-import)
-    Import-Module Microsoft.PowerShell.PSResourceGet -Force
-
+ 
     # Step 5: Register PSGallery for PSResourceGet (NuGet v2 endpoint is the safe default)
     # PSResourceGet has a known limitation around installing dependencies from NuGet v3 feeds. :contentReference[oaicite:2]{index=2}
 
