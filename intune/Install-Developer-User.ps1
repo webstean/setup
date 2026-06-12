@@ -1182,5 +1182,5 @@ function Download-SharePointMigrationToolInstaller {
 
     Start-Process $OutFile
 }
-Download-SharePointMigrationToolInstaller
+#Download-SharePointMigrationToolInstaller
 
