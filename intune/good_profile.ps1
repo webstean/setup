@@ -3706,7 +3706,7 @@ printf '[interop]\nappendWindowsPath = false\n\n[boot]\nsystemd = true\n\n[gpu]\
     ## Terminate the existing disitribution, so it restarts with new settings
     Start-Process -FilePath 'wsl' -ArgumentList "--terminate $Distro" -NoNewWindow -Wait -PassThru | Out-Null
 }
-Enable-WSL
+#Enable-WSL
 
 function Set-WSLConfig-Ubuntu {
 
