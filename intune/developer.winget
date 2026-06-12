@@ -778,7 +778,7 @@ properties:
 #      dependsOn:
 #        - Microsoft.VisualStudioCode
 #      directives:
-#        description: Install VSCode extenssion: ms-azuretools.vscode-apimanagement
+#        description: Install VSCode extenssion-> ms-azuretools.vscode-apimanagement
 #        allowPrerelease: false
 #        securityContext: elevated
 #      settings:
@@ -790,7 +790,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion: ms-dotnettools.csharp
+        description: Install VSCode extenssion-> ms-dotnettools.csharp
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -803,7 +803,7 @@ properties:
         - Microsoft.VisualStudioCode
         - Microsoft.Aspire
       directives:
-        description: Install VSCode extenssion: microsoft-aspire.aspire-vscode (needs aspire cli installed)
+        description: Install VSCode extenssion-> microsoft-aspire.aspire-vscode (needs aspire cli installed)
         allowPrerelease: true
         securityContext: elevated
       settings:
@@ -815,7 +815,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion: adamwojcikit.pnp-powershell-extension
+        description: Install VSCode extenssion-> adamwojcikit.pnp-powershell-extension
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -827,7 +827,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion: 42Crunch.vscode-openapi
+        description: Install VSCode extenssion-> 42Crunch.vscode-openapi
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -839,7 +839,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion: ms-azuretools.vscode-bicep
+        description: Install VSCode extenssion-> ms-azuretools.vscode-bicep
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -851,7 +851,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion: vscode-github-actions
+        description: Install VSCode extenssion-> vscode-github-actions
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -863,7 +863,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion: github.codespaces
+        description: Install VSCode extenssion-> github.codespaces
         allowPrerelease: false
         securityContext: elevated
       settings:
