@@ -1,0 +1,322 @@
+# yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
+properties:
+  configurationVersion: 0.2.0
+
+  assertions:
+    - resource: Microsoft.Windows.Developer/OsVersion
+      directives:
+        description: Verify minimum OS version
+        allowPrerelease: true
+      settings:
+        MinVersion: '10.0.22621'
+
+  resources:
+    # Core tools
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.VisualStudioCode
+      directives:
+        description: Install Visual Studio Code
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Microsoft.VisualStudioCode
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Git.Git
+      directives:
+        description: Install Git
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Git.Git
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: GitHub.cli
+      directives:
+        description: Install GitHub CLI
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: GitHub.cli
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: OpenJS.NodeJS.LTS
+      directives:
+        description: Install Node.js LTS
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: OpenJS.NodeJS.LTS
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Python.Python.3.13
+      directives:
+        description: Install Python 3.13
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: Python.Python.3.13
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: astral-sh.uv
+      directives:
+        description: Install uv Python package manager
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: astral-sh.uv
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Docker.DockerDesktop
+      directives:
+        description: Install Docker Desktop for container-based MCP servers
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: Docker.DockerDesktop
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: jqlang.jq
+      directives:
+        description: Install jq
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: jqlang.jq
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: SQLite.SQLite
+      directives:
+        description: Install SQLite
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: SQLite.SQLite
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.OpenAPI.Kiota
+      directives:
+        description: Install Kiota
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        id: Microsoft.OpenAPI.Kiota
+        source: winget
+
+    # VS Code extensions
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.github.copilot
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install GitHub Copilot extension
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        Edition: Stable
+        Name: GitHub.copilot
+
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.github.copilot-chat
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install GitHub Copilot Chat extension
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        Edition: Stable
+        Name: GitHub.copilot-chat
+
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.ms-vscode.powershell
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install PowerShell extension
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        Edition: Stable
+        Name: ms-vscode.powershell
+
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.ms-azuretools.vscode-containers
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install Containers extension
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        Edition: Stable
+        Name: ms-azuretools.vscode-containers
+
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.redhat.vscode-yaml
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install YAML extension
+        allowPrerelease: false
+        securityContext: current
+      settings:
+        Edition: Stable
+        Name: redhat.vscode-yaml
+
+    # MCP npm packages
+    - resource: xPSDesiredStateConfiguration/xScript
+      id: Install.Npm.Mcp.Servers
+      dependsOn:
+        - OpenJS.NodeJS.LTS
+      directives:
+        description: Install npm-based MCP servers
+        securityContext: current
+      settings:
+        GetScript: |
+          return @{
+            Result = "npm MCP server install check"
+          }
+        TestScript: |
+          $commands = @(
+            '@modelcontextprotocol/server-filesystem',
+            '@modelcontextprotocol/server-memory',
+            '@modelcontextprotocol/server-sequential-thinking'
+          )
+
+          foreach ($package in $commands) {
+            npm list -g $package --depth=0 2>$null | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+              return $false
+            }
+          }
+
+          return $true
+        SetScript: |
+          npm install -g `
+            @modelcontextprotocol/server-filesystem `
+            @modelcontextprotocol/server-memory `
+            @modelcontextprotocol/server-sequential-thinking
+
+    # MCP Python packages
+    - resource: xPSDesiredStateConfiguration/xScript
+      id: Install.Python.Mcp.Tools
+      dependsOn:
+        - Python.Python.3.13
+        - astral-sh.uv
+      directives:
+        description: Install Python MCP-related tooling
+        securityContext: current
+      settings:
+        GetScript: |
+          return @{
+            Result = "Python MCP tool install check"
+          }
+        TestScript: |
+          uv tool list 2>$null | Select-String -Pattern 'markitdown' -Quiet
+        SetScript: |
+          uv tool install markitdown
+
+    # Pull GitHub official MCP server Docker image
+    - resource: xPSDesiredStateConfiguration/xScript
+      id: Pull.GitHub.Mcp.Server.Container
+      dependsOn:
+        - Docker.DockerDesktop
+      directives:
+        description: Pull official GitHub MCP Server Docker image
+        securityContext: current
+      settings:
+        GetScript: |
+          return @{
+            Result = "GitHub MCP Docker image check"
+          }
+        TestScript: |
+          docker image inspect ghcr.io/github/github-mcp-server:latest *> $null
+          return ($LASTEXITCODE -eq 0)
+        SetScript: |
+          docker pull ghcr.io/github/github-mcp-server:latest
+
+    # Create a sample VS Code MCP configuration file
+    - resource: xPSDesiredStateConfiguration/xScript
+      id: Configure.VSCode.MCP
+      dependsOn:
+        - Microsoft.VisualStudioCode
+        - Install.Npm.Mcp.Servers
+        - Pull.GitHub.Mcp.Server.Container
+      directives:
+        description: Create sample VS Code MCP configuration
+        securityContext: current
+      settings:
+        GetScript: |
+          return @{
+            Result = "$env:APPDATA\Code\User\mcp.json"
+          }
+        TestScript: |
+          Test-Path "$env:APPDATA\Code\User\mcp.json"
+        SetScript: |
+          $configPath = "$env:APPDATA\Code\User"
+          $mcpPath = Join-Path $configPath 'mcp.json'
+
+          New-Item -ItemType Directory -Path $configPath -Force | Out-Null
+
+          $mcp = @{
+            servers = @{
+              filesystem = @{
+                command = 'npx'
+                args = @(
+                  '-y',
+                  '@modelcontextprotocol/server-filesystem',
+                  'C:\WorkSpaces'
+                )
+              }
+              memory = @{
+                command = 'npx'
+                args = @(
+                  '-y',
+                  '@modelcontextprotocol/server-memory'
+                )
+              }
+              sequentialthinking = @{
+                command = 'npx'
+                args = @(
+                  '-y',
+                  '@modelcontextprotocol/server-sequential-thinking'
+                )
+              }
+              github = @{
+                command = 'docker'
+                args = @(
+                  'run',
+                  '-i',
+                  '--rm',
+                  '-e',
+                  'GITHUB_PERSONAL_ACCESS_TOKEN',
+                  'ghcr.io/github/github-mcp-server'
+                )
+                env = @{
+                  GITHUB_PERSONAL_ACCESS_TOKEN = '${input:github_token}'
+                }
+              }
+            }
+            inputs = @(
+              @{
+                id = 'github_token'
+                type = 'promptString'
+                description = 'GitHub Personal Access Token for GitHub MCP Server'
+                password = $true
+              }
+            )
+          }
+
+          $mcp |
+            ConvertTo-Json -Depth 20 |
+            Set-Content -Path $mcpPath -Encoding UTF8
