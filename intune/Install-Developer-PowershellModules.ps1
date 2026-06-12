@@ -490,6 +490,7 @@ Install-OrUpdate-Module Az.Functions
 Install-OrUpdate-Module Az.ContainerRegistry
 Install-OrUpdate-Module Microsoft.WinGet.Client
 Install-OrUpdate-Module Microsoft.WinGet.Configuration
+Install-OrUpdate-Module Microsoft.WinGet.CommandNotFound
 Install-OrUpdate-Module Microsoft.Graph ## big, but installing bits of it, causes problems later, due to different versions
 Install-OrUpdate-Module MicrosoftTeams
 #Install-OrUpdate-Module VMware.PowerCLI ## VMware PowerCLI (is too big - and no very useful, post-Broadcom)

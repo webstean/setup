@@ -3707,3 +3707,53 @@ function Get-OfficeDocumentMetadata {
         }
     }
 }
+
+function Initialize-WinGetCommandNotFound {
+    [CmdletBinding()]
+    param(
+        [ValidateSet('CurrentUser', 'AllUsers')]
+        [string]$InstallScope = 'CurrentUser'
+    )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    $moduleName = 'Microsoft.WinGet.CommandNotFound'
+
+    if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
+        Write-Verbose 'winget.exe was not found. Skipping Microsoft.WinGet.CommandNotFound import.'
+        return $false
+    }
+
+    if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
+        Write-Verbose "Language mode '$($ExecutionContext.SessionState.LanguageMode)' is not FullLanguage. Skipping $moduleName initialization."
+        return $false
+    }
+
+    try {
+        $available = Get-Module -ListAvailable -Name $moduleName
+        if (-not $available) {
+            if (Get-Command Install-OrUpdate-Module -ErrorAction SilentlyContinue) {
+                Write-Verbose "Installing missing module '$moduleName' in scope '$InstallScope'."
+                Install-OrUpdate-Module -ModuleName $moduleName -Scope $InstallScope -ImportAfter
+            }
+            else {
+                Write-Warning "Install-OrUpdate-Module is unavailable. Cannot install '$moduleName'."
+                return $false
+            }
+        }
+
+        if (-not (Get-Module -Name $moduleName)) {
+            Import-Module -Name $moduleName -ErrorAction Stop
+        }
+
+        Write-Verbose "Imported module '$moduleName'."
+        return $true
+    }
+    catch {
+        Write-Warning "Failed to initialize '$moduleName': $($_.Exception.Message)"
+        return $false
+    }
+}
+$null = Initialize-WinGetCommandNotFound
+
