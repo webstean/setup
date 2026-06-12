@@ -73,16 +73,6 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: Docker.DockerDesktop
-      directives:
-        description: Install Docker Desktop for container-based MCP servers
-        allowPrerelease: false
-        securityContext: elevated
-      settings:
-        id: Docker.DockerDesktop
-        source: winget
-
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: jqlang.jq
       directives:
         description: Install jq
