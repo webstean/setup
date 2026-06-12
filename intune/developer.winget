@@ -57,7 +57,7 @@ properties:
         id: Microsoft.VisualStudioCode
         source: winget
 
-    - resource: xPSDesiredStateConfiguration/xScript
+    - resource: PSDscResources/Script
       id: variable.developer
       directives:
         description: Set the Developer environment variables in the Machine scope 
@@ -79,7 +79,7 @@ properties:
             [System.EnvironmentVariableTarget]::Machine
           )
 
-    - resource: xPSDesiredStateConfiguration/xScript
+    - resource: PSDscResources/Script
       id: Script.Set.User.Wallpaper
       directives:
         description: Set Developer USER wallpaper
@@ -99,7 +99,7 @@ properties:
             Write-Host "Set USER Wallpaper"
           }
 
-    - resource: xPSDesiredStateConfiguration/xScript
+    - resource: PSDscResources/Script
       id: Script.Set.Logon.Wallpaper
       directives:
         description: Set Developer LOGON wallpaper
@@ -206,7 +206,7 @@ properties:
         id: RedHat.Podman-Desktop
         source: winget
 
-    - resource: xPSDesiredStateConfiguration/xScript
+    - resource: PSDscResources/Script
       id: RedHat.Podman-Desktop-variable
       dependsOn:
         - RedHat.Podman-Desktop
@@ -757,7 +757,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: vscode-icons-team.vscode-icons
 
     # VS Code ms-azuretools.vscode-apimanagement Extension
@@ -783,7 +782,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: ms-dotnettools.csharp
 
     # VS Code Aspire Extension
@@ -796,7 +794,6 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
         Name: microsoft-aspire.aspire-vscode
 
 # DOES NOT WORK
@@ -824,7 +821,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: adamwojcikit.pnp-powershell-extension
 
     # VS Code .NET Development Extensions
@@ -837,7 +833,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: 42Crunch.vscode-openapi
 
     # VS Code bicep Extension
@@ -850,7 +845,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: ms-azuretools.vscode-bicep
 
     # VS Code GitHub Actions Extension
@@ -863,7 +857,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: github.vscode-github-actions
 
     # VS Code DotNet extension
@@ -876,7 +869,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: ms-dotnettools.vscode-dotnet-runtime
 
     # VS Code DotNet extension
@@ -889,7 +881,6 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
         Name: ms-vscode-remote.remote-containers
 
     # VS Code C# DEv Kit extension
@@ -902,7 +893,6 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
         Name: ms-dotnettools.csdevkit
 
     # VS Code golang.Go extension
@@ -929,7 +919,6 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
         Name: ms-vscode.powershell
 
     # VS Code PowerShell extension
@@ -942,7 +931,6 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
         Name: ironmansoftware.powershellprotools
 
     # VS Code Containers tools extension
@@ -955,7 +943,6 @@ properties:
         allowPrerelease: true
         securityContext: current
       settings:
-        Edition: Stable
         Name: ms-azuretools.vscode-containers
 
     # VS Code Terraform extension
@@ -968,7 +955,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: hashicorp.terraform
 
     # VS Code Microsoft Terraform extension
@@ -981,7 +967,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: ms-azuretools.vscode-azureterraform
 
     # VS Code RedHat YML extension
@@ -994,7 +979,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: redhat.vscode-yaml
 
     # VS Code GitHub Copilot extension
@@ -1008,7 +992,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: GitHub.copilot
 
     # VS Code ms-playwright.playwright extension
@@ -1021,7 +1004,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: ms-playwright.playwright
 
     # VS Code GitHub Copilot Chat extension
@@ -1035,7 +1017,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: GitHub.copilot-chat
 
     # VS Code
@@ -1048,7 +1029,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: ms-azuretools.vscode-azure-github-copilot
 
     # Extension: ms-vscode.vscode-node-azure-pack (Azure Tools)
@@ -1062,7 +1042,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: ms-vscode.vscode-node-azure-pack
 
     # Extension: ms-vscode.remote-server (Remote Tools)
@@ -1076,7 +1055,6 @@ properties:
         allowPrerelease: false
         securityContext: current
       settings:
-        Edition: Stable
         Name: ms-vscode.remote-server
 
     # Remove GitLens
@@ -1090,5 +1068,4 @@ properties:
         securityContext: current
       settings:
         Name: eamodio.gitlens
-        Edition: Stable
-        _exist: false
+        Exist: false
