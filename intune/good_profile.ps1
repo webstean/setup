@@ -15,39 +15,89 @@
 $VerbosePreference = 'SilentlyContinue'
 $PSDefaultParameterValues['*:Verbose'] = $false
 
-function Update-Profile-Force {
-    # Define the remote URL
-    $url = 'https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/good_profile.ps1'
+function Update-ProfileForce {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [string] $Uri = 'https://raw.githubusercontent.com/webstean/setup/main/intune/good_profile.ps1',
 
-    # Ensure the profile directory exists
-    $profileDir = Split-Path -Parent $PROFILE
-    if (-not (Test-Path $profileDir)) {
+        [string] $ProfilePath = $PROFILE,
+
+        [ValidateSet('utf8NoBOM', 'utf8BOM', 'ascii')]
+        [string] $Encoding = 'utf8NoBOM',
+
+        [switch] $Backup
+    )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+    $ProgressPreference = 'SilentlyContinue'
+
+    if ([string]::IsNullOrWhiteSpace($ProfilePath)) {
+        throw 'PROFILE path is empty.'
+    }
+
+    $profileDir = Split-Path -Path $ProfilePath -Parent
+
+    if (-not (Test-Path -Path $profileDir -PathType Container)) {
         New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
     }
 
-    # Download and overwrite the profile
-    # Download the file content
-    $response = Invoke-WebRequest -Uri $url -ContentType "text/plain" -UseBasicParsing
-    $response.StatusDescription
-    
-    $newContent = $response.Content
-    $newContentLength = $response.RawContentLength
+    try {
+        $response = Invoke-WebRequest `
+            -Uri $Uri `
+            -UseBasicParsing `
+            -Headers @{ 'Cache-Control' = 'no-cache' } `
+            -ErrorAction Stop
+    }
+    catch {
+        throw "Failed to download profile from '$Uri'. $($_.Exception.Message)"
+    }
 
-    ## (Get-FileHash "$profile").Hash
+    if ($response.StatusCode -lt 200 -or $response.StatusCode -gt 299) {
+        throw "Download failed. HTTP status: $($response.StatusCode) $($response.StatusDescription)"
+    }
 
-    # Check if file already exists
-    if (Test-Path $PROFILE -ErrorAction SilentlyContinue) {
-        $oldContent = Get-Content -Path $PROFILE -Raw -Encoding ASCII
+    $newContent = [string] $response.Content
 
-        if ($oldContent.Trim().ToLower() -eq $newContent.Trim().ToLower()) {
-            Write-Host "The downloaded file is identical to the existing one - no update needed." -ForegroundColor Yellow
-        } else {
-            $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
-            Write-Host "The downloaded file is an UPDATED version - replacing..." -ForegroundColor Green
-        }
-    } else {
-        $newContent | Out-File -FilePath $PROFILE -Encoding ASCII
-        Write-Host "No existing file found - new file created." -ForegroundColor Cyan
+    if ([string]::IsNullOrWhiteSpace($newContent)) {
+        throw "Downloaded profile content is empty."
+    }
+
+    $oldContent = $null
+    $exists = Test-Path -Path $ProfilePath -PathType Leaf
+
+    if ($exists) {
+        $oldContent = Get-Content -Path $ProfilePath -Raw -ErrorAction Stop
+    }
+
+    $oldNormalized = if ($null -ne $oldContent) {
+        $oldContent.Trim() -replace "`r`n", "`n"
+    }
+    else {
+        $null
+    }
+
+    $newNormalized = $newContent.Trim() -replace "`r`n", "`n"
+
+    if ($exists -and $oldNormalized -ceq $newNormalized) {
+        Write-Host "Profile already current: $ProfilePath" -ForegroundColor Yellow
+        return
+    }
+
+    if ($Backup -and $exists) {
+        $backupPath = "$ProfilePath.$(Get-Date -Format 'yyyyMMdd-HHmmss').bak"
+        Copy-Item -Path $ProfilePath -Destination $backupPath -Force
+        Write-Host "Backup created: $backupPath" -ForegroundColor DarkCyan
+    }
+
+    if ($PSCmdlet.ShouldProcess($ProfilePath, 'Overwrite PowerShell profile')) {
+        Set-Content `
+            -Path $ProfilePath `
+            -Value $newContent `
+            -Encoding $Encoding `
+            -Force
+
+        Write-Host "Profile updated: $ProfilePath" -ForegroundColor Green
     }
 }
 #Update-Profile-Force
