@@ -97,6 +97,10 @@ function Install-PSResourceGetSilently {
         throw "Scope=AllUsers requires an elevated PowerShell session (Run as Administrator)."
     }
 
+    if (-not (Invoke-WebRequest https://www.powershellgallery.com) {
+        throw 'No Intenret, Proxy or network blocking access to PowerShell Gallery'
+    }
+
     # Step 1: Ensure TLS 1.2 for Gallery access (required on older hosts)
     [Net.ServicePointManager]::SecurityProtocol =
         [Net.ServicePointManager]::SecurityProtocol -bor
@@ -107,11 +111,22 @@ function Install-PSResourceGetSilently {
     $installed = Get-Module -ListAvailable -Name $names | Group-Object Name -AsHashTable -AsString
 
     # Trust PSGallery to eliminate trust prompts
-    if (Get-Command -Name Set-PSRepository -ErrorAction SilentlyContinue) {
-        $psGallery = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
-        if ($psGallery -and $psGallery.InstallationPolicy -ne 'Trusted') {
-            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-        }
+    $repoName = 'PSGallery'
+    $repoUri  = 'https://www.powershellgallery.com/api/v2'
+    $existing = Get-PSResourceRepository -Name $repoName -ErrorAction SilentlyContinue
+    if (-not $existing) {
+        Register-PSResourceRepository -Name $repoName -Uri $repoUri -ApiVersion V2 -Trusted
+    }
+    ## Provider: PSGallery
+    Write-Output "Enabling and trusting PSGallery..."
+    if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
+        Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction SilentlyContinue
+    }
+    if ((Get-PSResourceRepository -Name PSGallery).Trusted -ne $true) {
+        Set-PSResourceRepository -Name 'PSGallery' -Trusted -ErrorAction SilentlyContinue
+    }
+    if ((Get-PSResourceRepository -Name PSGallery).IsAllowedByPolicy -ne $true) {
+        Set-PSResourceRepository -Name 'PSGallery' -IsAllowedByPolicy $true -ErrorAction SilentlyContinue
     }
 
     # Step 2: Ensure NuGet provider is present (needed for PSGet v2 bootstrap on 5.1)
@@ -124,6 +139,7 @@ function Install-PSResourceGetSilently {
     # Step 3: On Windows PowerShell 5.1, upgrade PackageManagement + PowerShellGet (v2) first
     # (PSResourceGet install depends on having a functioning module installer)
     if ($PSVersionTable.PSVersion.Major -lt 6) {
+        Write-Output "Running on Windows PowerShell (yuk!)..."
         Invoke-WithRetry -Action 'Install/Update PackageManagement' -Script {
             Install-Module -Name PackageManagement -RequiredVersion $PackageManagementVersion `
                 -Scope $Scope -Force -AllowClobber -Confirm:$false
@@ -150,17 +166,6 @@ function Install-PSResourceGetSilently {
 
     # Step 5: Register PSGallery for PSResourceGet (NuGet v2 endpoint is the safe default)
     # PSResourceGet has a known limitation around installing dependencies from NuGet v3 feeds. :contentReference[oaicite:2]{index=2}
-    $repoName = 'PSGallery'
-    $repoUri  = 'https://www.powershellgallery.com/api/v2'
-    $existing = Get-PSResourceRepository -Name $repoName -ErrorAction SilentlyContinue
-    if (-not $existing) {
-        Register-PSResourceRepository -Name $repoName -Uri $repoUri -ApiVersion V2 -Trusted
-    } else {
-        # Ensure trusted
-        if (-not $existing.Trusted) {
-            Set-PSResourceRepository -Name $repoName -Trusted
-        }
-    }
 
     # Report
     Get-Module -Name $names -ListAvailable |
@@ -168,18 +173,6 @@ function Install-PSResourceGetSilently {
         Select-Object Name, Version, ModuleBase
 }
 Install-PSResourceGetSilently
-
-## Provider: PSGallery
-Write-Output "Enabling and trusting PSGallery..."
-if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
-    Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction SilentlyContinue
-}
-if ((Get-PSResourceRepository -Name PSGallery).Trusted -ne $true) {
-    Set-PSResourceRepository -Name 'PSGallery' -Trusted -ErrorAction SilentlyContinue
-}
-if ((Get-PSResourceRepository -Name PSGallery).IsAllowedByPolicy -ne $true) {
-    Set-PSResourceRepository -Name 'PSGallery' -IsAllowedByPolicy $true -ErrorAction SilentlyContinue
-}
 
 ### powershell -NoProfile -Command "Install-Module PSReadLine -AllowClobber -Force; Pause"
 ## New options
