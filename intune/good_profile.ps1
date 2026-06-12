@@ -3407,14 +3407,15 @@ function Write-StepSummary {
             ($InputObject | Out-String).TrimEnd()
         }
 
-        if ($showTimeStamp) {
+        ## Check if we are being run by an Azure Auotmation Acount
+        if ($env:AUTOMATION_ASSET_ACCOUNTID) { 
+            $line = "${env:AUTOMATION_ASSET_ACCOUNTID}: ${prefix}: $text"
+        } elseif ($ShowTimeStamp) {
             $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
             $line = "${timestamp}: ${prefix}: $text"
         } else {
             $line = "${prefix}: $text"
         }
-
-        
         
         if ($useGitHubSummary) {
             Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $line -Encoding utf8
