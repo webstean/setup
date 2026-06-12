@@ -760,7 +760,6 @@ properties:
 #      Edition: Stable
 #      Name: mhutchie.git-graph
 
-
     # VS Code Icon Extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: stable.vscode-icons-team.vscode-icons
@@ -775,15 +774,14 @@ properties:
 
     # VS Code ms-azuretools.vscode-apimanagement Extension
 #    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-#      id: stable.ms-azuretools.vscode-apimanagement
+#      id: ms-azuretools.vscode-apimanagement
 #      dependsOn:
 #        - Microsoft.VisualStudioCode
 #      directives:
-#        description: Install ms-azuretools.vscode-apimanagement extension
-#        allowPrerelease: true
+#        description: Install VSCode extenssion: ms-azuretools.vscode-apimanagement
+#        allowPrerelease: false
 #        securityContext: elevated
 #      settings:
-#        Edition: Stable
 #        Name: ms-azuretools.vscode-apimanagement
 
     # VS Code .NET Development Extension
@@ -792,7 +790,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install C# extension
+        description: Install VSCode extenssion: ms-dotnettools.csharp
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -803,27 +801,13 @@ properties:
       id: stable.microsoft-aspire.aspire-vscode
       dependsOn:
         - Microsoft.VisualStudioCode
+        - Microsoft.Aspire
       directives:
-        description: Install microsoft-aspire.aspire-vscode extension (needs aspire cli installed)
+        description: Install VSCode extenssion: microsoft-aspire.aspire-vscode (needs aspire cli installed)
         allowPrerelease: true
         securityContext: elevated
       settings:
         Name: microsoft-aspire.aspire-vscode
-
-# DOES NOT WORK
-## VS Code Aspire Extension
-#    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-#      id: insider.microsoft-aspire.aspire-vscode
-#      dependsOn:
-#        - Microsoft.VisualStudioCode
-#      directives:
-#        description: Install microsoft-aspire.aspire-vscode extension (needs aspire cli installed)
-#        allowPrerelease: true
-#        securityContext: elevated
-#        edition: insider
-#      settings:
-#        Name: microsoft-aspire.aspire-vscode
-
 
     # VS Code adamwojcikit.pnp-powershell-extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
@@ -831,7 +815,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install adamwojcikit.pnp-powershell-extension extension
+        description: Install VSCode extenssion: adamwojcikit.pnp-powershell-extension
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -843,7 +827,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install 42Crunch.vscode-openapi extension
+        description: Install VSCode extenssion: 42Crunch.vscode-openapi
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -855,7 +839,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install ms-azuretools.vscode-bicep extension
+        description: Install VSCode extenssion: ms-azuretools.vscode-bicep
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -867,11 +851,23 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install github.vscode-github-actions
+        description: Install VSCode extenssion: vscode-github-actions
         allowPrerelease: false
         securityContext: elevated
       settings:
         Name: github.vscode-github-actions
+
+    # VS Code GitHub Codespaces Extension
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: stable.github.codespaces
+      dependsOn:
+        - Microsoft.VisualStudioCode
+      directives:
+        description: Install VSCode extenssion: github.codespaces
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        Name: github.codespaces
 
     # VS Code DotNet extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
