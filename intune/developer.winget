@@ -102,7 +102,7 @@ properties:
     - resource: PSDscResources/Script
       id: Script.Set.Logon.Wallpaper
       directives:
-        description: Set Developer LOGON wallpaper
+        description: Set Developer LOGON wallpaper (won't see it on DevBox/Windows 365)
         securityContext: elevated
       dependsOn:
         - Script.Set.User.Wallpaper
