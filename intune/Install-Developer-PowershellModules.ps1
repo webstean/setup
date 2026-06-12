@@ -289,7 +289,7 @@ function Install-OrUpdate-Module {
         [switch]$Prerelease,
 
         # If set, we attempt to Import-Module after install/update (non-fatal if it fails)
-        [switch]$ImportAfter,
+        [bool]$ImportAfter = $true,
 
         [int]$RetryCount = 3,
         [int]$RetryDelaySeconds = 5
