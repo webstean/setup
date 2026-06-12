@@ -281,18 +281,20 @@ function Install-OrUpdate-Module {
     param(
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
-        [string]$ModuleName,
+        [string] $ModuleName,
 
-        [ValidateSet('CurrentUser','AllUsers')]
-        [string]$Scope = 'AllUsers',
+        [ValidateSet('CurrentUser', 'AllUsers')]
+        [string] $Scope = 'AllUsers',
 
-        [bool]$Prerelease = $true,
+        [bool] $Prerelease = $true,
 
-        # If set, we attempt to Import-Module after install/update (non-fatal if it fails)
-        [bool]$ImportAfter = $true,
+        [bool] $NoUpgrade = $true,
 
-        [int]$RetryCount = 3,
-        [int]$RetryDelaySeconds = 5
+        [bool] $ImportAfter = $true,
+
+        [int] $RetryCount = 3,
+
+        [int] $RetryDelaySeconds = 5
     )
 
     Set-StrictMode -Version Latest
@@ -301,139 +303,172 @@ function Install-OrUpdate-Module {
 
     function Test-IsAdmin {
         $id = [Security.Principal.WindowsIdentity]::GetCurrent()
-        $p  = New-Object Security.Principal.WindowsPrincipal($id)
-        $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        $p  = [Security.Principal.WindowsPrincipal]::new($id)
+
+        return $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     }
 
     function Invoke-WithRetry {
-        param([scriptblock]$Script, [string]$Action)
+        param(
+            [Parameter(Mandatory)]
+            [scriptblock] $Script,
+
+            [Parameter(Mandatory)]
+            [string] $Action
+        )
+
         for ($i = 1; $i -le $RetryCount; $i++) {
-            try { return & $Script }
+            try {
+                return & $Script
+            }
             catch {
-                if ($i -ge $RetryCount) { throw }
+                if ($i -ge $RetryCount) {
+                    throw "Failed action '$Action'. $($_.Exception.Message)"
+                }
+
                 Start-Sleep -Seconds $RetryDelaySeconds
             }
         }
     }
 
     if ($Scope -eq 'AllUsers' -and -not (Test-IsAdmin)) {
-        throw "Scope=AllUsers requires an elevated PowerShell session."
+        throw 'Scope=AllUsers requires an elevated PowerShell session.'
     }
 
-    # Preserve global verbose default
     $hadVerboseDefault = $PSDefaultParameterValues.ContainsKey('*:Verbose')
     $prevVerbose = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose'] = $false
 
     try {
-        # TLS 1.2 for older Windows / PS 5.1 gallery access
         [Net.ServicePointManager]::SecurityProtocol =
             [Net.ServicePointManager]::SecurityProtocol -bor
             [Net.SecurityProtocolType]::Tls12
 
-        # Trust PSGallery for legacy Install-Module path (PowerShellGet v2)
         if (Get-Command Set-PSRepository -ErrorAction SilentlyContinue) {
             $psg = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+
             if ($psg -and $psg.InstallationPolicy -ne 'Trusted') {
                 Set-PSRepository -Name PSGallery -InstallationPolicy Trusted | Out-Null
             }
         }
 
-        # If PSResourceGet cmdlets not available, bootstrap silently.
         if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
-
-            # On Windows PowerShell 5.1, avoid NuGet provider prompts for Install-Module
-            if ($PSVersionTable.PSVersion.Major -lt 6 -and (Get-Command Install-PackageProvider -ErrorAction SilentlyContinue)) {
+            if (
+                $PSVersionTable.PSVersion.Major -lt 6 -and
+                (Get-Command Install-PackageProvider -ErrorAction SilentlyContinue) -and
+                -not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue)
+            ) {
                 Invoke-WithRetry -Action 'Install NuGet provider' -Script {
-                    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$false | Out-Null
+                    Install-PackageProvider `
+                        -Name NuGet `
+                        -MinimumVersion 2.8.5.201 `
+                        -Force `
+                        -Confirm:$false |
+                        Out-Null
                 }
             }
 
             Invoke-WithRetry -Action 'Install Microsoft.PowerShell.PSResourceGet' -Script {
-                Install-Module -Name Microsoft.PowerShell.PSResourceGet -Scope $Scope -Force -AllowClobber -Confirm:$false
+                Install-Module `
+                    -Name Microsoft.PowerShell.PSResourceGet `
+                    -Scope $Scope `
+                    -Force `
+                    -AllowClobber `
+                    -Confirm:$false
             }
 
             Import-Module Microsoft.PowerShell.PSResourceGet -Force
         }
 
-        # Ensure PSResourceGet has PSGallery registered as trusted (NuGet v2 endpoint is safest)
         $repoName = 'PSGallery'
         $repoUri  = 'https://www.powershellgallery.com/api/v2'
+
         $repo = Get-PSResourceRepository -Name $repoName -ErrorAction SilentlyContinue
+
         if (-not $repo) {
-            Register-PSResourceRepository -Name $repoName -Uri $repoUri -ApiVersion V2 -Trusted | Out-Null
-        } elseif (-not $repo.Trusted) {
+            Register-PSResourceRepository `
+                -Name $repoName `
+                -Uri $repoUri `
+                -ApiVersion V2 `
+                -Trusted |
+                Out-Null
+        }
+        elseif (-not $repo.Trusted) {
             Set-PSResourceRepository -Name $repoName -Trusted | Out-Null
         }
 
-        # Determine install vs update using what's on disk (more reliable than Get-PSResource alone)
         $alreadyInstalled = @(Get-Module -ListAvailable -Name $ModuleName)
-        if ($alreadyInstalled.Count -gt 1) {
-            Write-Host "Warning: Multiple versions of '$ModuleName' found!" -ForegroundColor Yellow
+
+        $resourceParams = @{
+            Name            = $ModuleName
+            Repository      = $repoName
+            Scope           = $Scope
+            TrustRepository = $true
+            AcceptLicense   = $true
+            Quiet           = $true
+            ErrorAction     = 'Stop'
+            WarningAction   = 'SilentlyContinue'
+        }
+
+        if ($Prerelease) {
+            $resourceParams.Prerelease = $true
         }
 
         if ($alreadyInstalled.Count -eq 0) {
             Write-Host "Installing '$ModuleName' ($Scope)..." -ForegroundColor Green
 
             Invoke-WithRetry -Action "Install $ModuleName" -Script {
-                $common = @{
-                    Name            = $ModuleName
-                    Repository      = $repoName
-                    Scope           = $Scope
-                    TrustRepository = $true
-                    AcceptLicense   = $true
-                    Quiet           = $true
-                    ErrorAction     = 'Stop'
-                    WarningAction   = 'SilentlyContinue'
-                }
-                if ($Prerelease) { $common.Prerelease = $true }
-                Install-PSResource @common | Out-Null
+                Install-PSResource @resourceParams | Out-Null
             }
+        }
+        elseif ($NoUpgrade) {
+            $latestInstalled = $alreadyInstalled |
+                Sort-Object Version -Descending |
+                Select-Object -First 1
+
+            Write-Host "Skipping upgrade for '$ModuleName'. Already installed. Version: $($latestInstalled.Version)" -ForegroundColor Yellow
         }
         else {
             Write-Host "Updating '$ModuleName' ($Scope)..." -ForegroundColor Cyan
 
             Invoke-WithRetry -Action "Update $ModuleName" -Script {
-                $common = @{
-                    Name            = $ModuleName
-                    Repository      = $repoName
-                    Scope           = $Scope
-                    TrustRepository = $true
-                    AcceptLicense   = $true
-                    Quiet           = $true
-                    ErrorAction     = 'Stop'
-                    WarningAction   = 'SilentlyContinue'
-                }
-                if ($Prerelease) { $common.Prerelease = $true }
-                Update-PSResource @common | Out-Null
+                Update-PSResource @resourceParams | Out-Null
             }
         }
 
         if ($ImportAfter) {
             try {
                 Import-Module $ModuleName -Force -ErrorAction Stop
-            } catch {
-                Write-Host "⚠️ Installed '$ModuleName' but Import-Module failed: $($_.Exception.Message)" -ForegroundColor Yellow
+            }
+            catch {
+                Write-Host "Installed '$ModuleName' but Import-Module failed: $($_.Exception.Message)" -ForegroundColor Yellow
             }
         }
 
-        $latest = Get-Module -ListAvailable -Name $ModuleName | Sort-Object Version -Descending | Select-Object -First 1
+        $latest = Get-Module -ListAvailable -Name $ModuleName |
+            Sort-Object Version -Descending |
+            Select-Object -First 1
+
         if ($latest) {
-            Write-Host "✅ '$ModuleName' installed. Version: $($latest.Version)" -ForegroundColor Green
-        } else {
-            Write-Host "✅ '$ModuleName' install/update completed." -ForegroundColor Green
+            Write-Host "'$ModuleName' available. Version: $($latest.Version)" -ForegroundColor Green
+            return $latest
         }
+
+        Write-Host "'$ModuleName' install/update completed." -ForegroundColor Green
     }
     catch {
-        Write-Host "❌ Failed for '$ModuleName': $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Failed for '$ModuleName': $($_.Exception.Message)" -ForegroundColor Red
         throw
     }
     finally {
-        if ($hadVerboseDefault) { $PSDefaultParameterValues['*:Verbose'] = $prevVerbose }
-        else { $null = $PSDefaultParameterValues.Remove('*:Verbose') }
+        if ($hadVerboseDefault) {
+            $PSDefaultParameterValues['*:Verbose'] = $prevVerbose
+        }
+        else {
+            $null = $PSDefaultParameterValues.Remove('*:Verbose')
+        }
     }
 }
-
 ## Get rid of deprecated modules, in case they are still here
 if (Get-Module -Name AzureAD -ListAvailable -ErrorAction SilentlyContinue) {
     Uninstall-Module AzureAD -Force -ErrorAction SilentlyContinue
