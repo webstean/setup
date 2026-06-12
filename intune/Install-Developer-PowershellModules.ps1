@@ -443,7 +443,6 @@ if (Get-Module -Name AzureAD.Standard.Preview -ListAvailable -ErrorAction Silent
 }
 
 Install-OrUpdate-Module PSWindowsUpdate
-Install-OrUpdate-Module PackageManagement
 Install-OrUpdate-Module Terminal-Icons
 Install-OrUpdate-Module Az.Tools.Migration
 Install-OrUpdate-Module Az.Accounts
@@ -456,21 +455,14 @@ Install-OrUpdate-Module Az.Functions
 Install-OrUpdate-Module Az.ContainerRegistry
 Install-OrUpdate-Module Microsoft.WinGet.Client
 Install-OrUpdate-Module Microsoft.WinGet.Configuration
-Install-OrUpdate-Module Microsoft.Graph
+Install-OrUpdate-Module Microsoft.Graph ## big, but installing bits of it, causes problems later, due to different versions
 Install-OrUpdate-Module MicrosoftTeams
-#Install-OrUpdate-Module VMware.PowerCLI ## VMware PowerCLI (its too big - as no longer used much)
+#Install-OrUpdate-Module VMware.PowerCLI ## VMware PowerCLI (is too big - and no very useful, post-Broadcom)
 Install-OrUpdate-Module Microsoft.PowerApps.Administration.PowerShell
 Install-OrUpdate-Module Microsoft.PowerPlatform.EnterprisePolicies
 Install-OrUpdate-Module JWTDetails
-## Get-PnPTenant
+Install-OrUpdate-Module PnP.PowerShell
 
-## Install-OrUpdate-Module PnP.PowerShell
-if (Get-Module PnP.PowerShell -ErrorAction SilentlyContinue ) {
-    Update-Module -Name PnP.PowerShell
-} else {
-    Install-Module -Name PnP.PowerShell -RequiredVersion 3.1.0
-}
-Get-Command -Module PnP.PowerShell
 ## Connect-PnPOnline -url
 ## Sites.ReadWrite.All     – read/write to all site collections the user can access.
 ## Sites.Manage.All        - lets you manage site permissions via Graph.         –
