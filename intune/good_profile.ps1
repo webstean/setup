@@ -3267,6 +3267,10 @@ function Write-StepSummary {
 
         [Parameter()]
         [switch]$PassThru
+
+        [Parameter()]
+        [bool]$ShowTimeStamp = $false
+    
     )
 
     begin {
@@ -3296,8 +3300,13 @@ function Write-StepSummary {
             ($InputObject | Out-String).TrimEnd()
         }
 
-        $line = "${prefix}: $text"
-
+        if ($showTimeStamp) {
+            $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+            $line = "${timestamp}: ${prefix}: $text"
+        } else {
+            $line = "${prefix}: $text"
+        }
+        
         if ($useGitHubSummary) {
             Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $line -Encoding utf8
         }
