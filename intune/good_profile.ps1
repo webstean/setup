@@ -154,6 +154,19 @@ function Get-DotNetHostInfo {
 
     return $data
 }
+
+function New-ProfileObject {
+    param(
+        [Parameter(Mandatory)]
+        $Properties
+    )
+
+    if ($ExecutionContext.SessionState.LanguageMode -eq 'ConstrainedLanguage') {
+        return $Properties
+    }
+
+    return [pscustomobject]$Properties
+}
 # Get-DotNetHostInfo
 
 #$aw = $(
@@ -196,7 +209,7 @@ function Get-ClmAuditState {
         }
     }
 
-    [pscustomobject]@{
+    New-ProfileObject @{
         LanguageMode      = $languageMode
         EnvLockdownPolicy = $envPolicy
         IsConstrained     = $isConstrained
@@ -213,7 +226,7 @@ function Get-ConstrainedLanguageState {
     $languageMode = $ExecutionContext.SessionState.LanguageMode
     $lockdownPolicy = $ExecutionContext.SessionState.PSVariable.GetValue('__PSLockdownPolicy')
 
-    [pscustomobject]@{
+    New-ProfileObject @{
         LanguageMode    = $languageMode
         LockdownPolicy  = $lockdownPolicy
         IsConstrained   = ($languageMode -eq 'ConstrainedLanguage')
@@ -508,7 +521,7 @@ function Initialize-PSReadLineSmart {
         sets PredictionSource = HistoryAndPlugin.
 
     .OUTPUTS
-        PSCustomObject summarizing what was applied.
+        Object summarizing what was applied. In Constrained Language Mode this is a hashtable.
     #>
     [CmdletBinding()]
     param(
@@ -517,7 +530,7 @@ function Initialize-PSReadLineSmart {
         [bool]$UsePluginIfAvailable = $true
     )
 
-    $result = [pscustomobject]@{
+    $result = New-ProfileObject @{
         PSVersion            = $PSVersionTable.PSVersion.ToString()
         PSEdition            = $PSVersionTable.PSEdition
         PSReadLineVersion    = $null
