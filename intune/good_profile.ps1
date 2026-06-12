@@ -787,27 +787,6 @@ if ($env:STARSHIP_CONFIG -and (Test-Path "$env:STARSHIP_CONFIG" -PathType Leaf) 
     }
 }
 
-## Linux touch 
-function touch {
-    param (
-        [Parameter(Mandatory = $true, ValueFromRemainingArguments = $true)]
-        [string[]]$Paths
-    )
-
-    foreach ($Path in $Paths) {
-        if (Test-Path $Path) {
-            (Get-Item $Path).LastWriteTime = Get-Date
-        }
-        else {
-            New-Item -ItemType File -Path $Path | Out-Null
-        }
-    }
-}
-
-function which {
-    Get-Command @args
-}
-
 function Reset-GitBranch {
 
     # Check Git availability
