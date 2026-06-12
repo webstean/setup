@@ -344,8 +344,8 @@ function Set-WingetConfiguration-Developer {
     winget configure --enable
     winget settings --enable ProxyCommandLineOptions
 
-    $microsoftConfig = Join-Path -Path $Destination -ChildPath 'dev-config.winget'
     $developerConfig = Join-Path -Path $Destination -ChildPath 'developer.winget'
+    $microsoftConfig = Join-Path -Path $Destination -ChildPath 'dev-config.winget'
 
     if (-not (Test-Path -LiteralPath $microsoftConfig)) {
         throw "'$microsoftConfig' from Microsoft not found."
@@ -494,7 +494,7 @@ try {
 
     $csw = [System.Diagnostics.Stopwatch]::StartNew()
     Set-WingetConfiguration-Developer -Destination $global:destination
-    winget configure --file "$developerConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
+    winget configure --file "$script:developerConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
     $csw.Stop()
     Write-Log -Message "winget configuration completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
 
@@ -522,7 +522,7 @@ try {
     Set-WingetConfiguration-Developer -Destination $global:destination
     ## The Microsoft supplied config, include functionality to reboot and restart the iwinget configruration
     ## So it needs to be the last thing we do
-    winget configure --file "$microsoftConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
+    winget configure --file "$script:microsoftConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
     $csw.Stop()
     Write-Log -Message "All winget confguration steps completed in $($elapsed.Elapsed.TotalMinutes.ToString('F2')) minutes. - winget might enforce a reboot"
 } catch {
