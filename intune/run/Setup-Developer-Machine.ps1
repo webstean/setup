@@ -636,10 +636,10 @@ try {
             $csw.Stop()
             Write-Log -Message "[$scriptCount/$($developerScripts.Count)] $developerScript completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
         } catch {
-            Write-Log -Message "Error executing $developerScript: $($_.Exception.Message)" -Level 'ERROR'
+            Write-Log -Message "Error executing ${developerScript}: $($_.Exception.Message)" -Level 'ERROR'
             Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
             $scriptFailures += $developerScript
-            Write-Log -Message "Continuing with next script despite error in $developerScript" -Level 'WARN'
+            Write-Log -Message "Continuing with next script despite error in ${developerScript}" -Level 'WARN'
         }
     }
 
