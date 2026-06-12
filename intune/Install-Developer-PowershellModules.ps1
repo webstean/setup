@@ -359,7 +359,6 @@ function Install-OrUpdate-Module {
         # Ensure PSResourceGet has PSGallery registered as trusted (NuGet v2 endpoint is safest)
         $repoName = 'PSGallery'
         $repoUri  = 'https://www.powershellgallery.com/api/v2'
-
         $repo = Get-PSResourceRepository -Name $repoName -ErrorAction SilentlyContinue
         if (-not $repo) {
             Register-PSResourceRepository -Name $repoName -Uri $repoUri -ApiVersion V2 -Trusted | Out-Null
@@ -369,6 +368,9 @@ function Install-OrUpdate-Module {
 
         # Determine install vs update using what's on disk (more reliable than Get-PSResource alone)
         $alreadyInstalled = @(Get-Module -ListAvailable -Name $ModuleName)
+        if ($alreadyInstalled.Count -gt 1) {
+            Write-Host "Warning: Multiple versions of '$ModuleName' found!" -ForegroundColor Yellow
+        }
 
         if ($alreadyInstalled.Count -eq 0) {
             Write-Host "Installing '$ModuleName' ($Scope)..." -ForegroundColor Green
