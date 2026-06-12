@@ -83,6 +83,8 @@ function Install-PSResourceGetSilently {
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
 
+    $names = @('PowerShellGet','PackageManagement','Microsoft.PowerShell.PSResourceGet')
+
     function Test-IsAdmin {
         $id = [Security.Principal.WindowsIdentity]::GetCurrent()
         $p  = New-Object Security.Principal.WindowsPrincipal($id)
@@ -116,10 +118,6 @@ function Install-PSResourceGetSilently {
         [Net.ServicePointManager]::SecurityProtocol -bor
         [Net.SecurityProtocolType]::Tls12
 
-    # If running PowerShell 7.4+ PSResourceGet is typically already present; still allow pin/update
-    $names = @('PowerShellGet','PackageManagement','Microsoft.PowerShell.PSResourceGet')
-    $installed = Get-Module -ListAvailable -Name $names | Group-Object Name -AsHashTable -AsString
-
     # Trust PSGallery to eliminate trust prompts
     $repoName = 'PSGallery'
     $repoUri  = 'https://www.powershellgallery.com/api/v2'
@@ -140,6 +138,7 @@ function Install-PSResourceGetSilently {
     }
 
     # Step 2: Ensure NuGet provider is present (needed for PSGet v2 bootstrap on 5.1)
+    # If running PowerShell 7.4+ PSResourceGet is typically already present; still allow pin/update
     if (-not (Get-Command -Name Install-PackageProvider -ErrorAction SilentlyContinue)) {
         Invoke-WithRetry -Action 'Install NuGet provider' -Script {
             Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$false | Out-Null
