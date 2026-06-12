@@ -121,7 +121,6 @@ $dotnetTools = @(
         "Microsoft.DataApiBuilder",               ## dab
         "IntuneCLI",                              ## intuneCLI (3rd party)
         "microsoft.powerapps.cli.tool",           ## powerapp tools
-        "Azure.Mcp",                              ## Azure Mcp Server
         "dotnet-reportgenerator-globaltool",      ## report generator
         "Microsoft.OpenApi.Kiota",                ## code generator (openapi)
         "paket",                                  ## Paket dependency manager
@@ -232,21 +231,6 @@ function Install-OrUpdate-DotNetTools {
     Invoke-DotNet -Args $listArgs
 }
 Install-OrUpdate-DotNetTools
-
-## Install Aspire CLI
-## https://aspire.dev/get-started/install-cli/
-try {
-    Invoke-RestMethod  -Uri 'https://aspire.dev/install.ps1' | Invoke-Expression
-    aspire --version
-    aspire config set updateNotificationsEnabled false
-    aspire certs trust --non-interactive
-    if ($LASTEXITCODE -ne 0) {
-        throw "Aspire certificate trust failed with exit code $LASTEXITCODE"
-    }
-}
-catch {
-    Write-Host "Aspire CLI - failed to install or there was an error!"
-}
 
 ## Add NuGet source to dotnet if missing (best-effort)
 try {
@@ -949,7 +933,6 @@ function Set-FolderAclUsersModify {
     .EXAMPLE
       Set-FolderAclUsersModify -Path 'D:\Data' -BreakInheritance:$false
     #>
-    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
     param(
         [Parameter(Position=0)]
         [ValidateNotNullOrEmpty()]
@@ -1000,7 +983,6 @@ function Set-FolderAclUsersModify {
 
             # 1) Take ownership (optional)
             if ($TakeOwnership) {
-                if ($PSCmdlet.ShouldProcess($target, "Take ownership (recursive)")) {
                     & takeown /f "$target" /r /d y | Out-Null
                     Invoke-Icacls -Args @("$target", '/setowner', 'Users', '/t', '/c') | Out-Null
                 }
