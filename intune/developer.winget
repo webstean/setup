@@ -833,6 +833,20 @@ properties:
       settings:
         Name: microsoft-aspire.aspire-vscode
 
+    # VS Code GitHub Pull Request Extension
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: github.vscode-pull-request-github
+      dependsOn:
+        - Microsoft.VisualStudioCode
+        - Git.Git
+        - Microsoft.Aspire
+      directives:
+        description: Install VSCode extension-> github.vscode-pull-request-github 
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        Name: github.vscode-pull-request-github
+        
     # VS Code adamwojcikit.pnp-powershell-extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: adamwojcikit.pnp-powershell-extension
