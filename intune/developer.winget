@@ -778,7 +778,7 @@ properties:
 #      dependsOn:
 #        - Microsoft.VisualStudioCode
 #      directives:
-#        description: Install VSCode extenssion-> ms-azuretools.vscode-apimanagement
+#        description: Install VSCode extension-> ms-azuretools.vscode-apimanagement
 #        allowPrerelease: false
 #        securityContext: elevated
 #      settings:
@@ -790,7 +790,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion-> ms-dotnettools.csharp
+        description: Install VSCode extension-> ms-dotnettools.csharp
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -803,7 +803,7 @@ properties:
         - Microsoft.VisualStudioCode
         - Microsoft.Aspire
       directives:
-        description: Install VSCode extenssion-> microsoft-aspire.aspire-vscode (needs aspire cli installed)
+        description: Install VSCode extension-> microsoft-aspire.aspire-vscode (needs aspire cli installed)
         allowPrerelease: true
         securityContext: elevated
       settings:
@@ -815,7 +815,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion-> adamwojcikit.pnp-powershell-extension
+        description: Install VSCode extension-> adamwojcikit.pnp-powershell-extension
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -827,7 +827,7 @@ properties:
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion-> 42Crunch.vscode-openapi
+        description: Install VSCode extension-> 42Crunch.vscode-openapi
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -835,11 +835,11 @@ properties:
 
     # VS Code bicep Extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.ms-azuretools.vscode-bicep
+      id: ms-azuretools.vscode-bicep
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion-> ms-azuretools.vscode-bicep
+        description: Install VSCode extension-> ms-azuretools.vscode-bicep
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -847,11 +847,11 @@ properties:
 
     # VS Code GitHub Actions Extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.github.vscode-github-actions
+      id: github.vscode-github-actions
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion-> vscode-github-actions
+        description: Install VSCode extension-> vscode-github-actions
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -859,11 +859,11 @@ properties:
 
     # VS Code GitHub Codespaces Extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.github.codespaces
+      id: github.codespaces
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion-> github.codespaces
+        description: Install VSCode extension-> github.codespaces
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -871,11 +871,11 @@ properties:
 
     # VS Code DotNet extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.vscode-ms-dotnettools.vscode-dotnet-runtime
+      id: vscode-ms-dotnettools.vscode-dotnet-runtime
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion-> .NET Install Tool extension
+        description: Install VSCode extension-> .vscode-ms-dotnettools.vscode-dotnet-runtime
         allowPrerelease: false
         securityContext: elevated
       settings:
@@ -883,11 +883,11 @@ properties:
 
     # VS Code DotNet extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.ms-vscode-remote.remote-containers
+      id: ms-vscode-remote.remote-containers
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion-> ms-vscode-remote.remote-containers
+        description: Install VSCode extension-> ms-vscode-remote.remote-containers
         allowPrerelease: true
         securityContext: elevated
       settings:
@@ -895,11 +895,11 @@ properties:
 
     # VS Code C# DEv Kit extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.ms-dotnettools.csdevkit
+      id: ms-dotnettools.csdevkit
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install VSCode extenssion-> ms-dotnettools.csdevkit
+        description: Install VSCode extension-> ms-dotnettools.csdevkit
         allowPrerelease: true
         securityContext: elevated
       settings:
@@ -907,12 +907,12 @@ properties:
 
     # VS Code golang.Go extension
 #    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-#      id: stable.golang.Go.extension
+#      id: golang.Go.extension
 #      dependsOn:
 #        - Microsoft.VisualStudioCode
 #        - GoLang.Go
 #      directives:
-#        description: Install Go Lang extension
+#        description: Install VSCode extension-> Go.extension
 #        allowPrerelease: true
 #        securityContext: elevated
 #        edition: stable
@@ -921,11 +921,11 @@ properties:
 
     # VS Code PowerShell extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.vscode-ms-powershell
+      id: vscode-ms-powershell
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install PowerShell extension
+        description: Install VSCode extension-> powershell
         allowPrerelease: true
         securityContext: elevated
       settings:
@@ -933,11 +933,11 @@ properties:
 
     # VS Code PowerShell extension
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      id: stable.ironmansoftware.powershellprotools
+      id: ironmansoftware.powershellprotools
       dependsOn:
         - Microsoft.VisualStudioCode
       directives:
-        description: Install ironmansoftware.powershellprotools extension
+        description: Install VSCode extension-> ironmansoftware.powershellprotools
         allowPrerelease: true
         securityContext: elevated
       settings:
