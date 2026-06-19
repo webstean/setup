@@ -3737,4 +3737,5 @@ if (Get-Command gh -ErrorAction SilentlyContinue ) {
     if (-not (gh auth status 2>$null)) {
         $env:GH_TOKEN | gh auth login --with-token
     }
+    gh auth status
 }
