@@ -3631,7 +3631,7 @@ function Initialize-WinGetCommandNotFound {
         return $false
     }
 }
-$null = Initialize-WinGetCommandNotFound
+Initialize-WinGetCommandNotFound | Out-Null
 
 ## Installing Ubuntu
 $Distro = "Ubuntu"
@@ -3722,5 +3722,10 @@ function Set-WSLConfig-Ubuntu {
     $wslsetup2 | wsl --user root --distribution ${Distro} --
 }
 #Set-WSLConfig-Ubuntu
+
+if (Get-Command direnv -ErrorAction SilentlyContinue ) {
+    Write-Output "FYI: Enabling direnv hook"
+    Invoke-Expression "$(direnv hook pwsh)"
+}
 
 
