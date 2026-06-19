@@ -3279,21 +3279,22 @@ function Write-StepSummary {
         $InputObject,
 
         [Parameter()]
-        [ValidateSet('info', 'warning', 'success', 'error', 'debug', 'wait', 'waiting', 'warn', 'exception')]
+        [ValidateSet('info', 'warning', 'success', 'error', 'debug', 'wait', 'waiting', 'warn', 'exception', 'skip', 'start', 'complete', 'completed')]
         [string]$Type = 'info',
 
         [Parameter()]
         [switch]$PassThru,
 
         [Parameter()]
-        [bool]$ShowTimeStamp = $false
+        [bool]$ShowTimeStamp = $true
+    
     )
 
     begin {
         $useGitHubSummary = -not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)
 
         $prefixMap = @{
-            exception = '❌'
+            exception = '❌❌'
             info      = 'ℹ️'
             success   = '✅'
             error     = '❌'
@@ -3302,6 +3303,10 @@ function Write-StepSummary {
             waiting   = '⏳'
             warn      = '⚠️'
             warning   = '⚠️'
+            skip      = '⏭️'
+            start     = '🚀'
+            complete  = '🏁'
+            completed = '🏁'
         }
 
         $prefix = $prefixMap[$Type]
@@ -3316,10 +3321,7 @@ function Write-StepSummary {
             ($InputObject | Out-String).TrimEnd()
         }
 
-        ## Check if we are being run by an Azure Auotmation Acount
-        if ($env:AUTOMATION_ASSET_ACCOUNTID) { 
-            $line = "${env:AUTOMATION_ASSET_ACCOUNTID}: ${prefix}: $text"
-        } elseif ($ShowTimeStamp) {
+        if ($showTimeStamp) {
             $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
             $line = "${timestamp}: ${prefix}: $text"
         } else {
@@ -3328,35 +3330,36 @@ function Write-StepSummary {
         
         if ($useGitHubSummary) {
             Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $line -Encoding utf8
+        } else {
+
+            switch ($Type) {
+                'error' {
+                    Write-Error -Message $line
+                }
+
+                'exception' {
+                    Write-Error -Message $line
+                }
+
+                'debug' {
+                    Write-Verbose -Message $line
+                }
+
+                { $_ -in @('warn', 'warning') } {
+                    Write-Warning -Message $line
+                }
+
+                default {
+                    Write-Host $line
+                }
+            }
         }
-
-        switch ($Type) {
-            'error' {
-                Write-Error -Message $line
-            }
-
-            'exception' {
-                Write-Error -Message $line
-            }
-
-            'debug' {
-                Write-Verbose -Message $line
-            }
-
-            { $_ -in @('warn', 'warning') } {
-                Write-Warning -Message $line
-            }
-
-            default {
-                Write-Host $line
-            }
-        }
-
         if ($PassThru) {
             $line
         }
     }
 }
+
 
 function Get-OfficeDocumentMetadata {
     [CmdletBinding()]
