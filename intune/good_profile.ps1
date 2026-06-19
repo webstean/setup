@@ -3727,8 +3727,9 @@ function Set-WSLConfig-Ubuntu {
 #Set-WSLConfig-Ubuntu
 
 if (Get-Command direnv -ErrorAction SilentlyContinue ) {
-    Write-Output "FYI: Enabling direnv hook"
+    Write-StepSummary -type 'info' "Enabling 'direnv' to pickup environment variables from the '.envrc' file (if found)"
     Invoke-Expression "$(direnv hook pwsh)"
+    Invoke-Expression "$(direnv allow)"
 }
 
 
