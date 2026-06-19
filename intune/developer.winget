@@ -70,6 +70,8 @@ properties:
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: direnv.direnv
+      dependsOn:
+        - Git.Git
       directives:
         description: Install direnv.direnv
         securityContext: elevated
