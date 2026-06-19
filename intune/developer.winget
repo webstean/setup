@@ -545,6 +545,7 @@ properties:
         id: Starship.Starship
         source: winget
 
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: jqlang.jq
       directives:
@@ -736,6 +737,7 @@ properties:
       directives:
         description: Install Microsoft.Git
         allowPrerelease: false
+        securityContext: elevated
       settings:
         id: Microsoft.Git
         source: winget
@@ -747,8 +749,22 @@ properties:
       directives:
         description: Install GitHub.Cli
         allowPrerelease: false
+        securityContext: elevated
       settings:
         id: GitHub.Cli
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: GitHub.Copilot.App
+      dependsOn:
+        - Git.Git
+        - GitHub.Cli
+      directives:
+        description: Install GitHub.Copilot.App
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: GitHub.Copilot.App
         source: winget
 
 #    - resource: GitDsc/GitClone
