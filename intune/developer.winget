@@ -68,6 +68,15 @@ properties:
         id: Microsoft.Aspire
         source: winget
 
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: direnv.direnv
+      directives:
+        description: Install direnv.direnv
+        securityContext: elevated
+      settings:
+        id: direnv.direnv
+        source: winget
+
     - resource: PSDscResources/Script
       id: variable.developer
       directives:
