@@ -842,8 +842,10 @@ function t { terraform.exe @args }
 function tf { terraform.exe fmt @args}
 function tv { terraform.exe validate @args }
 function ti { terraform.exe init -upgrade @args}
+function tp { terraform.exe plan @args}
+function ta { terraform.exe apply @args}
 function tc {
-    Write-Host "Starting Terraform Console..."
+    Write-StepSummary -type 'info' "Starting Terraform Console..."
     terraform.exe console @args
 }
 
