@@ -3727,8 +3727,14 @@ function Set-WSLConfig-Ubuntu {
 #Set-WSLConfig-Ubuntu
 
 ## https://github.com/direnv/direnv
+## .envrc files are written in shell syntax, even when you're using PowerShell. direnv reads the file and then injects the resulting environment variables into your PowerShell session.
 ## New-Item .envrc -ItemType File
 if (Get-Command direnv -ErrorAction SilentlyContinue ) {
     Invoke-Expression "$(direnv hook pwsh)"
     Write-StepSummary -ShowTimeStamp $false -type 'info' "Enabled 'direnv' to pickup environment variables from the '.envrc' file (if found)"
+}
+if (Get-Command gh -ErrorAction SilentlyContinue ) {
+    if (-not (gh auth status 2>$null)) {
+        $env:GH_TOKEN | gh auth login --with-token
+    }
 }
