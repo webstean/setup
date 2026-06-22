@@ -61,9 +61,9 @@ wsl.exe --set-default-version 2
 wsl.exe --status
 
 ```
-Info: https://wsl.dev/mobyrhel8/
+Info: https://developers.redhat.com/articles/2025/05/20/getting-started-rhel-windows-subsystem-linux
 
-To get Fedora (RHEL like), you need a separate download via:-
+To get Fedora (RHEL), you need a separate download via:-
 https://github.com/WhitewaterFoundry/Fedora-Remix-for-WSL/releases
 This has to be sideloaded, which typically requires Developer Mode (and local administrator) but can be performed with the following commands:-
 ```powershell
