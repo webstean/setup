@@ -3783,8 +3783,8 @@ function Get-AzVmSku {
     param(
         [string]$Location = "australiaeast",
         [string]$SkuPrefix = "Standard_D",
-        [double]$MinimumRamGB = 16,
-        [double]$MaximumRamGB = 33,
+        [double]$MinimumRamGB = 9,
+        [double]$MaximumRamGB = 20,
         [int]$MaximumCPU = 9,
         [bool]$SpotOnly = $false,
         [switch]$EncryptionAtHostOnly,
@@ -3810,7 +3810,7 @@ function Get-AzVmSku {
 
         [pscustomobject]@{
             Name                      = $sku.name
-            Family                    = $sku.family
+#            Family                    = $sku.family
             vCPUs                     = $vcpus
             RAM_GB                    = $memoryGB
 #            EncryptionAtHostSupported = [bool]::Parse(($caps['EncryptionAtHostSupported'] ?? 'False'))
@@ -3841,5 +3841,5 @@ function Get-AzVmSku {
         $results = $results | Where-Object AcceleratedNetworking
     }
 
-    $results | Sort-Object RAM_GB
+    $results | Sort-Object RAM_GB | Format-Table
 }
