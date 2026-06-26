@@ -3786,7 +3786,7 @@ function Get-AzVmSku {
         [double]$MinimumRamGB = 16,
         [double]$MaximumRamGB = 33,
         [int]$MaximumCPU = 9,
-        [bool]$SpotOnly = $true,
+        [bool]$SpotOnly = $false,
         [switch]$EncryptionAtHostOnly,
         [switch]$AcceleratedNetworkingOnly
     )
