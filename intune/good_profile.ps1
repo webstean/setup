@@ -3777,3 +3777,68 @@ if (Get-Command gh -ErrorAction SilentlyContinue ) {
     }
     gh auth status  --active
 }
+
+function Get-AzVmSku {
+    [CmdletBinding()]
+    param(
+        [Parameter()]
+        [string]$Location = "australiaeast",
+
+        [Parameter()]
+        [string]$SkuPrefix = "Standard_D",
+
+        [Parameter()]
+        [double]$MinimumRamGB = 16,
+
+        [Parameter()]
+        [switch]$SpotOnly,
+
+        [Parameter()]
+        [switch]$EncryptionAtHostOnly
+    )
+
+    $skus = az vm list-skus `
+        --location $Location `
+        --resource-type virtualMachines `
+        --size $SkuPrefix `
+        --all `
+        --output json |
+        ConvertFrom-Json
+
+    $results = foreach ($sku in $skus) {
+
+        $caps = @{}
+        foreach ($cap in $sku.capabilities) {
+            $caps[$cap.name] = $cap.value
+        }
+
+        [PSCustomObject]@{
+            Name                      = $sku.name
+            Family                    = $sku.family
+            vCPUs                     = [int]($caps['vCPUs'])
+            RAM_GB                    = [double]($caps['MemoryGB'])
+            EncryptionAtHostSupported = [bool]::Parse(($caps['EncryptionAtHostSupported'] ?? 'False'))
+            SpotSupported             = [bool]::Parse(($caps['SpotPrioritySupported'] ?? 'False'))
+            AcceleratedNetworking     = [bool]::Parse(($caps['AcceleratedNetworkingEnabled'] ?? 'False'))
+            PremiumIO                 = [bool]::Parse(($caps['PremiumIO'] ?? 'False'))
+            EphemeralOSDiskSupported  = [bool]::Parse(($caps['EphemeralOSDiskSupported'] ?? 'False'))
+            HyperVGenerations         = $caps['HyperVGenerations']
+            CpuArchitecture           = $caps['CpuArchitectureType']
+        }
+    }
+
+    if ($MinimumRamGB -gt 0) {
+        $results = $results | Where-Object RAM_GB -ge $MinimumRamGB
+    }
+
+    if ($SpotOnly) {
+        $results = $results | Where-Object SpotSupported
+    }
+
+    if ($EncryptionAtHostOnly) {
+        $results = $results | Where-Object EncryptionAtHostSupported
+    }
+
+    $results |
+        Sort-Object RAM_GB, vCPUs, Name
+}
