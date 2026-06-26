@@ -3792,20 +3792,17 @@ function Get-AzVmSku {
         [bool]$AvailableOnly = $true
     )
 
-       $skus = az vm list-skus `
+    $skus = az vm list-skus `
         --location $Location `
         --resource-type virtualMachines `
         --all `
         --output json | ConvertFrom-Json
 
-    #$skus = az vm list-skus `
-    #    --location $Location `
-    #    --resource-type virtualMachines `
-    #    --size $SkuPrefix `
-    #    --all `
-    #    --output json | ConvertFrom-Json
-
     $results = foreach ($sku in $skus) {
+        if ($sku.name -notlike "$SkuPrefix*") {
+            continue
+        }
+
         $caps = @{}
 
         foreach ($cap in $sku.capabilities) {
@@ -3816,16 +3813,17 @@ function Get-AzVmSku {
         $vcpus    = if ($caps.ContainsKey('vCPUs')) { [int]$caps['vCPUs'] } else { 0 }
 
         $hasRestrictions = $null -ne $sku.restrictions -and $sku.restrictions.Count -gt 0
-        $available = -not $hasRestrictions
+        $skuAvailable    = -not $hasRestrictions
+        $spotCapable     = [bool]::Parse(($caps['SpotPrioritySupported'] ?? 'False'))
 
         [pscustomobject]@{
             Name                      = $sku.name
             vCPUs                     = $vcpus
             RAM_GB                    = $memoryGB
-            Available                 = $available
+            SkuAvailable              = $skuAvailable
+            SpotCapable               = $spotCapable
             RestrictionReason         = if ($hasRestrictions) { ($sku.restrictions.reasonCode -join ', ') } else { $null }
             RestrictionType           = if ($hasRestrictions) { ($sku.restrictions.type -join ', ') } else { $null }
-            SpotSupported             = [bool]::Parse(($caps['SpotPrioritySupported'] ?? 'False'))
             EncryptionAtHostSupported = [bool]::Parse(($caps['EncryptionAtHostSupported'] ?? 'False'))
             AcceleratedNetworking     = [bool]::Parse(($caps['AcceleratedNetworkingEnabled'] ?? 'False'))
         }
@@ -3838,11 +3836,11 @@ function Get-AzVmSku {
     }
 
     if ($AvailableOnly) {
-        $results = $results | Where-Object { $_.Available }
+        $results = $results | Where-Object { $_.SkuAvailable }
     }
 
     if ($SpotOnly) {
-        $results = $results | Where-Object { $_.SpotSupported }
+        $results = $results | Where-Object { $_.SpotCapable }
     }
 
     if ($EncryptionAtHostOnly) {
@@ -3853,6 +3851,8 @@ function Get-AzVmSku {
         $results = $results | Where-Object { $_.AcceleratedNetworking }
     }
 
-    $results | Sort-Object vCPUs, RAM_GB | Format-Table -AutoSize
-    $results.Count
+    $results = $results | Sort-Object vCPUs, RAM_GB, Name
+
+    $results | Format-Table -AutoSize
+    "Count: $($results.Count)"
 }
