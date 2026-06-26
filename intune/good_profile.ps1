@@ -3788,16 +3788,22 @@ function Get-AzVmSku {
         [int]$MaximumCPU = 9,
         [bool]$SpotOnly = $false,
         [bool]$EncryptionAtHostOnly = $true,
-        [bool]$AcceleratedNetworkingOnly = $false,
+        [bool]$AcceleratedNetworkingOnly = $true,
         [bool]$AvailableOnly = $true
     )
 
-    $skus = az vm list-skus `
+       $skus = az vm list-skus `
         --location $Location `
         --resource-type virtualMachines `
-        --size $SkuPrefix `
         --all `
         --output json | ConvertFrom-Json
+
+    #$skus = az vm list-skus `
+    #    --location $Location `
+    #    --resource-type virtualMachines `
+    #    --size $SkuPrefix `
+    #    --all `
+    #    --output json | ConvertFrom-Json
 
     $results = foreach ($sku in $skus) {
         $caps = @{}
@@ -3847,5 +3853,6 @@ function Get-AzVmSku {
         $results = $results | Where-Object { $_.AcceleratedNetworking }
     }
 
-    $results | Sort-Object RAM_GB, vCPUs, Name | Format-Table -AutoSize
+    $results | Sort-Object vCPUs, Name | Format-Table -AutoSize
+    $results.Count
 }
