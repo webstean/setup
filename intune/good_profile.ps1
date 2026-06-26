@@ -3791,7 +3791,7 @@ function Get-AzVmSku {
         [double]$MinimumRamGB = 16,
 
         [Parameter()]
-        [switch]$SpotOnly,
+        [bool]$SpotOnly = $true,
 
         [Parameter()]
         [switch]$EncryptionAtHostOnly
@@ -3817,13 +3817,13 @@ function Get-AzVmSku {
             Family                    = $sku.family
             vCPUs                     = [int]($caps['vCPUs'])
             RAM_GB                    = [double]($caps['MemoryGB'])
-            EncryptionAtHostSupported = [bool]::Parse(($caps['EncryptionAtHostSupported'] ?? 'False'))
+#            EncryptionAtHostSupported = [bool]::Parse(($caps['EncryptionAtHostSupported'] ?? 'False'))
             SpotSupported             = [bool]::Parse(($caps['SpotPrioritySupported'] ?? 'False'))
             AcceleratedNetworking     = [bool]::Parse(($caps['AcceleratedNetworkingEnabled'] ?? 'False'))
-            PremiumIO                 = [bool]::Parse(($caps['PremiumIO'] ?? 'False'))
-            EphemeralOSDiskSupported  = [bool]::Parse(($caps['EphemeralOSDiskSupported'] ?? 'False'))
-            HyperVGenerations         = $caps['HyperVGenerations']
-            CpuArchitecture           = $caps['CpuArchitectureType']
+#            PremiumIO                 = [bool]::Parse(($caps['PremiumIO'] ?? 'False'))
+#            EphemeralOSDiskSupported  = [bool]::Parse(($caps['EphemeralOSDiskSupported'] ?? 'False'))
+#            HyperVGenerations         = $caps['HyperVGenerations']
+#            CpuArchitecture           = $caps['CpuArchitectureType']
         }
     }
 
