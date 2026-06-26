@@ -3814,7 +3814,7 @@ function Get-AzVmSku {
             vCPUs                     = $vcpus
             RAM_GB                    = $memoryGB
 #            EncryptionAtHostSupported = [bool]::Parse(($caps['EncryptionAtHostSupported'] ?? 'False'))
-            SpotSupported             = [bool]::Parse(($caps['SpotPrioritySupported'] ?? 'False'))
+#            SpotSupported             = [bool]::Parse(($caps['SpotPrioritySupported'] ?? 'False'))
 #            AcceleratedNetworking     = [bool]::Parse(($caps['AcceleratedNetworkingEnabled'] ?? 'False'))
 #            PremiumIO                 = [bool]::Parse(($caps['PremiumIO'] ?? 'False'))
 #            EphemeralOSDiskSupported  = [bool]::Parse(($caps['EphemeralOSDiskSupported'] ?? 'False'))
@@ -3841,5 +3841,5 @@ function Get-AzVmSku {
         $results = $results | Where-Object AcceleratedNetworking
     }
 
-    $results | Sort-Object RAM_GB, vCPUs, Name
+    $results | Sort-Object RAM_GB
 }
