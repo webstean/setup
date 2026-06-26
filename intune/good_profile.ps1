@@ -3854,5 +3854,5 @@ function Get-AzVmSku {
     $results = $results | Sort-Object vCPUs, RAM_GB, Name
 
     $results | Format-Table -AutoSize
-    "Count: $($results.Count)"
+    "Count: $($results.Count) in $($Location)"
 }
