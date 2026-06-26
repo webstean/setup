@@ -3781,20 +3781,14 @@ if (Get-Command gh -ErrorAction SilentlyContinue ) {
 function Get-AzVmSku {
     [CmdletBinding()]
     param(
-        [Parameter()]
         [string]$Location = "australiaeast",
-
-        [Parameter()]
         [string]$SkuPrefix = "Standard_D",
-
-        [Parameter()]
         [double]$MinimumRamGB = 16,
-
-        [Parameter()]
+        [double]$MaximumRamGB = 33,
+        [int]$MaximumCPU = 9,
         [bool]$SpotOnly = $true,
-
-        [Parameter()]
-        [switch]$EncryptionAtHostOnly
+        [switch]$EncryptionAtHostOnly,
+        [switch]$AcceleratedNetworkingOnly
     )
 
     $skus = az vm list-skus `
@@ -3802,33 +3796,37 @@ function Get-AzVmSku {
         --resource-type virtualMachines `
         --size $SkuPrefix `
         --all `
-        --output json |
-        ConvertFrom-Json
+        --output json | ConvertFrom-Json
 
     $results = foreach ($sku in $skus) {
-
         $caps = @{}
+
         foreach ($cap in $sku.capabilities) {
             $caps[$cap.name] = $cap.value
         }
 
-        [PSCustomObject]@{
+        $memoryGB = if ($caps.ContainsKey('MemoryGB')) { [double]$caps['MemoryGB'] } else { 0 }
+        $vcpus    = if ($caps.ContainsKey('vCPUs')) { [int]$caps['vCPUs'] } else { 0 }
+
+        [pscustomobject]@{
             Name                      = $sku.name
             Family                    = $sku.family
-            vCPUs                     = [int]($caps['vCPUs'])
-            RAM_GB                    = [double]($caps['MemoryGB'])
-#            EncryptionAtHostSupported = [bool]::Parse(($caps['EncryptionAtHostSupported'] ?? 'False'))
+            vCPUs                     = $vcpus
+            RAM_GB                    = $memoryGB
+            EncryptionAtHostSupported = [bool]::Parse(($caps['EncryptionAtHostSupported'] ?? 'False'))
             SpotSupported             = [bool]::Parse(($caps['SpotPrioritySupported'] ?? 'False'))
             AcceleratedNetworking     = [bool]::Parse(($caps['AcceleratedNetworkingEnabled'] ?? 'False'))
-#            PremiumIO                 = [bool]::Parse(($caps['PremiumIO'] ?? 'False'))
-#            EphemeralOSDiskSupported  = [bool]::Parse(($caps['EphemeralOSDiskSupported'] ?? 'False'))
-#            HyperVGenerations         = $caps['HyperVGenerations']
-#            CpuArchitecture           = $caps['CpuArchitectureType']
+            PremiumIO                 = [bool]::Parse(($caps['PremiumIO'] ?? 'False'))
+            EphemeralOSDiskSupported  = [bool]::Parse(($caps['EphemeralOSDiskSupported'] ?? 'False'))
+            HyperVGenerations         = $caps['HyperVGenerations']
+            CpuArchitecture           = $caps['CpuArchitectureType']
         }
     }
 
-    if ($MinimumRamGB -gt 0) {
-        $results = $results | Where-Object RAM_GB -ge $MinimumRamGB
+    $results = $results | Where-Object {
+        $_.RAM_GB -ge $MinimumRamGB -and
+        $_.RAM_GB -le $MaximumRamGB -and
+        $_.vCPUs  -le $MaximumCPU
     }
 
     if ($SpotOnly) {
@@ -3839,6 +3837,9 @@ function Get-AzVmSku {
         $results = $results | Where-Object EncryptionAtHostSupported
     }
 
-    $results |
-        Sort-Object RAM_GB, vCPUs, Name
+    if ($AcceleratedNetworkingOnly) {
+        $results = $results | Where-Object AcceleratedNetworking
+    }
+
+    $results | Sort-Object RAM_GB, vCPUs, Name
 }
