@@ -3784,8 +3784,8 @@ function Get-AzVmSku {
         [string]$Location = $(if ($env:AZURE_LOCATION) { $env:AZURE_LOCATION } else { "australiaeast" }),
         [string]$SkuPrefix = "Standard_D",
         [double]$MinimumRamGB = 9,
-        [double]$MaximumRamGB = 20,
-        [int]$MaximumCPU = 9,
+        [double]$MaximumRamGB = 19,
+        [int]$MaximumCPU = 5,
         [bool]$SpotOnly = $false,
         [bool]$EncryptionAtHostOnly = $true,
         [bool]$AcceleratedNetworkingOnly = $true,
@@ -3853,6 +3853,6 @@ function Get-AzVmSku {
         $results = $results | Where-Object { $_.AcceleratedNetworking }
     }
 
-    $results | Sort-Object vCPUs, Name | Format-Table -AutoSize
+    $results | Sort-Object vCPUs, RAM_GB | Format-Table -AutoSize
     $results.Count
 }
