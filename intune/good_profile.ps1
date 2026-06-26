@@ -1,5 +1,10 @@
 ## Note: This FILE is ASCII encoded, for compatibility with Windows Powershell, so any Unicode characters need to be eliminated
 
+#$env:AZURE_CLIENT_ID = az keyvault secret show `
+#    --vault-name mykv `
+#    --name AZURE-CLIENT-ID `
+#    --query value -o tsv
+    
 #Set-ExecutionPolicy Unrestricted -Scope Process
 #Set-ExecutionPolicy Unrestricted -Scope CurrentUser
 #Set-ExecutionPolicy -ExecutionPolicy Unrestricted
