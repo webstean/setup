@@ -3813,13 +3813,13 @@ function Get-AzVmSku {
             Family                    = $sku.family
             vCPUs                     = $vcpus
             RAM_GB                    = $memoryGB
-            EncryptionAtHostSupported = [bool]::Parse(($caps['EncryptionAtHostSupported'] ?? 'False'))
+#            EncryptionAtHostSupported = [bool]::Parse(($caps['EncryptionAtHostSupported'] ?? 'False'))
             SpotSupported             = [bool]::Parse(($caps['SpotPrioritySupported'] ?? 'False'))
-            AcceleratedNetworking     = [bool]::Parse(($caps['AcceleratedNetworkingEnabled'] ?? 'False'))
-            PremiumIO                 = [bool]::Parse(($caps['PremiumIO'] ?? 'False'))
-            EphemeralOSDiskSupported  = [bool]::Parse(($caps['EphemeralOSDiskSupported'] ?? 'False'))
-            HyperVGenerations         = $caps['HyperVGenerations']
-            CpuArchitecture           = $caps['CpuArchitectureType']
+#            AcceleratedNetworking     = [bool]::Parse(($caps['AcceleratedNetworkingEnabled'] ?? 'False'))
+#            PremiumIO                 = [bool]::Parse(($caps['PremiumIO'] ?? 'False'))
+#            EphemeralOSDiskSupported  = [bool]::Parse(($caps['EphemeralOSDiskSupported'] ?? 'False'))
+#            HyperVGenerations         = $caps['HyperVGenerations']
+#            CpuArchitecture           = $caps['CpuArchitectureType']
         }
     }
 
