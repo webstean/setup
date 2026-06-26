@@ -3781,14 +3781,15 @@ if (Get-Command gh -ErrorAction SilentlyContinue ) {
 function Get-AzVmSku {
     [CmdletBinding()]
     param(
-        [string]$Location = "australiaeast",
+        [string]$Location = $(if ($env:AZURE_LOCATION) { $env:AZURE_LOCATION } else { "australiaeast" }),
         [string]$SkuPrefix = "Standard_D",
         [double]$MinimumRamGB = 9,
         [double]$MaximumRamGB = 20,
         [int]$MaximumCPU = 9,
         [bool]$SpotOnly = $false,
-        [switch]$EncryptionAtHostOnly,
-        [switch]$AcceleratedNetworkingOnly
+        [bool]$EncryptionAtHostOnly = $false,
+        [bool]$AcceleratedNetworkingOnly = $false,
+        [bool]$AvailableOnly = $true
     )
 
     $skus = az vm list-skus `
@@ -3808,18 +3809,19 @@ function Get-AzVmSku {
         $memoryGB = if ($caps.ContainsKey('MemoryGB')) { [double]$caps['MemoryGB'] } else { 0 }
         $vcpus    = if ($caps.ContainsKey('vCPUs')) { [int]$caps['vCPUs'] } else { 0 }
 
+        $hasRestrictions = $null -ne $sku.restrictions -and $sku.restrictions.Count -gt 0
+        $available = -not $hasRestrictions
+
         [pscustomobject]@{
             Name                      = $sku.name
-#            Family                    = $sku.family
             vCPUs                     = $vcpus
             RAM_GB                    = $memoryGB
-#            EncryptionAtHostSupported = [bool]::Parse(($caps['EncryptionAtHostSupported'] ?? 'False'))
-#            SpotSupported             = [bool]::Parse(($caps['SpotPrioritySupported'] ?? 'False'))
-#            AcceleratedNetworking     = [bool]::Parse(($caps['AcceleratedNetworkingEnabled'] ?? 'False'))
-#            PremiumIO                 = [bool]::Parse(($caps['PremiumIO'] ?? 'False'))
-#            EphemeralOSDiskSupported  = [bool]::Parse(($caps['EphemeralOSDiskSupported'] ?? 'False'))
-#            HyperVGenerations         = $caps['HyperVGenerations']
-#            CpuArchitecture           = $caps['CpuArchitectureType']
+            Available                 = $available
+            RestrictionReason         = if ($hasRestrictions) { ($sku.restrictions.reasonCode -join ', ') } else { $null }
+            RestrictionType           = if ($hasRestrictions) { ($sku.restrictions.type -join ', ') } else { $null }
+            SpotSupported             = [bool]::Parse(($caps['SpotPrioritySupported'] ?? 'False'))
+            EncryptionAtHostSupported = [bool]::Parse(($caps['EncryptionAtHostSupported'] ?? 'False'))
+            AcceleratedNetworking     = [bool]::Parse(($caps['AcceleratedNetworkingEnabled'] ?? 'False'))
         }
     }
 
@@ -3829,17 +3831,21 @@ function Get-AzVmSku {
         $_.vCPUs  -le $MaximumCPU
     }
 
+    if ($AvailableOnly) {
+        $results = $results | Where-Object { $_.Available }
+    }
+
     if ($SpotOnly) {
-        $results = $results | Where-Object SpotSupported
+        $results = $results | Where-Object { $_.SpotSupported }
     }
 
     if ($EncryptionAtHostOnly) {
-        $results = $results | Where-Object EncryptionAtHostSupported
+        $results = $results | Where-Object { $_.EncryptionAtHostSupported }
     }
 
     if ($AcceleratedNetworkingOnly) {
-        $results = $results | Where-Object AcceleratedNetworking
+        $results = $results | Where-Object { $_.AcceleratedNetworking }
     }
 
-    $results | Sort-Object RAM_GB | Format-Table
+    $results | Sort-Object RAM_GB, vCPUs, Name | Format-Table -AutoSize
 }
