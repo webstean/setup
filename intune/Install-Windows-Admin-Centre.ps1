@@ -145,5 +145,5 @@ if (Test-IsRunningInAzure) {
 }
 
 # Install WAC locally (non-Azure)
-Install-WindowsAdminCenter -WacPort 8443
+# Install-WindowsAdminCenter -WacPort 8443
 
