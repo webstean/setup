@@ -538,7 +538,7 @@ function DisableRecoveryAndReset {
     }
     Write-Host 'Windows RE disabled.'
 }
-DisableRecoveryAndReset
+#DisableRecoveryAndReset
 
 function DisableAutoplay {
     Set-StrictMode -Version Latest
