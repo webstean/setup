@@ -44,8 +44,8 @@ function Set-VSCodeProtocolPolicy {
 
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [ValidateSet("Machine", "User")]
-        [string]$Scope = "Machine",
+        [ValidateSet('Machine', 'User')]
+        [string]$Scope = 'Machine',
 
         [bool]$IncludeGithubDev = $true,
 
@@ -53,17 +53,17 @@ function Set-VSCodeProtocolPolicy {
     )
 
     # Determine registry path based on scope
-    $policyRoot = if ($Scope -eq "Machine") {
-        "HKLM:\SOFTWARE\Policies\Microsoft\Edge"
+    $policyRoot = if ($Scope -eq 'Machine') {
+        'HKLM:\SOFTWARE\Policies\Microsoft\Edge'
     } else {
-        "HKCU:\SOFTWARE\Policies\Microsoft\Edge"
+        'HKCU:\SOFTWARE\Policies\Microsoft\Edge'
     }
 
-    $name = "AutoLaunchProtocolsFromOrigins"
+    $name = 'AutoLaunchProtocolsFromOrigins'
 
     if ($Remove) {
         if (Test-Path $policyRoot) {
-            if ($PSCmdlet.ShouldProcess("$policyRoot\$name", "Remove Edge VSCode protocol policy")) {
+            if ($PSCmdlet.ShouldProcess("$policyRoot\$name", 'Remove Edge VSCode protocol policy')) {
                 Remove-ItemProperty -Path $policyRoot -Name $name -ErrorAction SilentlyContinue
                 Write-Host "Removed $name from $policyRoot" -ForegroundColor Yellow
             }
@@ -74,15 +74,15 @@ function Set-VSCodeProtocolPolicy {
     }
 
     # Build JSON value
-    $origins = @("https://vscode.dev")
+    $origins = @('https://vscode.dev')
     if ($IncludeGithubDev) {
-        $origins += "https://github.dev"
+        $origins += 'https://github.dev'
     }
 
     $configObject = @(
         [PSCustomObject]@{
             allowed_origins = $origins
-            protocol        = "vscode"
+            protocol        = 'vscode'
         }
     )
 
@@ -93,16 +93,16 @@ function Set-VSCodeProtocolPolicy {
         New-Item -Path $policyRoot -Force | Out-Null
     }
 
-    if ($PSCmdlet.ShouldProcess("$policyRoot\$name", "Set Edge VSCode protocol policy")) {
+    if ($PSCmdlet.ShouldProcess("$policyRoot\$name", 'Set Edge VSCode protocol policy')) {
         New-ItemProperty -Path $policyRoot `
-                         -Name $name `
-                         -PropertyType String `
-                         -Value $json `
-                         -Force | Out-Null
+            -Name $name `
+            -PropertyType String `
+            -Value $json `
+            -Force | Out-Null
 
         Write-Host "Set $name on $policyRoot" -ForegroundColor Green
         Write-Host "JSON: $json" -ForegroundColor DarkGray
-        Write-Host "Restart Edge and check edge://policy to confirm the policy is applied." -ForegroundColor Cyan
+        Write-Host 'Restart Edge and check edge://policy to confirm the policy is applied.' -ForegroundColor Cyan
     }
 }
 Set-VSCodeProtocolPolicy -IncludeGithubDev:$true -Scope Machine
@@ -155,7 +155,7 @@ function Set-JsonValue {
 
             # Extract name and optional [index]
             if ($token -match '^(?<name>[^\[\]]+)(\[(?<index>\d+)\])?$') {
-                $name  = $Matches['name']
+                $name = $Matches['name']
                 $index = if ($Matches['index']) { [int]$Matches['index'] } else { $null }
             } else {
                 throw "Invalid path token: '$token'"
@@ -215,25 +215,23 @@ function Set-JsonValue {
             }
         }
 
-        return ; ### $JsonObject
-    }
-    catch {
+        return $JsonObject
+    } catch {
         Write-Error -Message "Set-JsonValue failed at path '$Path': $($_.Exception.Message)"
         throw
     }
 }
 
-
 function Set-MSTerminalSetting {
     param (
         [string]$settingsfile,
-        [string]$ForegroundColor = "#FFFFFF", ## Default white text
+        [string]$ForegroundColor = '#FFFFFF', ## Default white text
         [int]$opacity = 97, ## Default opacity
         [string]$BackgroundImage = "$env:ALLUSERSPROFILE\logo.png", # "ms-appdata:///Roaming/terminal_cat.jpg", ## background image
-        [string]$TabColor = "#012456",
-        [string]$face = "Cascadia Code NF", ## Default font
+        [string]$TabColor = '#012456',
+        [string]$face = 'Cascadia Code NF', ## Default font
         [int]$FontSize = 12, ## Default font size
-        [string]$scheme = "Campbell"
+        [string]$scheme = 'Campbell'
     )
     
     if ($PSVersionTable.PSEdition -eq 'Desktop') {
@@ -249,7 +247,7 @@ function Set-MSTerminalSetting {
     Write-Output "Settings file: $settingsfile"
 
     ## Check if the settings file exists
-    if (-not (Test-Path $settingsfile  -PathType Leaf)) {
+    if (-not (Test-Path $settingsfile -PathType Leaf)) {
         Write-Output "Settings file not found at: $settingsfile. Creating a new one."
         $json = @{
             profiles = @{
@@ -259,7 +257,7 @@ function Set-MSTerminalSetting {
         $json | ConvertTo-Json -Depth 10 -Compress | Set-Content -Path $settingsfile -Force
     }
 
-    if (-not (Test-Path $BackgroundImage  -PathType Leaf)) {
+    if (-not (Test-Path $BackgroundImage -PathType Leaf)) {
         $BackgroundImage = $null
     }
 
@@ -267,74 +265,74 @@ function Set-MSTerminalSetting {
     $json = Get-Content -Path $settingsfile -Raw | ConvertFrom-Json -Depth 10
 
     ## Ensure the profiles object exists
-    if (-Not $json.profiles) {
+    if (-not $json.profiles) {
         $json.profiles = @{}
     }
 
     ## Ensure the profiles.defaults section exists
-    if (-Not $json.profiles.defaults) {
+    if (-not $json.profiles.defaults) {
         $json.profiles.defaults = @{}
     }
 
     ## Global
-    Set-JsonValue -JsonObject $json -Path "confirmCloseAllTabs" -value $false
-    Set-JsonValue -JsonObject $json -Path "alwaysShowTabs" -value $true
-    Set-JsonValue -JsonObject $json -Path "copyOnSelect" -Value $true
-    Set-JsonValue -JsonObject $json -Path "copyFormatting" -Value $false
-    Set-JsonValue -JsonObject $json -Path "centerOnLaunch" -Value $false
-    Set-JsonValue -JsonObject $json -Path "showMarksOnPaste" -Value $false
-    Set-JsonValue -JsonObject $json -Path "bellStyle" -Value $false
-    Set-JsonValue -JsonObject $json -Path "backgroundImageOpacity" -Value [float]"0.25"
-    Set-JsonValue -JsonObject $json -Path "foreground" -Value $ForegroundColor
-    Set-JsonValue -JsonObject $json -Path "opacity" -Value $opacity
-    Set-JsonValue -JsonObject $json -Path "focusFollowMouse" -Value $true
-    Set-JsonValue -JsonObject $json -Path "multiLinePasteWarning" -Value $false
-    Set-JsonValue -JsonObject $json -Path "BellSound" -Value ""
-    Set-JsonValue -JsonObject $json -Path "initialRows" -Value 35
-    Set-JsonValue -JsonObject $json -Path "focusFollowMouse" -Value $true
-    Set-JsonValue -JsonObject $json -Path "update.showReleaseNotes" -Value $false
-    Set-JsonValue -JsonObject $json -Path "git.autofetch" -Value $true
-    Set-JsonValue -JsonObject $json -Path "editor.formatOnSave" -Value $true
-    Set-JsonValue -JsonObject $json -Path "files.autoSave" -Value $true
-    Set-JsonValue -JsonObject $json -Path "editor.defaultFormatter" -Value "GitHub.copilot-chat"
-    Set-JsonValue -JsonObject $json -Path "powershell.codeFormatting.newLineBeforeElse" -Value $false
+    Set-JsonValue -JsonObject $json -Path 'confirmCloseAllTabs' -value $false
+    Set-JsonValue -JsonObject $json -Path 'alwaysShowTabs' -value $true
+    Set-JsonValue -JsonObject $json -Path 'copyOnSelect' -Value $true
+    Set-JsonValue -JsonObject $json -Path 'copyFormatting' -Value $false
+    Set-JsonValue -JsonObject $json -Path 'centerOnLaunch' -Value $false
+    Set-JsonValue -JsonObject $json -Path 'showMarksOnPaste' -Value $false
+    Set-JsonValue -JsonObject $json -Path 'bellStyle' -Value $false
+    Set-JsonValue -JsonObject $json -Path 'backgroundImageOpacity' -Value [float]"0.25"
+    Set-JsonValue -JsonObject $json -Path 'foreground' -Value $ForegroundColor
+    Set-JsonValue -JsonObject $json -Path 'opacity' -Value $opacity
+    Set-JsonValue -JsonObject $json -Path 'focusFollowMouse' -Value $true
+    Set-JsonValue -JsonObject $json -Path 'multiLinePasteWarning' -Value $false
+    Set-JsonValue -JsonObject $json -Path 'BellSound' -Value ''
+    Set-JsonValue -JsonObject $json -Path 'initialRows' -Value 35
+    Set-JsonValue -JsonObject $json -Path 'focusFollowMouse' -Value $true
+    Set-JsonValue -JsonObject $json -Path 'update.showReleaseNotes' -Value $false
+    Set-JsonValue -JsonObject $json -Path 'git.autofetch' -Value $true
+    Set-JsonValue -JsonObject $json -Path 'editor.formatOnSave' -Value $true
+    Set-JsonValue -JsonObject $json -Path 'files.autoSave' -Value $true
+    Set-JsonValue -JsonObject $json -Path 'editor.defaultFormatter' -Value 'GitHub.copilot-chat'
+    Set-JsonValue -JsonObject $json -Path 'powershell.codeFormatting.newLineBeforeElse' -Value $false
            
     #Set-JsonValue -JsonObject $json -Path "startupActions" -Value "newTab -p 'PowerShell'; newTab -p 'Headless Helper'"
     #Set-JsonValue -JsonObject $json -Path "wt -p "Command Prompt" `; split-pane -p "Windows PowerShell" `; split-pane -H wsl.exe
 
     ## Profiles
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.historySize" -Value 50000
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.snapOnInput" -Value $true
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.bellStyle" -Value "none"
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.historySize' -Value 50000
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.snapOnInput' -Value $true
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.bellStyle' -Value 'none'
 
     $Workspace = "$env:SystemDrive\WORKSPACES"
     if ( -not ( Test-Path "${Workspace}" -PathType Container) ) {
         New-Item -Path "${Workspace}" -ItemType Directory | Out-Null
     }
     if ( Test-Path "${Workspace}" -PathType Container) {
-        Set-JsonValue -JsonObject $json -Path "profiles.defaults.startingDirectory" -Value "${Workspace}"
+        Set-JsonValue -JsonObject $json -Path 'profiles.defaults.startingDirectory' -Value "${Workspace}"
     }
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.useAcrylic" -Value $true
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.useAcrylicInTabRow" -Value $true
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.acrylicOpacity" -Value 0.75
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.cursorColor" -Value "#FFFFFF"
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.scrollbarState" -Value "always"
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.colorScheme" -Value $scheme
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.tabColor" -Value $tabColor
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.useAcrylicInTabRow" -Value $true
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.font.face" -Value $face
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.font.size" -Value $FontSize
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.font.weight" -Value "normal"
-    Set-JsonValue -JsonObject $json -Path "editor.fontFamily" -Value "FiraCode"
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.useAcrylic' -Value $true
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.useAcrylicInTabRow' -Value $true
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.acrylicOpacity' -Value 0.75
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.cursorColor' -Value '#FFFFFF'
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.scrollbarState' -Value 'always'
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.colorScheme' -Value $scheme
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.tabColor' -Value $tabColor
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.useAcrylicInTabRow' -Value $true
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.font.face' -Value $face
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.font.size' -Value $FontSize
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.font.weight' -Value 'normal'
+    Set-JsonValue -JsonObject $json -Path 'editor.fontFamily' -Value 'FiraCode'
 
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.backgroundImageAlignment" -Value "bottomRight"
-    Set-JsonValue -JsonObject $json -Path "profiles.defaults.backgroundImageStretchMode" -Value "none"
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.backgroundImageAlignment' -Value 'bottomRight'
+    Set-JsonValue -JsonObject $json -Path 'profiles.defaults.backgroundImageStretchMode' -Value 'none'
     if ( Test-Path "$BackgroundImage" ) {
-        Set-JsonValue -JsonObject $json -Path "profiles.defaults.backgroundImage" -Value $BackgroundImage
+        Set-JsonValue -JsonObject $json -Path 'profiles.defaults.backgroundImage' -Value $BackgroundImage
     } else {
         if ( Test-Path "$PSScriptRoot/logo.png" ) {
             Copy-Item "$PSScriptRoot/logo.png" "$env:ALLUSERSPROFILE\logo.png" -Force
-            Set-JsonValue -JsonObject $json -Path "profiles.defaults.backgroundImage" -Value "$env:ALLUSERSPROFILE\logo.png"
+            Set-JsonValue -JsonObject $json -Path 'profiles.defaults.backgroundImage' -Value "$env:ALLUSERSPROFILE\logo.png"
         } else {
             Write-Host "Warning: '$BackgroundImage' was NOT found!"
         }
@@ -346,30 +344,30 @@ function Set-MSTerminalSetting {
     Write-Output "Backup created at: $backupPath"
 
     $json | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsfile -Force
-    Write-Output "Terminal settings updated successfully. Restart Microsoft Terminal to apply changes."
+    Write-Output 'Terminal settings updated successfully. Restart Microsoft Terminal to apply changes.'
 }
 ## Terminal (unpackaged: Scoop, Chocolately, etc): $env:{LOCALAPPDATA}\Microsoft\Windows Terminal\settings.json
 ## $statefile = [Environment]::GetFolderPath("localapplicationdata") + "\Microsoft\Windows Terminal\state.json"
-$settingsfile = [Environment]::GetFolderPath("localapplicationdata") + "\Microsoft\Windows Terminal\settings.json"
+$settingsfile = [Environment]::GetFolderPath('localapplicationdata') + '\Microsoft\Windows Terminal\settings.json'
 if (Test-Path -Path $settingsfile -PathType Leaf) {
-    Write-Output "MS Terminal Settings for unpackaged version..."
+    Write-Output 'MS Terminal Settings for unpackaged version...'
     Set-MSTerminalSetting -settingsfile $settingsfile
 }
 
 ## Terminal (preview release): %LOCALAPPDATA%\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json
 ## $statefile = [Environment]::GetFolderPath("localapplicationdata") + "\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\state.json"
-$settingsfile = [Environment]::GetFolderPath("localapplicationdata") + "\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json"
+$settingsfile = [Environment]::GetFolderPath('localapplicationdata') + '\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json'
 if (Test-Path -Path $settingsfile -PathType Leaf) {
     ##Remove-Item $settingsfile -Force
-    Write-Output "MS Terminal Settings for preview version..."
+    Write-Output 'MS Terminal Settings for preview version...'
     ##Set-MSTerminalSetting $settingsfile
 }
 
 ## Terminal (stable / general release): $env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json
 ## $statefile = [Environment]::GetFolderPath("localapplicationdata") + "\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\state.json"
-$settingsfile = [Environment]::GetFolderPath("localapplicationdata") + "\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
+$settingsfile = [Environment]::GetFolderPath('localapplicationdata') + '\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json'
 if (Test-Path -Path $settingsfile -PathType Leaf) {
-    Write-Output "MS Terminal Settings for stable version..."
+    Write-Output 'MS Terminal Settings for stable version...'
     Set-MSTerminalSetting -settingsfile $settingsfile
 }
 
@@ -377,10 +375,10 @@ if (Test-Path -Path $settingsfile -PathType Leaf) {
 function Add-DirectoryToPath {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Directory,
 
-        [ValidateSet('User','System')]
+        [ValidateSet('User', 'System')]
         [string]$Scope = 'User'
     )
 
@@ -425,7 +423,7 @@ function Set-DesktopIconsVisibility {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)]
-        [ValidateSet('Show','Hide')]
+        [ValidateSet('Show', 'Hide')]
         [string]$State,
 
         [switch]$RestartExplorer
@@ -436,8 +434,10 @@ function Set-DesktopIconsVisibility {
 
     $value = if ($State -eq 'Hide') { 1 } else { 0 }
 
-    if ($PSCmdlet.ShouldProcess("Desktop Icons", $State)) {
-        CreateIfNotExists "$regPath"
+    if ($PSCmdlet.ShouldProcess('Desktop Icons', $State)) {
+        if (-not (Test-Path -LiteralPath $regPath)) {
+            New-Item -Path $regPath -Force | Out-Null
+        }
         Set-ItemProperty -Path $regPath -Name $valueName -Type DWord -Value $value
     }
 
@@ -449,7 +449,7 @@ Set-DesktopIconsVisibility -State Hide
 
 ## Generate StrongPassword for developers, used in scripts such as SQL Server installations
 if ( [string]::IsNullOrWhiteSpace($env:STRONGPASSWORD)) {
-    Write-Output "Generating a random password retained as an environment variable..."
+    Write-Output 'Generating a random password retained as an environment variable...'
     ## All uppercase and lowercase letters, all numbers and some special characters.
     ## Make sure the first character is a letter
     $randompwd = @()
@@ -465,19 +465,19 @@ if ( [string]::IsNullOrWhiteSpace($env:STRONGPASSWORD)) {
     $charlist += [char]91  ## [
     $charlist += [char]65..[char]90  ## A to Z
     $charlist += [char]97..[char]122 ## a to z
-    $charlist = -Join $charlist
+    $charlist = -join $charlist
     $passwordLength = 32  # Set the desired password length
     for ($i = 1; $i -lt $passwordLength; $i++) {
         $randompwd += ($charlist[(Get-Random -Minimum 0 -Maximum $charlist.Length)])
     }
     ## Join all the individual characters together into one string using the -JOIN operator
-    $randompwd = -Join $randompwd
+    $randompwd = -join $randompwd
     Write-Output "Generated Password: $randompwd"
 
     [Environment]::SetEnvironmentVariable('STRONGPASSWORD', "$randompwd", 'User')
 }
 
-Write-Output ("Setting Environment Variables for Developers...") 
+Write-Output ('Setting Environment Variables for Developers...') 
 
 function Set-EnvironmentVariable {
     <#
@@ -511,7 +511,7 @@ function Set-EnvironmentVariable {
         [Parameter(Mandatory)]
         [string]$Value,
 
-        [ValidateSet('User','Machine')]
+        [ValidateSet('User', 'Machine')]
         [string]$Scope = 'User',
 
         [switch]$Refresh
@@ -523,10 +523,9 @@ function Set-EnvironmentVariable {
 
         if ($Refresh) {
             env:${Name} = $Value
-            Write-Output "🔄 Session environment updated."
+            Write-Output '🔄 Session environment updated.'
         }
-    }
-    catch {
+    } catch {
         Write-Error "❌ Failed to set environment variable '$Name': $($_.Exception.Message)"
     }
 }
@@ -535,7 +534,7 @@ function Set-EnvironmentVariable {
 $getupn = @(whoami /upn)
 if ( -not ([string]::IsNullOrWhiteSpace($getupn))) {
     [Environment]::SetEnvironmentVariable('UPN', "$getupn", 'User')
-    $env:UPN = [System.Environment]::GetEnvironmentVariable("UPN", "User")
+    $env:UPN = [System.Environment]::GetEnvironmentVariable('UPN', 'User')
 }
 
 ## Azure CLI configuration
@@ -556,8 +555,7 @@ try {
     az version
     ## az ad user show --id (Get-Item Env:UPN).Value
     ## az ad signed-in-user show
-}
-catch {
+} catch {
     Write-Output "An error occurred while configuring Azure CLI: $_" 
     Write-Output "Exception Type: $($_.Exception.GetType().FullName)" 
     Write-Output "Exception Message: $($_.Exception.Message)" 
@@ -570,9 +568,9 @@ try {
     git config --global color.ui true
     ## git config --global user.name `"$($env:USERNAME)`"
     if ($env:UPN) {
-        git config --global user.email "(Get-Item Env:UPN).Value"
+        git config --global user.email "$env:UPN"
     } else {
-        git config --global user.name `"webstean@gmail.com`"
+        git config --global user.email 'webstean@gmail.com'
     }
     
     git config --global core.autocrlf true          # per-user solution
@@ -598,8 +596,7 @@ try {
     #        dotnet dev-certs https --export-path "$devcertname" --password (Get-Item "$Env:STRONGPASSWORD" -ErrorAction SilentlyContinue ).Value)
     #    }
     #}
-}
-catch {
+} catch {
     Write-Output "An exception occurred: $_" 
     Write-Output "Exception Type: $($_.Exception.GetType().FullName)" 
     Write-Output "Exception Message: $($_.Exception.Message)" 
@@ -609,7 +606,7 @@ catch {
 ## Unpin Microsoft Store on taskbar
 function Remove-MicrosoftStore-Taskbar-Icon {
     # Define the application name to unpin
-    $appName = "Microsoft Store"
+    $appName = 'Microsoft Store'
 
     # Access the taskbar items and filter for the specified application
     $taskbarItems = (New-Object -ComObject Shell.Application).NameSpace('shell:::{4234d49b-0245-4df3-b780-3893943456e1}').Items()
@@ -622,7 +619,7 @@ Remove-MicrosoftStore-Taskbar-Icon
 
 
 $BIN = "$env:SystemDrive\BIN"
-Add-DirectoryToPath -Directory "${BIN}" -Scope "User"
+Add-DirectoryToPath -Directory "${BIN}" -Scope 'User'
 
 # List of commands you want to exclude from AV
 $commands = @(
@@ -644,13 +641,20 @@ foreach ($name in $commands) {
 
 Write-Output ("Configuring Oh My Posh, if it isn't already installed...")
 ## Oh My Posh
-If (Get-Command -ErrorAction SilentlyContinue aaoh-my-posh ) {
-    $config = (Get-Command -ErrorAction SilentlyContinue oh-my-posh).Source
+if (Get-Command -ErrorAction SilentlyContinue oh-my-posh ) {
+    $ohMyPosh = Get-Command -ErrorAction SilentlyContinue oh-my-posh
     ### Winget install will set the POSH_THEMES_PATH variable
     ### FYI: Meslo is the default font for Windows Terminal
     ## $env:POSH_THEMES_PATH = [System.Environment]::GetEnvironmentVariable("POSH_THEMES_PATH","User")
     #oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\cloud-native-azure.omp.json" | Invoke-Expression
-    oh-my-posh init pwsh --config "C:\Program Files\WindowsApps\ohmyposh.cli_27.5.0.0_x64__96v55e8n804z4\themes\cloud-native-azure.omp.json" | Invoke-Expression
+    $ohMyPoshConfig = 'C:\Program Files\WindowsApps\ohmyposh.cli_27.5.0.0_x64__96v55e8n804z4\themes\cloud-native-azure.omp.json'
+    if (-not (Test-Path -LiteralPath $ohMyPoshConfig) -and $env:POSH_THEMES_PATH) {
+        $candidate = Join-Path -Path $env:POSH_THEMES_PATH -ChildPath 'cloud-native-azure.omp.json'
+        if (Test-Path -LiteralPath $candidate) {
+            $ohMyPoshConfig = $candidate
+        }
+    }
+    & $ohMyPosh.Source init pwsh --config $ohMyPoshConfig | Invoke-Expression
     ### Init in profile
     ## Option #1
     #oh-my-posh init pwsh | Invoke-Expression
@@ -660,11 +664,11 @@ If (Get-Command -ErrorAction SilentlyContinue aaoh-my-posh ) {
 } 
 
 ## Define the path for the .log extension and the program path
-$extensionKey = "HKCU:\Software\Classes\.log"
+$extensionKey = 'HKCU:\Software\Classes\.log'
 
 # Define paths and program to associate
-$extensionKey = "HKCU:\Software\Classes\.log"
-$fileTypeKey = "HKCU:\Software\Classes\LogExpertFile"
+$extensionKey = 'HKCU:\Software\Classes\.log'
+$fileTypeKey = 'HKCU:\Software\Classes\LogExpertFile'
 $commandKey = "$fileTypeKey\shell\open\command"
 $programPath = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\zarunbal.LogExpert_Microsoft.Winget.Source_8wekyb3d8bbwe\logexpert.exe"
 
@@ -672,7 +676,7 @@ $programPath = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\zarunbal.LogExpert_M
 if (-not (Test-Path $extensionKey)) {
     New-Item -Path $extensionKey -Force
 }
-Set-ItemProperty -Path $extensionKey -Name "(Default)" -Value "LogExpertFile"
+Set-ItemProperty -Path $extensionKey -Name '(Default)' -Value 'LogExpertFile'
 
 # Ensure LogExpertFile key exists
 if (-not (Test-Path $fileTypeKey)) {
@@ -685,11 +689,11 @@ if (-not (Test-Path $commandKey)) {
 }
 
 # Set the command to open LogExpert for LogExpertFile type
-Set-ItemProperty -Path $commandKey -Name "(Default)" -Value "`"$programPath`" `"%1`""
+Set-ItemProperty -Path $commandKey -Name '(Default)' -Value "`"$programPath`" `"%1`""
 
 # Now, set LogExpert as the default app for .log files
-$defaultAppProgID = "LogExpertFile"
-$assocKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.log"
+$defaultAppProgID = 'LogExpertFile'
+$assocKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.log'
 
 # Remove old file associations (if any)
 if (Test-Path $assocKey) {
@@ -698,7 +702,7 @@ if (Test-Path $assocKey) {
 
 # Set the file extension association for .log to the LogExpertFile type
 New-Item -Path $assocKey -Force
-Set-ItemProperty -Path $assocKey -Name "UserChoice" -Value @{
+Set-ItemProperty -Path $assocKey -Name 'UserChoice' -Value @{
     Progid = $defaultAppProgID
 }
 #cmd.exe /c assoc .log=LogExpertFile
@@ -788,9 +792,9 @@ function Set-PodmanConfig {
 
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [ValidateSet('enforcing','permissive','disabled')]
+        [ValidateSet('enforcing', 'permissive', 'disabled')]
         [string]$ShortNameMode = 'permissive',
-        [ValidateSet('file','journald','none')]
+        [ValidateSet('file', 'journald', 'none')]
         [string]$EventsLogger = 'file',
         [bool]$MinimiseOnLogin = $true,
         [bool]$ExperimentalFeedback = $false,
@@ -806,14 +810,14 @@ function Set-PodmanConfig {
     }
 
     # --- Paths ---
-    $confRoot       = Join-Path $HOME ".config\containers"
-    $containersFile = Join-Path $confRoot "containers.conf"
-    $desktopConfig  = Join-Path $Env:APPDATA "Podman Desktop\config.json"
+    $confRoot = Join-Path $HOME '.config\containers'
+    $containersFile = Join-Path $confRoot 'containers.conf'
+    $desktopConfig = Join-Path $Env:APPDATA 'Podman Desktop\config.json'
 
     # Likely install locations (for autostart)
     $exeCandidates = @(
-        (Join-Path $Env:LOCALAPPDATA "Programs\Podman Desktop\Podman Desktop.exe"),
-        (Join-Path $Env:ProgramFiles  "RedHat\Podman Desktop\Podman Desktop.exe")
+        (Join-Path $Env:LOCALAPPDATA 'Programs\Podman Desktop\Podman Desktop.exe'),
+        (Join-Path $Env:ProgramFiles 'RedHat\Podman Desktop\Podman Desktop.exe')
     )
     $podmanDesktopExe = $exeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 
@@ -825,7 +829,7 @@ function Set-PodmanConfig {
     # --- containers.conf ---
     $containersLines = @(
         "# Generated by Set-PodmanConfig on $(Get-Date -Format s)"
-        "[engine]"
+        '[engine]'
         "events_logger = ""$EventsLogger"""
         "short_name_mode = ""$ShortNameMode"""
     )
@@ -836,17 +840,17 @@ function Set-PodmanConfig {
         try {
             $json = Get-Content $desktopConfig -Raw | ConvertFrom-Json -ErrorAction Stop
         } catch {
-            if (-not $Silent) { Write-Warning "Existing config.json invalid; recreating." }
+            if (-not $Silent) { Write-Warning 'Existing config.json invalid; recreating.' }
             $json = @{}
         }
     } else {
         $json = @{}
     }
 
-    $json.minimizeOnStartup               = [bool]$MinimiseOnLogin
-    $json.experimentalFeedbackEnabled     = [bool]$ExperimentalFeedback
-    $json.telemetryEnabled                = [bool]$Telemetry
-    $json.dockerExtensionsEnabled         = -not [bool]$HideDockerExtensions
+    $json.minimizeOnStartup = [bool]$MinimiseOnLogin
+    $json.experimentalFeedbackEnabled = [bool]$ExperimentalFeedback
+    $json.telemetryEnabled = [bool]$Telemetry
+    $json.dockerExtensionsEnabled = -not [bool]$HideDockerExtensions
     $json.showDockerExtensionsInDashboard = -not [bool]$HideDockerExtensions
 
     $json | ConvertTo-Json -Depth 6 | Set-Content -Path $desktopConfig -Encoding UTF8
@@ -869,7 +873,7 @@ function Set-PodmanConfig {
     Out-Info "`n✅ Podman configuration updated:" Green
     Out-Info " - $containersFile"
     Out-Info " - $desktopConfig (minimizeOnStartup=$MinimiseOnLogin, feedback=$ExperimentalFeedback, telemetry=$Telemetry, hideDockerExtensions=$HideDockerExtensions)"
-    Out-Info (" - Windows Startup: " + ($(if ($AutoLaunch) { "Enabled" } else { "Disabled" })))
+    Out-Info (' - Windows Startup: ' + ($(if ($AutoLaunch) { 'Enabled' } else { 'Disabled' })))
 }
 
 function Enable-PodmanFirewallRules {
@@ -892,12 +896,12 @@ function Enable-PodmanFirewallRules {
 
     # Verify admin privileges
     if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
-        [Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        Write-Error "Please run PowerShell as Administrator."
+            [Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Write-Error 'Please run PowerShell as Administrator.'
         return
     }
 
-    Write-Host "Enabling Podman Desktop firewall rules..." -ForegroundColor Cyan
+    Write-Host 'Enabling Podman Desktop firewall rules...' -ForegroundColor Cyan
 
     # Locate Podman executables
     $podmanPaths = @(
@@ -914,7 +918,7 @@ function Enable-PodmanFirewallRules {
     }
 
     if ($rules) {
-        Write-Host "Found existing Podman-related rules. Ensuring they are enabled..." -ForegroundColor Yellow
+        Write-Host 'Found existing Podman-related rules. Ensuring they are enabled...' -ForegroundColor Yellow
         $rules | ForEach-Object {
             if ($_.Enabled -eq 'False') {
                 Write-Host "Enabling rule: $($_.DisplayName)" -ForegroundColor Green
@@ -922,7 +926,7 @@ function Enable-PodmanFirewallRules {
             }
         }
     } else {
-        Write-Host "No existing Podman firewall rules found. Creating new ones..." -ForegroundColor Yellow
+        Write-Host 'No existing Podman firewall rules found. Creating new ones...' -ForegroundColor Yellow
         foreach ($exe in $podmanPaths) {
             $name = Split-Path $exe -Leaf
             Write-Host "Creating firewall rules for $name" -ForegroundColor Green
@@ -931,7 +935,7 @@ function Enable-PodmanFirewallRules {
         }
     }
 
-    Write-Host "✅ Podman Desktop firewall rules are now enabled and active." -ForegroundColor Green
+    Write-Host '✅ Podman Desktop firewall rules are now enabled and active.' -ForegroundColor Green
 }
 Enable-PodmanFirewallRules
 
@@ -944,9 +948,9 @@ function Set-StarshipConfig {
     param(
         [switch]$AddInitToProfile,
         [string]$AdminStyle = 'bold red',
-        [string]$UserStyle  = 'bold green',
-        [string]$AdminIcon  = '󰷛',
-        [string]$UserIcon   = '󰈸'
+        [string]$UserStyle = 'bold green',
+        [string]$AdminIcon = '󰷛',
+        [string]$UserIcon = '󰈸'
     )
 
     $result = [pscustomobject]@{
@@ -959,20 +963,20 @@ function Set-StarshipConfig {
     }
 
     # Paths
-    $configDir    = Join-Path $env:USERPROFILE '.config'
+    $configDir = Join-Path $env:USERPROFILE '.config'
     $starshipToml = Join-Path $configDir 'starship.toml'
     $result.ConfigPath = $env:STARSHIP_CONFIG
     
     # Download a config
     $url = 'https://raw.githubusercontent.com/TaouMou/starship-presets/refs/heads/main/starship_pills.toml'
     $url = 'https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/starship_pill.toml'
-    $response = Invoke-WebRequest -Uri $url -ContentType "text/plain" -UseBasicParsing
+    $response = Invoke-WebRequest -Uri $url -ContentType 'text/plain' -UseBasicParsing
     $response.Content | Out-File $HOME/.starship_pill.toml
     Copy-Item $HOME/.starship_pill.toml $result.ConfigPath
     
     # Ensure dirs/files
-    if (-not (Test-Path $configDir))   { New-Item -ItemType Directory -Path $configDir   -Force | Out-Null }
-    if (-not (Test-Path $starshipToml)){ New-Item -ItemType File      -Path $starshipToml -Force | Out-Null }
+    if (-not (Test-Path $configDir)) { New-Item -ItemType Directory -Path $configDir -Force | Out-Null }
+    if (-not (Test-Path $starshipToml)) { New-Item -ItemType File -Path $starshipToml -Force | Out-Null }
 
     # Use single-quoted here-strings so $ stays literal inside TOML
     $adminBlock = @'
@@ -995,7 +999,7 @@ style = "__USER_STYLE__"
 
     # Inject chosen styles/icons (NO space before .Replace)
     $adminBlock = $adminBlock.Replace('__ADMIN_STYLE__', $AdminStyle).Replace('__ADMIN_ICON__', $AdminIcon)
-    $userBlock  = $userBlock.Replace('__USER_STYLE__',  $UserStyle).Replace('__USER_ICON__',  $UserIcon)
+    $userBlock = $userBlock.Replace('__USER_STYLE__', $UserStyle).Replace('__USER_ICON__', $UserIcon)
 
     # Default format (single-quoted so $custom.* is literal)
     $defaultFormat = @'
@@ -1010,7 +1014,7 @@ $character
 '@
 
     # Helper: upsert a TOML section
-    function _Set-TomlSection {
+    function Set-TomlSection {
         param(
             [Parameter(Mandatory)][string]$Path,
             [Parameter(Mandatory)][string]$SectionHeaderRegex,
@@ -1019,7 +1023,7 @@ $character
         $content = Get-Content -Path $Path -Raw -ErrorAction Stop
         if ($content -match $SectionHeaderRegex) {
             $pattern = "(?ms)$SectionHeaderRegex.*?(?=^\[|\Z)"
-            $new     = [regex]::Replace($content, $pattern, $BlockText + "`r`n")
+            $new = [regex]::Replace($content, $pattern, $BlockText + "`r`n")
             if ($new -ne $content) {
                 Set-Content -Path $Path -Value $new -Encoding UTF8
                 return $true
@@ -1032,8 +1036,8 @@ $character
     }
 
     # Upsert modules
-    if (_Set-TomlSection -Path $starshipToml -SectionHeaderRegex '^\[custom\.admin\]\s*$' -BlockText $adminBlock) { $result.AdminModuleUpsert = $true }
-    if (_Set-TomlSection -Path $starshipToml -SectionHeaderRegex '^\[custom\.user\]\s*$'  -BlockText $userBlock)  { $result.UserModuleUpsert  = $true }
+    if (Set-TomlSection -Path $starshipToml -SectionHeaderRegex '^\[custom\.admin\]\s*$' -BlockText $adminBlock) { $result.AdminModuleUpsert = $true }
+    if (Set-TomlSection -Path $starshipToml -SectionHeaderRegex '^\[custom\.user\]\s*$' -BlockText $userBlock) { $result.UserModuleUpsert = $true }
 
     # Ensure our modules appear in the format
     $content = Get-Content -Path $starshipToml -Raw
@@ -1044,14 +1048,14 @@ $character
         # Prepend our two module lines if missing (escape $ so TOML keeps it)
         $pattern = '(?ms)^\s*format\s*=\s*"""(.*?)"""'
         if ($content -match $pattern) {
-            $inner      = $Matches[1]
+            $inner = $Matches[1]
             $needsAdmin = ($inner -notmatch '\$custom\.admin')
-            $needsUser  = ($inner -notmatch '\$custom\.user')
+            $needsUser = ($inner -notmatch '\$custom\.user')
             if ($needsAdmin -or $needsUser) {
                 $prepend = @()
                 if ($needsAdmin) { $prepend += '`$custom.admin\' }
-                if ($needsUser)  { $prepend += '`$custom.user\' }
-                $newInner   = ($prepend -join [Environment]::NewLine) + [Environment]::NewLine + $inner
+                if ($needsUser) { $prepend += '`$custom.user\' }
+                $newInner = ($prepend -join [Environment]::NewLine) + [Environment]::NewLine + $inner
                 $newContent = [regex]::Replace($content, $pattern, 'format = """' + $newInner + '"""')
                 if ($newContent -ne $content) {
                     Set-Content -Path $starshipToml -Value $newContent -Encoding UTF8
@@ -1067,9 +1071,9 @@ Set-StarshipConfig
 #Invoke-Expression (&starship init powershell)
 
 $HasTouch = Get-PnpDevice -Class HIDClass -ErrorAction SilentlyContinue |
-    Where-Object {
-        $_.FriendlyName -match 'touch|digitizer|pen'
-    }
+Where-Object {
+    $_.FriendlyName -match 'touch|digitizer|pen'
+}
 
 if ($HasTouch) {
     winget install `
@@ -1080,7 +1084,7 @@ if ($HasTouch) {
         --silent
 }
 
-function Download-SharePointMigrationToolInstaller {
+function Get-SharePointMigrationToolInstaller {
     [CmdletBinding()]
     param(
         [string] $Uri = 'https://spmt.sharepointonline.com/install/default.htm',
@@ -1100,5 +1104,5 @@ function Download-SharePointMigrationToolInstaller {
 
     Start-Process $OutFile
 }
-#Download-SharePointMigrationToolInstaller
+#Get-SharePointMigrationToolInstaller
 

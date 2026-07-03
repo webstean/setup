@@ -739,6 +739,7 @@ properties:
       directives:
         description: Install Git.Git
         allowPrerelease: false
+        securityContext: elevated
       settings:
         id: Git.Git
         source: winget

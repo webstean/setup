@@ -20,8 +20,8 @@ function Set-RdpQueryDirPrefetch {
     [CmdletBinding()]
     param()
 
-    $regPath  = 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp'
-    $regName  = 'fAllowQueryDirPrefetch'
+    $regPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp'
+    $regName = 'fAllowQueryDirPrefetch'
     $regValue = 1
 
     try {
@@ -39,11 +39,10 @@ function Set-RdpQueryDirPrefetch {
             Write-Verbose "Successfully set $regName to $regValue at $regPath"
             return $true
         } else {
-            Write-Error "Failed to verify registry value."
+            Write-Error 'Failed to verify registry value.'
             return $false
         }
-    }
-    catch {
+    } catch {
         Write-Error "Error setting registry value: $($_.Exception.Message)"
         return $false
     }
@@ -81,8 +80,8 @@ function Install-WinRM {
 
     ## Open firewall rules for WinRM (HTTP:5985, HTTPS:5986)
     #Get-NetFirewallRule | Select-Object -ExpandProperty DisplayName
-    Set-NetFirewallRule -Name "WINRM-HTTP-In-TCP" -RemoteAddress Any -Action Allow
-    Get-NetFirewallRule -Name "WINRM-HTTP-In-TCP"
+    Set-NetFirewallRule -Name 'WINRM-HTTP-In-TCP' -RemoteAddress Any -Action Allow
+    Get-NetFirewallRule -Name 'WINRM-HTTP-In-TCP'
     #New-NetFirewallRule -DisplayName "Allow WinRM HTTP"  -Direction Inbound -LocalPort 5985 -Protocol TCP -Action Allow -Profile Private | Out-Null
     #New-NetFirewallRule -DisplayName "Allow WinRM HTTPS" -Direction Inbound -LocalPort 5986 -Protocol TCP -Action Allow -Profile Private | Out-Null
 
@@ -104,7 +103,7 @@ function Install-WinRM {
     Restart-Service WinRM
     winrm get winrm/config/client
     winrm get winrm/config/service
-    if (Test-WSMAN localhost -ErrorAction Continue ) {
+    if (Test-WSMan localhost -ErrorAction Continue ) {
         $cred = Get-Credential
         Invoke-Command -ComputerName localhost -Authentication Negotiate -Credential $cred -ScriptBlock { hostname }
         Invoke-Command -ComputerName $env:COMPUTERNAME -Authentication Negotiate -Credential $cred -ScriptBlock { hostname }
@@ -118,14 +117,14 @@ function Install-WinRM {
 
 ## The tools functionality is only installed via DOTNET SDKs, not Runtimes
 $dotnetTools = @(
-        "Microsoft.DataApiBuilder",               ## dab
-        "IntuneCLI",                              ## intuneCLI (3rd party)
-        "microsoft.powerapps.cli.tool",           ## powerapp tools
-        "dotnet-reportgenerator-globaltool",      ## report generator
-        "Microsoft.OpenApi.Kiota",                ## code generator (openapi)
-        "paket",                                  ## Paket dependency manager
-        "upgrade-assistant"                       ## upgrade assistant
-    )
+    'Microsoft.DataApiBuilder',               ## dab
+    'IntuneCLI',                              ## intuneCLI (3rd party)
+    'microsoft.powerapps.cli.tool',           ## powerapp tools
+    'dotnet-reportgenerator-globaltool',      ## report generator
+    'Microsoft.OpenApi.Kiota',                ## code generator (openapi)
+    'paket',                                  ## Paket dependency manager
+    'upgrade-assistant'                       ## upgrade assistant
+)
 
 function Install-OrUpdate-DotNetTools {
     [CmdletBinding()]
@@ -135,15 +134,15 @@ function Install-OrUpdate-DotNetTools {
 
         # Use Global by default (installs to $HOME\.dotnet\tools)
         [Parameter(Mandatory = $false)]
-        [switch]$Global = $true,
+        [bool]$Global = $true,
 
         # If set, installs to this folder instead of global. Mutually exclusive with -Global.
         [Parameter(Mandatory = $false)]
-        [string]$ToolPath = "C:\Program Files\DotNet Tools",
+        [string]$ToolPath = 'C:\Program Files\DotNet Tools',
 
         # Include prerelease versions
         [Parameter(Mandatory = $false)]
-        [switch]$Prerelease = $true
+        [bool]$Prerelease = $true
     )
 
     if ($PSBoundParameters.ContainsKey('ToolPath') -and $Global) {
@@ -153,7 +152,7 @@ function Install-OrUpdate-DotNetTools {
 
     if (-not $Global) {
         if ([string]::IsNullOrWhiteSpace($ToolPath)) {
-            throw "ToolPath is empty."
+            throw 'ToolPath is empty.'
         }
         if (-not (Test-Path -Path $ToolPath -PathType Container)) {
             New-Item -Path $ToolPath -ItemType Directory -Force | Out-Null
@@ -164,24 +163,23 @@ function Install-OrUpdate-DotNetTools {
         [CmdletBinding()]
         param(
             [Parameter(Mandatory)]
-            [string[]]$Args
+            [string[]]$Arguments
         )
 
-        $p = Start-Process -FilePath "dotnet.exe" -ArgumentList $Args -NoNewWindow -Wait -PassThru
+        $p = Start-Process -FilePath 'dotnet.exe' -ArgumentList $Arguments -NoNewWindow -Wait -PassThru
         if ($p.ExitCode -ne 0) {
-            throw "dotnet $($Args -join ' ') failed with exit code $($p.ExitCode)"
+            throw "dotnet $($Arguments -join ' ') failed with exit code $($p.ExitCode)"
         }
     }
 
-    Write-Output "Installing/Updating .NET tools..."
+    Write-Output 'Installing/Updating .NET tools...'
 
     # List installed tools in the correct scope
-    $listArgs = @("tool","list")
+    $listArgs = @('tool', 'list')
     if ($Global) {
-        $listArgs += "--global"
-    }
-    else {
-        $listArgs += @("--tool-path", $ToolPath)
+        $listArgs += '--global'
+    } else {
+        $listArgs += @('--tool-path', $ToolPath)
     }
 
     $installed = & dotnet @listArgs 2>$null
@@ -189,9 +187,9 @@ function Install-OrUpdate-DotNetTools {
     $installedIds = @()
     if ($installed) {
         $installedIds = $installed |
-            Select-Object -Skip 2 |
-            ForEach-Object { ($_ -split '\s+')[0] } |
-            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        Select-Object -Skip 2 |
+        ForEach-Object { ($_ -split '\s+')[0] } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
     }
 
     foreach ($tool in $Tools) {
@@ -199,60 +197,56 @@ function Install-OrUpdate-DotNetTools {
 
         if (-not $isInstalled) {
             Write-Output "Installing $tool..."
-            $args = @("tool","install","--ignore-failed-sources", $tool)
-            if ($Prerelease) { $args += "--prerelease" }
+            $toolArgs = @('tool', 'install', '--ignore-failed-sources', $tool)
+            if ($Prerelease) { $toolArgs += '--prerelease' }
 
             if ($Global) {
-                $args += "--global"
-            }
-            else {
-                $args += @("--tool-path", $ToolPath)
+                $toolArgs += '--global'
+            } else {
+                $toolArgs += @('--tool-path', $ToolPath)
             }
 
-            Invoke-DotNet -Args $args
-        }
-        else {
+            Invoke-DotNet -Arguments $toolArgs
+        } else {
             Write-Output "Updating $tool..."
-            $args = @("tool","update", $tool)
-            if ($Prerelease) { $args += "--prerelease" }
+            $toolArgs = @('tool', 'update', $tool)
+            if ($Prerelease) { $toolArgs += '--prerelease' }
 
             if ($Global) {
-                $args += "--global"
-            }
-            else {
-                $args += @("--tool-path", $ToolPath)
+                $toolArgs += '--global'
+            } else {
+                $toolArgs += @('--tool-path', $ToolPath)
             }
 
-            Invoke-DotNet -Args $args
+            Invoke-DotNet -Arguments $toolArgs
         }
     }
 
     # Show final state
-    Invoke-DotNet -Args $listArgs
+    Invoke-DotNet -Arguments $listArgs
 }
 Install-OrUpdate-DotNetTools
 
 ## Add NuGet source to dotnet if missing (best-effort)
 try {
-   $sources = & dotnet nuget list source 2>$null
-   if (-not ($sources -match 'searchnuget\.org')) {
-     Invoke-DotNet -Args @("nuget","add","source","https://api.nuget.org/v3/index.json","-n","searchnuget.org")
-   }
-} 
-catch {
+    $sources = & dotnet nuget list source 2>$null
+    if (-not ($sources -match 'searchnuget\.org')) {
+        & dotnet nuget add source 'https://api.nuget.org/v3/index.json' -n 'searchnuget.org' | Out-Null
+    }
+} catch {
     ## Do not fail the whole function for a source add problem
     Write-Warning "Could not add/list NuGet source 'searchnuget.org': $($_.Exception.Message)"
 }
 
 function Remove-DotNetTools {
-    Write-Output ("Removing (Uninstalling) DotNet Tools...")   
+    Write-Output ('Removing (Uninstalling) DotNet Tools...')   
 
     foreach ($tool in $dotnetTools) {
         $installedTool = dotnet tool list --global | Where-Object { $_ -match $tool }
         if ($installedTool) {
             Write-Output "UnInstalling $tool..." 
             $Arguments = "tool uninstall --global $tool"
-            Start-Process -FilePath "dotnet.exe" -ArgumentList $Arguments -NoNewWindow -Wait -PassThru
+            Start-Process -FilePath 'dotnet.exe' -ArgumentList $Arguments -NoNewWindow -Wait -PassThru
         } else {
             Write-Output "$tool is already installed." 
         }
@@ -264,10 +258,10 @@ function Remove-DotNetTools {
 function Add-DirectoryToPath {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$Directory,
 
-        [ValidateSet('User','System')]
+        [ValidateSet('User', 'System')]
         [string]$Scope = 'User'
     )
 
@@ -302,12 +296,12 @@ function Add-DirectoryToPath {
 function CleanupDirectoryPath {
     param (
         [Parameter(Mandatory = $true)]
-        [ValidateSet("User", "Machine")]
+        [ValidateSet('User', 'Machine')]
         [string]$Scope
     )
 
     # Get the current PATH environment variable based on the specified scope
-    $CurrentPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::$Scope)
+    $CurrentPath = [System.Environment]::GetEnvironmentVariable('Path', [System.EnvironmentVariableTarget]::$Scope)
 
     if (-not $CurrentPath) {
         Write-Output "PATH is empty for the $Scope scope." 
@@ -315,16 +309,16 @@ function CleanupDirectoryPath {
     }
 
     # Split the PATH into an array of directories
-    $PathArray = $CurrentPath -split ";"
+    $PathArray = $CurrentPath -split ';'
 
     # Remove duplicates and trim whitespace
-    $CleanPathArray = $PathArray | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" } | Sort-Object -Unique
+    $CleanPathArray = $PathArray | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' } | Sort-Object -Unique
 
     # Recombine the cleaned array into a single string
-    $CleanPath = ($CleanPathArray -join ";")
+    $CleanPath = ($CleanPathArray -join ';')
 
     # Update the PATH environment variable
-    [System.Environment]::SetEnvironmentVariable("Path", $CleanPath, [System.EnvironmentVariableTarget]::$Scope)
+    [System.Environment]::SetEnvironmentVariable('Path', $CleanPath, [System.EnvironmentVariableTarget]::$Scope)
 
     Write-Output "Cleaned up PATH for the $Scope scope." 
     Write-Output "Original entries: $($PathArray.Count)"
@@ -336,8 +330,8 @@ function CleanupDirectoryPath {
 
 # Clean up the Machine PATH
 #Cleanup-DirectoryPath -Scope "Machine"
-CleanupDirectoryPath -Scope "User"
-CleanupDirectoryPath -Scope "Machine"
+CleanupDirectoryPath -Scope 'User'
+CleanupDirectoryPath -Scope 'Machine'
 
 function Set-DriveVolumeLabel {
     param (
@@ -355,15 +349,14 @@ function Set-DriveVolumeLabel {
         } else {
             Write-Output "Drive $DriveLetter already labeled as '$DesiredVolumeName'." 
         }
-    }
-    catch {
+    } catch {
         Write-Output "Error setting volume label for Drive ${DriveLetter}: $($_.Exception.Message)" 
     }
 }
 Set-DriveVolumeLabel -DriveLetter 'C' -DesiredVolumeName 'Developer'
 
 function New-TempDirectories {
-    Write-Output  "Creating TEMP/TMP directories..."
+    Write-Output 'Creating TEMP/TMP directories...'
 
     $TempDirs = @("$env:SystemDrive\Temp", "$env:SystemDrive\Tmp")
 
@@ -372,8 +365,7 @@ function New-TempDirectories {
             try {
                 New-Item -Path ${Temp} -ItemType Directory -Force | Out-Null
                 Write-Output "Created directory: ${Temp}" 
-            }
-            catch {
+            } catch {
                 Write-Output "Failed to create ${Temp}: $($_.Exception.Message)" 
             }
         } else {
@@ -405,29 +397,29 @@ function Install-LatestWindowsSDK {
     [CmdletBinding()]
     param()
 
-    Write-Verbose "Checking if Developer Mode is enabled..."
+    Write-Verbose 'Checking if Developer Mode is enabled...'
     if (-not (Test-DeveloperMode)) {
-        Write-Warning "❌ Developer Mode is not enabled. Enable it in Settings > For Developers or via registry."
+        Write-Warning '❌ Developer Mode is not enabled. Enable it in Settings > For Developers or via registry.'
         return $false
     }
-    Write-Verbose "Developer Mode is enabled. Searching for Windows SDK packages..."
+    Write-Verbose 'Developer Mode is enabled. Searching for Windows SDK packages...'
 
     # --- Find latest Windows SDK ---
     $packageIdPrefix = 'Windows SDK'
     $Output = Find-WinGetPackage -Name $packageIdPrefix
     if (-not $output[0] ) {
-        Write-Error "Could not find Windows SDK packages in winget."
+        Write-Error 'Could not find Windows SDK packages in winget.'
         return $false
     }
 
     $output = $output | Sort-Object -Verson
     $ids = ($output -split "`r?`n") |
-        Where-Object { $_ -match $packageIdPrefix } |
-        ForEach-Object { ($_ -split '\s+')[0] } |
-        Sort-Object -Unique
+    Where-Object { $_ -match $packageIdPrefix } |
+    ForEach-Object { ($_ -split '\s+')[0] } |
+    Sort-Object -Unique
 
     if (-not $ids) {
-        Write-Error "No matching Windows SDK packages found."
+        Write-Error 'No matching Windows SDK packages found.'
         return $false
     }
 
@@ -435,7 +427,7 @@ function Install-LatestWindowsSDK {
     $latestVersion = ($versions | Sort-Object { [version]$_ } -Descending)[0]
 
     if (-not $latestVersion) {
-        Write-Error "Could not determine the latest SDK version."
+        Write-Error 'Could not determine the latest SDK version.'
         return $false
     }
 
@@ -452,8 +444,7 @@ function Install-LatestWindowsSDK {
             Write-Error "❌ Installation failed with exit code $LASTEXITCODE."
             return $false
         }
-    }
-    catch {
+    } catch {
         Write-Error "❌ Exception during installation: $($_.Exception.Message)"
         return $false
     }
@@ -467,14 +458,14 @@ function Enable-DeveloperDevicePortal {
     [CmdletBinding(SupportsShouldProcess)]
     param ()
 
-    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole] "Administrator")) {
-        Write-Error "❌ This function must be run as Administrator."
+    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole] 'Administrator')) {
+        Write-Error '❌ This function must be run as Administrator.'
         return
     }
 
-    Write-Verbose "Checking if Developer Mode is enabled..."
+    Write-Verbose 'Checking if Developer Mode is enabled...'
     if (-not (Test-DeveloperMode)) {
-        Write-Warning "❌ Developer Mode is not enabled. Enable it in Settings > For Developers or via registry."
+        Write-Warning '❌ Developer Mode is not enabled. Enable it in Settings > For Developers or via registry.'
         return $false
     }
 
@@ -486,56 +477,54 @@ function Enable-DeveloperDevicePortal {
     #    return $false
     #}
         
-    Write-Host "📦 Installing required Windows capabilities..."
+    Write-Host '📦 Installing required Windows capabilities...'
     $capabilities = @(
-        "Tools.DeveloperMode.Core"
+        'Tools.DeveloperMode.Core'
     )
 
     foreach ($capability in $capabilities) {
         Write-Host "→ Installing $capability..."
         try {
             Add-WindowsCapability -Online -Name "${capability}~~~~0.0.1.0" -ErrorAction Stop
-        }
-        catch {
+        } catch {
             Write-Warning "⚠️ Could not install ${capability}: $_"
         }
     }
 
-    Write-Host "🔐 Enabling Device Portal via registry..."
-    $regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DevicePortal"
+    Write-Host '🔐 Enabling Device Portal via registry...'
+    $regPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DevicePortal'
     New-Item -Path $regPath -Force | Out-Null
-    Set-ItemProperty -Path $regPath -Name "EnableDevPortal" -Value 1 -Force
+    Set-ItemProperty -Path $regPath -Name 'EnableDevPortal' -Value 1 -Force
 
-    Write-Host "🔄 Restarting services..."
-    Try {
+    Write-Host '🔄 Restarting services...'
+    try {
         Restart-Service -Name dmwappushservice -ErrorAction SilentlyContinue
-    }
-    catch {
+    } catch {
         Write-Warning "⚠️ Could not restart dmwappushservice: $_"
     }
-    if (Get-ItemProperty -Path $regPath -Name "EnableDevicePortal" -ErrorAction SilentlyContinue) {
-        Set-ItemProperty -Path $regPath -Name "EnableDevicePortal" -Value 1
+    if (Get-ItemProperty -Path $regPath -Name 'EnableDevicePortal' -ErrorAction SilentlyContinue) {
+        Set-ItemProperty -Path $regPath -Name 'EnableDevicePortal' -Value 1
     } else {
-        New-ItemProperty -Path $regPath -Name "EnableDevicePortal" -PropertyType DWORD -Value 1
+        New-ItemProperty -Path $regPath -Name 'EnableDevicePortal' -PropertyType DWORD -Value 1
     }
 
     ## Enable authentication (optional but recommended)
-    if (Get-ItemProperty -Path $regPath -Name "Authentication" -ErrorAction SilentlyContinue) {
-        Set-ItemProperty -Path $regPath -Name "Authentication" -Value 0
+    if (Get-ItemProperty -Path $regPath -Name 'Authentication' -ErrorAction SilentlyContinue) {
+        Set-ItemProperty -Path $regPath -Name 'Authentication' -Value 0
     } else {
-        New-ItemProperty -Path $regPath -Name "Authentication" -PropertyType DWORD -Value 0
+        New-ItemProperty -Path $regPath -Name 'Authentication' -PropertyType DWORD -Value 0
     }
 
     Get-Item -Path $regPath
     # Open firewall port for Device Portal (usually 50080 for HTTP and 50443 for HTTPS)
-    New-NetFirewallRule -DisplayName "Developer Device Portal HTTP" -Direction Inbound -LocalPort 50080 -Protocol TCP -Action Allow
-    New-NetFirewallRule -DisplayName "Developer Device Portal HTTPS" -Direction Inbound -LocalPort 50443 -Protocol TCP -Action Allow
-    Write-Host "🔄 Restarting Web Management Service..."
+    New-NetFirewallRule -DisplayName 'Developer Device Portal HTTP' -Direction Inbound -LocalPort 50080 -Protocol TCP -Action Allow
+    New-NetFirewallRule -DisplayName 'Developer Device Portal HTTPS' -Direction Inbound -LocalPort 50443 -Protocol TCP -Action Allow
+    Write-Host '🔄 Restarting Web Management Service...'
     Set-Service -Name webmanagement -StartupType Automatic
     Restart-Service -Name webmanagement -ErrorAction SilentlyContinue
 
     Write-Host "`n✅ Device Portal is enabled."
-    Write-Host "   🔗 Open: https://localhost:50080"
+    Write-Host '   🔗 Open: https://localhost:50080'
 }
 #Enable-DeveloperDevicePortal
 
@@ -544,7 +533,7 @@ if (Get-Command sudo ) {
     sudo config --enable enable
     ## https://raw.githubusercontent.com/microsoft/sudo/refs/heads/main/scripts/sudo.ps1
 }
-Write-Output "Install Windows components that Developers need..." 
+Write-Output 'Install Windows components that Developers need...' 
         
 ## Enable/Install Features
 #if ($PSVersionTable.PSVersion.Major -eq 5) {
@@ -556,12 +545,12 @@ Write-Output "Install Windows components that Developers need..."
 #    Import-Module DISM -UseWindowsPowerShell
 #}
 $features_to_enable = @(
-    "TFTP",
-#    "MSMQ-Multicast",
-    "Printing-PrintToPDFServices-Features",
-    "TelnetClient",
-    "ServicesForNFS-ClientOnly",
-    "ClientForNFS"
+    'TFTP',
+    #    "MSMQ-Multicast",
+    'Printing-PrintToPDFServices-Features',
+    'TelnetClient',
+    'ServicesForNFS-ClientOnly',
+    'ClientForNFS'
     ## "SMB1Protocol-Deprecation",
     ## "SMB1Protocol-Client",
 ) | Sort-Object
@@ -576,7 +565,7 @@ Get-WindowsOptionalFeature `
    -Online `
 '@
       
-        if ($feature -and ($feature.State -eq "Disabled")) {
+        if ($feature -and ($feature.State -eq 'Disabled')) {
             Write-Output ("Enabling $_...") 
             
             Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
@@ -588,14 +577,13 @@ Enable-WindowsOptionalFeature `
     -NoRestart `
 '@
         }
-    }
-    catch {
+    } catch {
         Write-Output "Exception $_ when removing Windows compoents"
     }
 }
 
 $features_to_disable = @(
-    "WorkFolders-Client"
+    'WorkFolders-Client'
 ) | Sort-Object
 
 $features_to_disable | ForEach-Object {
@@ -606,7 +594,7 @@ Get-WindowsOptionalFeature `
    -FeatureName "$_" `
    -Online `
 '@
-        if ($feature -and ($feature.State -eq "Enabled")) {
+        if ($feature -and ($feature.State -eq 'Enabled')) {
             Write-Output ("Disabling $_...") 
             Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
 Disable-WindowsOptionalFeature `
@@ -615,8 +603,7 @@ Disable-WindowsOptionalFeature `
     -NoRestart `
 '@
         }
-    }
-    catch {
+    } catch {
         Write-Output "Exception $_ when install Windows compoents"
     }
 }
@@ -630,8 +617,8 @@ function Install-SqlLocalDBLatest {
 
     # Ensure we run elevated
     if (-not ([bool]([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
-                       ).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))) {
-        Throw "This function must be run as Administrator."
+            ).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator'))) {
+        throw 'This function must be run as Administrator.'
     }
 
     # Create download folder
@@ -642,21 +629,19 @@ function Install-SqlLocalDBLatest {
 
     # Define download URL for SqlLocalDB.msi
     # Note: This is for SQL Server 2022 English en-US. Adjust if you need a different locale or newer version.
-    $url = "https://download.microsoft.com/download/3/8/d/38de7036-2433-4207-8eae-06e247e17b25/SqlLocalDB.msi"  
-    $fileName = "SqlLocalDB.msi"
+    $url = 'https://download.microsoft.com/download/3/8/d/38de7036-2433-4207-8eae-06e247e17b25/SqlLocalDB.msi'  
+    $fileName = 'SqlLocalDB.msi'
     $filePath = Join-Path $DownloadFolder $fileName
 
     # Download if missing or force
     if ((Test-Path $filePath) -and (-not $Force)) {
         Write-Host "Installer already exists at $filePath. Skipping download."
-    }
-    else {
+    } else {
         Write-Host "Downloading SqlLocalDB installer from $url to $filePath"
         try {
             Invoke-WebRequest -Uri $url -OutFile $filePath -UseBasicParsing
-        }
-        catch {
-            Throw "SqlLocalDB installer download failed: $_"
+        } catch {
+            throw "SqlLocalDB installer download failed: $_"
         }
     }
 
@@ -664,9 +649,11 @@ function Install-SqlLocalDBLatest {
     $msiArgs = "/i `"$filePath`" /qn IACCEPTSQLLOCALDBLICENSETERMS=YES"
     Write-Verbose "Installing LocalDB silently: msiexec.exe $msiArgs"
     try {
-        $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru
-    }
-    catch {
+        $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $msiArgs -Wait -PassThru
+        if ($process.ExitCode -ne 0) {
+            throw "SqlLocalDB installation failed with exit code $($process.ExitCode)."
+        }
+    } catch {
         Write-Host "❌ Exception during SqlLocalDB installation: $($_.Exception.Message)"
     }
 }
@@ -700,38 +687,35 @@ function Enable-WindowsSandboxIfCapable {
     )
 
     try {
-        Write-Verbose "Checking system resources..."
+        Write-Verbose 'Checking system resources...'
         $cpuCores = (Get-CimInstance -ClassName Win32_Processor).NumberOfLogicalProcessors
         $ramGB = [math]::Round((Get-CimInstance -ClassName Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)
 
         Write-Output "Detected $cpuCores logical CPU cores and $ramGB GB RAM."
 
         if ($cpuCores -ge $MinCores -and $ramGB -ge $MinMemoryGB) {
-            Write-Output "✅ System meets requirements. Enabling Windows Sandbox..."
-            Enable-WindowsOptionalFeature -FeatureName "Containers-DisposableClientVM" -All -Online -NoRestart -ErrorAction Stop
+            Write-Output '✅ System meets requirements. Enabling Windows Sandbox...'
+            Enable-WindowsOptionalFeature -FeatureName 'Containers-DisposableClientVM' -All -Online -NoRestart -ErrorAction Stop
 
             # Install / Update WindowsSandboxTools
-            Write-Output "Installing or updating WindowsSandboxTools module..."
+            Write-Output 'Installing or updating WindowsSandboxTools module...'
             Install-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
             Update-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
-        } 
-        else {
+        } else {
             Write-Warning "❌ Insufficient resources — requires at least $MinCores CPU cores and $MinMemoryGB GB RAM."
-            Disable-WindowsOptionalFeature -FeatureName "Containers-DisposableClientVM" -Online -NoRestart -ErrorAction SilentlyContinue
+            Disable-WindowsOptionalFeature -FeatureName 'Containers-DisposableClientVM' -Online -NoRestart -ErrorAction SilentlyContinue
             Uninstall-PSResource WindowsSandboxTools -ErrorAction SilentlyContinue
         }
-    }
-    catch {
+    } catch {
         Write-Error "An exception occurred: $($_.Exception.Message)"
         Write-Verbose "Type: $($_.Exception.GetType().FullName)"
         Write-Verbose "Stack Trace:`n$($_.Exception.StackTrace)"
-    }
-    finally {
+    } finally {
         Write-Output "`n=== Windows Optional Features ==="
         Get-WindowsOptionalFeature -Online |
-            Select-Object FeatureName, State |
-            Sort-Object FeatureName |
-            Format-Table -AutoSize
+        Select-Object FeatureName, State |
+        Sort-Object FeatureName |
+        Format-Table -AutoSize
     }
 }
 # Enable-WindowsSandboxIfCapable
@@ -739,9 +723,9 @@ function Enable-WindowsSandboxIfCapable {
 ## NFS example (or use WSL)
 # mount -o anon \\10.1.1.211\mnt\vms Z:
 
-New-Item -Path "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" -Force | Out-Null
-New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings" `
-    -Name "IsContinuousInnovationOptedIn" `
+New-Item -Path 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' -Force | Out-Null
+New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' `
+    -Name 'IsContinuousInnovationOptedIn' `
     -PropertyType DWord `
     -Value 1 `
     -Force | Out-Null
@@ -822,25 +806,25 @@ function Get-GitHubDirectory {
         if ($Token) { $commonHeaders['Authorization'] = "Bearer $Token" }
 
         function Test-Match {
-            param([string]$Name,[string[]]$Include,[string[]]$Exclude)
+            param([string]$Name, [string[]]$Include, [string[]]$Exclude)
             if ($Include -and -not ($Include | Where-Object { $Name -like $_ })) { return $false }
-            if ($Exclude -and  ($Exclude | Where-Object { $Name -like $_ }))     { return $false }
+            if ($Exclude -and ($Exclude | Where-Object { $Name -like $_ })) { return $false }
             return $true
         }
 
-        function Get-Contents($owner,$repo,$path,$ref) {
-            $uri = '{0}/repos/{1}/{2}/contents/{3}?ref={4}' -f $ApiBase,$owner,$repo,$path,$ref
+        function Get-Contents($owner, $repo, $path, $ref) {
+            $uri = '{0}/repos/{1}/{2}/contents/{3}?ref={4}' -f $ApiBase, $owner, $repo, $path, $ref
             try {
                 Invoke-RestMethod -Method GET -Uri $uri -Headers $commonHeaders
             } catch {
                 if ($_.Exception.Response -and $_.Exception.Response.StatusCode.Value__ -eq 403) {
-                    Write-Error "403 Forbidden / rate limit. Provide a token via -Token or set GITHUB_TOKEN."
+                    Write-Error '403 Forbidden / rate limit. Provide a token via -Token or set GITHUB_TOKEN.'
                 }
                 throw
             }
         }
 
-        function Download-File($url,$destFile) {
+        function Download-File($url, $destFile) {
             $destDir = Split-Path $destFile -Parent
             if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir | Out-Null }
             if ((-not (Test-Path $destFile)) -or $Overwrite) {
@@ -848,7 +832,7 @@ function Get-GitHubDirectory {
             }
         }
 
-        function Walk($owner,$repo,$path,$ref,$rootDest) {
+        function Walk($owner, $repo, $path, $ref, $rootDest) {
             $items = Get-Contents $owner $repo $path $ref
             foreach ($it in $items) {
                 switch ($it.type) {
@@ -885,11 +869,11 @@ function Get-GitHubDirectory {
 }
 
 ## Executables - goes into the PATH
-$Bin = "$env:SystemDrive\BIN"
-if (-Not (Test-Path -Path "${Bin}" -PathType Container -ErrorAction SilentlyContinue)) {
-    New-Item -Path "${Bin}" -Type Container
+$BIN = "$env:SystemDrive\BIN"
+if (-not (Test-Path -Path "${BIN}" -PathType Container -ErrorAction SilentlyContinue)) {
+    New-Item -Path "${BIN}" -Type Container
 } else {
-    Write-Output "Directory ${Bin} already exists." 
+    Write-Output "Directory ${BIN} already exists." 
 }
 
 function Set-FolderAclUsersModify {
@@ -933,39 +917,40 @@ function Set-FolderAclUsersModify {
     .EXAMPLE
       Set-FolderAclUsersModify -Path 'D:\Data' -BreakInheritance:$false
     #>
+    [CmdletBinding(SupportsShouldProcess)]
     param(
-        [Parameter(Position=0)]
+        [Parameter(Position = 0)]
         [ValidateNotNullOrEmpty()]
         [string]$Path = 'C:\workspaces',
 
-        [bool]$TakeOwnership   = $true,
+        [bool]$TakeOwnership = $true,
         [bool]$BreakInheritance = $true,
-        [bool]$RemoveDeny      = $true,
-        [bool]$Recurse         = $true
+        [bool]$RemoveDeny = $true,
+        [bool]$Recurse = $true
     )
 
     begin {
         # Well-known SIDs (locale independent)
-        $SidSystem        = '*S-1-5-18'        # SYSTEM
-        $SidAdmins        = '*S-1-5-32-544'    # BUILTIN\Administrators
-        $SidUsers         = '*S-1-5-32-545'    # BUILTIN\Users
+        $SidSystem = '*S-1-5-18'        # SYSTEM
+        $SidAdmins = '*S-1-5-32-544'    # BUILTIN\Administrators
+        $SidUsers = '*S-1-5-32-545'    # BUILTIN\Users
 
         # Inheritance flags for files & folders
         $inheritFlags = '(OI)(CI)'
 
         function Invoke-Icacls {
-            param([string[]]$Args)
-            Write-Verbose ("icacls {0}" -f ($Args -join ' '))
-            if ($PSCmdlet.ShouldProcess("icacls $($Args -join ' ')")) {
-                & icacls @Args
+            param([string[]]$IcaclsArgs)
+            Write-Verbose ('icacls {0}' -f ($IcaclsArgs -join ' '))
+            if ($PSCmdlet.ShouldProcess("icacls $($IcaclsArgs -join ' ')")) {
+                & icacls @IcaclsArgs
             }
         }
 
         function Assert-Elevated {
             $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-            $p  = New-Object System.Security.Principal.WindowsPrincipal($id)
+            $p = New-Object System.Security.Principal.WindowsPrincipal($id)
             if (-not $p.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) {
-                throw "This function must be run in an elevated PowerShell (Run as Administrator)."
+                throw 'This function must be run in an elevated PowerShell (Run as Administrator).'
             }
         }
     }
@@ -983,17 +968,15 @@ function Set-FolderAclUsersModify {
 
             # 1) Take ownership (optional)
             if ($TakeOwnership) {
-                    & takeown /f "$target" /r /d y | Out-Null
-                    Invoke-Icacls -Args @("$target", '/setowner', 'Users', '/t', '/c') | Out-Null
-                }
+                & takeown /f "$target" /r /d y | Out-Null
+                Invoke-Icacls -Args @("$target", '/setowner', 'Users', '/t', '/c') | Out-Null
             }
 
             # 2) Inheritance control
             if ($BreakInheritance) {
                 ## Disable
                 Invoke-Icacls -Args @("$target", '/inheritance:d', '/c') | Out-Null
-            }
-            else {
+            } else {
                 ## Enable
                 Invoke-Icacls -Args @("$target", '/inheritance:e', '/c') | Out-Null
             }
@@ -1001,7 +984,7 @@ function Set-FolderAclUsersModify {
             # 3) Remove explicit DENY entries that would override our grant
             if ($RemoveDeny) {
                 # These may no-op if none exist; that's fine.
-                Invoke-Icacls -Args @("$target", '/remove:d', 'Users',    '/c') | Out-Null
+                Invoke-Icacls -Args @("$target", '/remove:d', 'Users', '/c') | Out-Null
                 Invoke-Icacls -Args @("$target", '/remove:d', 'Everyone', '/c') | Out-Null
             }
 
@@ -1009,17 +992,16 @@ function Set-FolderAclUsersModify {
             $recurseFlag = if ($Recurse) { '/t' } else { $null }
 
             # Keep SYSTEM/Admins Full Control
-            Invoke-Icacls -Args @("$target", '/grant', "${SidSystem}:$inheritFlags(F)",     $recurseFlag, '/c') | Out-Null
-            Invoke-Icacls -Args @("$target", '/grant', "${SidAdmins}:$inheritFlags(F)",     $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidSystem}:$inheritFlags(F)", $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidAdmins}:$inheritFlags(F)", $recurseFlag, '/c') | Out-Null
 
             # Give Users Modify (NOT Full Control)
-            Invoke-Icacls -Args @("$target", '/grant', "${SidUsers}:$inheritFlags(M)",      $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidUsers}:$inheritFlags(M)", $recurseFlag, '/c') | Out-Null
 
             # 5) Display resulting ACEs on the root for verification
-            Write-Verbose "Final ACL (root):"
+            Write-Verbose 'Final ACL (root):'
             & icacls "$target"
-        }
-        catch {
+        } catch {
             throw "Set-FolderAclUsersModify failed: $($_.Exception.Message)"
         }
     }
@@ -1053,15 +1035,15 @@ function Set-Users-Modify-NTFS {
     $acl = Get-Acl -Path $Workspaces
     # Local Users well-known SID
     $usersSid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-32-545'
-    $users    = $usersSid.Translate([System.Security.Principal.NTAccount])
+    $users = $usersSid.Translate([System.Security.Principal.NTAccount])
     # Inheritable Modify allow rule (propagates to files & folders)
     $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
         $users, 'Modify', 'ContainerInherit, ObjectInherit', 'None', 'Allow'
     )
     $acl.SetAccessRule($rule)      # add/replace matching rule
-    Set-Acl -Path $Path -AclObject $acl
+    Set-Acl -Path $Workspaces -AclObject $acl
     # Optional: verify
-    (Get-Acl $Path).Access | Where-Object { $_.IdentityReference -eq $users }
+    (Get-Acl $Workspaces).Access | Where-Object { $_.IdentityReference -eq $users }
 }
 
 git config --global --add safe.directory $env:SystemDrive\WORKSPACES
@@ -1072,29 +1054,29 @@ Get-GitHubDirectory -Owner 'webstean' -Repo 'setup' -Branch 'main' -Path 'intune
 
 ## Scripts - not in the path
 $Scripts = "$env:SystemDrive\SCRIPTS"
-if (-Not (Test-Path -Path "${Scripts}" -PathType Container -ErrorAction SilentlyContinue)) {
+if (-not (Test-Path -Path "${Scripts}" -PathType Container -ErrorAction SilentlyContinue)) {
     New-Item -Path "${Scripts}" -Type Container
 } else {
     Write-Output "Directory ${Scripts} already exists." 
 }
 
-Write-Output "Turning off Sysinternals EULA prompt." 
-if (-not (Test-Path -Path "HKCU:\Software\Sysinternals")) {
-    New-Item -Path "HKCU:\Software\Sysinternals" -Force | Out-Null
+Write-Output 'Turning off Sysinternals EULA prompt.' 
+if (-not (Test-Path -Path 'HKCU:\Software\Sysinternals')) {
+    New-Item -Path 'HKCU:\Software\Sysinternals' -Force | Out-Null
 }
-if (-not (Test-Path -Path "HKLM:\Software\Sysinternals")) {
-    New-Item -Path "HKLM:\Software\Sysinternals" -Force | Out-Null
+if (-not (Test-Path -Path 'HKLM:\Software\Sysinternals')) {
+    New-Item -Path 'HKLM:\Software\Sysinternals' -Force | Out-Null
 }
 
-if (Get-ItemProperty -Path "HKCU:\Software\Sysinternals" -Name "EulaAccepted" -ErrorAction SilentlyContinue) {
-    Set-ItemProperty -Path "HKCU:\Software\Sysinternals" -Name "EulaAccepted" -Value 1
+if (Get-ItemProperty -Path 'HKCU:\Software\Sysinternals' -Name 'EulaAccepted' -ErrorAction SilentlyContinue) {
+    Set-ItemProperty -Path 'HKCU:\Software\Sysinternals' -Name 'EulaAccepted' -Value 1
 } else {
-    New-ItemProperty -Path "HKCU:\Software\Sysinternals" -Name "EulaAccepted" -PropertyType DWORD -Value 1
+    New-ItemProperty -Path 'HKCU:\Software\Sysinternals' -Name 'EulaAccepted' -PropertyType DWORD -Value 1
 }
-if (Get-ItemProperty -Path "HKLM:\Software\Sysinternals" -Name "EulaAccepted" -ErrorAction SilentlyContinue) {
-    Set-ItemProperty -Path "HKLM:\Software\Sysinternals" -Name "EulaAccepted" -Value 1
+if (Get-ItemProperty -Path 'HKLM:\Software\Sysinternals' -Name 'EulaAccepted' -ErrorAction SilentlyContinue) {
+    Set-ItemProperty -Path 'HKLM:\Software\Sysinternals' -Name 'EulaAccepted' -Value 1
 } else {
-    New-ItemProperty -Path "HKLM:\Software\Sysinternals" -Name "EulaAccepted" -PropertyType DWORD -Value 1
+    New-ItemProperty -Path 'HKLM:\Software\Sysinternals' -Name 'EulaAccepted' -PropertyType DWORD -Value 1
 }
 
 function Install-SysInternalsTools {
@@ -1103,22 +1085,22 @@ function Install-SysInternalsTools {
         [string]$Bin
     )
 
-    Write-Output "Installing a small subset of SysInternals tools..." 
+    Write-Output 'Installing a small subset of SysInternals tools...' 
 
     $tools = @(
-#        @{ Name = "autoruns.exe";    Friendly = "Autoruns Tool.exe" },
-#        @{ Name = "Autologon64.exe"; Friendly = "Auto Logon Utility.exe" },
-        @{ Name = "ZoomIt64.exe";    Friendly = "ZoomIt Presentation Tool.exe" },
-        @{ Name = "tcpview64.exe";   Friendly = "TCP View.exe" },
-        @{ Name = "winobj64.exe";    Friendly = "Windows Object Viewer.exe" },
-        @{ Name = "psping64.exe";    Friendly = "PS Ping.exe" },
-        @{ Name = "handle64.exe";    Friendly = "handle.exe" },
-        @{ Name = "procexp64.exe";   Friendly = "Process Explorer.exe" },
-        @{ Name = "procmon64.exe";   Friendly = "Process Monitor.exe" },
-        @{ Name = "RDCMan.exe";      Friendly = "Remote Desktop Manager.exe" }
-#        @{ Name = "whois64.exe";     Friendly = "Whois Utility.exe" },
-#        @{ Name = "PsExec64.exe";    Friendly = "PS Exec.exe" },
-#        @{ Name = "Psfile64.exe";    Friendly = "PS File.exe" }
+        #        @{ Name = "autoruns.exe";    Friendly = "Autoruns Tool.exe" },
+        #        @{ Name = "Autologon64.exe"; Friendly = "Auto Logon Utility.exe" },
+        @{ Name = 'ZoomIt64.exe'; Friendly = 'ZoomIt Presentation Tool.exe' },
+        @{ Name = 'tcpview64.exe'; Friendly = 'TCP View.exe' },
+        @{ Name = 'winobj64.exe'; Friendly = 'Windows Object Viewer.exe' },
+        @{ Name = 'psping64.exe'; Friendly = 'PS Ping.exe' },
+        @{ Name = 'handle64.exe'; Friendly = 'handle.exe' },
+        @{ Name = 'procexp64.exe'; Friendly = 'Process Explorer.exe' },
+        @{ Name = 'procmon64.exe'; Friendly = 'Process Monitor.exe' },
+        @{ Name = 'RDCMan.exe'; Friendly = 'Remote Desktop Manager.exe' }
+        #        @{ Name = "whois64.exe";     Friendly = "Whois Utility.exe" },
+        #        @{ Name = "PsExec64.exe";    Friendly = "PS Exec.exe" },
+        #        @{ Name = "Psfile64.exe";    Friendly = "PS File.exe" }
     )
 
     foreach ($entry in $tools) {
@@ -1134,9 +1116,9 @@ function Install-SysInternalsTools {
     }
     ##Invoke-WebRequest -Uri https://www.7-zip.org/a/7z2409-x64.exe -OutFile $Bin\unzip.exe
 }
-Install-SysInternalsTools -Bin $Bin
+Install-SysInternalsTools -Bin $BIN
 Add-MpPreference -ExclusionPath $BIN
-Add-MpPreference -ExclusionPath "C:\Program Files\starship\"
+Add-MpPreference -ExclusionPath 'C:\Program Files\starship\'
 #Get-MpPreference
 
 function Add-WSLShortcutToDesktop {
@@ -1169,18 +1151,18 @@ function Add-WSLShortcutToDesktop {
 
     [CmdletBinding()]
     param (
-        [string]$Distro = "",
-        [string]$Arguments = "",
-        [string]$ShortcutName = "WSL Terminal",
+        [string]$Distro = '',
+        [string]$Arguments = '',
+        [string]$ShortcutName = 'WSL Terminal',
         [string]$IconPath = "$env:SystemRoot\System32\wsl.exe,0"
     )
 
     # Determine desktop path
-    $desktopPath = [Environment]::GetFolderPath("Desktop")
+    $desktopPath = [Environment]::GetFolderPath('Desktop')
     $shortcutPath = Join-Path -Path $desktopPath -ChildPath "$ShortcutName.lnk"
 
     # Build full argument string
-    $fullArguments = ""
+    $fullArguments = ''
     if ($Distro) {
         $fullArguments += "--distribution `"$Distro`" "
     }
@@ -1192,7 +1174,7 @@ function Add-WSLShortcutToDesktop {
         # Create COM object and shortcut
         $wshShell = New-Object -ComObject WScript.Shell
         $shortcut = $wshShell.CreateShortcut($shortcutPath)
-        $shortcut.TargetPath = "wsl.exe"
+        $shortcut.TargetPath = 'wsl.exe'
         $shortcut.Arguments = $fullArguments.Trim()
         $shortcut.WorkingDirectory = "$HOME"
         $shortcut.WindowStyle = 1  # Normal window
@@ -1200,8 +1182,7 @@ function Add-WSLShortcutToDesktop {
         $shortcut.Save()
 
         Write-Host "✅ Shortcut created: $shortcutPath"
-    }
-    catch {
+    } catch {
         Write-Error "❌ Failed to create WSL shortcut: $_"
     }
 }
@@ -1230,7 +1211,7 @@ aspire config set features.singlefileAppHostEnabled true
 # Disable the minimum SDK version check
 #aspire config set features.minimumSdkCheckEnabled false
 
-$wauConfig = "C:\ProgramData\Winget-AutoUpdate\Winget-AutoUpdate.json"
+$wauConfig = 'C:\ProgramData\Winget-AutoUpdate\Winget-AutoUpdate.json'
 if (Test-Path $wauConfig) {
     $json = Get-Content $wauConfig | ConvertFrom-Json
     $json.ToastNotification = $false
