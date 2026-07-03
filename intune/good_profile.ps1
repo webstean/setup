@@ -123,26 +123,26 @@ function Test-NFS {
 
 function Install-WindowsNfsClient {
     [CmdletBinding()]
-    param()
+    param()install-windowsn
 
     # Ensure running as Administrator
     $principal = [Security.Principal.WindowsPrincipal]::new(
         [Security.Principal.WindowsIdentity]::GetCurrent()
     )
-
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        throw 'Administrator privileges are required.'
+        throw 'Administrator privileges are required to install NFS.'
     }
 
+    Write-StepSummary -type 'info' 'Checking if Windows NFS Client is installed...'
     $featureName = 'ServicesForNFS-ClientOnly'
 
     $feature = Get-WindowsOptionalFeature `
         -Online `
         -FeatureName $featureName `
-        -ErrorAction Stop
+        -ErrorAction SilentlyContinue
 
     if ($feature.State -ne 'Enabled') {
-        Write-Host 'Installing Windows NFS Client...'
+        Write-StepSummary -type 'info' 'Installing Windows NFS Client...'
 
         $result = Enable-WindowsOptionalFeature `
             -Online `
@@ -152,7 +152,7 @@ function Install-WindowsNfsClient {
             -ErrorAction Stop
 
         if ($result.RestartNeeded) {
-            Write-Warning 'A restart is required before the NFS client can be used.'
+            Write-StepSummary -type 'warning' 'A restart is required before the NFS client can be used.'
         }
     }
 
@@ -182,6 +182,7 @@ function Install-WindowsNfsClient {
         )
     }
 }
+
 function Get-DotNetHostInfo {
     [CmdletBinding()]
     param()
@@ -3815,11 +3816,16 @@ if (Get-Command direnv -ErrorAction SilentlyContinue ) {
     ##    Invoke-Expression "$(direnv hook pwsh)"
     Write-StepSummary -ShowTimeStamp $false -type 'info' "Enabled 'direnv' to pickup environment variables from the '.envrc' file (if found)"
 }
-if (Get-Command gh -ErrorAction SilentlyContinue ) {
-    if (-not (gh auth status 2>$null)) {
+if (Get-Command ghxyz -ErrorAction SilentlyContinue) {
+    gh auth status --active *> $null
+    if ($LASTEXITCODE -ne 0 -and -not [string]::IsNullOrWhiteSpace($env:GH_TOKEN)) {
         $env:GH_TOKEN | gh auth login --with-token
     }
+
     gh auth status --active
+    if ($LASTEXITCODE -eq 0) {
+        gh auth setup-git
+    }
 }
 
 function Get-AzVmSku {
