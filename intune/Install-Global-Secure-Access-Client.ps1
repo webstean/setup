@@ -1,5 +1,5 @@
 #Requires -RunAsAdministrator
-
+exit 0
 ##Download the Client
 $downloadUrl = "https://aka.ms/GSAClientDownload"
 $destinationFolder = [IO.Path]::GetTempPath() + "GSAClient"
