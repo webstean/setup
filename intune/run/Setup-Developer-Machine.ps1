@@ -612,11 +612,11 @@ try {
         throw
     }
 
+    #'Install-Windows-Admin-Centre.ps1',
+    #'Install-Developer-Fonts.ps1',
+    #'Install-Global-Secure-Access-Client.ps1',
     $developerScripts = @(
         'Install-Developer-PowershellModules.ps1',
-        'Install-Global-Secure-Access-Client.ps1',
-        'Install-Windows-Admin-Centre.ps1',
-        'Install-Developer-Fonts.ps1',
         'Install-Developer-System.ps1',
         'Install-Developer-User.ps1'
     )
