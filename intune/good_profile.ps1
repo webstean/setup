@@ -104,6 +104,25 @@ function Update-ProfileForce {
 }
 #Update-ProfileForce
 
+function Test-NFS {
+    [CmdletBinding()]
+    param()
+
+    $feature = Get-WindowsOptionalFeature -Online -FeatureName ServicesForNFS-ClientOnly -ErrorAction SilentlyContinue
+    $service = Get-Service -Name NfsClnt -ErrorAction SilentlyContinue
+
+    [PSCustomObject]@{
+        Installed       = ($feature.State -eq 'Enabled')
+        FeatureState    = $feature.State
+        ServiceExists   = ($null -ne $service)
+        ServiceStatus   = if ($service) { $service.Status } else { $null }
+        Available       = (
+            $feature.State -eq 'Enabled' -and
+            $null -ne $service
+        )
+    }
+}
+
 function Get-DotNetHostInfo {
     [CmdletBinding()]
     param()
