@@ -734,24 +734,24 @@ properties:
         #TextExtractor:
         #  Enabled: true
 
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: Git.Git
-#      directives:
-#        description: Install Git.Git
-#        allowPrerelease: false
-#      settings:
-#        id: Git.Git
-#        source: winget
-
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Git.Git
       directives:
-        description: Install Microsoft.Git
+        description: Install Git.Git
         allowPrerelease: false
-        securityContext: elevated
       settings:
-        id: Microsoft.Git
+        id: Git.Git
         source: winget
+
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Git.Git
+#      directives:
+#        description: Install Microsoft.Git
+#        allowPrerelease: false
+#        securityContext: elevated
+#      settings:
+#        id: Microsoft.Git
+#        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: GitHub.Cli
@@ -766,16 +766,16 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: GitHub.Copilot.App
+      id: GitHub.CopilotApp
       dependsOn:
         - Git.Git
         - GitHub.Cli
       directives:
-        description: Install GitHub.Copilot.App
+        description: Install GitHub.CopilotApp
         allowPrerelease: false
         securityContext: elevated
       settings:
-        id: GitHub.Copilot.App
+        id: GitHub.CopilotApp
         source: winget
 
 #    - resource: GitDsc/GitClone
