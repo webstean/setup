@@ -670,13 +670,22 @@ try {
         throw
     }
 } catch {
+    $invocation = $_.InvocationInfo
     $errorDetails = @{
-        Message        = $_.Exception.Message
-        StackTrace     = $_.Exception.StackTrace
-        InvocationInfo = $_.InvocationInfo
-        ExceptionType  = $_.Exception.GetType().FullName
-        LineNumber     = $_.InvocationInfo.ScriptLineNumber
-        ScriptName     = $_.InvocationInfo.ScriptName
+        Message             = $_.Exception.Message
+        StackTrace          = $_.Exception.StackTrace
+        ExceptionType       = $_.Exception.GetType().FullName
+        ScriptName          = $invocation.ScriptName
+        LineNumber          = $invocation.ScriptLineNumber
+        PositionMessage     = $invocation.PositionMessage
+        CommandName         = $invocation.InvocationName
+        FullyQualifiedError = $_.FullyQualifiedErrorId
+    }
+
+    try {
+        $errorDetailsJson = ConvertTo-Json -InputObject $errorDetails -Depth 4 -Compress
+    } catch {
+        $errorDetailsJson = '{"message":"Failed to serialize error details for logging."}'
     }
 
     Write-Error "Fatal error executing script: $($_.Exception.Message)" -ErrorAction Continue
@@ -684,7 +693,7 @@ try {
     Write-Log -Message "Exception Type: $($errorDetails.ExceptionType)" -Level 'ERROR'
     Write-Log -Message "Stack Trace: $($errorDetails.StackTrace)" -Level 'ERROR'
     Write-Log -Message "Script: $($errorDetails.ScriptName), Line: $($errorDetails.LineNumber)" -Level 'ERROR'
-    Write-Log -Message "Full Error Details: $(ConvertTo-Json $errorDetails)" -Level 'ERROR'
+    Write-Log -Message "Full Error Details: $errorDetailsJson" -Level 'ERROR'
     throw
 } finally {
     $elapsed.Stop()
