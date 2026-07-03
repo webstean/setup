@@ -52,8 +52,7 @@ function Update-ProfileForce {
             -UseBasicParsing `
             -Headers @{ 'Cache-Control' = 'no-cache' } `
             -ErrorAction Stop
-    }
-    catch {
+    } catch {
         throw "Failed to download profile from '$Uri'. $($_.Exception.Message)"
     }
 
@@ -64,7 +63,7 @@ function Update-ProfileForce {
     $newContent = [string] $response.Content
 
     if ([string]::IsNullOrWhiteSpace($newContent)) {
-        throw "Downloaded profile content is empty."
+        throw 'Downloaded profile content is empty.'
     }
 
     $oldContent = $null
@@ -76,8 +75,7 @@ function Update-ProfileForce {
 
     $oldNormalized = if ($null -ne $oldContent) {
         $oldContent.Trim() -replace "`r`n", "`n"
-    }
-    else {
+    } else {
         $null
     }
 
@@ -112,17 +110,78 @@ function Test-NFS {
     $service = Get-Service -Name NfsClnt -ErrorAction SilentlyContinue
 
     [PSCustomObject]@{
-        Installed       = ($feature.State -eq 'Enabled')
-        FeatureState    = $feature.State
-        ServiceExists   = ($null -ne $service)
-        ServiceStatus   = if ($service) { $service.Status } else { $null }
-        Available       = (
+        Installed     = ($feature.State -eq 'Enabled')
+        FeatureState  = $feature.State
+        ServiceExists = ($null -ne $service)
+        ServiceStatus = if ($service) { $service.Status } else { $null }
+        Available     = (
             $feature.State -eq 'Enabled' -and
             $null -ne $service
         )
     }
 }
 
+function Install-WindowsNfsClient {
+    [CmdletBinding()]
+    param()
+
+    # Ensure running as Administrator
+    $principal = [Security.Principal.WindowsPrincipal]::new(
+        [Security.Principal.WindowsIdentity]::GetCurrent()
+    )
+
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw 'Administrator privileges are required.'
+    }
+
+    $featureName = 'ServicesForNFS-ClientOnly'
+
+    $feature = Get-WindowsOptionalFeature `
+        -Online `
+        -FeatureName $featureName `
+        -ErrorAction Stop
+
+    if ($feature.State -ne 'Enabled') {
+        Write-Host 'Installing Windows NFS Client...'
+
+        $result = Enable-WindowsOptionalFeature `
+            -Online `
+            -FeatureName $featureName `
+            -All `
+            -NoRestart `
+            -ErrorAction Stop
+
+        if ($result.RestartNeeded) {
+            Write-Warning 'A restart is required before the NFS client can be used.'
+        }
+    }
+
+    $service = Get-Service -Name NfsClnt -ErrorAction Stop
+
+    if ($service.StartType -ne 'Automatic') {
+        Set-Service -Name NfsClnt -StartupType Automatic
+    }
+
+    if ($service.Status -ne 'Running') {
+        Start-Service -Name NfsClnt
+    }
+
+    $service = Get-Service -Name NfsClnt
+
+    [PSCustomObject]@{
+        Installed       = $true
+        FeatureState    = (Get-WindowsOptionalFeature -Online -FeatureName $featureName).State
+        ServiceStatus   = $service.Status
+        StartupType     = $service.StartType
+        MountCommand    = [bool](Get-Command mount.exe -ErrorAction SilentlyContinue)
+        RestartRequired = if ($result) { $result.RestartNeeded } else { $false }
+        Ready           = (
+            (Get-WindowsOptionalFeature -Online -FeatureName $featureName).State -eq 'Enabled' -and
+            $service.Status -eq 'Running' -and
+            (Get-Command mount.exe -ErrorAction SilentlyContinue)
+        )
+    }
+}
 function Get-DotNetHostInfo {
     [CmdletBinding()]
     param()
@@ -130,14 +189,14 @@ function Get-DotNetHostInfo {
     $languageMode = $ExecutionContext.SessionState.LanguageMode
 
     # Defaults (core types only)
-    $jsonVersion  = '<not loaded>'
+    $jsonVersion = '<not loaded>'
     $jsonLocation = '<not loaded>'
-    $isElevated   = $null
+    $isElevated = $null
 
     # Probe System.Text.Json (may be blocked; that's fine)
     try {
         $asm = [System.Text.Json.JsonSerializer].Assembly
-        $jsonVersion  = $asm.GetName().Version.ToString()
+        $jsonVersion = $asm.GetName().Version.ToString()
         $jsonLocation = $asm.Location
     } catch {}
 
@@ -150,11 +209,11 @@ function Get-DotNetHostInfo {
 
     $osDesc = '<unknown>'
     $fwDesc = '<unknown>'
-    $arch   = '<unknown>'
+    $arch = '<unknown>'
 
     try { $osDesc = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription } catch {}
     try { $fwDesc = [System.Runtime.InteropServices.RuntimeInformation]::FrameworkDescription } catch {}
-    try { $arch   = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString() } catch {}
+    try { $arch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString() } catch {}
 
     # Use a hashtable (core type) so CLM won't error
     $data = @{
@@ -251,11 +310,11 @@ function Get-ConstrainedLanguageState {
     $lockdownPolicy = $ExecutionContext.SessionState.PSVariable.GetValue('__PSLockdownPolicy')
 
     New-ProfileObject @{
-        LanguageMode    = $languageMode
-        LockdownPolicy  = $lockdownPolicy
-        IsConstrained   = ($languageMode -eq 'ConstrainedLanguage')
-        IsAudit         = ((Get-ClmAuditState).IsAudit -eq $true)
-        IsEnforced      = ((Get-ClmAuditState).IsEnforced -eq $true)
+        LanguageMode   = $languageMode
+        LockdownPolicy = $lockdownPolicy
+        IsConstrained  = ($languageMode -eq 'ConstrainedLanguage')
+        IsAudit        = ((Get-ClmAuditState).IsAudit -eq $true)
+        IsEnforced     = ((Get-ClmAuditState).IsEnforced -eq $true)
     }
 }
 
@@ -278,8 +337,7 @@ function Invoke-WindowsPowerShell {
 
     if ($AsAdmin) {
         Start-Process -FilePath $ps51 -ArgumentList $psArgs -Verb RunAs -Wait
-    }
-    else {
+    } else {
         & $ps51 @psArgs
     }
 }
@@ -288,8 +346,8 @@ function Invoke-WindowsPowerShell {
 ## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
 ## RestrictedLanguage: Very limited (e.g., only basic expressions)
 ## NoLanguage: No scripting allowed at all
-$acceptableModes = @("FullLanguage")
-$unacceptableModes = @("ConstrainedLanguage", "RestrictedLanguage", "NoLanguage")
+$acceptableModes = @('FullLanguage')
+$unacceptableModes = @('ConstrainedLanguage', 'RestrictedLanguage', 'NoLanguage')
 $currentMode = $ExecutionContext.SessionState.LanguageMode.ToString()
 $IsLanguagePermissive = $currentMode -in $acceptableModes
 if ((Get-ClmAuditState).IsAudit) {
@@ -301,7 +359,7 @@ if ($IsLanguagePermissive) {
     [console]::InputEncoding = [console]::OutputEncoding = New-Object System.Text.UTF8Encoding
 } 
 if ([bool](Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage').ACP -eq '65001') { 
-    Write-Host  -ForegroundColor DarkGreen ("UTF-8 output encoding enabled")
+    Write-Host -ForegroundColor DarkGreen ('UTF-8 output encoding enabled')
     $UTF8 = $true
 }
 
@@ -311,17 +369,17 @@ if ($IsLanguagePermissive) {
     $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 } else {
     Write-Host -ForegroundColor DarkYellow "PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
-    $IsAdmin = $null -ne (whoami /groups | Select-String "S-1-5-32-544")
+    $IsAdmin = $null -ne (whoami /groups | Select-String 'S-1-5-32-544')
 }
 
 # Set install scope variable based on elevation
 ## if ($IsAdmin -and $IsLanguagePermissive) {
 if ($IsAdmin) {
     $InstallScope = 'AllUsers'
-    Write-Host -ForegroundColor DarkRed "Current context permisisons is        : ADMIN"
+    Write-Host -ForegroundColor DarkRed 'Current context permisisons is        : ADMIN'
 } else {
     $InstallScope = 'CurrentUser'
-    Write-Host -ForegroundColor DarkYellow "Current context permisisons is        : USER"
+    Write-Host -ForegroundColor DarkYellow 'Current context permisisons is        : USER'
 }
 
 $VirtualMachine = $true
@@ -333,44 +391,44 @@ function Get-HostPlatform {
     $model = "$($cs.Manufacturer) $($cs.Model)"
     
     switch -Regex ($model) {
-        "VMware" {
+        'VMware' {
             $VirtualMachine = $true
-            $type = "VMware virtual machine"
+            $type = 'VMware virtual machine'
         }
-        "VirtualBox" {
+        'VirtualBox' {
             $VirtualMachine = $true
-            $type = "Oracle VirtualBox VM"
+            $type = 'Oracle VirtualBox VM'
         }
-        "Microsoft.*Virtual" {
+        'Microsoft.*Virtual' {
             $VirtualMachine = $true
-            $type = "Hyper-V / Azure virtual machine"
+            $type = 'Hyper-V / Azure virtual machine'
         }
-        "QEMU|KVM" {
+        'QEMU|KVM' {
             $VirtualMachine = $true
-            $type = "KVM/QEMU virtual machine"
+            $type = 'KVM/QEMU virtual machine'
         }
         
         default {
             $VirtualMachine = $false
-            $type = "Likely bare-metal physical machine"
+            $type = 'Likely bare-metal physical machine'
         }
     }
-    if ($env:IsDevBox -eq "True" ) {
+    if ($env:IsDevBox -eq 'True' ) {
         $VirtualMachine = $true
-        $type = "Azure DevBox"
+        $type = 'Azure DevBox'
     }
     
-#    if ($IsLanguagePermissive) {
-#        [pscustomobject]@{
-#            VirtualMachine = $virtualMachine
-#            Type           = $type
-#            Model          = $model
-#        }
-#    } else {
-#        Write-Host "VirtualMachine : $virtualMachine"
-#        Write-Host "Type           : $type"
-#        Write-Host "Model          : $model"
-#    }        
+    #    if ($IsLanguagePermissive) {
+    #        [pscustomobject]@{
+    #            VirtualMachine = $virtualMachine
+    #            Type           = $type
+    #            Model          = $model
+    #        }
+    #    } else {
+    #        Write-Host "VirtualMachine : $virtualMachine"
+    #        Write-Host "Type           : $type"
+    #        Write-Host "Model          : $model"
+    #    }        
 }
 Get-HostPlatform
 
@@ -387,26 +445,26 @@ function Search {
 function Reset-Podman {
     ## Run as required
     if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
-        Write-Host "Podman was not found/not installed!"
+        Write-Host 'Podman was not found/not installed!'
         return $false
     }
     podman machine stop
     podman machine rm --force 
     podman system connection rm podman-machine-default
     podman system connection rm podman-machine-default-root
-    podman machine init --timezone "Australia/Melbourne"
+    podman machine init --timezone 'Australia/Melbourne'
     podman machine start
     podman system connection list
     #podman machine inspect | jq
-    $PODMAN_IDENTITY = podman machine inspect --format "{{.SSHConfig.IdentityPath}}" ## Private Key
-    $PODMAN_PORT = podman machine podman-machine-default-root inspect --format "{{.SSHConfig.Port}}"
-    $PODMAN_USER = podman machine inspect --format "{{.SSHConfig.RemoteUsername}}"
-    $PODMAN_PATH = podman machine inspect --format "{{.ConnectionInfo.PodmanSocket.Path}}"
+    $PODMAN_IDENTITY = podman machine inspect --format '{{.SSHConfig.IdentityPath}}' ## Private Key
+    $PODMAN_PORT = podman machine podman-machine-default-root inspect --format '{{.SSHConfig.Port}}'
+    $PODMAN_USER = podman machine inspect --format '{{.SSHConfig.RemoteUsername}}'
+    $PODMAN_PATH = podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}'
     $PODMAN_CONNECTION = "ssh://${PODMAN_USER}@localhost/${PODMAN_PATH}"
-    $PODMAN_IDENTITY= "/mnt/c/users/vid9na6/.local/share/containers/podman/machine/machine"
-    Write-Host "In WSL run:"
+    $PODMAN_IDENTITY = '/mnt/c/users/vid9na6/.local/share/containers/podman/machine/machine'
+    Write-Host 'In WSL run:'
     Write-Host "podman-remote system connection add --identity ${PODMAN_IDENTITY} --port ${PODMAN_PORT} winpodman ${PODMAN_CONNECTION}"
-    Write-Host "podman-remote system connection default winpodman"
+    Write-Host 'podman-remote system connection default winpodman'
     #podman machine info
     ## Download and Run Container
     podman run --rm quay.io/podman/hello
@@ -414,7 +472,7 @@ function Reset-Podman {
 
 if ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue )) {
     Set-Alias -Name docker -Value podman
-    Set-Item -Path Env:\ASPIRE_CONTAINER_RUNTIME -Value "podman"
+    Set-Item -Path Env:\ASPIRE_CONTAINER_RUNTIME -Value 'podman'
     #Set-WslNetConfig
     ## podman run -dt -p 8080:80/tcp docker.io/library/httpd:latest
     ## docker run -it mcr.microsoft.com/azure-cli:azurelinux3.0
@@ -426,8 +484,8 @@ if ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue )) {
 
 function Set-Developer-Variables {
     ## Edit as required
-    if ( -not ( $env:DEVELOPER -eq "Yes" )) { return }
-    Write-Host "Setting Developer environment variables..."
+    if ( -not ( $env:DEVELOPER -eq 'Yes' )) { return }
+    Write-Host 'Setting Developer environment variables...'
     ## Dont send telemetry to Microsoft
     Set-Item -Path Env:\FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT -Value $true
     Set-Item -Path Env:\POWERSHELL_TELEMETRY_OPTOUT -Value $true
@@ -512,11 +570,11 @@ Set-Developer-Variables
 function prompt {
 
     if ( $IsAdmin ) {
-        $color = "Red"
-        Write-Host ("PS (Admin) " + $(Get-Location) + ">") -NoNewline -ForegroundColor $Color
+        $color = 'Red'
+        Write-Host ('PS (Admin) ' + $(Get-Location) + '>') -NoNewline -ForegroundColor $Color
     } else {
-        $color = "Green"    
-        Write-Host ("PS " + $(Get-Location) + ">") -NoNewline -ForegroundColor $Color
+        $color = 'Green'    
+        Write-Host ('PS ' + $(Get-Location) + '>') -NoNewline -ForegroundColor $Color
     }
     return "`n> "
 }
@@ -549,42 +607,42 @@ function Initialize-PSReadLineSmart {
     #>
     [CmdletBinding()]
     param(
-        [ValidateSet('Auto','Inline','List')]
+        [ValidateSet('Auto', 'Inline', 'List')]
         [string]$ViewStyle = 'Auto',
         [bool]$UsePluginIfAvailable = $true
     )
 
     $result = New-ProfileObject @{
-        PSVersion            = $PSVersionTable.PSVersion.ToString()
-        PSEdition            = $PSVersionTable.PSEdition
-        PSReadLineVersion    = $null
-        PredictionEnabled    = $false
-        PredictionSource     = $null
-        PredictionViewStyle  = $null
-        KeybindingsApplied   = @()
-        Notes                = @()
+        PSVersion           = $PSVersionTable.PSVersion.ToString()
+        PSEdition           = $PSVersionTable.PSEdition
+        PSReadLineVersion   = $null
+        PredictionEnabled   = $false
+        PredictionSource    = $null
+        PredictionViewStyle = $null
+        KeybindingsApplied  = @()
+        Notes               = @()
     }
 
     if (-not $IsLanguagePermissive) {
-        $result.Notes += "Skipped: language mode is not permissive."
+        $result.Notes += 'Skipped: language mode is not permissive.'
         return $result
     }
 
     try {
         $window = $Host.UI.RawUI.WindowSize
         if (-not ($window.Width -ge 54 -and $window.Height -ge 15)) {
-            $result.Notes += "Skipped: console window too small for prediction UI."
+            $result.Notes += 'Skipped: console window too small for prediction UI.'
             return $result
         }
     } catch {
-        $result.Notes += "Skipped: host does not expose RawUI window size."
+        $result.Notes += 'Skipped: host does not expose RawUI window size.'
         return $result
     }
 
     # 1) Load newest PSReadLine available (quietly)
     $rl = Get-Module PSReadLine -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1
     if (-not $rl) {
-        $result.Notes += "PSReadLine not installed; skipping configuration."
+        $result.Notes += 'PSReadLine not installed; skipping configuration.'
         return $result
     }
     try {
@@ -598,11 +656,11 @@ function Initialize-PSReadLineSmart {
     # Helpers to probe capability rather than assume version thresholds
     $setOpt = Get-Command Set-PSReadLineOption -ErrorAction SilentlyContinue
     $hasPredictionSource = $false
-    $hasPredictionView   = $false
+    $hasPredictionView = $false
     if ($setOpt) {
         $params = ($setOpt.Parameters.Keys)
         $hasPredictionSource = $params -contains 'PredictionSource'
-        $hasPredictionView   = $params -contains 'PredictionViewStyle'
+        $hasPredictionView = $params -contains 'PredictionViewStyle'
     }
 
     # 2) Decide PredictionSource
@@ -614,7 +672,7 @@ function Initialize-PSReadLineSmart {
         # Optionally upgrade to HistoryAndPlugin when truly supported:
         # Requires PowerShell 7.2+ and Az.Tools.Predictor module available
         $isPS72Plus = ($PSVersionTable.PSVersion.Major -gt 7) -or
-                      (($PSVersionTable.PSVersion.Major -eq 7) -and ($PSVersionTable.PSVersion.Minor -ge 2))
+        (($PSVersionTable.PSVersion.Major -eq 7) -and ($PSVersionTable.PSVersion.Minor -ge 2))
         $azPred = Get-Module Az.Tools.Predictor -ListAvailable | Select-Object -First 1
 
         if ($UsePluginIfAvailable -and $isPS72Plus -and $azPred) {
@@ -629,12 +687,12 @@ function Initialize-PSReadLineSmart {
         try {
             Set-PSReadLineOption -PredictionSource $source
             $result.PredictionEnabled = $true
-            $result.PredictionSource  = $source
+            $result.PredictionSource = $source
         } catch {
             $result.Notes += "Set-PSReadLineOption -PredictionSource failed: $($_.Exception.Message)"
         }
     } else {
-        $result.Notes += "This PSReadLine does not expose -PredictionSource; skipping predictions."
+        $result.Notes += 'This PSReadLine does not expose -PredictionSource; skipping predictions.'
     }
 
     # 3) Decide PredictionViewStyle
@@ -642,8 +700,8 @@ function Initialize-PSReadLineSmart {
         $candidates = @()
         switch ($ViewStyle) {
             'Inline' { $candidates = @('InlineView') }
-            'List'   { $candidates = @('ListView') }
-            'Auto'   {
+            'List' { $candidates = @('ListView') }
+            'Auto' {
                 # Prefer Inline when available; fallback to List
                 $candidates = @('InlineView', 'ListView')
             }
@@ -661,10 +719,10 @@ function Initialize-PSReadLineSmart {
                     # Try next candidate (Auto mode) if available.
                 }
             }
-            if (-not $applied) { $result.Notes += "Could not set any PredictionViewStyle on this build." }
+            if (-not $applied) { $result.Notes += 'Could not set any PredictionViewStyle on this build.' }
         }
     } else {
-        $result.Notes += "This PSReadLine does not expose -PredictionViewStyle; view not set."
+        $result.Notes += 'This PSReadLine does not expose -PredictionViewStyle; view not set.'
     }
 
     # 4) Edit mode (safe everywhere)
@@ -674,9 +732,9 @@ function Initialize-PSReadLineSmart {
 
     # 5) Helpful keybindings — only if functions exist
     $keyFn = @{
-        "Ctrl+RightArrow" = "AcceptNextSuggestionWord"
-        "Alt+RightArrow"  = "NextSuggestion"
-        "Alt+LeftArrow"   = "PreviousSuggestion"
+        'Ctrl+RightArrow' = 'AcceptNextSuggestionWord'
+        'Alt+RightArrow'  = 'NextSuggestion'
+        'Alt+LeftArrow'   = 'PreviousSuggestion'
     }
     foreach ($kvp in $keyFn.GetEnumerator()) {
         try {
@@ -699,7 +757,7 @@ function which {
 
     Get-Command $Command -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
 }
-if (Get-Command 'cat.exe' -ErrorAction SilentlyContinue) { remove-alias cat -ErrorAction SilentlyContinue }
+if (Get-Command 'cat.exe' -ErrorAction SilentlyContinue) { Remove-Alias cat -ErrorAction SilentlyContinue }
 
 # Run Starship if installed
 function Invoke-Starship-TransientFunction {
@@ -709,11 +767,11 @@ function Invoke-Starship-TransientFunction {
 if ([bool](Get-Command -ErrorAction SilentlyContinue starship.exe).Source) {
     if (-not $env:STARSHIP_CONFIG) {
         $env:STARSHIP_CONFIG = "$env:OneDriveCommercial\starship.toml"
-        $env:STARSHIP_CACHE  = "$HOME\AppData\Local\Temp"
+        $env:STARSHIP_CACHE = "$HOME\AppData\Local\Temp"
     }
     $starshipConfig = "$env:STARSHIP_CONFIG"
     if (-not (Test-Path "$starshipConfig" -PathType Leaf)) {
-        Write-Host ("Starship inital config...")
+        Write-Host ('Starship inital config...')
         ## $env:STARSHIP_LOG = "trace starship module rust"
         ## starship preset nerd-font-symbols --output "$env:STARSHIP_CONFIG"
         ## starship preset no-runtime-versions --output "$env:STARSHIP_CONFIG"
@@ -734,7 +792,7 @@ style = "blue bold"
 if ($IsLanguagePermissive) {
     $char = [System.Text.Encoding]::UTF8.GetString([byte[]](0xF0, 0x9F, 0x90, 0x8D))
     if ([string]::IsNullOrEmpty($char)) {
-        Write-Host -ForegroundColor "Yellow" "Warning: Nerd Fonts are NOT installed!" 
+        Write-Host -ForegroundColor 'Yellow' 'Warning: Nerd Fonts are NOT installed!' 
     }
 }
 
@@ -746,7 +804,7 @@ function Get-OsInfo {
         $major = $props.CurrentMajorVersionNumber
         $minor = $props.CurrentMinorVersionNumber
         $build = $props.CurrentBuildNumber
-        $ubr   = $props.UBR
+        $ubr = $props.UBR
         $osVersion = "$major.$minor.$build.$ubr"
     } else {
         return 
@@ -764,32 +822,31 @@ function Get-OsInfo {
             Model       = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Model).Model
         } 
     } else {
-        Write-Host "ProductName  : " -NoNewline
+        Write-Host 'ProductName  : ' -NoNewline
         (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).ProductName
-        Write-Host "ReleaseId    : " -NoNewline
+        Write-Host 'ReleaseId    : ' -NoNewline
         (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).ReleaseId
-        Write-Host "DisplayVer   : " -NoNewline
+        Write-Host 'DisplayVer   : ' -NoNewline
         (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).DisplayVersion
-        Write-Host "Build        : " -NoNewline
+        Write-Host 'Build        : ' -NoNewline
         [int](Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).CurrentBuildNumber
-        Write-Host "UBR          : " -NoNewline
+        Write-Host 'UBR          : ' -NoNewline
         [int]$ubr
         Write-Host "OSVersion    : $osVersion"
-        Write-Host "Type         : " -NoNewline
+        Write-Host 'Type         : ' -NoNewline
         (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).InstallationType
-        Write-Host "Manufacturer : " -NoNewLine
+        Write-Host 'Manufacturer : ' -NoNewline
         Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Manufacturer
-        Write-Host "Model       : " -NoNewLine
+        Write-Host 'Model       : ' -NoNewline
         Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Model        
     }
 }
 
-if ( ($env:IsDevBox ) -and (Get-Command "devbox") )  {
+if ( ($env:IsDevBox ) -and (Get-Command 'devbox') ) {
     if ($env:UPN) {
         Write-Host -ForegroundColor Cyan "Welcome to your Dev Box $env:UPN"
-    }
-    else {
-        Write-Host -ForegroundColor Cyan "Welcome to your Dev Box"
+    } else {
+        Write-Host -ForegroundColor Cyan 'Welcome to your Dev Box'
     }
     if ( [bool](Get-Command -Name jq.exe -ErrorAction SilentlyContinue )) {
         devbox metadata get list-all | jq
@@ -801,22 +858,22 @@ if ( ($env:IsDevBox ) -and (Get-Command "devbox") )  {
 }
 
 $ompConfig = "$env:POSH_THEMES_PATH\cloud-native-azure.omp.json"
-$ompConfig = "C:\Program Files\WindowsApps\ohmyposh.cli_27.5.0.0_x64__96v55e8n804z4\themes\cloud-native-azure.omp.json"
+$ompConfig = 'C:\Program Files\WindowsApps\ohmyposh.cli_27.5.0.0_x64__96v55e8n804z4\themes\cloud-native-azure.omp.json'
 
 ## Check for Starship
 if ($env:STARSHIP_CONFIG -and (Test-Path "$env:STARSHIP_CONFIG" -PathType Leaf) -and $IsLanguagePermissive ) {
-    Write-Host "Found Starship shell...so starting it..."
+    Write-Host 'Found Starship shell...so starting it...'
     Invoke-Expression (&starship init powershell)
     Enable-TransientPrompt
-    if ( -not $IsAdmin ) { $Host.UI.RawUI.WindowTitle = "PowerShell - Starship" }
-} elseif ($env:POSH_THEMES_PATH -and (Test-Path "$ompConfig" -Pathtype Leaf)) {
-    Write-Host "Found Oh-My-Posh shell...so starting it..."
+    if ( -not $IsAdmin ) { $Host.UI.RawUI.WindowTitle = 'PowerShell - Starship' }
+} elseif ($env:POSH_THEMES_PATH -and (Test-Path "$ompConfig" -PathType Leaf)) {
+    Write-Host 'Found Oh-My-Posh shell...so starting it...'
     & ([ScriptBlock]::Create((oh-my-posh init pwsh --config $ompConfig --print) -join "`n"))
-    $Host.UI.RawUI.WindowTitle = "PowerShell - Oh-My-Posh"
+    $Host.UI.RawUI.WindowTitle = 'PowerShell - Oh-My-Posh'
 } else {
     if ($Host.UI.RawUI.WindowSize.Width -ge 54 -and $Host.UI.RawUI.WindowSize.Height -ge 15) {
         if ($IsLanguagePermissive) {
-            $Host.UI.RawUI.WindowTitle = "PowerShell"
+            $Host.UI.RawUI.WindowTitle = 'PowerShell'
         }
     }
 }
@@ -825,7 +882,7 @@ function Reset-GitBranch {
 
     # Check Git availability
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        Write-Error "Git is not installed or not available in PATH."
+        Write-Error 'Git is not installed or not available in PATH.'
         return
     }
 
@@ -833,12 +890,12 @@ function Reset-GitBranch {
     try {
         $branch = git rev-parse --abbrev-ref HEAD 2>$null
     } catch {
-        Write-Error "Not a Git repository."
+        Write-Error 'Not a Git repository.'
         return
     }
 
     if (-not $branch) {
-        Write-Error "Unable to determine current branch."
+        Write-Error 'Unable to determine current branch.'
         return
     }
 
@@ -850,7 +907,7 @@ function Reset-GitBranch {
     Write-Host "Resetting local branch '$branch' to origin/$branch..." -ForegroundColor Yellow
     git reset --hard "origin/$branch"
 
-    Write-Host "Cleaning untracked files and directories..." -ForegroundColor Red
+    Write-Host 'Cleaning untracked files and directories...' -ForegroundColor Red
     git clean -fd
 
     Write-Host "`nLocal branch '$branch' is now identical to origin/$branch." -ForegroundColor Green
@@ -858,23 +915,23 @@ function Reset-GitBranch {
 
 # Alias management
 foreach ($alias in 't', 'tf', 'tv', 'ti' ) {
-    if ([bool](Get-Alias $alias -ErrorAction SilentlyContinue)) { Remove-Item Alias:$alias -force }
+    if ([bool](Get-Alias $alias -ErrorAction SilentlyContinue)) { Remove-Item Alias:$alias -Force }
 }
 
 ## Terraform shortcuts
 function t { terraform.exe @args }
-function tf { terraform.exe fmt @args}
+function tf { terraform.exe fmt @args }
 function tv { terraform.exe validate @args }
-function ti { terraform.exe init -upgrade @args}
-function tp { terraform.exe plan @args}
-function ta { terraform.exe apply @args}
+function ti { terraform.exe init -upgrade @args }
+function tp { terraform.exe plan @args }
+function ta { terraform.exe apply @args }
 function tc {
-    Write-StepSummary -type 'info' "Starting Terraform Console..."
+    Write-StepSummary -type 'info' 'Starting Terraform Console...'
     terraform.exe console @args
 }
 
 ## Sysinternal shortcuts
-function handle { handle.exe init -nobanner @args}
+function handle { handle.exe init -nobanner @args }
  
 function cdw {
     [CmdletBinding()]
@@ -884,8 +941,7 @@ function cdw {
 
     if (Test-Path -Path $path -PathType Container) {
         Set-Location -Path $path
-    }
-    else {
+    } else {
         Write-Warning "$path does not exist."
     }
 }
@@ -896,7 +952,7 @@ function free {
         $sizeInGB = [math]::Round($_ / 1GB, 2)
         if ($sizeInGB -lt 5) {
             Write-Host "Warning: Free space on Drive C: is $sizeInGB GB!" -ForegroundColor Red
-       } else {
+        } else {
             Write-Output "Free space on Drive C: is $sizeInGB GB"
         }
     }
@@ -929,10 +985,9 @@ function Restore-Terminal {
         # Ensure echo is on
         [System.Console]::Echo = $true
 
-        Write-Host "Console input reset. You should now be able to paste normally."
-    }
-    catch {
-        Write-Warning "Could not reset console state. Try closing and reopening the terminal."
+        Write-Host 'Console input reset. You should now be able to paste normally.'
+    } catch {
+        Write-Warning 'Could not reset console state. Try closing and reopening the terminal.'
     }
 }
 
@@ -950,10 +1005,10 @@ Import-Nice-Modules
 
 function Set-Azure-Environment {
     
-    if ( -not ( $env:DEVELOPER -eq "Yes" )) { return }
+    if ( -not ( $env:DEVELOPER -eq 'Yes' )) { return }
 
     $subscription_id = Get-AzSubscription -ErrorAction SilentlyContinue |
-        Select-Object -First 1 -ExpandProperty Id
+    Select-Object -First 1 -ExpandProperty Id
     if (-not [string]::IsNullOrEmpty($subscription_id)) {
         Set-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Value $subscription_id
     } else {
@@ -994,7 +1049,7 @@ function Test-AzureEnvironment {
     }
 
     if ($missing.Count -eq 0) {
-        Write-Host "Azure environment variables defined."
+        Write-Host 'Azure environment variables defined.'
         return $true
     }
 
@@ -1019,10 +1074,10 @@ function Test-SharePointToken {
 function New-DefaultEnvFile {
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
+    $PSDefaultParameterValues['*:Verbose'] = $false
     
     if ((Test-AzureEnvironment) -eq $true) {
-        Write-Host "Writing out default .env file"
+        Write-Host 'Writing out default .env file'
         @"
 # $env:AZURE_TENANT_NAME .env file
 AZURE_SUBSCRIPTION_ID=$env:AZURE_SUBSCRIPTION_ID
@@ -1032,8 +1087,8 @@ AZURE_USERNAME=$env:AZURE_USERNAME
         Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env-default" -Force
         Copy-Item "$HOME/.env-default" "$env:OneDriveCommercial/.env" -Force
     } else {
-        Write-Host "Not enough environment variables defined!"
-        Write-Host " Run: Set-Azure-Environment" 
+        Write-Host 'Not enough environment variables defined!'
+        Write-Host ' Run: Set-Azure-Environment' 
     }
 
     $PSDefaultParameterValues['*:Verbose'] = $preserve
@@ -1049,7 +1104,7 @@ function Import-Env-File {
     )
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
+    $PSDefaultParameterValues['*:Verbose'] = $false
 
     # Decide candidate paths in order
     $paths = @()
@@ -1079,7 +1134,7 @@ function Import-Env-File {
         $line = $_.Trim()
 
         # Skip blank lines and comments
-        if ($line -eq "" -or $line -match '^\s*#') { return }
+        if ($line -eq '' -or $line -match '^\s*#') { return }
 
         # Split KEY=value — supports values with '=' inside quotes
         if ($line -match '^\s*([^=]+?)\s*=\s*(.*)\s*$') {
@@ -1095,7 +1150,7 @@ function Import-Env-File {
                 ## Make it permanent, if not constrained by PowerShell
                 [System.Environment]::SetEnvironmentVariable($key, $val, 'User')
             } else {
-                Set-ItemProperty -Path "HKCU:\Environment" -Name $key -Value $val
+                Set-ItemProperty -Path 'HKCU:\Environment' -Name $key -Value $val
             }
             Set-Item -Path "Env:\$key" -Value "$val"
             
@@ -1109,16 +1164,16 @@ function Import-Env-File {
     if (-not $silent ) {
         Write-Host "Portal Logon: https://entra.microsoft.com/?tenant=$env:AZURE_TENANT_ID"
         if ( $env:AZURE_CLIENT_ID ) {
-            Write-Host "DELEGATION"
+            Write-Host 'DELEGATION'
             Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope .default -UseDeviceAuthentication:$false -NoWelcome"
-            Write-Host "Get-MgContext"
-        }  else {
-            Write-Host "AS USER"
+            Write-Host 'Get-MgContext'
+        } else {
+            Write-Host 'AS USER'
             Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope .default" -UseDeviceAuthentication:$false -NoWelcome
-            Write-Host "Get-MgContext"
+            Write-Host 'Get-MgContext'
         }
     }
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
+    $PSDefaultParameterValues['*:Verbose'] = $preserve
 }
 
 function Get-Default-Env-File {
@@ -1132,7 +1187,7 @@ function Get-EntraID {
     $PSDefaultParameterValues['*:Verbose'] = $false
 
     if ( -not $env:AZURE_TENANT_ID ) {
-        throw "Environment variable AZURE_TENANT_ID is not set"
+        throw 'Environment variable AZURE_TENANT_ID is not set'
     }
     $response = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration" -ErrorAction Stop
     if ($response ) {
@@ -1140,7 +1195,7 @@ function Get-EntraID {
         $response | Format-List issuer, token_endpoint, authorization_endpoint, device_authorization_endpoint, end_session_endpoint, kerberos_endpoint, jwks_uri
         return $true | Out-Null
     } else {
-        $PSDefaultParameterValues['*:Verbose']   = $preserve
+        $PSDefaultParameterValues['*:Verbose'] = $preserve
         throw "Tenant $env:AZURE_TENANT_ID was not found!"
         return $false | Out-Null
     }
@@ -1158,14 +1213,15 @@ function Format-JsonPretty {
 }
 ## Get-Content .\data.json | Format-JsonPretty
 
-function Get-Azure-Meta { ##IMDS
+function Get-Azure-Meta {
+    ##IMDS
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
+    $PSDefaultParameterValues['*:Verbose'] = $false
 
-    $headers = @{ "Metadata" = "true" }
-    $uri = "http://169.254.169.254/metadata/instance?api-version=2021-02-01"
-    $uri = "http://169.254.169.254/metadata/instance?api-version=2025-04-07"
+    $headers = @{ 'Metadata' = 'true' }
+    $uri = 'http://169.254.169.254/metadata/instance?api-version=2021-02-01'
+    $uri = 'http://169.254.169.254/metadata/instance?api-version=2025-04-07'
     
     $response = Invoke-RestMethod -Uri $uri -Headers $headers -Method GET -NoProxy -ErrorAction Stop | ConvertTo-Json -Depth 64
     if ($response ) {
@@ -1174,12 +1230,12 @@ function Get-Azure-Meta { ##IMDS
         $response | jq -r '.compute.location'
      
     } else {
-        throw "This machine is not running inside Azure"
-        $PSDefaultParameterValues['*:Verbose']   = $preserve
+        throw 'This machine is not running inside Azure'
+        $PSDefaultParameterValues['*:Verbose'] = $preserve
         return $false | Out-Null
     }
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
-    Write-Host "Running inside Azure..."
+    $PSDefaultParameterValues['*:Verbose'] = $preserve
+    Write-Host 'Running inside Azure...'
     return $true | Out-Null
 }
 
@@ -1199,7 +1255,7 @@ function Enable-PIMRole {
     $ErrorActionPreference = 'Stop'
 
     $isConstrainedLanguage =
-        $ExecutionContext.SessionState.LanguageMode -eq 'ConstrainedLanguage'
+    $ExecutionContext.SessionState.LanguageMode -eq 'ConstrainedLanguage'
 
     function Convert-ToIso8601Duration {
         param([object] $InputObject)
@@ -1214,13 +1270,11 @@ function Enable-PIMRole {
             $hours = [int] $parts[0]
             $minutes = [int] $parts[1]
             $seconds = [int] $parts[2]
-        }
-        elseif ($InputObject -is [timespan]) {
+        } elseif ($InputObject -is [timespan]) {
             $hours = [int] [math]::Floor($InputObject.TotalHours)
             $minutes = $InputObject.Minutes
             $seconds = $InputObject.Seconds
-        }
-        else {
+        } else {
             throw 'Duration must be a TimeSpan or HH:MM:SS string.'
         }
 
@@ -1255,8 +1309,7 @@ function Enable-PIMRole {
 
         if (-not $ctx -or -not $ctx.Account) {
             $needConnect = $true
-        }
-        else {
+        } else {
             foreach ($scope in $requiredScopes) {
                 if ($ctx.Scopes -notcontains $scope) {
                     $needConnect = $true
@@ -1273,7 +1326,7 @@ function Enable-PIMRole {
                 -NoWelcome `
                 -Scopes $requiredScopes `
                 -ErrorAction Stop |
-                Out-Null
+            Out-Null
         }
     }
 
@@ -1288,14 +1341,14 @@ function Enable-PIMRole {
 
         $me = Get-MgUser `
             -UserId $ctx.Account `
-            -Property Id,UserPrincipalName,DisplayName `
+            -Property Id, UserPrincipalName, DisplayName `
             -ErrorAction Stop
 
         $principalId = $me.Id
 
         $roleDefinition = Get-MgRoleManagementDirectoryRoleDefinition -All |
-            Where-Object { $_.DisplayName -eq $RoleName } |
-            Select-Object -First 1
+        Where-Object { $_.DisplayName -eq $RoleName } |
+        Select-Object -First 1
 
         if (-not $roleDefinition) {
             throw "Directory role '$RoleName' was not found."
@@ -1304,12 +1357,12 @@ function Enable-PIMRole {
         $roleDefinitionId = $roleDefinition.Id
 
         $eligible = Get-MgRoleManagementDirectoryRoleEligibilitySchedule -All |
-            Where-Object {
-                $_.PrincipalId -eq $principalId -and
-                $_.RoleDefinitionId -eq $roleDefinitionId -and
-                $_.DirectoryScopeId -eq $DirectoryScopeId
-            } |
-            Select-Object -First 1
+        Where-Object {
+            $_.PrincipalId -eq $principalId -and
+            $_.RoleDefinitionId -eq $roleDefinitionId -and
+            $_.DirectoryScopeId -eq $DirectoryScopeId
+        } |
+        Select-Object -First 1
 
         if (-not $eligible) {
             throw "Signed-in user is not PIM eligible for '$RoleName' at scope '$DirectoryScopeId'."
@@ -1350,11 +1403,11 @@ function Enable-PIMRole {
             Start-Sleep -Seconds 3
 
             $active = Get-MgRoleManagementDirectoryRoleAssignmentSchedule -All |
-                Where-Object {
-                    $_.PrincipalId -eq $principalId -and
-                    $_.RoleDefinitionId -eq $roleDefinitionId -and
-                    $_.DirectoryScopeId -eq $DirectoryScopeId
-                }
+            Where-Object {
+                $_.PrincipalId -eq $principalId -and
+                $_.RoleDefinitionId -eq $roleDefinitionId -and
+                $_.DirectoryScopeId -eq $DirectoryScopeId
+            }
         }
         while (-not $active -and (Get-Date) -lt $deadline)
 
@@ -1368,10 +1421,9 @@ function Enable-PIMRole {
             LanguageMode     = $ExecutionContext.SessionState.LanguageMode
             Active           = [bool] $active
             ActiveAssignment = $active |
-                Select-Object Id, StartDateTime, EndDateTime, Status, RoleDefinitionId, DirectoryScopeId
+            Select-Object Id, StartDateTime, EndDateTime, Status, RoleDefinitionId, DirectoryScopeId
         }
-    }
-    catch {
+    } catch {
         if ($isConstrainedLanguage) {
             throw "Failed to activate PIM role '$RoleName'. PowerShell is running in ConstrainedLanguage mode. $($_.Exception.Message)"
         }
@@ -1410,7 +1462,7 @@ function New-GraphRequestParams {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [ValidateSet("GET","POST","PATCH","DELETE","PUT")]
+        [ValidateSet('GET', 'POST', 'PATCH', 'DELETE', 'PUT')]
         [string]$Method,
 
         [Parameter(Mandatory)]
@@ -1420,7 +1472,7 @@ function New-GraphRequestParams {
         [hashtable]$Headers,
         $Body,
         [string]$AccessToken,
-        [string]$OutputType = "Json"
+        [string]$OutputType = 'Json'
     )
 
     #
@@ -1428,9 +1480,9 @@ function New-GraphRequestParams {
     #
     if ($Query) {
         $encoded = $Query.GetEnumerator() |
-            ForEach-Object { "{0}={1}" -f [System.Web.HttpUtility]::UrlEncode($_.Key), [System.Web.HttpUtility]::UrlEncode($_.Value) }
+        ForEach-Object { '{0}={1}' -f [System.Web.HttpUtility]::UrlEncode($_.Key), [System.Web.HttpUtility]::UrlEncode($_.Value) }
 
-        if ($Uri.Contains("?")) {
+        if ($Uri.Contains('?')) {
             $Uri = "$Uri&$($encoded -join '&')"
         } else {
             $Uri = "$Uri?$($encoded -join '&')"
@@ -1450,7 +1502,7 @@ function New-GraphRequestParams {
 
     # Add Authorization header if token provided
     if ($AccessToken) {
-        $finalHeaders["Authorization"] = "Bearer $AccessToken"
+        $finalHeaders['Authorization'] = "Bearer $AccessToken"
     }
 
     #
@@ -1463,19 +1515,19 @@ function New-GraphRequestParams {
     }
 
     if ($finalHeaders.Count -gt 0) {
-        $params["Headers"] = $finalHeaders
+        $params['Headers'] = $finalHeaders
     }
 
     #
     # Add Body if provided
     #
-    if ($PSBoundParameters.ContainsKey("Body")) {
+    if ($PSBoundParameters.ContainsKey('Body')) {
         # Convert PowerShell objects to JSON automatically
         if ($Body -isnot [string] -and $Body -isnot [byte[]]) {
             $Body = ($Body | ConvertTo-Json -Depth 10)
         }
 
-        $params["Body"] = $Body
+        $params['Body'] = $Body
     }
 
     return $params
@@ -1536,24 +1588,24 @@ function Get-SPODelegatedAccessToken {
     Write-Verbose "Requesting device code for tenant '$TenantId' and scope '$scope'..."
     $device = Invoke-RestMethod -Method POST -Uri $deviceCodeUri -Body $deviceCodeBody
 
-    Write-Host ""
-    Write-Host "To sign in, open the following URL in a browser and enter the code:" -ForegroundColor Cyan
+    Write-Host ''
+    Write-Host 'To sign in, open the following URL in a browser and enter the code:' -ForegroundColor Cyan
     Write-Host "  URL : $($device.verification_uri)" -ForegroundColor Yellow
     Write-Host "  Code: $($device.user_code)" -ForegroundColor Yellow
-    Write-Host ""
+    Write-Host ''
 
     # ----- Step 2: Poll token endpoint -----
     $tokenUri = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token"
 
     $pollBody = @{
-        grant_type  = "urn:ietf:params:oauth:grant-type:device_code"
+        grant_type  = 'urn:ietf:params:oauth:grant-type:device_code'
         client_id   = $ClientId
         device_code = $device.device_code
     }
 
-    $expiresIn   = [int]$device.expires_in
+    $expiresIn = [int]$device.expires_in
     $intervalSec = [int]$device.interval
-    $startTime   = Get-Date
+    $startTime = Get-Date
 
     Write-Verbose "Polling token endpoint every $intervalSec seconds for up to $expiresIn seconds..."
 
@@ -1563,25 +1615,22 @@ function Get-SPODelegatedAccessToken {
         # Check timeout
         $elapsed = (Get-Date) - $startTime
         if ($elapsed.TotalSeconds -ge $expiresIn) {
-            throw "Device code has expired. Please run the function again to start a new sign-in."
+            throw 'Device code has expired. Please run the function again to start a new sign-in.'
         }
 
         try {
             $token = Invoke-RestMethod -Method POST -Uri $tokenUri -Body $pollBody
-        }
-        catch {
+        } catch {
             $errorResponse = $_.ErrorDetails.Message
-            if ($errorResponse -match "authorization_pending") {
+            if ($errorResponse -match 'authorization_pending') {
                 # User hasn't completed login yet – wait and retry
                 Start-Sleep -Seconds $intervalSec
                 continue
-            }
-            elseif ($errorResponse -match "slow_down") {
+            } elseif ($errorResponse -match 'slow_down') {
                 # Service is asking us to slow down – wait a bit more
                 Start-Sleep -Seconds ($intervalSec + 2)
                 continue
-            }
-            else {
+            } else {
                 throw "Failed to obtain token. Error response: $errorResponse"
             }
         }
@@ -1590,16 +1639,16 @@ function Get-SPODelegatedAccessToken {
     $accessToken = $token.access_token
 
     if (-not $accessToken) {
-        throw "The response did not contain an access_token."
+        throw 'The response did not contain an access_token.'
     }
 
     # ----- store in environment variable and clipboard -----
     $env:ACCESS_TOKEN_SHAREPOINT = $accessToken
     $accesstoken | Set-Clipboard
-    Write-Host "Stored access token in environment variable ACCESS_TOKEN_SHAREPOINT and in Clipboard."
+    Write-Host 'Stored access token in environment variable ACCESS_TOKEN_SHAREPOINT and in Clipboard.'
 
     Write-Host "Connect-PnPOnline -Url ""https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com"" UseDeviceAuthentication:$false -AccessToken "'$env:ACCESS_TOKEN_SHAREPOINT'
-    Write-Host "Get-PnpConnection"
+    Write-Host 'Get-PnpConnection'
     return ##$accessToken
 }
 
@@ -1607,13 +1656,14 @@ function Test-SharePoint {
     Get-SPODelegatedAccessToken ## via device flow
     Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -Interactive -ClientId $env:AZURE_CLIENT_ID
     ## Connect-PnPOnline -Url "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com" -UseDeviceAuthentication:$false -AccessToken $env:ACCESS_TOKEN_SHAREPOINT
-    Set-Item -Path Env:\SHAREPOINT_ACCESS_TOKEN -Value (Get-PnPAccessToken -decoded).EncodedToken    
+    Set-Item -Path Env:\SHAREPOINT_ACCESS_TOKEN -Value (Get-PnPAccessToken -Decoded).EncodedToken    
     Get-PnPTenant
     Get-PnPTenantSite
     Disconnect-PnPOnline
 }
 
-function Get-Token-Graph { ##use Graph Model
+function Get-Token-Graph {
+    ##use Graph Model
     [CmdletBinding()]
     param(
         [string]$TenantId = $Env:AZURE_TENANT_ID,
@@ -1626,12 +1676,12 @@ function Get-Token-Graph { ##use Graph Model
 
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']  = $false
+    $PSDefaultParameterValues['*:Verbose'] = $false
     
     ## Set to public client, if CLIENT_ID is not set
     if ([string]::IsNullOrWhiteSpace($ClientId)) {
-        Write-Host "❌ Environment variable AZURE_CLIENT_ID not set, so setting it to Graph PowerShell / Azure CLI style"
-        $ClientId = "1950a258-227b-4e31-a9cf-717495945fc2" ## Microsoft Azure PowerShell
+        Write-Host '❌ Environment variable AZURE_CLIENT_ID not set, so setting it to Graph PowerShell / Azure CLI style'
+        $ClientId = '1950a258-227b-4e31-a9cf-717495945fc2' ## Microsoft Azure PowerShell
     }
         
     try {
@@ -1641,9 +1691,8 @@ function Get-Token-Graph { ##use Graph Model
         } else {
             Connect-MgGraph -TenantId $TenantId -ClientId $ClientId -Scopes $($Scopes -join ' ') -UseDeviceAuthentication:$false -NoWelcome
         }
-        $response = Invoke-MgGraphRequest -Method GET -Uri "https://graph.microsoft.com/v1.0/me" -OutputType 'HttpResponseMessage'
-    }
-    catch { 
+        $response = Invoke-MgGraphRequest -Method GET -Uri 'https://graph.microsoft.com/v1.0/me' -OutputType 'HttpResponseMessage'
+    } catch { 
         $PSDefaultParameterValues['*:Verbose'] = $preserve
         throw "❌ Get-Token failed. $($_.Exception.Message)"
     }
@@ -1657,18 +1706,19 @@ function Get-Token-Graph { ##use Graph Model
     if ($accesstoken -and $accesstoken.Length -gt 1) {
         Set-Item -Path Env:\ACCESS_TOKEN -Value $accesstoken
         $accesstoken | Set-Clipboard
-        Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
+        Write-Host 'Access token saved to ENV:ACCESS_TOKEN and copied to clipboard.'
         $PSDefaultParameterValues['*:Verbose'] = $preserve
         return $true
     }
 
-    Write-Host "❌ Access denied or token not available."
+    Write-Host '❌ Access denied or token not available.'
     
     $PSDefaultParameterValues['*:Verbose'] = $preserve
     return $false
 }
 
-function Get-Token-Device-Flow { ## without Graph Modules
+function Get-Token-Device-Flow {
+    ## without Graph Modules
     ## https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-device-code
     param(
         ## Provide if you want; otherwise we'll pick it up from env vars
@@ -1683,19 +1733,19 @@ function Get-Token-Device-Flow { ## without Graph Modules
     )
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
+    $PSDefaultParameterValues['*:Verbose'] = $false
 
     ## Request a device code for the given scopes
     $deviceCodeResponse = Invoke-RestMethod -Method POST `
         -Uri "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/devicecode" `
         -Body @{
-            client_id = $ClientId
-            scope     = $($Scopes -join ' ')
-        }
+        client_id = $ClientId
+        scope     = $($Scopes -join ' ')
+    }
 
     Write-Host "Attempting to logon as Client_ID $ClientId to Tenant: $TenantId with these scopes: ($Scopes -join ' ')"
     Write-Host "`nGo to $($deviceCodeResponse.verification_uri) and enter code: $($deviceCodeResponse.user_code)" -ForegroundColor Yellow
-    Write-Host "Waiting for sign-in and consent..." -ForegroundColor DarkGray
+    Write-Host 'Waiting for sign-in and consent...' -ForegroundColor DarkGray
 
     ## Poll until user signs in and token is issued
     while ($true) {
@@ -1705,35 +1755,35 @@ function Get-Token-Device-Flow { ## without Graph Modules
             $tokenResponse = Invoke-RestMethod -Method POST `
                 -Uri "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token" `
                 -Body @{
-                    grant_type  = "device_code"
-                    client_id   = $ClientId
-                    device_code = $deviceCodeResponse.device_code
-                }
+                grant_type  = 'device_code'
+                client_id   = $ClientId
+                device_code = $deviceCodeResponse.device_code
+            }
 
             if ($tokenResponse.access_token) {
-                Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
+                Write-Host 'Access token saved to ENV:ACCESS_TOKEN and copied to clipboard.'
                 Set-Item -Path Env:\ACCESS_TOKEN -Value $tokenResponse.access_token 
                 $tokenResponse.access_token | Set-Clipboard
-                $PSDefaultParameterValues['*:Verbose']   = $preserve
+                $PSDefaultParameterValues['*:Verbose'] = $preserve
                 return $true
             }
-        }
-        catch {
+        } catch {
             # Entra ID returns 'authorization_pending' until user completes login
             $errorJson = $_.ErrorDetails.Message | ConvertFrom-Json -ErrorAction SilentlyContinue
             $errormsg = $errorJson.error
-            if ($errormsg -ne "authorization_pending") {
+            if ($errormsg -ne 'authorization_pending') {
                 Write-Warning "❌ Unexpected error: $($_.ErrorDetails.Message)"
-                $PSDefaultParameterValues['*:Verbose']   = $preserve
+                $PSDefaultParameterValues['*:Verbose'] = $preserve
                 break
             }
         }
     }
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
+    $PSDefaultParameterValues['*:Verbose'] = $preserve
     return $false
 }
 
-function Get-Token-Interactive { ## via Browser
+function Get-Token-Interactive {
+    ## via Browser
     <#
         .SYNOPSIS
         Interactive Microsoft Entra ID / Microsoft Graph login that works in
@@ -1753,14 +1803,14 @@ function Get-Token-Interactive { ## via Browser
         [ValidateNotNullOrEmpty()]
         [string]$ClientId,
 
-        [string]$RedirectUri = "https://login.microsoftonline.com/common/oauth2/nativeclient",
+        [string]$RedirectUri = 'https://login.microsoftonline.com/common/oauth2/nativeclient',
 
         [string[]]$Scopes = @('User.Read')  ## e.g. @('Mail.ReadBasic','Mail.Read')
     )
 
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
+    $PSDefaultParameterValues['*:Verbose'] = $false
 
     Write-Host "Requesting Access Token via Native Client flow: $Scopes" -ForegroundColor Cyan
 
@@ -1773,7 +1823,7 @@ function Get-Token-Interactive { ## via Browser
     ) | Where-Object { $_ -and $_.Trim() -ne '' }
     $TenantId = $tenantCandidates | Select-Object -First 1
     if (-not $TenantId) {
-        throw "TenantId not provided and no environment variable (AZURE_TENANT_ID/ARM_TENANT_ID/AAD_TENANT_ID) was found."
+        throw 'TenantId not provided and no environment variable (AZURE_TENANT_ID/ARM_TENANT_ID/AAD_TENANT_ID) was found.'
     }
     $clientCandidates = @(
         $ClientId,
@@ -1783,7 +1833,7 @@ function Get-Token-Interactive { ## via Browser
     ) | Where-Object { $_ -and $_.Trim() -ne '' }
     $ClientId = $clientCandidates | Select-Object -First 1
     if (-not $ClientId) {
-        throw "ClientId not provided and no environment variable (AZURE_CLIENT_ID/ARM_CLIENT_ID/AAD_CLIENT_ID) was found."
+        throw 'ClientId not provided and no environment variable (AZURE_CLIENT_ID/ARM_CLIENT_ID/AAD_CLIENT_ID) was found.'
     }
     Write-Verbose "Using TenantId: $TenantId"
     Write-Verbose "Using ClientId: $ClientId"
@@ -1792,15 +1842,15 @@ function Get-Token-Interactive { ## via Browser
     Write-Host "Attempting to logon as Client_ID $ClientId to Tenant: $TenantId with these scopes: $Scopes"
     # Build the authorize URL
     $authUrl = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/authorize" +
-               "?client_id=$ClientId" +
-               "&response_type=code" +
-               "&redirect_uri=$([uri]::EscapeDataString($RedirectUri))" +
-               "&response_mode=query" +
-               "&scope=$([uri]::EscapeDataString($Scopes))" +
-               "&state=12345"
+    "?client_id=$ClientId" +
+    '&response_type=code' +
+    "&redirect_uri=$([uri]::EscapeDataString($RedirectUri))" +
+    '&response_mode=query' +
+    "&scope=$([uri]::EscapeDataString($Scopes))" +
+    '&state=12345'
     Write-Host $authUrl
 
-    Write-Host "Opening browser for Entra ID sign-in..." -ForegroundColor Cyan
+    Write-Host 'Opening browser for Entra ID sign-in...' -ForegroundColor Cyan
     Start-Process $authUrl
 
     Write-Host "`nAfter you sign in, you'll be redirected to a URL similar to:`n"
@@ -1808,16 +1858,16 @@ function Get-Token-Interactive { ## via Browser
     Write-Host "`nCopy the 'code' value from that URL and paste it below.`n"
 
     # Prompt user for authorization code
-    $authCode = Read-Host "Enter the authorization code"
+    $authCode = Read-Host 'Enter the authorization code'
 
     if ([string]::IsNullOrWhiteSpace($authCode)) {
-        Write-Warning "❌ No code entered. Aborting."
+        Write-Warning '❌ No code entered. Aborting.'
         return
     }
 
     # Exchange authorization code for access token
     $body = @{
-        grant_type   = "authorization_code"
+        grant_type   = 'authorization_code'
         client_id    = $ClientId
         code         = $authCode
         redirect_uri = $RedirectUri
@@ -1829,40 +1879,40 @@ function Get-Token-Interactive { ## via Browser
         -Body $body
 
     if ($tokenResponse.access_token) {
-        Write-Host "Access token saved to ENV:ACCESS_TOKEN and copied to clipboard."
+        Write-Host 'Access token saved to ENV:ACCESS_TOKEN and copied to clipboard.'
         Set-Item -Path Env:\ACCESS_TOKEN -Value $tokenResponse.access_token 
         $tokenResponse.access_token | Set-Clipboard
-        $PSDefaultParameterValues['*:Verbose']   = $preserve
+        $PSDefaultParameterValues['*:Verbose'] = $preserve
         return $true
     } else {
-        Write-Warning "Failed to retrieve access token."
-        $PSDefaultParameterValues['*:Verbose']   = $preserve
+        Write-Warning 'Failed to retrieve access token.'
+        $PSDefaultParameterValues['*:Verbose'] = $preserve
         return $false
     }
 }
 
 function Get-Token-MSAL {
-     if ($IsLanguagePermissive) {
+    if ($IsLanguagePermissive) {
         # Install once:
         # Install-Package Microsoft.Identity.Client -Source https://www.nuget.org/api/v2 -Scope CurrentUser
         Add-Type -Path "$env:USERPROFILE\.nuget\packages\microsoft.identity.client\*\lib\net472\Microsoft.Identity.Client.dll"
 
         $tenantId = $env.AZURE_TENANT_ID
         $clientId = $env.AZURE_CLIENT_ID  ##"04b07795-8ddb-461a-bbee-02f9e1bf7b46"  # Public client (Graph PowerShell / Azure CLI style)
-        $scopes   = @("User.Read")
+        $scopes = @('User.Read')
 
         $app = [Microsoft.Identity.Client.PublicClientApplicationBuilder]::Create($clientId).
-            WithAuthority("https://login.microsoftonline.com/$tenantId").
-            WithDefaultRedirectUri().
-            Build()
+        WithAuthority("https://login.microsoftonline.com/$tenantId").
+        WithDefaultRedirectUri().
+        Build()
 
         $result = $app.AcquireTokenInteractive($scopes).ExecuteAsync().GetAwaiter().GetResult()
 
         $accessToken = $result.AccessToken    
         $accessToken | Set-Clipboard
-        Write-Host "Access token copied to clipboard."
+        Write-Host 'Access token copied to clipboard.'
     } else {
-        Write-Host "Langauge mode does not permit loading of MSAL library"
+        Write-Host 'Langauge mode does not permit loading of MSAL library'
     }
 }
 
@@ -1876,13 +1926,13 @@ function Get-EntraUserInfo {
     #>
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
+    $PSDefaultParameterValues['*:Verbose'] = $false
 
     if (-not $env:ACCESS_TOKEN) {
-        throw "No ACCESS_TOKEN found in environment variables."
+        throw 'No ACCESS_TOKEN found in environment variables.'
     }
 
-    $endpoint = "https://graph.microsoft.com/v1.0/me"
+    $endpoint = 'https://graph.microsoft.com/v1.0/me'
     #$endpoint = "https://graph.microsoft.com/oidc/userinfo"
 
     ## Alternative
@@ -1890,30 +1940,29 @@ function Get-EntraUserInfo {
 
     try {
         $params = @{
-            Method  = "GET"
-            Uri     = $endpoint
-            Headers = @{
-                "Authorization" = "Bearer $($env:ACCESS_TOKEN)"
+            Method      = 'GET'
+            Uri         = $endpoint
+            Headers     = @{
+                'Authorization' = "Bearer $($env:ACCESS_TOKEN)"
             }
-            ErrorAction = "Stop"
+            ErrorAction = 'Stop'
         }
         
         $response = Invoke-RestMethod @params
         $response | Format-List
-        $PSDefaultParameterValues['*:Verbose']   = $preserve
+        $PSDefaultParameterValues['*:Verbose'] = $preserve
         return $true
-    }
-    catch {
+    } catch {
         throw "Failed to retrieve userinfo: $($_.Exception.Message)"
     }
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
+    $PSDefaultParameterValues['*:Verbose'] = $preserve
     return false
 }
 
 function Get-Token-Info {
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
+    $PSDefaultParameterValues['*:Verbose'] = $false
 
     Import-Module JWTDetails
     ## or goto: https://jwt-decoder.com/
@@ -1922,23 +1971,23 @@ function Get-Token-Info {
     if ( -not ($jwt) ) {
         $jwt = Get-JWTDetails | Get-Clipboard
         if ( -not ($jwt) ) {
-            Write-Host "❌ Failed to decode token." -ForegroundColor Red
-            Write-Host "Token can either be in the clipboard or in environment variable ACCESS_TOKEN"
-            $PSDefaultParameterValues['*:Verbose']   = $preserve
+            Write-Host '❌ Failed to decode token.' -ForegroundColor Red
+            Write-Host 'Token can either be in the clipboard or in environment variable ACCESS_TOKEN'
+            $PSDefaultParameterValues['*:Verbose'] = $preserve
             return
         }
     }
-    Write-Host ("Name                : " + ($jwt.name -join ' '))
-    Write-Host ("UPN                 : " + ($jwt.upn -join ' '))
-    Write-Host ("As Application      : " + ($jwt.app_displayname -join ' '))
-    Write-Host ("Authorisation Server: " + ($jwt.iss -join ' '))
-    Write-Host ("Authorised Scopes   : " + ($jwt.scp -join ' '))
-    Write-Host ("Against Tenancy     : " + ($jwt.tid -join ' '))
-    Write-Host ("WIDS                : " + ($jwt.wids -join ' ')) 
+    Write-Host ('Name                : ' + ($jwt.name -join ' '))
+    Write-Host ('UPN                 : ' + ($jwt.upn -join ' '))
+    Write-Host ('As Application      : ' + ($jwt.app_displayname -join ' '))
+    Write-Host ('Authorisation Server: ' + ($jwt.iss -join ' '))
+    Write-Host ('Authorised Scopes   : ' + ($jwt.scp -join ' '))
+    Write-Host ('Against Tenancy     : ' + ($jwt.tid -join ' '))
+    Write-Host ('WIDS                : ' + ($jwt.wids -join ' ')) 
 
     if ( $jwt.scp -like '*ReadWrite.All*' | Out-Null ) {
-        Write-Host -ForegroundColor Red "Be careful - this token contains ReadWrite.All in atleast one of its scopes"
-        $scopes -match "ReadWrite.All" | Write-Host -ForegroundColor Red
+        Write-Host -ForegroundColor Red 'Be careful - this token contains ReadWrite.All in atleast one of its scopes'
+        $scopes -match 'ReadWrite.All' | Write-Host -ForegroundColor Red
     }
         
     ## exp should be a UNIX timestamp (seconds since epoch)
@@ -1951,62 +2000,63 @@ function Get-Token-Info {
         $now = Get-Date
         $minutesRemaining = [math]::Round(($expiry - $now).TotalMinutes, 2)
         if ($minutesRemaining -le 0) {
-            Write-Host "❌ Token has expired!" -ForegroundColor Red
+            Write-Host '❌ Token has expired!' -ForegroundColor Red
         } else {
             Write-Host "✅ Token expires in $minutesRemaining minutes"
         }
     }
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
+    $PSDefaultParameterValues['*:Verbose'] = $preserve
 }
 
-function Test-Token-Email { ## with Graph Modules
+function Test-Token-Email {
+    ## with Graph Modules
     ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
+    $PSDefaultParameterValues['*:Verbose'] = $false
 
     $params = @{
-        Method  = "GET"
-        Uri = "https://graph.microsoft.com/v1.0/me/messages" +
-           "?`$select=subject,receivedDateTime" +
-           "&`$orderby=receivedDateTime%20desc" +
-           "&`$top=5"
+        Method = 'GET'
+        Uri    = 'https://graph.microsoft.com/v1.0/me/messages' +
+        "?`$select=subject,receivedDateTime" +
+        "&`$orderby=receivedDateTime%20desc" +
+        "&`$top=5"
     }
     try {
         $response = Invoke-RestMethod @params `
-        -Headers @{
+            -Headers @{
             Authorization = "Bearer $env:ACCESS_TOKEN"
             Prefer        = "outlook.body-content-type='text'"
         } -ErrorAction Stop
-    }
-    catch {
+    } catch {
         throw "Get email failed. $_"
     }
     ## Write-Verbose "OData Context:" $response.'@odata.context'
     $Response.Headers
-    Write-Verbose ("OData Context: {0}" -f $response.'@odata.context')
+    Write-Verbose ('OData Context: {0}' -f $response.'@odata.context')
     $items = if ($response.PSObject.Properties.Name -contains 'value') { $response.value } else { @($response) }
     $items
     # Extract and process the message collection
     $messages = $response.value | Select-Object `
-    @{n='ReceivedLocal';e={[datetime]$_.receivedDateTime.ToLocalTime()}},
-    @{n='Subject';e={$_.subject}}
+    @{n = 'ReceivedLocal'; e = { [datetime]$_.receivedDateTime.ToLocalTime() } },
+    @{n = 'Subject'; e = { $_.subject } }
 
     $messages | Format-Table -AutoSize
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
+    $PSDefaultParameterValues['*:Verbose'] = $preserve
 }
 
-function Test-Token-Access { ## with Graph Modules
- ## Turn off verbose
+function Test-Token-Access {
+    ## with Graph Modules
+    ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
-    $PSDefaultParameterValues['*:Verbose']   = $false
+    $PSDefaultParameterValues['*:Verbose'] = $false
     if (-not $env:ACCESS_TOKEN) {
-        throw "No ACCESS_TOKEN found in environment variables."
+        throw 'No ACCESS_TOKEN found in environment variables.'
     }
     $SecureAccessToken = ConvertTo-SecureString -String $env:ACCESS_TOKEN -AsPlainText -Force
     Connect-MgGraph -AccessToken $SecureAccessToken -NoWelcome
     Get-MgContext
 
-    $PSDefaultParameterValues['*:Verbose']   = $preserve
+    $PSDefaultParameterValues['*:Verbose'] = $preserve
 }
 
 
@@ -2016,7 +2066,7 @@ function Get-EntraID-Info {
     $VerbosePreference = 'Ignore'
 
     # Retrieve the OpenID Connect metadata (no modules required)
-    $openidConfig = Invoke-RestMethod -Uri "https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration"
+    $openidConfig = Invoke-RestMethod -Uri 'https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration'
 
     # Show top-level keys
     $openidConfig | Format-List
@@ -2027,7 +2077,7 @@ function Get-EntraID-Info {
 ##    azd auth login --check-status
 ##}
 
-if ( ($env:DEVELOPER -eq "Yes") -and ($IsLanguagePermissive -eq $true) ) { 
+if ( ($env:DEVELOPER -eq 'Yes') -and ($IsLanguagePermissive -eq $true) ) { 
     ## dotnet shell completions
     dotnet completions script pwsh | Out-String | Invoke-Expression -ErrorAction SilentlyContinue
     if (Get-Command 'azd' -ErrorAction SilentlyContinue) {
@@ -2078,28 +2128,28 @@ function Set-FolderAclUsersModify {
     #>
     [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
     param(
-        [Parameter(Position=0)]
+        [Parameter(Position = 0)]
         [ValidateNotNullOrEmpty()]
         [string]$Path = 'C:\workspaces',
 
-        [bool]$TakeOwnership   = $true,
+        [bool]$TakeOwnership = $true,
         [bool]$BreakInheritance = $true,
-        [bool]$RemoveDeny      = $true,
-        [bool]$Recurse         = $true
+        [bool]$RemoveDeny = $true,
+        [bool]$Recurse = $true
     )
 
     begin {
         # Well-known SIDs (locale independent)
-        $SidSystem        = '*S-1-5-18'        # SYSTEM
-        $SidAdmins        = '*S-1-5-32-544'    # BUILTIN\Administrators
-        $SidUsers         = '*S-1-5-32-545'    # BUILTIN\Users
+        $SidSystem = '*S-1-5-18'        # SYSTEM
+        $SidAdmins = '*S-1-5-32-544'    # BUILTIN\Administrators
+        $SidUsers = '*S-1-5-32-545'    # BUILTIN\Users
 
         # Inheritance flags for files & folders
         $inheritFlags = '(OI)(CI)'
 
         function Invoke-Icacls {
             param([string[]]$IcaArgs)
-            Write-Verbose ("icacls {0}" -f ($IcaArgs -join ' '))
+            Write-Verbose ('icacls {0}' -f ($IcaArgs -join ' '))
             if ($PSCmdlet.ShouldProcess("icacls $($IcaArgs -join ' ')")) {
                 & icacls @IcaArgs
             }
@@ -2107,9 +2157,9 @@ function Set-FolderAclUsersModify {
 
         function Assert-Elevated {
             $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-            $p  = New-Object System.Security.Principal.WindowsPrincipal($id)
+            $p = New-Object System.Security.Principal.WindowsPrincipal($id)
             if (-not $p.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) {
-                throw "This function must be run in an elevated PowerShell (Run as Administrator)."
+                throw 'This function must be run in an elevated PowerShell (Run as Administrator).'
             }
         }
     }
@@ -2127,7 +2177,7 @@ function Set-FolderAclUsersModify {
 
             # 1) Take ownership (optional)
             if ($TakeOwnership) {
-                if ($PSCmdlet.ShouldProcess($target, "Take ownership (recursive)")) {
+                if ($PSCmdlet.ShouldProcess($target, 'Take ownership (recursive)')) {
                     & takeown /f "$target" /r /d y | Out-Null
                     Invoke-Icacls -Args @("$target", '/setowner', 'Users', '/t', '/c') | Out-Null
                 }
@@ -2137,8 +2187,7 @@ function Set-FolderAclUsersModify {
             if ($BreakInheritance) {
                 ## Disable
                 Invoke-Icacls -Args @("$target", '/inheritance:d', '/c') | Out-Null
-            }
-            else {
+            } else {
                 ## Enable
                 Invoke-Icacls -Args @("$target", '/inheritance:e', '/c') | Out-Null
             }
@@ -2146,7 +2195,7 @@ function Set-FolderAclUsersModify {
             # 3) Remove explicit DENY entries that would override our grant
             if ($RemoveDeny) {
                 # These may no-op if none exist; that's fine.
-                Invoke-Icacls -Args @("$target", '/remove:d', 'Users',    '/c') | Out-Null
+                Invoke-Icacls -Args @("$target", '/remove:d', 'Users', '/c') | Out-Null
                 Invoke-Icacls -Args @("$target", '/remove:d', 'Everyone', '/c') | Out-Null
             }
 
@@ -2154,17 +2203,16 @@ function Set-FolderAclUsersModify {
             $recurseFlag = if ($Recurse) { '/t' } else { $null }
 
             # Keep SYSTEM/Admins Full Control
-            Invoke-Icacls -Args @("$target", '/grant', "${SidSystem}:${inheritFlags}(F)",     $recurseFlag, '/c') | Out-Null
-            Invoke-Icacls -Args @("$target", '/grant', "${SidAdmins}:${inheritFlags}(F)",     $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidSystem}:${inheritFlags}(F)", $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidAdmins}:${inheritFlags}(F)", $recurseFlag, '/c') | Out-Null
 
             # Give Users Modify (NOT Full Control)
-            Invoke-Icacls -Args @("$target", '/grant', "${SidUsers}:${inheritFlags}(M)",      $recurseFlag, '/c') | Out-Null
+            Invoke-Icacls -Args @("$target", '/grant', "${SidUsers}:${inheritFlags}(M)", $recurseFlag, '/c') | Out-Null
 
             # 5) Display resulting ACEs on the root for verification
-            Write-Verbose "Final ACL (root):"
+            Write-Verbose 'Final ACL (root):'
             & icacls "$target"
-        }
-        catch {
+        } catch {
             throw "Set-FolderAclUsersModify failed: $($_.Exception.Message)"
         }
     }
@@ -2217,11 +2265,10 @@ function Get-HttpsCertificateInfo {
 
                         if ($text) {
                             $out += ($text -split "`r?`n" | Where-Object { $_ }) |
-                                ForEach-Object { ($_ -replace '^\s*DNS Name=\s*', '').Trim() } |
-                                Where-Object { $_ }
+                            ForEach-Object { ($_ -replace '^\s*DNS Name=\s*', '').Trim() } |
+                            Where-Object { $_ }
                         }
-                    }
-                    catch {
+                    } catch {
                         Write-Verbose "Failed to parse SAN extension: $($_.Exception.Message)"
                     }
                 }
@@ -2268,8 +2315,7 @@ function Get-HttpsCertificateInfo {
                 $authOptions.TargetHost = $Fqdn
                 $authOptions.EnabledSslProtocols = $TlsProtocols
                 $ssl.AuthenticateAsClient($authOptions)
-            }
-            catch {
+            } catch {
                 Write-Verbose "Modern AuthenticateAsClient overload failed, falling back: $($_.Exception.Message)"
                 $ssl.AuthenticateAsClient($Fqdn)
             }
@@ -2313,14 +2359,12 @@ function Get-HttpsCertificateInfo {
                 ChainStatus        = @($chain.ChainStatus | ForEach-Object { $_.Status.ToString() }) -join ', '
                 ExportedCerPath    = $ExportCerPath
             }
-        }
-        catch {
+        } catch {
             $message = "Failed to retrieve certificate from ${Fqdn}:${Port}. $($_.Exception.Message)"
             Write-Error $message
-        }
-        finally {
-            if ($chain)  { $chain.Dispose() }
-            if ($ssl)    { $ssl.Dispose() }
+        } finally {
+            if ($chain) { $chain.Dispose() }
+            if ($ssl) { $ssl.Dispose() }
             if ($stream) { $stream.Dispose() }
             if ($client) { $client.Dispose() }
         }
@@ -2337,11 +2381,11 @@ function Get-HttpsCertificateInfo {
 function Show-Toast-Message {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory, Position=0)]
+        [Parameter(Mandatory, Position = 0)]
         [ValidateNotNullOrEmpty()]
         [string]$Title,
 
-        [Parameter(Mandatory, Position=1)]
+        [Parameter(Mandatory, Position = 1)]
         [ValidateNotNullOrEmpty()]
         [string]$Message,
 
@@ -2361,7 +2405,7 @@ function Show-Toast-Message {
     # Ensure required assemblies are available
     #try {
     Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
-    Add-Type -AssemblyName System.Drawing       -ErrorAction Stop
+    Add-Type -AssemblyName System.Drawing -ErrorAction Stop
     #}
     #catch {
     #    Write-Warning "Windows Forms / Drawing not available in this session: $($_.Exception.Message)"
@@ -2379,18 +2423,17 @@ function Show-Toast-Message {
         #if (-not $icon) { $icon = [System.Drawing.SystemIcons]::Information }
         $icon = [System.Drawing.SystemIcons]::Information
  
-        $notifyIcon.Icon            = $icon
-        $notifyIcon.Visible         = $true
+        $notifyIcon.Icon = $icon
+        $notifyIcon.Visible = $true
         $notifyIcon.BalloonTipTitle = $Title
-        $notifyIcon.BalloonTipText  = $Message
+        $notifyIcon.BalloonTipText = $Message
 
         # Show the notification
         $notifyIcon.ShowBalloonTip($DurationMs)
 
         # Give Windows time to display before disposing
         Start-Sleep -Milliseconds $DurationMs
-    }
-    finally {
+    } finally {
         if ($notifyIcon) {
             $notifyIcon.Visible = $false
             $notifyIcon.Dispose()
@@ -2420,27 +2463,27 @@ function Get-DefaultRouteAdapter {
         [switch]$IncludeIPv6
     )
 
-    $routes = @("0.0.0.0/0")
-    if ($IncludeIPv6) { $routes += "::/0" }
+    $routes = @('0.0.0.0/0')
+    if ($IncludeIPv6) { $routes += '::/0' }
 
     $results = foreach ($prefix in $routes) {
         $route = Get-NetRoute -DestinationPrefix $prefix -ErrorAction SilentlyContinue |
-            Sort-Object -Property RouteMetric, InterfaceMetric |
-            Select-Object -First 1
+        Sort-Object -Property RouteMetric, InterfaceMetric |
+        Select-Object -First 1
 
         if ($null -ne $route) {
             $adapter = Get-NetAdapter -InterfaceIndex $route.InterfaceIndex -ErrorAction SilentlyContinue
 
             [pscustomobject]@{
-                AddressFamily       = if ($prefix -eq "::/0") { "IPv6" } else { "IPv4" }
+                AddressFamily        = if ($prefix -eq '::/0') { 'IPv6' } else { 'IPv4' }
                 DefaultRouterAdapter = $adapter.Name
-                InterfaceIndex      = $adapter.InterfaceIndex
-                InterfaceDescription= $adapter.InterfaceDescription
-                MACAddress          = $adapter.MacAddress
-                Status              = $adapter.Status
-                IPvGateway          = $route.NextHop
-                RouteMetric         = $route.RouteMetric
-                InterfaceMetric     = $route.InterfaceMetric
+                InterfaceIndex       = $adapter.InterfaceIndex
+                InterfaceDescription = $adapter.InterfaceDescription
+                MACAddress           = $adapter.MacAddress
+                Status               = $adapter.Status
+                IPvGateway           = $route.NextHop
+                RouteMetric          = $route.RouteMetric
+                InterfaceMetric      = $route.InterfaceMetric
             }
         }
     }
@@ -2448,7 +2491,7 @@ function Get-DefaultRouteAdapter {
     if ($results) {
         $results
     } else {
-        Write-Warning "No default routes found."
+        Write-Warning 'No default routes found.'
     }
 }
 
@@ -2509,30 +2552,30 @@ function Get-ZscalerClientState {
             $p = Get-ItemProperty $_.PsPath -ErrorAction SilentlyContinue
             if ($p.DisplayName -match 'Zscaler|Client Connector|ZSA') {
                 [pscustomobject]@{
-                    DisplayName   = $p.DisplayName
-                    DisplayVersion= $p.DisplayVersion
-                    Publisher     = $p.Publisher
-                    InstallLocation= $p.InstallLocation
-                    UninstallString= $p.UninstallString
-                    RegistryPath  = $_.PsPath
+                    DisplayName     = $p.DisplayName
+                    DisplayVersion  = $p.DisplayVersion
+                    Publisher       = $p.Publisher
+                    InstallLocation = $p.InstallLocation
+                    UninstallString = $p.UninstallString
+                    RegistryPath    = $_.PsPath
                 }
             }
         }
     }
 
     # 2) Services / Processes
-    $services  = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match 'Zscaler|ZSA' -or $_.Name -match 'Zscaler|ZSA' } |
-                 Select-Object Name,DisplayName,Status,StartType
+    $services = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match 'Zscaler|ZSA' -or $_.Name -match 'Zscaler|ZSA' } |
+    Select-Object Name, DisplayName, Status, StartType
     $processes = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Zscaler|ZSA' } |
-                 ForEach-Object {
-                    [pscustomobject]@{
-                        Name = $_.Name; Id = $_.Id; Path = ($_.Path)
-                    }
-                 }
+    ForEach-Object {
+        [pscustomobject]@{
+            Name = $_.Name; Id = $_.Id; Path = ($_.Path)
+        }
+    }
 
     # 3) Proxy (WinINET = user), WinHTTP = machine
-    $inetCU = Get-RegistryValues -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -Names ProxyEnable,ProxyServer,AutoConfigURL
-    $inetLM = Get-RegistryValues -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -Names ProxyEnable,ProxyServer,AutoConfigURL
+    $inetCU = Get-RegistryValues -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -Names ProxyEnable, ProxyServer, AutoConfigURL
+    $inetLM = Get-RegistryValues -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -Names ProxyEnable, ProxyServer, AutoConfigURL
 
     $winHttpProxy = try {
         $out = & netsh winhttp show proxy 2>$null
@@ -2541,31 +2584,31 @@ function Get-ZscalerClientState {
 
     # 4) Adapters / Routes (look for “Zscaler”/“ZSA”)
     $adapters = Get-NetAdapter -IncludeHidden -ErrorAction SilentlyContinue |
-                Where-Object { $_.Name -match 'Zscaler|ZSA' -or $_.InterfaceDescription -match 'Zscaler|ZSA' } |
-                Select-Object Name, InterfaceDescription, InterfaceIndex, Status, MacAddress, ifIndex
+    Where-Object { $_.Name -match 'Zscaler|ZSA' -or $_.InterfaceDescription -match 'Zscaler|ZSA' } |
+    Select-Object Name, InterfaceDescription, InterfaceIndex, Status, MacAddress, ifIndex
 
     $defaultRoute4 = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
-                     Sort-Object RouteMetric, InterfaceMetric | Select-Object -First 1
+    Sort-Object RouteMetric, InterfaceMetric | Select-Object -First 1
     $defaultAdapter = if ($defaultRoute4) {
         Get-NetAdapter -InterfaceIndex $defaultRoute4.InterfaceIndex -ErrorAction SilentlyContinue |
-            Select-Object Name, InterfaceDescription, InterfaceIndex, Status
+        Select-Object Name, InterfaceDescription, InterfaceIndex, Status
     }
 
     $routes = $null
     if ($IncludeRoutes) {
         $routes = Get-NetRoute -ErrorAction SilentlyContinue |
-                  Where-Object { $_.DestinationPrefix -in @('0.0.0.0/0','::/0') -or $_.InterfaceIndex -in ($adapters.InterfaceIndex) } |
-                  Sort-Object AddressFamily, RouteMetric, InterfaceMetric |
-                  Select-Object AddressFamily, DestinationPrefix, NextHop, InterfaceIndex, RouteMetric, InterfaceMetric
+        Where-Object { $_.DestinationPrefix -in @('0.0.0.0/0', '::/0') -or $_.InterfaceIndex -in ($adapters.InterfaceIndex) } |
+        Sort-Object AddressFamily, RouteMetric, InterfaceMetric |
+        Select-Object AddressFamily, DestinationPrefix, NextHop, InterfaceIndex, RouteMetric, InterfaceMetric
     }
 
     # 5) Root certificates containing "Zscaler"
     $zscalerCerts = @()
-    foreach ($store in @('Cert:\LocalMachine\Root','Cert:\CurrentUser\Root')) {
+    foreach ($store in @('Cert:\LocalMachine\Root', 'Cert:\CurrentUser\Root')) {
         $zscalerCerts += Get-ChildItem $store -ErrorAction SilentlyContinue |
-            Where-Object { $_.Subject -match 'Zscaler' -or $_.Issuer -match 'Zscaler' } |
-            Select-Object @{n='Store';e={$store}},
-                          Subject, Issuer, NotAfter, Thumbprint, FriendlyName
+        Where-Object { $_.Subject -match 'Zscaler' -or $_.Issuer -match 'Zscaler' } |
+        Select-Object @{n = 'Store'; e = { $store } },
+        Subject, Issuer, NotAfter, Thumbprint, FriendlyName
     }
 
     # 6) Common file system paths
@@ -2580,21 +2623,21 @@ function Get-ZscalerClientState {
     }
 
     $result = [pscustomobject]@{
-      ComputerName       = $env:COMPUTERNAME
-      UserName           = $env:USERNAME
-      PowerShellVersion  = $PSVersionTable.PSVersion.ToString()
-      InstalledApps      = $installed
-      Services           = $services
-      Processes          = $processes
-      ProxyWinINET_User  = $inetCU
-      ProxyWinINET_Machine = $inetLM
-      ProxyWinHTTP       = $winHttpProxy
-      DefaultAdapter     = $defaultAdapter
-      DefaultRouteIPv4   = if ($defaultRoute4) { [pscustomobject]@{ NextHop=$defaultRoute4.NextHop; IfIndex=$defaultRoute4.InterfaceIndex; RouteMetric=$defaultRoute4.RouteMetric; InterfaceMetric=$defaultRoute4.InterfaceMetric } }
-      ZscalerAdapters    = $adapters
-      RoutesSummary      = $routes
-      ZscalerRootCerts   = $zscalerCerts
-      ExistingPaths      = $paths
+        ComputerName         = $env:COMPUTERNAME
+        UserName             = $env:USERNAME
+        PowerShellVersion    = $PSVersionTable.PSVersion.ToString()
+        InstalledApps        = $installed
+        Services             = $services
+        Processes            = $processes
+        ProxyWinINET_User    = $inetCU
+        ProxyWinINET_Machine = $inetLM
+        ProxyWinHTTP         = $winHttpProxy
+        DefaultAdapter       = $defaultAdapter
+        DefaultRouteIPv4     = if ($defaultRoute4) { [pscustomobject]@{ NextHop = $defaultRoute4.NextHop; IfIndex = $defaultRoute4.InterfaceIndex; RouteMetric = $defaultRoute4.RouteMetric; InterfaceMetric = $defaultRoute4.InterfaceMetric } }
+        ZscalerAdapters      = $adapters
+        RoutesSummary        = $routes
+        ZscalerRootCerts     = $zscalerCerts
+        ExistingPaths        = $paths
     }
 
     if ($AsJson) {
@@ -2626,14 +2669,14 @@ function Get-EntraDelegatedGrantsReport {
         return $spCache[$Id]
     }
 
-    Write-Verbose "Retrieving all OAuth2 delegated permission grants..."
+    Write-Verbose 'Retrieving all OAuth2 delegated permission grants...'
     $grants = Get-MgOauth2PermissionGrant -All
 
     $output = foreach ($grant in $grants) {
         if ([string]::IsNullOrWhiteSpace($grant.Scope)) { continue }
 
         # Split the space-delimited scopes
-        $scopes      = $grant.Scope -split ' '
+        $scopes = $grant.Scope -split ' '
         # Filter out boring baseline scopes
         $interesting = $scopes | Where-Object {
             $_ -and ($ExcludeScopes -notcontains $_)
@@ -2642,17 +2685,17 @@ function Get-EntraDelegatedGrantsReport {
         # Skip grants that only have openid/profile/email
         if (-not $interesting) { continue }
 
-        $clientSp   = Get-SpCached -Id $grant.ClientId
+        $clientSp = Get-SpCached -Id $grant.ClientId
         $resourceSp = Get-SpCached -Id $grant.ResourceId
 
         [pscustomobject]@{
-            AppName        = $clientSp.DisplayName
+            AppName       = $clientSp.DisplayName
             ## AppId          = $clientSp.AppId
-            ClientId       = $grant.ClientId
-            Resource       = $resourceSp.DisplayName
+            ClientId      = $grant.ClientId
+            Resource      = $resourceSp.DisplayName
             ##ResourceAppId  = $resourceSp.AppId
             ##ResourceId     = $grant.ResourceId
-            GrantedScopes  = $interesting -join ' '
+            GrantedScopes = $interesting -join ' '
             #FullScopeField = $grant.Scope
         }
     }
@@ -2685,7 +2728,7 @@ function Test-TlsConnection {
         [string]$Url = 'https://example.com',
 
         [Parameter()]
-        [ValidateRange(1,300)]
+        [ValidateRange(1, 300)]
         [int]$TimeoutSeconds = 5
     )
 
@@ -2697,7 +2740,7 @@ function Test-TlsConnection {
     if ($uri.Scheme -ne 'https') { throw "Url must be HTTPS: $Url" }
 
     $handler = $null
-    $client  = $null
+    $client = $null
     $response = $null
 
     # Capture TLS/cert info
@@ -2744,42 +2787,40 @@ function Test-TlsConnection {
         }
 
         [pscustomobject]@{
-            Url            = $uri.AbsoluteUri
-            StatusCode     = [int]$response.StatusCode
-            ReasonPhrase   = $response.ReasonPhrase
-            HttpSuccess    = $response.IsSuccessStatusCode
-            TlsValid       = ($sslErrors -eq [System.Net.Security.SslPolicyErrors]::None)
-            SslPolicyErrors= $sslErrors
-            CertSubject    = $cert2?.Subject
-            CertIssuer     = $cert2?.Issuer
-            CertThumbprint = $cert2?.Thumbprint
-            CertNotBefore  = $cert2?.NotBefore
-            CertNotAfter   = $cert2?.NotAfter
-            TimeoutSeconds = $TimeoutSeconds
+            Url             = $uri.AbsoluteUri
+            StatusCode      = [int]$response.StatusCode
+            ReasonPhrase    = $response.ReasonPhrase
+            HttpSuccess     = $response.IsSuccessStatusCode
+            TlsValid        = ($sslErrors -eq [System.Net.Security.SslPolicyErrors]::None)
+            SslPolicyErrors = $sslErrors
+            CertSubject     = $cert2?.Subject
+            CertIssuer      = $cert2?.Issuer
+            CertThumbprint  = $cert2?.Thumbprint
+            CertNotBefore   = $cert2?.NotBefore
+            CertNotAfter    = $cert2?.NotAfter
+            TimeoutSeconds  = $TimeoutSeconds
         }
-    }
-    catch {
+    } catch {
         Write-Warning "❌ HTTPS/TLS failed for $Url — $($_.Exception.Message)"
         [pscustomobject]@{
-            Url            = $Url
-            StatusCode     = $null
-            ReasonPhrase   = $null
-            HttpSuccess    = $false
-            TlsValid       = $false
-            SslPolicyErrors= $sslErrors
-            CertSubject    = $cert2?.Subject
-            CertIssuer     = $cert2?.Issuer
-            CertThumbprint = $cert2?.Thumbprint
-            CertNotBefore  = $cert2?.NotBefore
-            CertNotAfter   = $cert2?.NotAfter
-            TimeoutSeconds = $TimeoutSeconds
-            Error          = $_.Exception.Message
+            Url             = $Url
+            StatusCode      = $null
+            ReasonPhrase    = $null
+            HttpSuccess     = $false
+            TlsValid        = $false
+            SslPolicyErrors = $sslErrors
+            CertSubject     = $cert2?.Subject
+            CertIssuer      = $cert2?.Issuer
+            CertThumbprint  = $cert2?.Thumbprint
+            CertNotBefore   = $cert2?.NotBefore
+            CertNotAfter    = $cert2?.NotAfter
+            TimeoutSeconds  = $TimeoutSeconds
+            Error           = $_.Exception.Message
         }
-    }
-    finally {
+    } finally {
         if ($response) { $response.Dispose() }
-        if ($client)   { $client.Dispose() }
-        if ($handler)  { $handler.Dispose() }
+        if ($client) { $client.Dispose() }
+        if ($handler) { $handler.Dispose() }
     }
 }
 
@@ -2869,23 +2910,21 @@ function Export-CAPolicies {
             if (-not $ctx -or -not $ctx.Account) {
                 Write-Verbose "Connecting to Microsoft Graph with scopes: $($Scopes -join ', ')"
                 Connect-MgGraph -Scopes $Scopes | Out-Null
-            }
-            else {
+            } else {
                 Write-Verbose "Already connected to Microsoft Graph as: $($ctx.Account)"
             }
-        }
-        catch {
+        } catch {
             throw "Failed to establish Microsoft Graph connection. $($_.Exception.Message)"
         }
     }
 
     process {
         try {
-            Write-Verbose "Retrieving Conditional Access policies..."
+            Write-Verbose 'Retrieving Conditional Access policies...'
             $allPolicies = Get-MgIdentityConditionalAccessPolicy -All -ErrorAction Stop
 
             if (-not $allPolicies -or $allPolicies.Count -eq 0) {
-                Write-Warning "There are no Conditional Access policies to export."
+                Write-Warning 'There are no Conditional Access policies to export.'
                 return
             }
 
@@ -2911,16 +2950,14 @@ function Export-CAPolicies {
                             FilePath    = $outFile
                         }
                         $results.Add($result) | Out-Null
-                    }
-                    catch {
+                    } catch {
                         Write-Host "❌ Failed exporting CA policy: $policyName. $($_.Exception.Message)" -ForegroundColor Red
                     }
                 }
             }
 
             if ($PassThru) { $results }
-        }
-        catch {
+        } catch {
             throw "Error occurred while exporting policies. $($_.Exception.Message)"
         }
     }
@@ -2928,14 +2965,13 @@ function Export-CAPolicies {
 
 function Connect-SharePoint {
     try {
-        Install-Module Microsoft.Online.SharePoint.PowerShell -force
-        Import-Module Microsoft.Online.SharePoint.PowerShell -force -UseWindowsPowerShell
+        Install-Module Microsoft.Online.SharePoint.PowerShell -Force
+        Import-Module Microsoft.Online.SharePoint.PowerShell -Force -UseWindowsPowerShell
         $adminUrl = "https://${env:AZURE_SHAREPOINT_ADMIN}.sharepoint.com"
         Write-Host "Connecting to: ${adminUrl}..."
         Connect-SPOService -Url $adminUrl -ErrorAction Stop
-       "Connected OK"
-    }
-    catch {
+        'Connected OK'
+    } catch {
         $_ | Format-List * -Force
     }
 }
@@ -2943,13 +2979,13 @@ function Connect-SharePoint {
 function Invoke-Graph {
     param(
         [Parameter(Mandatory)][string]$Uri,
-        [ValidateSet('GET','POST','PATCH','PUT','DELETE')][string]$Method = 'GET',
+        [ValidateSet('GET', 'POST', 'PATCH', 'PUT', 'DELETE')][string]$Method = 'GET',
         [object]$Body
     )
 
     $headers = @{
         Authorization = "Bearer $env:GRAPH_TOKEN"
-        Accept        = "application/json"
+        Accept        = 'application/json'
     }
 
     if ($PSBoundParameters.ContainsKey('Body')) {
@@ -2962,34 +2998,34 @@ function Invoke-Graph {
 function Get-AzureAustraliaEastIpRanges {
     [CmdletBinding()]
     param (
-        [ValidateSet("raw", "terraform")]
-        [string]$Output = "raw"
+        [ValidateSet('raw', 'terraform')]
+        [string]$Output = 'raw'
     )
 
-    $downloadPage = "https://www.microsoft.com/en-us/download/details.aspx?id=56519"
+    $downloadPage = 'https://www.microsoft.com/en-us/download/details.aspx?id=56519'
 
-    Write-Verbose "Downloading latest Azure IP ranges for Sydney Australia..."
+    Write-Verbose 'Downloading latest Azure IP ranges for Sydney Australia...'
 
     $jsonUrl = (Invoke-WebRequest -Uri $downloadPage -UseBasicParsing).Links |
-        Where-Object href -like "*.json" |
-        Select-Object -First 1 -ExpandProperty href
+    Where-Object href -Like '*.json' |
+    Select-Object -First 1 -ExpandProperty href
 
     if (-not $jsonUrl) {
-        throw "Could not find Azure IP ranges JSON link."
+        throw 'Could not find Azure IP ranges JSON link.'
     }
 
     $json = Invoke-RestMethod -Uri $jsonUrl
 
     $prefixes = $json.values |
-        Where-Object { $_.properties.region -eq "australiaeast" } |
-        ForEach-Object { $_.properties.addressPrefixes } |
-        Sort-Object -Unique
+    Where-Object { $_.properties.region -eq 'australiaeast' } |
+    ForEach-Object { $_.properties.addressPrefixes } |
+    Sort-Object -Unique
 
     switch ($Output) {
-        "raw" {
+        'raw' {
             $prefixes
         }
-        "terraform" {
+        'terraform' {
             $prefixes | ForEach-Object {
                 '"{0}",' -f $_
             }
@@ -3004,7 +3040,7 @@ function Install-OrUpdate-Module {
         [ValidateNotNullOrEmpty()]
         [string]$ModuleName,
 
-        [ValidateSet('CurrentUser','AllUsers')]
+        [ValidateSet('CurrentUser', 'AllUsers')]
         [string]$Scope = 'AllUsers',
 
         [switch]$Prerelease,
@@ -3021,7 +3057,7 @@ function Install-OrUpdate-Module {
 
     function Test-IsAdmin {
         $id = [Security.Principal.WindowsIdentity]::GetCurrent()
-        $p  = New-Object Security.Principal.WindowsPrincipal($id)
+        $p = New-Object Security.Principal.WindowsPrincipal($id)
         $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     }
 
@@ -3037,7 +3073,7 @@ function Install-OrUpdate-Module {
     }
 
     if ($Scope -eq 'AllUsers' -and -not (Test-IsAdmin)) {
-        throw "Scope=AllUsers requires an elevated PowerShell session."
+        throw 'Scope=AllUsers requires an elevated PowerShell session.'
     }
 
     # Preserve global verbose default
@@ -3048,8 +3084,8 @@ function Install-OrUpdate-Module {
     try {
         # TLS 1.2 for older Windows / PS 5.1 gallery access
         [Net.ServicePointManager]::SecurityProtocol =
-            [Net.ServicePointManager]::SecurityProtocol -bor
-            [Net.SecurityProtocolType]::Tls12
+        [Net.ServicePointManager]::SecurityProtocol -bor
+        [Net.SecurityProtocolType]::Tls12
 
         # Trust PSGallery for legacy Install-Module path (PowerShellGet v2)
         if (Get-Command Set-PSRepository -ErrorAction SilentlyContinue) {
@@ -3078,7 +3114,7 @@ function Install-OrUpdate-Module {
 
         # Ensure PSResourceGet has PSGallery registered as trusted (NuGet v2 endpoint is safest)
         $repoName = 'PSGallery'
-        $repoUri  = 'https://www.powershellgallery.com/api/v2'
+        $repoUri = 'https://www.powershellgallery.com/api/v2'
 
         $repo = Get-PSResourceRepository -Name $repoName -ErrorAction SilentlyContinue
         if (-not $repo) {
@@ -3107,8 +3143,7 @@ function Install-OrUpdate-Module {
                 if ($Prerelease) { $common.Prerelease = $true }
                 Install-PSResource @common | Out-Null
             }
-        }
-        else {
+        } else {
             Write-Host "Updating '$ModuleName' ($Scope)..." -ForegroundColor Cyan
 
             Invoke-WithRetry -Action "Update $ModuleName" -Script {
@@ -3141,12 +3176,10 @@ function Install-OrUpdate-Module {
         } else {
             Write-Host "✅ '$ModuleName' install/update completed." -ForegroundColor Green
         }
-    }
-    catch {
+    } catch {
         Write-Host "❌ Failed for '$ModuleName': $($_.Exception.Message)" -ForegroundColor Red
         throw
-    }
-    finally {
+    } finally {
         if ($hadVerboseDefault) { $PSDefaultParameterValues['*:Verbose'] = $prevVerbose }
         else { $null = $PSDefaultParameterValues.Remove('*:Verbose') }
     }
@@ -3165,7 +3198,7 @@ function Invoke-WorkIQQuery {
     $result = & workiq ask $Query
 
     if (-not $result) {
-        throw "No response from Work IQ"
+        throw 'No response from Work IQ'
     }
 
     return $result
@@ -3202,7 +3235,7 @@ function Get-AllMsGraphPages {
         $isGitHubRunner = -not [string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)
 
         if ($isGitHubRunner) {
-            Write-Verbose "GitHub runner detected. Writing JSON output to GITHUB_STEP_SUMMARY."
+            Write-Verbose 'GitHub runner detected. Writing JSON output to GITHUB_STEP_SUMMARY.'
 
             if ($Json.Length -gt 20000) {
                 $Json = $Json.Substring(0, 20000) + "`n...truncated..."
@@ -3217,18 +3250,17 @@ function Get-AllMsGraphPages {
             ) -join "`n"
 
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $content
-        }
-        else {
+        } else {
             Write-Verbose "Graph response page from $Uri (size: $($Json.Length) chars)"
             #Write-Host $Json
         }
     }
 
     $items = [System.Collections.Generic.List[object]]::new()
-    $next  = $Uri
+    $next = $Uri
 
     while (-not [string]::IsNullOrWhiteSpace($next)) {
-        $attempt  = 0
+        $attempt = 0
         $response = $null
 
         do {
@@ -3237,8 +3269,7 @@ function Get-AllMsGraphPages {
                 Write-Verbose "Fetching URI: $next"
                 $response = Invoke-MgGraphRequest -Method GET -Uri $next -OutputType PSObject
                 break
-            }
-            catch {
+            } catch {
                 if ($attempt -ge $MaxRetries) { throw }
 
                 Write-Warning "Request failed for URI '$next' on attempt $attempt of $MaxRetries. Retrying..."
@@ -3257,7 +3288,7 @@ function Get-AllMsGraphPages {
             Write-GraphJsonLog -Uri $next -Json $pageJson
         }
 
-        $valueProperty    = $response.PSObject.Properties['value']
+        $valueProperty = $response.PSObject.Properties['value']
         $nextLinkProperty = $response.PSObject.Properties['@odata.nextLink']
 
         if ($null -ne $valueProperty) {
@@ -3289,10 +3320,9 @@ function Get-AllMsGraphPages {
 
     # FINAL OUTPUT DECISION
     if ($OutputJson) {
-        Write-Verbose "Returning aggregated JSON output."
+        Write-Verbose 'Returning aggregated JSON output.'
         return ($items | ConvertTo-Json -Depth $JsonDepth)
-    }
-    else {
+    } else {
         return $items
     }
 }
@@ -3435,8 +3465,7 @@ function Get-OfficeDocumentMetadata {
 
             try {
                 return $reader.ReadToEnd()
-            }
-            finally {
+            } finally {
                 $reader.Dispose()
                 $stream.Dispose()
             }
@@ -3453,8 +3482,7 @@ function Get-OfficeDocumentMetadata {
 
         if ([string]::IsNullOrWhiteSpace($coreXml)) {
             Write-Host 'No core properties found.'
-        }
-        else {
+        } else {
             [xml]$coreDoc = $coreXml
 
             $ns = [System.Xml.XmlNamespaceManager]::new($coreDoc.NameTable)
@@ -3498,8 +3526,7 @@ function Get-OfficeDocumentMetadata {
 
         if ([string]::IsNullOrWhiteSpace($customXml)) {
             Write-Host 'No custom properties found.'
-        }
-        else {
+        } else {
             [xml]$customDoc = $customXml
 
             $ns = [System.Xml.XmlNamespaceManager]::new($customDoc.NameTable)
@@ -3510,8 +3537,7 @@ function Get-OfficeDocumentMetadata {
             if ($propertyNodes.Count -eq 0) {
                 Write-Host 'No custom properties found.'
 
-            }
-            else {
+            } else {
                 foreach ($propertyNode in $propertyNodes) {
                     $propertyName = [string]$propertyNode.name
 
@@ -3523,8 +3549,7 @@ function Get-OfficeDocumentMetadata {
 
                     $propertyValue = if ($valueNode) {
                         $valueNode.InnerText
-                    }
-                    else {
+                    } else {
                         ''
                     }
 
@@ -3539,28 +3564,27 @@ function Get-OfficeDocumentMetadata {
         $appXml = Get-ZipEntryText -Zip $zip -EntryName 'docProps/app.xml'
 
         if ([string]::IsNullOrWhiteSpace($appXml)) {
-          Write-Host 'No app properties found.'
-        }
-        else {
-          [xml]$appDoc = $appXml
-          $appNodes = $appDoc.SelectNodes('//*[not(*)]')
-          $appPropertiesShown = 0
+            Write-Host 'No app properties found.'
+        } else {
+            [xml]$appDoc = $appXml
+            $appNodes = $appDoc.SelectNodes('//*[not(*)]')
+            $appPropertiesShown = 0
 
-          foreach ($appNode in $appNodes) {
-            $name = [string]$appNode.LocalName
-            $value = [string]$appNode.InnerText
+            foreach ($appNode in $appNodes) {
+                $name = [string]$appNode.LocalName
+                $value = [string]$appNode.InnerText
 
-            if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($value)) {
-              continue
+                if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($value)) {
+                    continue
+                }
+
+                Write-Host ('{0,-24}: {1}' -f $name, $value)
+                $appPropertiesShown++
             }
 
-            Write-Host ('{0,-24}: {1}' -f $name, $value)
-            $appPropertiesShown++
-          }
-
-          if ($appPropertiesShown -eq 0) {
-            Write-Host 'No populated app properties found.'
-          }
+            if ($appPropertiesShown -eq 0) {
+                Write-Host 'No populated app properties found.'
+            }
         }
 
         Write-Host ''
@@ -3569,44 +3593,42 @@ function Get-OfficeDocumentMetadata {
         $customXmlPartEntries = @($zip.Entries | Where-Object { $_.FullName -match '^customXml/.+\.xml$' })
 
         if ($customXmlPartEntries.Count -eq 0) {
-          Write-Host 'No custom XML parts found.'
-        }
-        else {
-          foreach ($customXmlPartEntry in $customXmlPartEntries) {
-            Write-Host ''
-            Write-Host "Part: $($customXmlPartEntry.FullName)"
+            Write-Host 'No custom XML parts found.'
+        } else {
+            foreach ($customXmlPartEntry in $customXmlPartEntries) {
+                Write-Host ''
+                Write-Host "Part: $($customXmlPartEntry.FullName)"
 
-            $partXml = Get-ZipEntryText -Zip $zip -EntryName $customXmlPartEntry.FullName
-            if ([string]::IsNullOrWhiteSpace($partXml)) {
-              Write-Host '  (empty XML part)'
-              continue
+                $partXml = Get-ZipEntryText -Zip $zip -EntryName $customXmlPartEntry.FullName
+                if ([string]::IsNullOrWhiteSpace($partXml)) {
+                    Write-Host '  (empty XML part)'
+                    continue
+                }
+
+                [xml]$partDoc = $partXml
+                $partLeafNodes = $partDoc.SelectNodes('//*[not(*)]')
+                $partValuesShown = 0
+
+                foreach ($partLeafNode in $partLeafNodes) {
+                    $name = [string]$partLeafNode.LocalName
+                    $value = [string]$partLeafNode.InnerText
+
+                    if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($value)) {
+                        continue
+                    }
+
+                    Write-Host ('  {0,-22}: {1}' -f $name, $value)
+                    $partValuesShown++
+                }
+
+                if ($partValuesShown -eq 0) {
+                    Write-Host '  (no populated leaf values found)'
+                }
             }
-
-            [xml]$partDoc = $partXml
-            $partLeafNodes = $partDoc.SelectNodes('//*[not(*)]')
-            $partValuesShown = 0
-
-            foreach ($partLeafNode in $partLeafNodes) {
-              $name = [string]$partLeafNode.LocalName
-              $value = [string]$partLeafNode.InnerText
-
-              if ([string]::IsNullOrWhiteSpace($name) -or [string]::IsNullOrWhiteSpace($value)) {
-                continue
-              }
-
-              Write-Host ('  {0,-22}: {1}' -f $name, $value)
-              $partValuesShown++
-            }
-
-            if ($partValuesShown -eq 0) {
-              Write-Host '  (no populated leaf values found)'
-            }
-          }
         }
 
         Write-Host ''
-    }
-    finally {
+    } finally {
         if ($zip) {
             $zip.Dispose()
         }
@@ -3641,8 +3663,7 @@ function Initialize-WinGetCommandNotFound {
             if (Get-Command Install-OrUpdate-Module -ErrorAction SilentlyContinue) {
                 Write-Verbose "Installing missing module '$moduleName' in scope '$InstallScope'."
                 Install-OrUpdate-Module -ModuleName $moduleName -Scope $InstallScope -ImportAfter
-            }
-            else {
+            } else {
                 Write-Warning "Install-OrUpdate-Module is unavailable. Cannot install '$moduleName'."
                 return $false
             }
@@ -3654,8 +3675,7 @@ function Initialize-WinGetCommandNotFound {
 
         Write-Verbose "Imported module '$moduleName'."
         return $true
-    }
-    catch {
+    } catch {
         Write-Warning "Failed to initialize '$moduleName': $($_.Exception.Message)"
         return $false
     }
@@ -3663,23 +3683,23 @@ function Initialize-WinGetCommandNotFound {
 Initialize-WinGetCommandNotFound | Out-Null
 
 ## Installing Ubuntu
-$Distro = "Ubuntu"
+$Distro = 'Ubuntu'
 
 function Enable-WSL {
 
     ## Share environment variables between Windows and WSL
     ## https://devblogs.microsoft.com/commandline/share-environment-vars-between-wsl-and-windows/
     [Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN', 'User')
-    $env:WSLENV = [System.Environment]::GetEnvironmentVariable("WSLENV", "User")
+    $env:WSLENV = [System.Environment]::GetEnvironmentVariable('WSLENV', 'User')
 
-    Write-Output ("Ensuring WSL is install and upto date...") 
+    Write-Output ('Ensuring WSL is install and upto date...') 
     ## ensure WSL is upto date, can only be done per user (not system)
     Start-Process -FilePath 'wsl' -ArgumentList '--install --no-launch' -NoNewWindow -Wait -PassThru | Out-Null
     Start-Process -FilePath 'wsl' -ArgumentList '--status' -NoNewWindow -Wait -PassThru | Out-Null
     Start-Process -FilePath 'wsl' -ArgumentList '--update' -NoNewWindow -Wait -PassThru | Out-Null
     ## PreRelease version
-    Start-Process -FilePath "wsl" -ArgumentList "--update --pre-release" -NoNewWindow -Wait -PassThru | Out-Null
-    Start-Process -FilePath "wsl" -ArgumentList "--set-default-version 2" -NoNewWindow -Wait -PassThru | Out-Null
+    Start-Process -FilePath 'wsl' -ArgumentList '--update --pre-release' -NoNewWindow -Wait -PassThru | Out-Null
+    Start-Process -FilePath 'wsl' -ArgumentList '--set-default-version 2' -NoNewWindow -Wait -PassThru | Out-Null
 
     ## clean up
     ## wsl --terminate $Distro
@@ -3694,8 +3714,8 @@ useradd -m -s /bin/bash -G sudo $env:UserName
     Start-Process -FilePath 'wsl' -ArgumentList "--manage $Distro --set-default-user $env:UserName" -NoNewWindow -Wait -PassThru | Out-Null
     Start-Process -FilePath 'wsl' -ArgumentList "--set-default $Distro" -NoNewWindow -Wait -PassThru | Out-Null
 
-    Write-Output ("Enabling sudo for all users in WSL...") 
-    wsl -d $Distro --user root bash -c @"
+    Write-Output ('Enabling sudo for all users in WSL...') 
+    wsl -d $Distro --user root bash -c @'
 if ! grep -q 'NOPASSWD:ALL' /etc/sudoers; then
     cat <<'EOF' | EDITOR='tee -a' visudo
 # Everyone - WSL
@@ -3705,8 +3725,8 @@ if ! grep -q 'NOPASSWD:ALL' /etc/sudoers; then
 %aad_admins ALL=(ALL:ALL) NOPASSWD:ALL
 EOF
 fi
-"@  
-    $wslConfigPath = [System.IO.Path]::Combine($env:USERPROFILE, ".wslconfig")
+'@  
+    $wslConfigPath = [System.IO.Path]::Combine($env:USERPROFILE, '.wslconfig')
     if (Test-Path $wslConfigPath) {
         Remove-Item -Force $wslConfigPath
     }
@@ -3725,9 +3745,9 @@ hostAddressLoopback=true
     Get-Content -Path $wslConfigPath
 
     ## Turn of Windows PATH inside Linux
-    wsl -d $Distro --user root bash -c @"
+    wsl -d $Distro --user root bash -c @'
 printf '[interop]\nappendWindowsPath = false\n\n[boot]\nsystemd = true\n\n[gpu]\nenabled = true\n' > /etc/wsl.conf
-"@
+'@
 
     ## Allow Inbound connections
     Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
@@ -3744,8 +3764,8 @@ function Set-WSLConfig-Ubuntu {
     #$wslinitalsetup | wsl --user root --distribution ${Distro} --
 
     ## BIG Setup
-    $wslsetup1   = (Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh).Content -replace "`r", ''
-    $wslsetup2   = (Invoke-WebRequest -uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh).Content -replace "`r", ''
+    $wslsetup1 = (Invoke-WebRequest -Uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh).Content -replace "`r", ''
+    $wslsetup2 = (Invoke-WebRequest -Uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh).Content -replace "`r", ''
     $wslsetup1 | wsl --user root --distribution ${Distro} --
     wsl --terminate ${Distro}
     $wslsetup2 | wsl --user root --distribution ${Distro} --
@@ -3756,57 +3776,57 @@ function Set-WSLConfig-Ubuntu {
 ## .envrc files are written in shell syntax, even when you're using PowerShell. direnv reads the file and then injects the resulting environment variables into your PowerShell session.
 ## New-Item .envrc -ItemType File
 if (Get-Command direnv -ErrorAction SilentlyContinue ) {
-    $env:DIRENV_LOG_FORMAT = ""
+    $env:DIRENV_LOG_FORMAT = ''
 
-$script:DirenvLastPath = $null
+    $script:DirenvLastPath = $null
 
-function Invoke-RepoDirenv {
-    $repoRoot = git rev-parse --show-toplevel 2>$null
+    function Invoke-RepoDirenv {
+        $repoRoot = git rev-parse --show-toplevel 2>$null
 
-    $shouldRunDirenv = $false
+        $shouldRunDirenv = $false
 
-    if ($repoRoot) {
-        $envrcPath = Join-Path $repoRoot ".envrc"
+        if ($repoRoot) {
+            $envrcPath = Join-Path $repoRoot '.envrc'
 
-        if (Test-Path -LiteralPath $envrcPath) {
+            if (Test-Path -LiteralPath $envrcPath) {
+                $shouldRunDirenv = $true
+            }
+        }
+
+        # Also run direnv when leaving a previously loaded repo, so it can unload vars
+        if (-not $shouldRunDirenv -and $env:DIRENV_DIR) {
             $shouldRunDirenv = $true
         }
-    }
 
-    # Also run direnv when leaving a previously loaded repo, so it can unload vars
-    if (-not $shouldRunDirenv -and $env:DIRENV_DIR) {
-        $shouldRunDirenv = $true
-    }
+        if ($shouldRunDirenv) {
+            $direnvOutput = direnv export pwsh 2>$null
 
-    if ($shouldRunDirenv) {
-        $direnvOutput = direnv export pwsh 2>$null
-
-        if ($direnvOutput) {
-            Invoke-Expression $direnvOutput
+            if ($direnvOutput) {
+                Invoke-Expression $direnvOutput
+            }
         }
     }
-}
 
-function prompt {
-    Invoke-RepoDirenv
-    "PS $($executionContext.SessionState.Path.CurrentLocation)> "
-}
+    function prompt {
+        Invoke-RepoDirenv
+        "PS $($executionContext.SessionState.Path.CurrentLocation)> "
+    }
 
-##    Invoke-Expression "$(direnv hook pwsh)"
+    ##    Invoke-Expression "$(direnv hook pwsh)"
     Write-StepSummary -ShowTimeStamp $false -type 'info' "Enabled 'direnv' to pickup environment variables from the '.envrc' file (if found)"
 }
 if (Get-Command gh -ErrorAction SilentlyContinue ) {
     if (-not (gh auth status 2>$null)) {
         $env:GH_TOKEN | gh auth login --with-token
     }
-    gh auth status  --active
+    gh auth status --active
 }
 
 function Get-AzVmSku {
     [CmdletBinding()]
     param(
-        [string]$Location = $(if ($env:AZURE_LOCATION) { $env:AZURE_LOCATION } else { "australiaeast" }),
-        [string]$SkuPrefix = "Standard_D",
+        [string]$Location = $(if ($env:AZURE_LOCATION) { $env:AZURE_LOCATION } else { 'australiaeast' }),
+        [string]$SkuPrefix = 'Standard_D',
         [double]$MinimumRamGB = 9,
         [double]$MaximumRamGB = 19,
         [int]$MaximumCPU = 5,
@@ -3834,11 +3854,11 @@ function Get-AzVmSku {
         }
 
         $memoryGB = if ($caps.ContainsKey('MemoryGB')) { [double]$caps['MemoryGB'] } else { 0 }
-        $vcpus    = if ($caps.ContainsKey('vCPUs')) { [int]$caps['vCPUs'] } else { 0 }
+        $vcpus = if ($caps.ContainsKey('vCPUs')) { [int]$caps['vCPUs'] } else { 0 }
 
         $hasRestrictions = $null -ne $sku.restrictions -and $sku.restrictions.Count -gt 0
-        $skuAvailable    = -not $hasRestrictions
-        $spotCapable     = [bool]::Parse(($caps['SpotPrioritySupported'] ?? 'False'))
+        $skuAvailable = -not $hasRestrictions
+        $spotCapable = [bool]::Parse(($caps['SpotPrioritySupported'] ?? 'False'))
 
         [pscustomobject]@{
             Name                      = $sku.name
@@ -3856,7 +3876,7 @@ function Get-AzVmSku {
     $results = $results | Where-Object {
         $_.RAM_GB -ge $MinimumRamGB -and
         $_.RAM_GB -le $MaximumRamGB -and
-        $_.vCPUs  -le $MaximumCPU
+        $_.vCPUs -le $MaximumCPU
     }
 
     if ($AvailableOnly) {
