@@ -809,17 +809,17 @@ properties:
 #        RootDirectory: "C:\WorkSpaces"
 
     # Git Clone
-    - resource: GitDsc/GitClone
-      id: github.com.webstean.setup
-      dependsOn:
-        - Git.Git
-      directives:
-        description: Clone the webstean/setup public repository
-        allowPrerelease: true
-        securityContext: elevated
-      settings:
-        HttpsUrl: https://github.com/webstean/setup.git
-        RootDirectory: C:\WorkSpaces
+#    - resource: GitDsc/GitClone
+#      id: github.com.webstean.setup
+#      dependsOn:
+#        - Git.Git
+#      directives:
+#        description: Clone the webstean/setup public repository
+#        allowPrerelease: true
+#        securityContext: elevated
+#      settings:
+#        HttpsUrl: https://github.com/webstean/setup.git
+#        RootDirectory: C:\WorkSpaces
 
     # Java (open source)
     - resource: Microsoft.WinGet.DSC/WinGetPackage
