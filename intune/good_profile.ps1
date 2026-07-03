@@ -3816,7 +3816,15 @@ if (Get-Command direnv -ErrorAction SilentlyContinue ) {
     ##    Invoke-Expression "$(direnv hook pwsh)"
     Write-StepSummary -ShowTimeStamp $false -type 'info' "Enabled 'direnv' to pickup environment variables from the '.envrc' file (if found)"
 }
-if (Get-Command ghxyz -ErrorAction SilentlyContinue) {
+
+function Initialize-GitHubCliAuth {
+    [CmdletBinding()]
+    param()
+
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+        return
+    }
+
     gh auth status --active *> $null
     if ($LASTEXITCODE -ne 0 -and -not [string]::IsNullOrWhiteSpace($env:GH_TOKEN)) {
         $env:GH_TOKEN | gh auth login --with-token
@@ -3827,6 +3835,7 @@ if (Get-Command ghxyz -ErrorAction SilentlyContinue) {
         gh auth setup-git
     }
 }
+#Initialize-GitHubCliAuth
 
 function Get-AzVmSku {
     [CmdletBinding()]
