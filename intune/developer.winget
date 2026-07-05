@@ -767,6 +767,19 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: GitHub.Copilot
+      dependsOn:
+        - Git.Git
+        - GitHub.Cli
+      directives:
+        description: Install GitHub.Copilot
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: GitHub.Copilot
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: GitHub.CopilotApp
       dependsOn:
         - Git.Git
@@ -778,6 +791,7 @@ properties:
       settings:
         id: GitHub.CopilotApp
         source: winget
+
 
 #    - resource: GitDsc/GitClone
 #      id: github.com/lscph1929/lscph-azterraform.git
