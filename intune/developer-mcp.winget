@@ -303,6 +303,10 @@ properties:
                   '@playwright/mcp'
                 )
               }
+              gateway = @{
+                type = 'http'
+                url = 'http://localhost:4444'
+              }
               github = @{
                 command = 'pwsh'
                 args = @(

@@ -433,7 +433,8 @@ try {
         'Install-Global-Secure-Access-Client.ps1',
         'Install-Windows-Admin-Centre.ps1',
         'Setup-StarShip-Shell.ps1',
-        'starship_pill.toml',
+        'Setup-MCP-Gateway.ps1', `
+            'starship_pill.toml',
         'logo1.png',
         'logo2.jpg',
         'logo3.png',
@@ -618,7 +619,8 @@ try {
     $developerScripts = @(
         'Install-Developer-PowershellModules.ps1',
         'Install-Developer-System.ps1',
-        'Install-Developer-User.ps1'
+        'Setup-MCP-Gateway.ps1', `
+            'Install-Developer-User.ps1'
     )
 
     $scriptCount = 0
