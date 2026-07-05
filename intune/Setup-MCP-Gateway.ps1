@@ -1,5 +1,17 @@
 ### https://github.com/cmb211087/azure-diagrams-skill
 
+MCP Gateway
+Run a local MCP gateway in Podman exposing:
+Filesystem
+Git
+GitHub
+Azure CLI
+Terraform
+Docker/Podman
+Documentation
+Microsoft Learn
+Local Markdown files
+
 
 function New-PodmanMcpGateway {
     [CmdletBinding()]
