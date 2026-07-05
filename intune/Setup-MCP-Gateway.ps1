@@ -11,7 +11,7 @@
 ## Microsoft Learn
 ## Local Markdown files
 
-function New-PodmanMcpGateway {
+function New-McpGateway {
   [CmdletBinding()]
   param(
     [string]$Root = "$HOME\podman-mcp-gateway",
@@ -302,5 +302,8 @@ volumes:
     Pop-Location
   }
 }
-
-New-PodmanMcpGateway
+try {
+  New-McpGateway
+} catch {
+  Write-Error "Failed to set up MCP Gateway: $_"  
+}

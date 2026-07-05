@@ -156,15 +156,6 @@ properties:
         id: RicoSuter.NSwagStudio
         source: winget
 
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: SlackTechnologies.Slack
-#      directives:
-#        description: Install SlackTechnologies.Slack
-#        allowPrerelease: false
-#      settings:
-#        id: SlackTechnologies.Slack
-#        source: winget
-
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Anthropic.Claude
       directives:
@@ -337,31 +328,6 @@ properties:
       settings:
         id: Romanitho.Winget-AutoUpdate
         source: winget
-## Get-ScheduledTask -TaskName "WinGet-AutoUpdate" | Get-ScheduledTaskInfo
-## Get-ScheduledTask | Where-Object {$_.TaskName -like '*WinGet*AutoUpdate*'} | Select TaskName, State, LastRunTime
-## excluded apps
-#Brave.Brave*
-#Google.Chrome*
-#Microsoft.Edge*
-#Microsoft.Office
-#Microsoft.OneDrive
-#Microsoft.RemoteDesktopClient
-#Microsoft.Teams*
-#Mozilla.Firefox*
-#Opera.Opera*
-#TeamViewer.TeamViewer*
-#Romanitho.Winget-AutoUpdate
-#KnifMelti.WAU-Settings-GUI
-
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: KnifMelti.WAU-Settings-GUI
-#      directives:
-#        description: Install KnifMelti.WAU-Settings-GUI
-#        allowPrerelease: false
-#        securityContext: elevated
-#      settings:
-#        id: KnifMelti.WAU-Settings-GUI
-#        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Graphviz.Graphviz
@@ -403,26 +369,6 @@ properties:
         id: Microsoft.Azure.StorageExplorer
         source: winget
 
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: Oracle.SQLDeveloper
-#      directives:
-#        description: Install Oracle.SQLDeveloper HUGE
-#        allowPrerelease: false
-#        securityContext: elevated
-#      settings:
-#        id: Oracle.SQLDeveloper
-#        source: winget
-
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: Oracle.OCI-CLI
-#      directives:
-#        description: Install Oracle.OCI-CLI
-#        allowPrerelease: false
-#        securityContext: elevated
-#      settings:
-#        id: Oracle.OCI-CLI
-#        source: winget
-
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: SQLite.SQLite
       directives:
@@ -442,28 +388,6 @@ properties:
       settings:
         id: CoralCreek.SQLiteExpert.Personal
         source: winget
-
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: Microsoft.SQLServerManagementStudio
-#      directives:
-#        description: Install Microsoft.SQLServerManagementStudio
-#        allowPrerelease: false
-#        securityContext: elevated
-#      settings:
-#        id: Microsoft.SQLServerManagementStudio
-#        source: winget
-
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: Microsoft.SQLServer.2022.Express
-#      directives:
-#        description: Install Microsoft.SQLServer.2022.Express 
-#        allowPrerelease: false
-#        securityContext: elevated
-#      settings:
-#        id: Microsoft.SQLServer.2022.Express
-#        source: winget
-## Don't bother with express, install localdb instead
-## localdb: sqlcmd -S "(localdb)\MSSQLLocalDB"
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.WindowsTerminal
@@ -495,17 +419,6 @@ properties:
         id: Dapr.CLI
         source: winget
 
-## Takes too long, not that useful
-#     - resource: Microsoft.WinGet.DSC/WinGetPackage
-#     id: WindowsADK
-#     directives:
-#       description: Install Microsoft.WindowsADK
-#       allowPrerelease: false
-#       securityContext: elevated
-#     settings:
-#       id: Microsoft.WindowsADK
-#       source: winget
- 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: devproxy.devproxy
       directives:
@@ -536,16 +449,6 @@ properties:
         id: LIGHTNINGUK.ImgBurn
         source: winget
 
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: JanDeDobbeleer.OhMyPosh
-#      directives:
-#        description: Install JanDeDobbeleer.OhMyPosh
-#        allowPrerelease: false
-#        securityContext: elevated
-#      settings:
-#        id: JanDeDobbeleer.OhMyPosh
-#        source: winget
-
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Starship.Starship
       directives:
@@ -566,26 +469,6 @@ properties:
       settings:
         id: jqlang.jq
         source: winget
-
- #   - resource: Microsoft.WinGet.DSC/WinGetPackage
- #     id: GoLang.Go
- #     directives:
- #       description: Install GoLang.Go
- #       allowPrerelease: false
- #       securityContext: elevated
- #     settings:
- #       id: GoLang.Go
- #       source: winget
-
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: RaspberryPiFoundation.RaspberryPiImager
-#      directives:
-#        description: Install RaspberryPiFoundation.RaspberryPiImager
-#        allowPrerelease: false
-#        securityContext: elevated
-#      settings:
-#        id: RaspberryPiFoundation.RaspberryPiImager
-#        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: zarunbal.LogExpert
@@ -629,54 +512,6 @@ properties:
       settings:
         id: Microsoft.Edit
         source: winget
-
-#    # Install VS Code extensions
-#    - resource: vscode/VSCodeExtension
-#      id: vscode.extensions
-#      directives:
-#         description: Install VS Code extensions
-#      settings:
-#         #edition: stable ## insiders
-#         ensure: Present
-#         extensions:
-#           - ms-python.python
-#           - ms-dotnettools.csharp
-#           - ms-vscode.powershell
-#           - dbaeumer.vscode-eslint
-#           - ms-azuretools.vscode-azure-mcp-server
-#           - github.copilot
-#           - hashicorp.terraform
-#           - GitHub.vscode-pull-request-github
-
-#    - resource: PSDscResources/WindowsOptionalFeature
-#      id: WindowsSandboxInstall
-#      directives:
-#        description: Ensure Windows Sandbox is enabled
-#      settings:
-#        Name: Containers-DisposableClientVM
-#        Ensure: Present
-
-#    - resource: Microsoft.WindowsSandbox.DSC/WindowsSandbox
-#      dependsOn:
-#        - WindowsSandboxInstall
-#      directives:
-#        description: Create Windows Sandbox with Winget installed
-#        allowPrerelease: true
-#      settings:
-#        Ensure: Present
-#        HostFolder: C:\Sandbox
-#        SandboxFolder: C:\Sandbox
-#        LogonCommand: >
-#          cmd /c start powershell -NoExit -Command "$progressPreference = 'silentlyContinue';
-#          Write-Host 'Setting execution policy to remote signed...' `n;
-#          Set-ExecutionPolicy RemoteSigned -Force;
-#          Write-Host "Installing WinGet PowerShell module from PSGallery...";
-#          Install-PackageProvider -Name NuGet -Force | Out-Null;
-#          Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery | Out-Null;
-#          Write-Host "Using Repair-WinGetPackageManager cmdlet to bootstrap WinGet...";
-#          Repair-WinGetPackageManager;
-#          Write-Host "Done.";
-#
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.PowerToys
@@ -744,16 +579,6 @@ properties:
         id: Git.Git
         source: winget
 
-#    - resource: Microsoft.WinGet.DSC/WinGetPackage
-#      id: Git.Git
-#      directives:
-#        description: Install Microsoft.Git
-#        allowPrerelease: false
-#        securityContext: elevated
-#      settings:
-#        id: Microsoft.Git
-#        source: winget
-
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: GitHub.Cli
       dependsOn:
@@ -779,28 +604,39 @@ properties:
         id: GitHub.Copilot
         source: winget
 
-      - resource: Microsoft.WinGet.DSC/WinGetPackage
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: GitHub.CopilotApp
+      dependsOn:
+        - Git.Git
+        - GitHub.Cli
+      directives:
+        description: Install GitHub.CopilotApp
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
         id: GitHub.CopilotApp
-        dependsOn:
-          - Git.Git
-          - GitHub.Cli
-        directives:
-          description: Install GitHub.CopilotApp
-          allowPrerelease: false
-          securityContext: elevated
-        settings:
-          id: GitHub.CopilotApp
-          source: winget
+        source: winget
 
-      - resource: Microsoft.WinGet.DSC/WinGetPackage
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: BurntSushi.ripgrep
+      directives:
+        description: Install BurntSushi.ripgrep
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
         id: BurntSushi.ripgrep
-        directives:
-          description: Install BurntSushi.ripgrep
-          allowPrerelease: false
-          securityContext: elevated
-        settings:
-          id: BurntSushi.ripgrep
-          source: winget
+        source: winget
+
+    # Java (open source)
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: ms-java-jdk
+      directives:
+        description: Install Microsoft Open JDK 25
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        id: Microsoft.OpenJDK.25
+        source: winget
 
 #    - resource: GitDsc/GitClone
 #      id: github.com/lscph1929/lscph-azterraform.git
@@ -845,14 +681,134 @@ properties:
 #        HttpsUrl: https://github.com/webstean/setup.git
 #        RootDirectory: C:\WorkSpaces
 
-    # Java (open source)
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: ms-java-jdk
-      directives:
-        description: Install Microsoft Open JDK 25
-        allowPrerelease: true
-        securityContext: elevated
-      settings:
-        id: Microsoft.OpenJDK.25
-        source: winget
+#    - resource: PSDscResources/WindowsOptionalFeature
+#      id: WindowsSandboxInstall
+#      directives:
+#        description: Ensure Windows Sandbox is enabled
+#      settings:
+#        Name: Containers-DisposableClientVM
+#        Ensure: Present
 
+#    - resource: Microsoft.WindowsSandbox.DSC/WindowsSandbox
+#      dependsOn:
+#        - WindowsSandboxInstall
+#      directives:
+#        description: Create Windows Sandbox with Winget installed
+#        allowPrerelease: true
+#      settings:
+#        Ensure: Present
+#        HostFolder: C:\Sandbox
+#        SandboxFolder: C:\Sandbox
+#        LogonCommand: >
+#          cmd /c start powershell -NoExit -Command "$progressPreference = 'silentlyContinue';
+#          Write-Host 'Setting execution policy to remote signed...' `n;
+#          Set-ExecutionPolicy RemoteSigned -Force;
+#          Write-Host "Installing WinGet PowerShell module from PSGallery...";
+#          Install-PackageProvider -Name NuGet -Force | Out-Null;
+#          Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery | Out-Null;
+#          Write-Host "Using Repair-WinGetPackageManager cmdlet to bootstrap WinGet...";
+#          Repair-WinGetPackageManager;
+#          Write-Host "Done.";
+#
+
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Oracle.SQLDeveloper
+#      directives:
+#        description: Install Oracle.SQLDeveloper HUGE
+#        allowPrerelease: false
+#        securityContext: elevated
+#      settings:
+#        id: Oracle.SQLDeveloper
+#        source: winget
+
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Oracle.OCI-CLI
+#      directives:
+#        description: Install Oracle.OCI-CLI
+#        allowPrerelease: false
+#        securityContext: elevated
+#      settings:
+#        id: Oracle.OCI-CLI
+#        source: winget
+
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Microsoft.SQLServerManagementStudio
+#      directives:
+#        description: Install Microsoft.SQLServerManagementStudio
+#        allowPrerelease: false
+#        securityContext: elevated
+#      settings:
+#        id: Microsoft.SQLServerManagementStudio
+#        source: winget
+
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Microsoft.SQLServer.2022.Express
+#      directives:
+#        description: Install Microsoft.SQLServer.2022.Express 
+#        allowPrerelease: false
+#        securityContext: elevated
+#      settings:
+#        id: Microsoft.SQLServer.2022.Express
+#        source: winget
+## Don't bother with express, install localdb instead
+## localdb: sqlcmd -S "(localdb)\MSSQLLocalDB"
+
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: Git.Git
+#      directives:
+#        description: Install Microsoft.Git
+#        allowPrerelease: false
+#        securityContext: elevated
+#      settings:
+#        id: Microsoft.Git
+#        source: winget
+
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: GoLang.Go
+#      directives:
+#        description: Install GoLang.Go
+#        allowPrerelease: false
+#        securityContext: elevated
+#      settings:
+#        id: GoLang.Go
+#        source: winget
+
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: RaspberryPiFoundation.RaspberryPiImager
+#      directives:
+#        description: Install RaspberryPiFoundation.RaspberryPiImager
+#        allowPrerelease: false
+#        securityContext: elevated
+#      settings:
+#        id: RaspberryPiFoundation.RaspberryPiImager
+#        source: winget
+
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: JanDeDobbeleer.OhMyPosh
+#      directives:
+#        description: Install JanDeDobbeleer.OhMyPosh
+#        allowPrerelease: false
+#        securityContext: elevated
+#      settings:
+#        id: JanDeDobbeleer.OhMyPosh
+#        source: winget
+
+## Takes too long, not that useful
+#     - resource: Microsoft.WinGet.DSC/WinGetPackage
+#     id: WindowsADK
+#     directives:
+#       description: Install Microsoft.WindowsADK
+#       allowPrerelease: false
+#       securityContext: elevated
+#     settings:
+#       id: Microsoft.WindowsADK
+#       source: winget
+
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      id: SlackTechnologies.Slack
+#      directives:
+#        description: Install SlackTechnologies.Slack
+#        allowPrerelease: false
+#      settings:
+#        id: SlackTechnologies.Slack
+#        source: winget
