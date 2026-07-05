@@ -10,6 +10,7 @@ $totalElapsed = [System.Diagnostics.Stopwatch]::StartNew()
 
 $global:TranscriptStarted = $false
 $global:destination = $null
+$global:ScriptExecutionReport = [System.Collections.Generic.List[object]]::new()
 
 function Write-Log {
     param(
@@ -27,6 +28,95 @@ function Write-Log {
 
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     Write-Host "[$timestamp] [$Level] $Message"
+}
+
+function Add-ScriptExecutionResult {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ScriptName,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateSet('Success', 'Failed', 'NotFound')]
+        [string]$Status,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ScriptPath = '',
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [Nullable[double]]$ElapsedSeconds = $null,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNull()]
+        [Nullable[int]]$ExitCode = $null,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ExceptionType = '',
+
+        [Parameter(Mandatory = $false)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ExceptionMessage = ''
+    )
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    $global:ScriptExecutionReport.Add([pscustomobject]@{
+            ScriptName       = $ScriptName
+            ScriptPath       = $ScriptPath
+            Status           = $Status
+            ExitCode         = $ExitCode
+            ElapsedSeconds   = $ElapsedSeconds
+            ExceptionType    = $ExceptionType
+            ExceptionMessage = $ExceptionMessage
+        })
+}
+
+function Write-ScriptExecutionSummary {
+    param()
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    Write-Log -Message '================ SCRIPT EXECUTION REPORT ================'
+
+    if ($null -eq $global:ScriptExecutionReport -or $global:ScriptExecutionReport.Count -eq 0) {
+        Write-Log -Message 'No scripts were executed.' -Level 'WARN'
+        return
+    }
+
+    foreach ($record in $global:ScriptExecutionReport) {
+        $elapsedText = if ($null -ne $record.ElapsedSeconds) { '{0:N2}s' -f $record.ElapsedSeconds } else { 'n/a' }
+        $exitText = if ($null -ne $record.ExitCode) { $record.ExitCode } else { 'n/a' }
+
+        if ($record.Status -eq 'Success') {
+            Write-Log -Message "SUCCESS: $($record.ScriptName) | ExitCode=$exitText | Elapsed=$elapsedText"
+            continue
+        }
+
+        if ($record.Status -eq 'NotFound') {
+            Write-Log -Message "NOT FOUND: $($record.ScriptName) | Path=$($record.ScriptPath)" -Level 'WARN'
+            continue
+        }
+
+        Write-Log -Message "FAILED: $($record.ScriptName) | ExitCode=$exitText | Elapsed=$elapsedText" -Level 'ERROR'
+        if (-not [string]::IsNullOrWhiteSpace($record.ExceptionType)) {
+            Write-Log -Message "  ExceptionType: $($record.ExceptionType)" -Level 'ERROR'
+        }
+        if (-not [string]::IsNullOrWhiteSpace($record.ExceptionMessage)) {
+            Write-Log -Message "  ExceptionMessage: $($record.ExceptionMessage)" -Level 'ERROR'
+        }
+    }
+
+    $successCount = @($global:ScriptExecutionReport | Where-Object { $_.Status -eq 'Success' }).Count
+    $failedCount = @($global:ScriptExecutionReport | Where-Object { $_.Status -eq 'Failed' }).Count
+    $notFoundCount = @($global:ScriptExecutionReport | Where-Object { $_.Status -eq 'NotFound' }).Count
+
+    Write-Log -Message "Summary: Success=$successCount, Failed=$failedCount, NotFound=$notFoundCount"
 }
 
 function Invoke-WindowsPowerShell {
@@ -323,12 +413,31 @@ function Invoke-IfFileExists {
 
     if (-not (Test-Path -LiteralPath $Path)) {
         Write-Log -Message "Script was not found: $Path" -Level 'WARN'
-        return
+        return [pscustomobject]@{
+            ExitCode   = $null
+            StdOutLog  = ''
+            StdErrLog  = ''
+            Host       = ''
+            WorkingDir = ''
+            Status     = 'NotFound'
+            ScriptPath = $Path
+            ScriptName = (Split-Path -Path $Path -Leaf)
+        }
     }
 
     Write-Log -Message "EXECUTING: Started $Path"
     $result = Invoke-ScriptReliably -ScriptPath $Path -UsePwsh $UsePwsh -Elevate $false -Force64Bit $true
     Write-Log -Message "EXECUTING: Finished $Path with exit code $($result.ExitCode)"
+    return [pscustomobject]@{
+        ExitCode   = $result.ExitCode
+        StdOutLog  = $result.StdOutLog
+        StdErrLog  = $result.StdErrLog
+        Host       = $result.Host
+        WorkingDir = $result.WorkingDir
+        Status     = 'Success'
+        ScriptPath = $Path
+        ScriptName = (Split-Path -Path $Path -Leaf)
+    }
 }
 
 $microsoftConfig = $null
@@ -580,10 +689,13 @@ try {
 
     try {
         $csw = [System.Diagnostics.Stopwatch]::StartNew()
-        Invoke-IfFileExists -Path (Join-Path -Path $global:destination -ChildPath 'Config-Normal-Machine.ps1')
+        $configScriptPath = Join-Path -Path $global:destination -ChildPath 'Config-Normal-Machine.ps1'
+        $configResult = Invoke-IfFileExists -Path $configScriptPath
         $csw.Stop()
+        Add-ScriptExecutionResult -ScriptName 'Config-Normal-Machine.ps1' -Status $configResult.Status -ScriptPath $configScriptPath -ElapsedSeconds $csw.Elapsed.TotalSeconds -ExitCode $configResult.ExitCode
         Write-Log -Message "Config-Normal-Machine completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
     } catch {
+        Add-ScriptExecutionResult -ScriptName 'Config-Normal-Machine.ps1' -Status 'Failed' -ScriptPath (Join-Path -Path $global:destination -ChildPath 'Config-Normal-Machine.ps1') -ElapsedSeconds $csw.Elapsed.TotalSeconds -ExceptionType $_.Exception.GetType().FullName -ExceptionMessage $_.Exception.Message
         Write-Log -Message "Error executing Config-Normal-Machine.ps1: $($_.Exception.Message)" -Level 'ERROR'
         Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
         throw
@@ -632,17 +744,20 @@ try {
             if (-not (Test-Path -LiteralPath $scriptPath)) {
                 Write-Log -Message "Script not found: $scriptPath" -Level 'WARN'
                 $scriptFailures += $developerScript
+                Add-ScriptExecutionResult -ScriptName $developerScript -Status 'NotFound' -ScriptPath $scriptPath
                 continue
             }
             $csw = [System.Diagnostics.Stopwatch]::StartNew()
             Write-Log -Message "[$scriptCount/$($developerScripts.Count)] Executing $developerScript..."
-            Invoke-IfFileExists -Path $scriptPath
+            $scriptResult = Invoke-IfFileExists -Path $scriptPath
             $csw.Stop()
+            Add-ScriptExecutionResult -ScriptName $developerScript -Status $scriptResult.Status -ScriptPath $scriptPath -ElapsedSeconds $csw.Elapsed.TotalSeconds -ExitCode $scriptResult.ExitCode
             Write-Log -Message "[$scriptCount/$($developerScripts.Count)] $developerScript completed in $($csw.Elapsed.TotalMinutes.ToString('F2')) minutes."
         } catch {
             Write-Log -Message "Error executing ${developerScript}: $($_.Exception.Message)" -Level 'ERROR'
             Write-Log -Message "Stack Trace: $($_.Exception.StackTrace)" -Level 'ERROR'
             $scriptFailures += $developerScript
+            Add-ScriptExecutionResult -ScriptName $developerScript -Status 'Failed' -ScriptPath (Join-Path -Path $global:destination -ChildPath $developerScript) -ElapsedSeconds $csw.Elapsed.TotalSeconds -ExceptionType $_.Exception.GetType().FullName -ExceptionMessage $_.Exception.Message
             Write-Log -Message "Continuing with next script despite error in ${developerScript}" -Level 'WARN'
         }
     }
@@ -714,6 +829,12 @@ try {
             Write-Warning "Failed to stop transcript cleanly. $($_.Exception.Message)"
             Write-Log -Message "Warning: Could not stop transcript cleanly: $($_.Exception.Message)" -Level 'WARN'
         }
+    }
+
+    try {
+        Write-ScriptExecutionSummary
+    } catch {
+        Write-Log -Message "Failed to write script execution summary: $($_.Exception.Message)" -Level 'WARN'
     }
 
     Write-Log -Message '================ SCRIPT EXECUTION COMPLETED ================'
