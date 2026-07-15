@@ -1105,7 +1105,7 @@ function Install-SysInternalsTools {
         @{ Name = 'ZoomIt64.exe'; Friendly = 'ZoomIt Presentation Tool.exe' },
         @{ Name = 'tcpview64.exe'; Friendly = 'TCP View.exe' },
         @{ Name = 'winobj64.exe'; Friendly = 'Windows Object Viewer.exe' },
-        @{ Name = 'psping64.exe'; Friendly = 'PS Ping.exe' },
+        @{ Name = 'psping64.exe'; Friendly = 'PSPing.exe' },
         @{ Name = 'handle64.exe'; Friendly = 'handle.exe' },
         @{ Name = 'procexp64.exe'; Friendly = 'Process Explorer.exe' },
         @{ Name = 'procmon64.exe'; Friendly = 'Process Monitor.exe' },
