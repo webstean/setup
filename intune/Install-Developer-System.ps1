@@ -254,6 +254,18 @@ function Remove-DotNetTools {
 }
 #Remove-DotNetTools
 
+function Disable-Firewall {
+    # Disable Windows Firewall on all profiles
+    Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled false
+}
+#Disable-Firewall
+
+## Configure DNS
+#$nic = (Get-NetAdapter).name
+#Set-DnsClientGlobalSetting -SuffixSearchList @("contoso.com")
+#Set-DnsClientServerAddress -InterfaceAlias $nic -ResetServerAddresses
+#Set-DnsClientServerAddress -InterfaceAlias $nic -ServerAddresses ("10.0.0.10","10.0.0.11") -Confirm:$false
+
 ## Add or Remote Directory from the Path, add check to see if it is already there first
 function Add-DirectoryToPath {
     [CmdletBinding(SupportsShouldProcess)]
