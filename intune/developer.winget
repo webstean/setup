@@ -234,10 +234,8 @@ properties:
         GetScript: return $false
         TestScript: return $false
         SetScript: |
-          [System.Environment]::SetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME","podman","User")
-          [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:DOCKER_HOST', 'Machine')
-          [System.Environment]::SetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME","podman","User")
-          [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:DOCKER_HOST', 'Machine')
+          [System.Environment]::SetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME","podman","Machine")
+          [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:DOCKER_HOST:PODMAN_IDENTITY:PODMAN_PORT:PODMAN_CONNECTION', 'Machine')
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Kubernetes.kubectl
