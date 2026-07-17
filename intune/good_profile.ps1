@@ -449,6 +449,10 @@ function Reset-Podman {
         Write-Host 'Podman was not found/not installed!'
         return $false
     }
+    if ( ( [bool](Get-Command wslc.exe -ErrorAction SilentlyContinue ))) {
+        Write-Host 'Found WSLC (WSL for Containers) - stopping it...'
+        wsl stop
+    }
     podman machine stop
     podman machine rm --force 
     podman system connection rm podman-machine-default
