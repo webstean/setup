@@ -457,10 +457,10 @@ function Reset-Podman {
     podman machine start
     podman system connection list
     #podman machine inspect | jq
-    $PODMAN_IDENTITY = podman machine inspect --format '{{.SSHConfig.IdentityPath}}' ## Private Key
-    $PODMAN_PORT = podman machine podman-machine-default-root inspect --format '{{.SSHConfig.Port}}'
-    $PODMAN_USER = podman machine inspect --format '{{.SSHConfig.RemoteUsername}}'
-    $PODMAN_PATH = podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}'
+    $PODMAN_IDENTITY = & podman machine inspect --format '{{.SSHConfig.IdentityPath}}' ## Private Key
+    $PODMAN_PORT = & podman machine inspect podman-machine-default --format '{{.SSHConfig.Port}}'
+    $PODMAN_USER = & podman machine inspect --format '{{.SSHConfig.RemoteUsername}}'
+    $PODMAN_PATH = & podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}'
     $PODMAN_CONNECTION = "ssh://${PODMAN_USER}@localhost/${PODMAN_PATH}"
     $PODMAN_IDENTITY = '/mnt/c/users/vid9na6/.local/share/containers/podman/machine/machine'
     Write-Host 'In WSL run:'
