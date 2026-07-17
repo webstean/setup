@@ -451,7 +451,7 @@ function Reset-Podman {
     }
     if ( ( [bool](Get-Command wslc.exe -ErrorAction SilentlyContinue ))) {
         Write-Host 'Found WSLC (WSL for Containers) - stopping it...'
-        wsl stop
+        wslc stop
     }
     podman machine stop
     podman machine rm --force 
