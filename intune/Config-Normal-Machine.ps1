@@ -604,7 +604,7 @@ function DisableAccessibilityKeys {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    Write-Output 'Disabiling Accessability Keys...'
+    Write-Output 'Disabling Accessability Keys...'
     Set-ItemProperty -Path 'HKCU:\Control Panel\Accessibility\StickyKeys' -Name 'Flags' -Type String -Value '506'
     Set-ItemProperty -Path 'HKCU:\Control Panel\Accessibility\ToggleKeys' -Name 'Flags' -Type String -Value '58'
     Set-ItemProperty -Path 'HKCU:\Control Panel\Accessibility\Keyboard Response' -Name 'Flags' -Type String -Value '122'
@@ -1037,6 +1037,8 @@ function Set-SettingsPageVisibility {
         }
     }
 
+
+
     function ConvertFrom-SettingsPageVisibilityValue {
         param(
             [AllowNull()]
@@ -1289,6 +1291,104 @@ function Set-DefaultTerminalToWindowsTerminal {
         return $false
     }
 }
+function Disable-ServerManagerAtStartup {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    Write-Output 'Disabling Server Manager at startup...'
+
+    # Only applies on Server editions (ProductType 2 = DC, 3 = Server)
+    $productType = (Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop).ProductType
+    if ($productType -eq 1) {
+        Write-Output 'Skipping: Server Manager is not present on Windows Client.'
+        return
+    }
+
+    # Machine-wide policy (takes precedence; requires admin)
+    $keyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Server\ServerManager'
+    if (-not (Test-Path -Path $keyPath)) {
+        New-Item -Path $keyPath -Force | Out-Null
+    }
+    New-ItemProperty -Path $keyPath -Name 'DoNotOpenAtLogon' -PropertyType DWord -Value 1 -Force | Out-Null
+
+    # Per-user registry setting (covers non-policy scenario)
+    $userKeyPath = 'HKCU:\Software\Microsoft\ServerManager'
+    if (-not (Test-Path -Path $userKeyPath)) {
+        New-Item -Path $userKeyPath -Force | Out-Null
+    }
+    New-ItemProperty -Path $userKeyPath -Name 'DoNotOpenServerManagerAtLogon' -PropertyType DWord -Value 1 -Force | Out-Null
+
+    # Disable the scheduled task that launches Server Manager at logon
+    $task = Get-ScheduledTask -TaskName 'ServerManager' -ErrorAction SilentlyContinue
+    if ($task) {
+        Disable-ScheduledTask -TaskName 'ServerManager' -ErrorAction SilentlyContinue | Out-Null
+        Write-Output 'ServerManager scheduled task disabled.'
+    }
+
+    Write-Output 'Server Manager at startup has been disabled.'
+}
+Disable-ServerManagerAtStartup
+
+function Accept-ServerDiagnosticsOptIn {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    Write-Output 'Accepting Windows Server diagnostic opt-in to suppress prompt...'
+
+    # Set diagnostic data level to 3 (Optional/Full) — marks the choice as made so the
+    # consent prompt never appears again. Change to 1 if you only want Required data.
+    $dataCollectionKey = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection'
+    if (-not (Test-Path -Path $dataCollectionKey)) {
+        New-Item -Path $dataCollectionKey -Force | Out-Null
+    }
+    New-ItemProperty -Path $dataCollectionKey -Name 'AllowTelemetry' -PropertyType DWord -Value 3 -Force | Out-Null
+    New-ItemProperty -Path $dataCollectionKey -Name 'DoNotShowFeedbackNotifications' -PropertyType DWord -Value 1 -Force | Out-Null
+
+    # Suppress "Improve your experience" / tailored tips toast for the current user
+    $privacyKey = 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Privacy'
+    if (-not (Test-Path -Path $privacyKey)) {
+        New-Item -Path $privacyKey -Force | Out-Null
+    }
+    New-ItemProperty -Path $privacyKey -Name 'TailoredExperiencesWithDiagnosticDataEnabled' -PropertyType DWord -Value 0 -Force | Out-Null
+
+    # Mark CEIP as opted-out so its consent prompt is suppressed
+    foreach ($ceipKey in @(
+            'HKLM:\SOFTWARE\Microsoft\SQMClient\Windows',
+            'HKLM:\SOFTWARE\Policies\Microsoft\SQMClient\Windows'
+        )) {
+        if (-not (Test-Path -Path $ceipKey)) {
+            New-Item -Path $ceipKey -Force | Out-Null
+        }
+        New-ItemProperty -Path $ceipKey -Name 'CEIPEnable' -PropertyType DWord -Value 0 -Force | Out-Null
+    }
+
+    # Disable the CEIP and Feedback scheduled tasks that trigger the consent dialog
+    $ceipTasks = @(
+        @{ Path = '\Microsoft\Windows\Customer Experience Improvement Program\'; Name = 'Consolidator' },
+        @{ Path = '\Microsoft\Windows\Customer Experience Improvement Program\'; Name = 'KernelCeipTask' },
+        @{ Path = '\Microsoft\Windows\Customer Experience Improvement Program\'; Name = 'UsbCeip' },
+        @{ Path = '\Microsoft\Windows\Feedback\Siuf\'; Name = 'DmClient' },
+        @{ Path = '\Microsoft\Windows\Feedback\Siuf\'; Name = 'DmClientOnScenarioDownload' }
+    )
+    foreach ($t in $ceipTasks) {
+        $task = Get-ScheduledTask -TaskPath $t.Path -TaskName $t.Name -ErrorAction SilentlyContinue
+        if ($task) {
+            Disable-ScheduledTask -TaskPath $t.Path -TaskName $t.Name -ErrorAction SilentlyContinue | Out-Null
+            Write-Output "Disabled scheduled task: $($t.Path)$($t.Name)"
+        }
+    }
+
+    # Tell DiagTrack the toast has already been shown at level 3 so it won't re-prompt
+    $diagTrackKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Diagnostics\DiagTrack'
+    if (-not (Test-Path -Path $diagTrackKey)) {
+        New-Item -Path $diagTrackKey -Force | Out-Null
+    }
+    New-ItemProperty -Path $diagTrackKey -Name 'ShowedToastAtLevel' -PropertyType DWord -Value 3 -Force | Out-Null
+
+    Write-Output 'Windows Server diagnostic opt-in accepted and prompt suppressed.'
+}
+Accept-ServerDiagnosticsOptIn
+
 Write-Output '**Finished Normal Machine config script**'
 
 if ($script:TranscriptStarted) {
