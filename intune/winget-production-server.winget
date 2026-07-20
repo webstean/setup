@@ -1,0 +1,223 @@
+# yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
+properties:
+  configurationVersion: 0.2.0
+  assertions:
+    - resource: Microsoft.Windows.Developer/OsVersion
+      directives:
+        description: Verify minimum OS version - Windows Server 2022 or later
+        allowPrerelease: true
+      settings:
+        MinVersion: '10.0.20348'
+
+  resources:
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: DesiredStateConfiguration
+      directives:
+        description: Install DesiredStateConfiguration
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: 9NVTPZWRC6KQ
+        source: msstore
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.Aspire
+      directives:
+        description: Install Microsoft Aspire CLI
+        securityContext: elevated
+      settings:
+        id: Microsoft.Aspire
+        source: winget
+
+    - resource: PSDscResources/Script
+      id: Script.Set.User.Wallpaper
+      directives:
+        description: Set Developer USER wallpaper
+        securityContext: elevated
+      settings:
+        GetScript: return $false
+        TestScript: return $false
+        SetScript: |
+          $wallpaper = "default-wallpaper.jpg"
+          $regPath = "HKCU:\Control Panel\Desktop"
+          $regName = "wallpaper"
+          $location = "$env:ALLUSERSPROFILE"
+          $wallpaperlocation = "${location}\${wallpaper}"
+          if (Test-Path "$wallpaperlocation" ) {          
+            Set-ItemProperty -Path $regPath -Name $regName -Value $wallpaperlocation
+            rundll32.exe user32.dll, UpdatePerUserSystemParameters
+            Write-Host "Set USER Wallpaper"
+          } else {
+            Write-Host "Wallpaper '$wallpaperlocation' was not found!"          
+          }
+
+    - resource: PSDscResources/Script
+      id: Script.Set.Logon.Wallpaper
+      directives:
+        description: Set Developer LOGON wallpaper (won't see it on DevBox/Windows 365)
+        securityContext: elevated
+      dependsOn:
+        - Script.Set.User.Wallpaper
+      settings:
+        GetScript: return $false
+        TestScript: return $false
+        SetScript: |
+          $wallpaper = "default-wallpaper.jpg"
+          $regPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System"
+          $regName = "wallpaper"
+          $location = "$env:ALLUSERSPROFILE"
+          $wallpaperlocation = "${location}\${wallpaper}"
+          if (Test-Path "$wallpaperlocation" ) {          
+            Set-ItemProperty -Path $regPath -Name $regName -Value $wallpaperlocation
+            Write-Host "Set LOGON Wallpaper"
+          } else {
+            Write-Host "Wallpaper '$wallpaperlocation' was not found!"          
+          }
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Anthropic.Claude
+      directives:
+        description: Install Anthropic.Claude
+        allowPrerelease: true
+      settings:
+        id: Anthropic.Claude
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.Azure.AZCopy.10
+      directives:
+        description: Install Azure Az Copy Tool
+        allowPrerelease: false
+      settings:
+        id: Microsoft.Azure.AZCopy.10
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.Coreutils
+      directives:
+        description: Install Microsoft.Coreutils
+        allowPrerelease: true
+      settings:
+        id: Microsoft.Coreutils
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Kubernetes.kubectl
+      directives:
+        description: Install Kubernetes.kubectl
+        allowPrerelease: true
+      settings:
+        id: Kubernetes.kubectl
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.Azd
+      directives:
+        description: Install Microsoft.Azd
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: Microsoft.Azd
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: NodeJS
+      directives:
+        description: Install Node.js 24 LTS
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: OpenJS.NodeJS.LTS
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Romanitho.Winget-AutoUpdate
+      directives:
+        description: Install Romanitho.Winget-AutoUpdate (WAU)
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: Romanitho.Winget-AutoUpdate
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.Azure.StorageExplorer
+      directives:
+        description: Install Microsoft.Azure.StorageExplorer
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: Microsoft.Azure.StorageExplorer
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: SQLite.SQLite
+      directives:
+        description: Install SQLite.SQLite
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: SQLite.SQLite
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: CoralCreek.SQLiteExpert.Personal
+      directives:
+        description: Install CoralCreek.SQLiteExpert.Personal
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: CoralCreek.SQLiteExpert.Personal
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.WindowsTerminal
+      directives:
+        description: Install Microsoft.WindowsTerminal
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: Microsoft.WindowsTerminal
+        source: winget
+
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: jqlang.jq
+      directives:
+        description: Install jqlang.jq
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: jqlang.jq
+        source: winget
+
+    # Install Microsoft.Edit
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.Edit
+      directives:
+        description: Install Microsoft.Edit
+        allowPrerelease: false
+      settings:
+        id: Microsoft.Edit
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Git.Git
+      directives:
+        description: Install Git.Git
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: Git.Git
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: BurntSushi.ripgrep
+      directives:
+        description: Install BurntSushi.ripgrep
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: BurntSushi.ripgrep
+        source: winget
+

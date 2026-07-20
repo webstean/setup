@@ -10,8 +10,8 @@ $osInfo = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
 #1 = Workstation (Windows Client)
 #2 = Domain Controller
 #3 = Server
-if ($osInfo.ProductType -ne 1) {
-    Write-Error "This script requires a Windows Client OS (e.g. Windows 11). ProductType=$($osInfo.ProductType) indicates a Server or Domain Controller. Aborting."
+if ($osInfo.ProductType -eq 1) {
+    Write-Error "This script requires a Windows Server OS. ProductType=$($osInfo.ProductType) indicates a Windows Client. Aborting."
     exit 1
 }
 
@@ -465,15 +465,10 @@ function Set-WingetConfiguration-Developer {
     winget configure --enable
     winget settings --enable ProxyCommandLineOptions
 
-    $script:developerConfig = Join-Path -Path $Destination -ChildPath 'developer.winget'
-    $script:microsoftConfig = Join-Path -Path $Destination -ChildPath 'dev-config.winget'
+    $script:serverConfig = Join-Path -Path $Destination -ChildPath 'server.winget'
 
-    if (-not (Test-Path -LiteralPath $script:microsoftConfig)) {
-        throw "'$script:microsoftConfig' from Microsoft not found."
-    }
-
-    if (-not (Test-Path -LiteralPath $script:developerConfig)) {
-        throw "'$script:developerConfig' not found."
+    if (-not (Test-Path -LiteralPath $script:serverConfig)) {
+        throw "'$script:serverConfig' not found."
     }
 }
 
@@ -713,7 +708,7 @@ try {
 
     try {
         $csw = [System.Diagnostics.Stopwatch]::StartNew()
-        Write-Log -Message 'Configuring WinGet for developer environment...'
+        Write-Log -Message 'Configuring WinGet for production environment...'
         Set-WingetConfiguration-Developer -Destination $global:destination
         $csw.Stop()
         Write-Log -Message "WinGet configuration setup completed in $($csw.Elapsed.TotalSeconds.ToString('F2')) seconds."

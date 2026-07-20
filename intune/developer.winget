@@ -177,7 +177,7 @@ properties:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.etl2pcapng
       directives:
-        description: Install Microsoft.etl2pcapng
+        description: Install Microsoft.etl2pcapng (WireShark)
         allowPrerelease: false
       settings:
         id: Microsoft.etl2pcapng
