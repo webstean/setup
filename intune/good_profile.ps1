@@ -3687,6 +3687,8 @@ function Initialize-WinGetCommandNotFound {
 Initialize-WinGetCommandNotFound | Out-Null
 
 function Enable-WSL {
+    [Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:WSL_INSTALLED_TIMEZONE', 'User')
+
     $flagPath = Join-Path $env:ProgramData 'Enable-WSL.done'
     if (Test-Path $flagPath) { return }
 
@@ -3699,7 +3701,6 @@ function Enable-WSL {
 
         # NOTE: verify each of these is a real env var you intend to share.
         # "STRONGPASSWORD" looks like an unfilled placeholder from the original.
-        [Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN', 'User')
         $env:WSLENV = [System.Environment]::GetEnvironmentVariable('WSLENV', 'User')
 
         Write-Output 'Ensuring WSL is installed and up to date...'
@@ -3760,6 +3761,7 @@ sudo apt-get install -y podman  # verify "podman-remote" is actually a package n
         Write-Output 'Type 'wsl' to enter - enjoy :-)'
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED', $True, 'User')
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED_DISTRIBUTION', $Distro, 'User')
+        [Environment]::SetEnvironmentVariable('WSL_INSTALLED_TIMEZONE', 'Australia/Melbourne', 'User')
     }
     catch {
         Write-Error "Enable-WSL failed with: $_"
