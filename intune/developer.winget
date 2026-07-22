@@ -618,11 +618,11 @@ properties:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: BurntSushi.ripgrep
       directives:
-        description: Install BurntSushi.ripgrep
+        description: Install BurntSushi.ripgrep (rg)
         allowPrerelease: false
         securityContext: elevated
       settings:
-        id: BurntSushi.ripgrep
+        id: BurntSushi.ripgrep.MSVC
         source: winget
 
     # Java (open source)
