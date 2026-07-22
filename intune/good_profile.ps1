@@ -956,9 +956,9 @@ function free {
     (Get-Volume -DriveLetter $driveLetter).SizeRemaining | ForEach-Object {
         $sizeInGB = [math]::Round($_ / 1GB, 2)
         if ($sizeInGB -lt 5) {
-            Write-Host "Warning: Free space on Drive $driveLetter: is only $sizeInGB GB!" -ForegroundColor Red
+            Write-Host "Warning: Free space on Drive ${driveLetter}: is only $sizeInGB GB!" -ForegroundColor Red
         } else {
-            Write-Host "Free space on Drive $driveLetter: is $sizeInGB GB" -ForegroundColor Green
+            Write-Host "Free space on Drive ${driveLetter}: is $sizeInGB GB" -ForegroundColor Green
         }
     }
 }
