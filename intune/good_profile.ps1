@@ -3769,6 +3769,34 @@ sudo apt-get install -y podman  # verify "podman-remote" is actually a package n
 }
 Enable-WSL
 
+function Reset-WSL {
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isAdmin) { 
+        throw "You need to be local admin to reset/reinstall WSL"
+    }
+
+    try {
+        $Distro = 'Ubuntu'
+        Write-Output "Deleting WSL..."
+
+        Write-Output 'Ensuring WSL is installed and up to date...'
+        wsl.exe --shutdown *> $null
+        wsl.exe --uninstall
+        $flagPath = Join-Path $env:ProgramData 'Enable-WSL.done'
+        if (Test-Path $flagPath) { Remote-Item -Force $flagpath }
+        [Environment]::SetEnvironmentVariable('WSL_INSTALLED', $Null, 'User')
+        [Environment]::SetEnvironmentVariable('WSL_INSTALLED_DISTRIBUTION', $Null, 'User')
+        [Environment]::SetEnvironmentVariable('WSL_INSTALLED_TIMEZONE', $Null, 'User')
+    }
+    catch {
+        Write-Error "Reset-WSL failed with: $_"
+    }
+    finally {
+        Enable-WSL
+    }
+}
+#Reset-WSL
+
 function Set-WSLConfig-Ubuntu {
     if ($env:WSL_INSTALLED_DISTRIBUTION -ne 'Ubuntu') {
         Write-Warning "Ubuntu not installed"
