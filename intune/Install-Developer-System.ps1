@@ -732,9 +732,6 @@ function Enable-WindowsSandboxIfCapable {
 }
 # Enable-WindowsSandboxIfCapable
 
-## NFS example (or use WSL)
-# mount -o anon \\10.1.1.211\mnt\vms Z:
-
 New-Item -Path 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' -Force | Out-Null
 New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' `
     -Name 'IsContinuousInnovationOptedIn' `
