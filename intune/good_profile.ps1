@@ -3688,77 +3688,79 @@ function Initialize-WinGetCommandNotFound {
 Initialize-WinGetCommandNotFound | Out-Null
 
 function Enable-WSL {
+    $flagPath = Join-Path $env:ProgramData 'Enable-WSL.done'
+    if (Test-Path $flagPath) { return }
 
-    ## Installing Ubuntu
-    $Distro = 'Ubuntu'
-    Write-Output "Installing WSL..."
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isAdmin) { return }
 
-    ## Share environment variables between Windows and WSL
-    ## https://devblogs.microsoft.com/commandline/share-environment-vars-between-wsl-and-windows/
-    [Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN', 'User')
-    $env:WSLENV = [System.Environment]::GetEnvironmentVariable('WSLENV', 'User')
+    try {
+        $Distro = 'Ubuntu'
+        Write-Output "Installing WSL with $Distro..."
 
-    Write-Output ('Ensuring WSL is install and upto date...') 
-    ## ensure WSL is upto date, can only be done per user (not system)
-    Start-Process -FilePath 'wsl' -ArgumentList '--install --no-launch' -NoNewWindow -Wait -PassThru | Out-Null
-    Start-Process -FilePath 'wsl' -ArgumentList '--status' -NoNewWindow -Wait -PassThru | Out-Null
-    Start-Process -FilePath 'wsl' -ArgumentList '--update' -NoNewWindow -Wait -PassThru | Out-Null
-    ## PreRelease version
-    Start-Process -FilePath 'wsl' -ArgumentList '--update --pre-release' -NoNewWindow -Wait -PassThru | Out-Null
-    Start-Process -FilePath 'wsl' -ArgumentList '--set-default-version 2' -NoNewWindow -Wait -PassThru | Out-Null
+        # NOTE: verify each of these is a real env var you intend to share.
+        # "STRONGPASSWORD" looks like an unfilled placeholder from the original.
+        [Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN', 'User')
+        $env:WSLENV = [System.Environment]::GetEnvironmentVariable('WSLENV', 'User')
 
-    ## clean up
-    ## wsl --terminate $Distro
-    ## wsl --unregister $Distro
+        Write-Output 'Ensuring WSL is installed and up to date...'
+        wsl.exe --install --no-launch *> $null
+        wsl.exe --status
+        wsl.exe --update *> $null
+        wsl.exe --update --pre-release *> $null
+        wsl.exe --set-default-version 2 *> $null
 
-    ## Install quietly
-    Start-Process -FilePath 'wsl' -ArgumentList "--install -d $Distro --no-launch" -NoNewWindow -Wait -PassThru | Out-Null
-    ## Preseed user
-    wsl -d $Distro --user root bash -c @"
+        wsl.exe --install -d $Distro --no-launch *> $null
+
+        ## Preseed user
+        wsl -d $Distro --user root bash -c @"
 useradd -m -s /bin/bash -G sudo $env:UserName
 "@
-    Start-Process -FilePath 'wsl' -ArgumentList "--manage $Distro --set-default-user $env:UserName" -NoNewWindow -Wait -PassThru | Out-Null
-    Start-Process -FilePath 'wsl' -ArgumentList "--set-default $Distro" -NoNewWindow -Wait -PassThru | Out-Null
 
-    Write-Output ('Enabling sudo for all users in WSL...') 
-    wsl -d $Distro --user root bash -c @'
-if ! grep -q 'NOPASSWD:ALL' /etc/sudoers; then
+        wsl --manage $Distro --set-default-user $env:UserName *> $null
+        wsl --set-default $Distro *> $null
+
+        Write-Output 'Enabling sudo for all users in WSL...'
+        wsl -d $Distro --user root bash -c @'
+if ! grep -q "NOPASSWD:ALL" /etc/sudoers; then
     cat <<'EOF' | EDITOR='tee -a' visudo
 # Everyone - WSL
 %sudo ALL=(ALL:ALL) NOPASSWD:ALL
-
 # Azure AD - WSL
 %aad_admins ALL=(ALL:ALL) NOPASSWD:ALL
 EOF
 fi
-'@  
-    $wslConfigPath = [System.IO.Path]::Combine($env:USERPROFILE, '.wslconfig')
-    if (Test-Path $wslConfigPath) {
-        Remove-Item -Force $wslConfigPath
-    }
-    New-Item -Path $wslConfigPath -ItemType File -Force | Out-Null
-    # Define config content as an array (each item = one line)
-    $content = @('
+'@
+
+        $wslConfigPath = Join-Path $env:USERPROFILE '.wslconfig'
+        $content = @"
 [wsl2]
 networkingMode=Mirrored
-
 [experimental]
 hostAddressLoopback=true
-')
-    ## Write all lines at once
-    Set-Content -Path $wslConfigPath -Value $content -Encoding UTF8
-    Get-Content -Path $wslConfigPath
+"@
+        Set-Content -Path $wslConfigPath -Value $content -Encoding UTF8 -Force
+        Get-Content -Path $wslConfigPath
 
-    ## Turn of Windows PATH inside Linux
-    wsl -d $Distro --user root bash -c @'
+        wsl -d $Distro --user root bash -c @'
 printf '[interop]\nappendWindowsPath = false\n\n[boot]\nsystemd = true\n\n[gpu]\nenabled = true\n' > /etc/wsl.conf
 '@
 
-    ## Allow Inbound connections
-    Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
-    
-    ## Terminate the existing disitribution, so it restarts with new settings
-    Start-Process -FilePath 'wsl' -ArgumentList "--terminate $Distro" -NoNewWindow -Wait -PassThru | Out-Null
+        wsl.exe --terminate $Distro *> $null
+
+        wsl -d $Distro --user root bash -c @'
+sudo apt-get update -y
+sudo apt-get upgrade -y
+sudo apt-get install -y podman  # verify "podman-remote" is actually a package name on your target release
+'@
+
+        Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
+
+        New-Item -Path $flagPath -ItemType File -Force | Out-Null
+    }
+    catch {
+        Write-Error "Enable-WSL failed: $_"
+    }
 }
 #Enable-WSL
 
