@@ -466,13 +466,13 @@ function Reset-Podman {
     $PODMAN_USER = & podman machine inspect --format '{{.SSHConfig.RemoteUsername}}'
     $PODMAN_PATH = & podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}'
     $PODMAN_CONNECTION = "ssh://${PODMAN_USER}@localhost/${PODMAN_PATH}"
-    $PODMAN_IDENTITY = '/mnt/c/users/vid9na6/.local/share/containers/podman/machine/machine'
+    ## $PODMAN_IDENTITY = '/mnt/c/users/vid9na6/.local/share/containers/podman/machine/machine'
     Write-Host 'In WSL run:'
     Write-Host "podman-remote system connection add --identity ${PODMAN_IDENTITY} --port ${PODMAN_PORT} winpodman ${PODMAN_CONNECTION}"
     Write-Host 'podman-remote system connection default winpodman'
     #podman machine info
     ## Download and Run Container
-    podman run --rm quay.io/podman/hello
+    $$ podman run --rm quay.io/podman/hello
 }
 
 if ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue )) {
