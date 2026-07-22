@@ -3758,8 +3758,8 @@ sudo apt-get install -y podman  # verify "podman-remote" is actually a package n
         New-Item -Path $flagPath -ItemType File -Force | Out-Null
         Write-Output "WSL (Windows Subsystem for Linux) is now available with the '$Distro' distribution"
         Write-Output 'Type 'wsl' to enter - enjoy :-)'
-        Set-Item -Path Env:\WSL_INSTALLED -Value $true
-        Set-Item -Path Env:\WSL_INSTALLED_DISTRIBUTION -Value "$Distro"
+        [Environment]::SetEnvironmentVariable('WSL_INSTALLED', $True, 'User')
+        [Environment]::SetEnvironmentVariable('WSL_INSTALLED_DISTRIBUTION', $Distro, 'User')
     }
     catch {
         Write-Error "Enable-WSL failed with: $_"
@@ -3773,6 +3773,7 @@ function Set-WSLConfig-Ubuntu {
         return
     }
     try {
+        Write-Output "Configuring Ubuntu inside WSL..."
         $wslsetuppre = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup-pre.sh' -UseBasicParsing).Content -replace "`r", ''
         $wslsetup1   = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh' -UseBasicParsing).Content -replace "`r", ''
         $wslsetup2   = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh' -UseBasicParsing).Content -replace "`r", ''
