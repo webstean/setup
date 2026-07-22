@@ -3687,10 +3687,11 @@ function Initialize-WinGetCommandNotFound {
 }
 Initialize-WinGetCommandNotFound | Out-Null
 
-## Installing Ubuntu
-$Distro = 'Ubuntu'
-
 function Enable-WSL {
+
+    ## Installing Ubuntu
+    $Distro = 'Ubuntu'
+    Write-Output "Installing WSL..."
 
     ## Share environment variables between Windows and WSL
     ## https://devblogs.microsoft.com/commandline/share-environment-vars-between-wsl-and-windows/
@@ -3743,10 +3744,9 @@ networkingMode=Mirrored
 
 [experimental]
 hostAddressLoopback=true
-
 ')
     ## Write all lines at once
-    Set-Content -Path $wslConfigPath -Value $content ## -Encoding UTF8
+    Set-Content -Path $wslConfigPath -Value $content -Encoding UTF8
     Get-Content -Path $wslConfigPath
 
     ## Turn of Windows PATH inside Linux
@@ -3763,7 +3763,6 @@ printf '[interop]\nappendWindowsPath = false\n\n[boot]\nsystemd = true\n\n[gpu]\
 #Enable-WSL
 
 function Set-WSLConfig-Ubuntu {
-
     ## Initial
     #$wslinitalsetup = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh').Content -replace "`r", ''
     #$wslinitalsetup | wsl --user root --distribution ${Distro} --
