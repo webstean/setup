@@ -3757,12 +3757,14 @@ sudo apt-get install -y podman  # verify "podman-remote" is actually a package n
         Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
 
         New-Item -Path $flagPath -ItemType File -Force | Out-Null
+        Write-Output "WSL (Windows Subsystem for Linux) is now available with the '$Distro' distirbution"
+        Write-Output 'Type 'wsl' to enter - enjoy :-)'
     }
     catch {
-        Write-Error "Enable-WSL failed: $_"
+        Write-Error "Enable-WSL failed with: $_"
     }
 }
-#Enable-WSL
+Enable-WSL
 
 function Set-WSLConfig-Ubuntu {
     ## Initial
