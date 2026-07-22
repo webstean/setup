@@ -7,6 +7,8 @@
 # set +x to disable
 set -x
 
+sudo dpkg --configure -a
+
 ## start from scratch - normally no!
 #if [   -d /opt ] ; then sudo rm -rf /opt ; fi 
 #if [ ! -d /opt ] ; then sudo mkdir -p /opt ; sudo chmod 755 /opt ; fi 
