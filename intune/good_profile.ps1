@@ -936,29 +936,29 @@ function tc {
 }
 
 ## Sysinternal shortcuts
-function handle { handle.exe init -nobanner @args }
+## function handle { handle.exe init -nobanner @args }
  
 function cdw {
     [CmdletBinding()]
     param()
 
-    $path = 'C:\workspaces'
-
-    if (Test-Path -Path $path -PathType Container) {
-        Set-Location -Path $path
+    $cdwpath = "$env:SystemDrive\workspaces"
+    if (Test-Path -Path $path -PathType Container -ErrorAction SilentlyContinue ) {
+        Set-Location -Path $cdwpath
     } else {
-        Write-Warning "$path does not exist."
+        Write-Warning "$cdwpath does not exist."
     }
 }
 
 function free {
-    if (-not ($IsLanguagePermissive -eq $true )) { return }
-    (Get-Volume -DriveLetter C).SizeRemaining | ForEach-Object {
+    if (-not ($IsLanguagePermissive -eq $true)) { return }
+    $driveLetter = $env:SystemDrive.TrimEnd(':')
+    (Get-Volume -DriveLetter $driveLetter).SizeRemaining | ForEach-Object {
         $sizeInGB = [math]::Round($_ / 1GB, 2)
         if ($sizeInGB -lt 5) {
-            Write-Host "Warning: Free space on Drive C: is $sizeInGB GB!" -ForegroundColor Red
+            Write-Host "Warning: Free space on Drive $driveLetter: is only $sizeInGB GB!" -ForegroundColor Red
         } else {
-            Write-Output "Free space on Drive C: is $sizeInGB GB"
+            Write-Host "Free space on Drive $driveLetter: is $sizeInGB GB" -ForegroundColor Green
         }
     }
 }
