@@ -3758,7 +3758,7 @@ sudo apt-get install -y podman  # verify "podman-remote" is actually a package n
 
         New-Item -Path $flagPath -ItemType File -Force | Out-Null
         Write-Output "WSL (Windows Subsystem for Linux) is now available with the '$Distro' distribution"
-        Write-Output 'Type 'wsl' to enter - enjoy :-)'
+        Write-Output "Type 'wsl' to enter. - enjoy :-)"
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED', $True, 'User')
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED_DISTRIBUTION', $Distro, 'User')
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED_TIMEZONE', 'Australia/Melbourne', 'User')
@@ -3777,9 +3777,11 @@ function Reset-WSL {
 
     try {
         $Distro = 'Ubuntu'
-        Write-Output "Deleting WSL..."
+        Write-Output "Shutting down WSL..."
         wsl.exe --shutdown *> $null
+        Write-Output "Uninstall WSL..."
         wsl.exe --uninstall
+        Write-Output "Removing flag files and environment variables..."
         $flagPath = Join-Path $env:ProgramData 'Enable-WSL.done'
         if (Test-Path $flagPath) { Remove-Item -Force $flagpath }
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED', $Null, 'User')
