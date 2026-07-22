@@ -14,6 +14,7 @@ set -x
 ## get everything upto date
 sudo apt-get update -y
 sudo apt-get upgrade -y
+sudo apt-get install -y podman-remote
 
 if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     ## make sure prereqs are installs
