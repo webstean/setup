@@ -44,7 +44,9 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     #wslsys
 
     ## Install Microsoft fonts
-    export ACCEPT_EULA=Y && sudo apt-get install -y ttf-mscorefonts-installer
+    export DEBIAN_FRONTEND=noninteractive
+    echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
+    sudo apt-get install -y ttf-mscorefonts-installer
 
     ## Install Azure Function Toolkit
     #sudo apt-get install -y azure-functions-core-tools
