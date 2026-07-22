@@ -3691,8 +3691,6 @@ function Enable-WSL {
 
     $flagPath = Join-Path $env:ProgramData 'Enable-WSL.done'
     if (Test-Path $flagPath) { return }
-
-    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     if (-not $isAdmin) { return }
 
     try {
@@ -3743,15 +3741,16 @@ hostAddressLoopback=true
         Get-Content -Path $wslConfigPath
 
         wsl -d $Distro --user root bash -c @'
-printf '[interop]\nappendWindowsPath = false\n\n[boot]\nsystemd = true\n\n[gpu]\nenabled = true\n' > /etc/wsl.conf
+printf '[interop]\nappendWindowsPath = false\n\n[boot]\nsystemd = true\n\n[gpu]\nenabled = false\n' > /etc/wsl.conf
 '@
-
+        Write-Output "Terminating WSL '$Distro' Linux distribution..."
         wsl.exe --terminate $Distro *> $null
 
+        Write-Output "Starting WSL '$Distro' Linux distribution (to enable systemd)..."
         wsl -d $Distro --user root bash -c @'
 sudo apt-get update -y
 sudo apt-get upgrade -y
-sudo apt-get install -y podman  # verify "podman-remote" is actually a package name on your target release
+sudo apt-get install -y podman-remote
 '@
 
         Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
