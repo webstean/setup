@@ -3778,12 +3778,10 @@ function Reset-WSL {
     try {
         $Distro = 'Ubuntu'
         Write-Output "Deleting WSL..."
-
-        Write-Output 'Ensuring WSL is installed and up to date...'
         wsl.exe --shutdown *> $null
         wsl.exe --uninstall
         $flagPath = Join-Path $env:ProgramData 'Enable-WSL.done'
-        if (Test-Path $flagPath) { Remote-Item -Force $flagpath }
+        if (Test-Path $flagPath) { Remove-Item -Force $flagpath }
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED', $Null, 'User')
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED_DISTRIBUTION', $Null, 'User')
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED_TIMEZONE', $Null, 'User')
