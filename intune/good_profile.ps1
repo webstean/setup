@@ -3778,8 +3778,8 @@ function Reset-WSL {
         $Distro = 'Ubuntu'
         Write-Output "Shutting down WSL..."
         wsl.exe --shutdown --force *> $null
-        Write-Output "Uninstalling WSL..."
-        Start-Process -FilePath "wsl.exe" -ArgumentList "--uninstall" -Wait -NoNewWindow
+        Write-Output "Uninstalling '$Distro' from WSL..."
+        Start-Process -FilePath "wsl.exe" -ArgumentList "--unregister $Distro" -Wait -NoNewWindow
         Write-Output "Removing flag files and environment variables..."
         $flagPath = Join-Path $env:ProgramData 'Enable-WSL.done'
         if (Test-Path $flagPath) { Remove-Item -Force $flagpath }
