@@ -32,14 +32,14 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     if gpg --show-keys /usr/share/keyrings/microsoft.gpg > /dev/null 2>&1; then
         if ! command -v lsb_release > /dev/null 2>&1; then
             echo "lsb_release not found; aborting repo setup" >&2
-            exit 1
+            return 1
         fi
         UBUNTU_RELEASE=$(lsb_release -rs)
         UBUNTU_CODENAME=$(lsb_release -cs)
         echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/${UBUNTU_RELEASE}/prod ${UBUNTU_CODENAME} main" | sudo tee "/etc/apt/sources.list.d/microsoft-ubuntu-${UBUNTU_CODENAME}-prod.list" > /dev/null
         echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/edge stable main" | sudo tee /etc/apt/sources.list.d/microsoft-edge-stable.list > /dev/null
         echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/ms-teams stable main" | sudo tee /etc/apt/sources.list.d/microsoft-teams-stable.list > /dev/null
-        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" | sudo tee /etc/apt/sources.list.d/microsoft-vscode-stable.list > /dev/null
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/microsoft-vscode-stable.list > /dev/null
         sudo apt update -y
     fi
     
