@@ -3769,7 +3769,6 @@ sudo apt-get install -y podman-remote
 Enable-WSL
 
 function Reset-WSL {
-    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     if (-not $isAdmin) { 
         throw "You need to be local admin to reset/reinstall WSL"
     }
@@ -3779,7 +3778,7 @@ function Reset-WSL {
         Write-Output "Shutting down WSL..."
         wsl.exe --shutdown *> $null
         Write-Output "Uninstall WSL..."
-        wsl.exe --uninstall
+        Start-Process -FilePath "wsl.exe" -ArgumentList "--uninstall" -Wait -NoNewWindow
         Write-Output "Removing flag files and environment variables..."
         $flagPath = Join-Path $env:ProgramData 'Enable-WSL.done'
         if (Test-Path $flagPath) { Remove-Item -Force $flagpath }
