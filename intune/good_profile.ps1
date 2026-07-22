@@ -3757,8 +3757,10 @@ sudo apt-get install -y podman  # verify "podman-remote" is actually a package n
         Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
 
         New-Item -Path $flagPath -ItemType File -Force | Out-Null
-        Write-Output "WSL (Windows Subsystem for Linux) is now available with the '$Distro' distirbution"
+        Write-Output "WSL (Windows Subsystem for Linux) is now available with the '$Distro' distribution"
         Write-Output 'Type 'wsl' to enter - enjoy :-)'
+        Set-Item -Path Env:\WSL_INSTALLED -Value $true
+        Set-Item -Path Env:\WSL_INSTALLED_DISTRIBUTION -Value "$Distro"
     }
     catch {
         Write-Error "Enable-WSL failed with: $_"
@@ -3767,16 +3769,22 @@ sudo apt-get install -y podman  # verify "podman-remote" is actually a package n
 Enable-WSL
 
 function Set-WSLConfig-Ubuntu {
-    ## Initial
-    #$wslinitalsetup = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslfirstsetup.sh').Content -replace "`r", ''
-    #$wslinitalsetup | wsl --user root --distribution ${Distro} --
+    if ($env:WSL_INSTALLED_DISTRIBUTION -ne 'Ubuntu') {
+        Write-Warning "Ubuntu not installed"
+        return
+    }
+    try {
+        $wslsetuppre = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup-pre.sh' -UseBasicParsing).Content -replace "`r", ''
+        $wslsetup1   = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh' -UseBasicParsing).Content -replace "`r", ''
+        $wslsetup2   = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh' -UseBasicParsing).Content -replace "`r", ''
 
-    ## BIG Setup
-    $wslsetup1 = (Invoke-WebRequest -Uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh).Content -replace "`r", ''
-    $wslsetup2 = (Invoke-WebRequest -Uri https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh).Content -replace "`r", ''
-    $wslsetup1 | wsl --user root --distribution ${Distro} --
-    wsl --terminate ${Distro}
-    $wslsetup2 | wsl --user root --distribution ${Distro} --
+        ($wslsetuppre + "`n" + $wslsetup1) | wsl --user root --distribution "${env:WSL_INSTALLED_DISTRIBUTION}" -- bash
+        wsl --terminate "${env:WSL_INSTALLED_DISTRIBUTION}"
+        $wslsetup2 | wsl --user root --distribution "${env:WSL_INSTALLED_DISTRIBUTION}" -- bash
+    }
+    catch {
+        Write-Error "Set-WSLConfig-Ubuntu failed: $_"
+    }
 }
 #Set-WSLConfig-Ubuntu
 
@@ -3816,7 +3824,7 @@ if (Get-Command direnv -ErrorAction SilentlyContinue ) {
     }
 
     function prompt {
-        Invoke-RepoDirenv
+        Invoke-RepoDirenv -ErrorAction SilentlyContinue
         "PS $($executionContext.SessionState.Path.CurrentLocation)> "
     }
 
