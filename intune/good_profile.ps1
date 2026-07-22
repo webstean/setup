@@ -439,7 +439,7 @@ function Search {
         [Parameter(Mandatory = $true, Position = 0)]
         [string]$Filter
     )
-
+    Write-Output "Searching for '$filter'..."
     Get-ChildItem -Path "$env:SystemDrive\" -Recurse -Filter $Filter -Force 2>$null
 }
 
