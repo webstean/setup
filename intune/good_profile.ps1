@@ -103,24 +103,23 @@ function Update-ProfileForce {
 #Update-ProfileForce
 
 function Test-NFS {
-    [CmdletBinding()]
-    param()
+       [CmdletBinding()]
+       param()
+       $feature = Get-WindowsOptionalFeature -Online -FeatureName ServicesForNFS-ClientOnly -ErrorAction SilentlyContinue
+       $service = Get-Service -Name NfsClnt -ErrorAction SilentlyContinue
 
-    $feature = Get-WindowsOptionalFeature -Online -FeatureName ServicesForNFS-ClientOnly -ErrorAction SilentlyContinue
-    $service = Get-Service -Name NfsClnt -ErrorAction SilentlyContinue
+       $installed     = ($feature.State -eq 'Enabled')
+       $serviceExists = ($null -ne $service)
 
-    [PSCustomObject]@{
-        Installed     = ($feature.State -eq 'Enabled')
-        FeatureState  = $feature.State
-        ServiceExists = ($null -ne $service)
-        ServiceStatus = if ($service) { $service.Status } else { $null }
-        Available     = (
-            $feature.State -eq 'Enabled' -and
-            $null -ne $service
-        )
-    }
+       [PSCustomObject]@{
+           Installed     = $installed
+           FeatureState  = $feature.State
+           ServiceExists = $serviceExists
+           ServiceStatus = if ($service) { $service.Status } else { $null }
+           Available     = ($installed -and $serviceExists)
+       }
 }
-
+   
 function Install-WindowsNfsClient {
     [CmdletBinding()]
     param()install-windowsn
@@ -802,48 +801,48 @@ if ($IsLanguagePermissive) {
 }
 
 function Get-OsInfo {
-
     $cv = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
-    if ($cv) {
-        $props = Get-ItemProperty -Path $cv -ErrorAction SilentlyContinue
-        $major = $props.CurrentMajorVersionNumber
-        $minor = $props.CurrentMinorVersionNumber
-        $build = $props.CurrentBuildNumber
-        $ubr = $props.UBR
-        $osVersion = "$major.$minor.$build.$ubr"
-    } else {
-        return 
-    }    
+    if (-not (Test-Path $cv)) { return }
+
+    $props = Get-ItemProperty -Path $cv -ErrorAction SilentlyContinue
+    if (-not $props) { return }
+
+    $major = $props.CurrentMajorVersionNumber
+    $minor = $props.CurrentMinorVersionNumber
+    $build = $props.CurrentBuildNumber
+    $ubr   = $props.UBR
+    $osVersion = "$major.$minor.$build.$ubr"
+
+    $cs = Get-CimInstance -ClassName Win32_ComputerSystem
+
     if ($IsLanguagePermissive) {
         [PSCustomObject]@{
-            ProductName = (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).ProductName
-            ReleaseId   = (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).ReleaseId
-            DisplayVer  = (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).DisplayVersion
-            Build       = [int](Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).CurrentBuildNumber
-            UBR         = [int]$ubr
-            OSVersion   = $osVersion
-            Type        = (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).InstallationType
-            Manufactuer = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Manufacturer).Manufacturer
-            Model       = (Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Model).Model
-        } 
+            ProductName  = $props.ProductName
+            ReleaseId    = $props.ReleaseId
+            DisplayVer   = $props.DisplayVersion
+            Build        = [int]$build
+            UBR          = [int]$ubr
+            OSVersion    = $osVersion
+            Type         = $props.InstallationType
+            Manufacturer = $cs.Manufacturer
+            Model        = $cs.Model
+            DevBox       = $env:IsDevBox
+        }
     } else {
-        Write-Host 'ProductName  : ' -NoNewline
-        (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).ProductName
-        Write-Host 'ReleaseId    : ' -NoNewline
-        (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).ReleaseId
-        Write-Host 'DisplayVer   : ' -NoNewline
-        (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).DisplayVersion
-        Write-Host 'Build        : ' -NoNewline
-        [int](Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).CurrentBuildNumber
-        Write-Host 'UBR          : ' -NoNewline
-        [int]$ubr
+        Write-Host 'ProductName  : ' -NoNewline; Write-Host $props.ProductName
+        Write-Host 'ReleaseId    : ' -NoNewline; Write-Host $props.ReleaseId
+        Write-Host 'DisplayVer   : ' -NoNewline; Write-Host $props.DisplayVersion
+        Write-Host 'Build        : ' -NoNewline; Write-Host ([int]$build)
+        Write-Host 'UBR          : ' -NoNewline; Write-Host ([int]$ubr)
         Write-Host "OSVersion    : $osVersion"
-        Write-Host 'Type         : ' -NoNewline
-        (Get-ItemProperty "$cv" -ErrorAction SilentlyContinue).InstallationType
-        Write-Host 'Manufacturer : ' -NoNewline
-        Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Manufacturer
-        Write-Host 'Model       : ' -NoNewline
-        Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object Model        
+        Write-Host 'Type         : ' -NoNewline; Write-Host $props.InstallationType
+        Write-Host 'Manufacturer : ' -NoNewline; Write-Host $cs.Manufacturer
+        Write-Host 'Model        : ' -NoNewline; Write-Host $cs.Model
+        if ($env:IsDevBox -eq 'True') {
+            Write-Host 'Azure DevBox : Yes'
+        } else {
+            Write-Host 'Azure DevBox : No'
+        }
     }
 }
 
