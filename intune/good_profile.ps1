@@ -3718,7 +3718,7 @@ useradd -m -s /bin/bash -G sudo $env:UserName
         wsl --manage $Distro --set-default-user $env:UserName *> $null
         wsl --set-default $Distro *> $null
 
-        Write-Output 'Enabling sudo for all users in WSL...'
+        Write-Output "Enabling sudo for all users in '$Distro' WSL..."
         wsl -d $Distro --user root bash -c @'
 if ! grep -q "NOPASSWD:ALL" /etc/sudoers; then
     cat <<'EOF' | EDITOR='tee -a' visudo
@@ -3756,6 +3756,7 @@ sudo apt-get install -y podman-remote
         Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
 
         New-Item -Path $flagPath -ItemType File -Force | Out-Null
+        wsl.exe --status
         Write-Output "WSL (Windows Subsystem for Linux) is now available with the '$Distro' distribution"
         Write-Output "Type 'wsl' to enter. - enjoy :-)"
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED', $True, 'User')
@@ -3776,8 +3777,8 @@ function Reset-WSL {
     try {
         $Distro = 'Ubuntu'
         Write-Output "Shutting down WSL..."
-        wsl.exe --shutdown *> $null
-        Write-Output "Uninstall WSL..."
+        wsl.exe --shutdown --force *> $null
+        Write-Output "Uninstalling WSL..."
         Start-Process -FilePath "wsl.exe" -ArgumentList "--uninstall" -Wait -NoNewWindow
         Write-Output "Removing flag files and environment variables..."
         $flagPath = Join-Path $env:ProgramData 'Enable-WSL.done'
