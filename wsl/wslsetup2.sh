@@ -26,17 +26,20 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     sudo install -m 0755 -d /etc/apt/keyrings
 
     ## Download and convert Microsoft’s GPG key
-    curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
-    sudo install -o root -g root -m 0644 microsoft.gpg /usr/share/keyrings
+    sudo install -o root -g root -m 0644 microsoft.gpg /usr/share/keyrings/microsoft.gpg
     rm microsoft.gpg
-    if (gpg --show-keys /usr/share/keyrings/microsoft.gpg) ; then
-        ## add a Microsoft Ubuntu repository 
-        sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/microsoft-ubuntu-$(lsb_release -cs)-prod.list' > /dev/null
-        sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/edge stable main" | sudo tee /etc/apt/sources.list.d/microsoft-edge-stable.list' > /dev/null
-        sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/ms-teams stable main" | sudo tee /etc/apt/sources.list.d/microsoft-teams-stable.list' > /dev/null
-        sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" | sudo tee /etc/apt/sources.list.d/microsoft-vscode-stable.list' > /dev/null
-        ##sudo sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/iotedge-$(lsb_release -cs) stable main" | sudo tee /etc/apt/sources.list.d/microsoft-iotedge-$(lsb_release -cs)-stable.list' > /dev/null
-        #sudo apt install microsoft-edge-stable
+
+    if gpg --show-keys /usr/share/keyrings/microsoft.gpg > /dev/null 2>&1; then
+        if ! command -v lsb_release > /dev/null 2>&1; then
+            echo "lsb_release not found; aborting repo setup" >&2
+            exit 1
+        fi
+        UBUNTU_RELEASE=$(lsb_release -rs)
+        UBUNTU_CODENAME=$(lsb_release -cs)
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/${UBUNTU_RELEASE}/prod ${UBUNTU_CODENAME} main" | sudo tee "/etc/apt/sources.list.d/microsoft-ubuntu-${UBUNTU_CODENAME}-prod.list" > /dev/null
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/edge stable main" | sudo tee /etc/apt/sources.list.d/microsoft-edge-stable.list > /dev/null
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/ms-teams stable main" | sudo tee /etc/apt/sources.list.d/microsoft-teams-stable.list > /dev/null
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" | sudo tee /etc/apt/sources.list.d/microsoft-vscode-stable.list > /dev/null
         sudo apt update -y
     fi
     
@@ -46,10 +49,9 @@ if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     #wslsys
 
     ## Install Microsoft fonts
-    export DEBIAN_FRONTEND=noninteractive
     echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
-    sudo apt-get install -y ttf-mscorefonts-installer
-
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ttf-mscorefonts-installer
+    
     ## Install Azure Function Toolkit
     #sudo apt-get install -y azure-functions-core-tools
 
@@ -79,14 +81,14 @@ fi
 ## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff and get sound working
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     if ! [ -x /usr/bin/sqlitebrowser ] ; then
-        apt-get install -y x11-apps
+        sudo apt-get install -y x11-apps
         echo $DISPLAY
         ## Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
         xeyes &
     fi
     ## WSL Audio (via Pulse Audio) -- THIS IS NOT DONE AUTOMATIC by WSL
     ## https://github.com/mikeroyal/PipeWire-Guide
-    #sudo apt-get install -y pulseaudio pulseaudio-utils mpv
+    sudo apt-get install -y pulseaudio pulseaudio-utils mpv
     #sudo apt-get install -y pipewire pipewire-audio-client-libraries pipewire-pulse pipewire-alsa wireplumber mpv
     #sudo mkdir -p /etc/pulse && sudo tee /etc/pulse/client-rt.conf >/dev/null <<'EOF'
 #realtime-scheduling = yes
@@ -158,7 +160,7 @@ setup-podman-remote() {
 setup-podman-remote
 
 ## install and config sysstat
-apt-get install -y sysstat
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" sysstat
 sudo sh -c 'echo ENABLED="true" >  /etc/default/sysstat'
 sudo systemctl --no-pager stop sysstat 
 sudo systemctl --no-pager enable sysstat 
@@ -166,7 +168,7 @@ sudo systemctl --no-pager start sysstat
 sudo systemctl --no-pager status sysstat 
 # sar -u
 
-## sync the time automatically
+## sync the time automatically (NO LONGER required - WSL can keep time finally)
 sudo systemctl --no-pager enable systemd-timesyncd.service
 sudo systemctl --no-pager status systemd-timesyncd.service
 
@@ -293,7 +295,7 @@ oraclesqldeveloperinstall() {
 
 
 ## essentials
-apt-get install -y apt-transport-https ca-certificates software-properties-common screenfetch unzip git curl wget jq dos2unix gnupg2 python3 python3-pip
+sudo apt-get install -y apt-transport-https ca-certificates software-properties-common screenfetch unzip git curl wget jq dos2unix gnupg2 python3 python3-pip
 
 ## build/development dependencies
 if [ -d /usr/local/src ] ; then sudo rm -rf /usr/local/src ; fi
@@ -302,14 +304,14 @@ apt-get install -y build-essential pkg-config intltool libtool autoconf
 
 install-sqlite() {
     ## sqllite
-    apt-get install -y sqlite3 sqlite3-tools libsqlite3-dev
+    sudo apt-get install -y sqlite3 sqlite3-tools libsqlite3-dev
     if (which -s sqlite3 ) ; then
         ## Install browser (X11) for sqlite
-        apt-get install -y sqlitebrowser
+        sudo apt-get install -y sqlitebrowser
     fi
     if (which -s sqlitebrowserxxxx ) ; then
         ## Run SQLite browser (X11) for sqlite
-        sqlitebrowser &
+        sudo sqlitebrowser &
     fi
     ## Create
     ## create database test.db
@@ -356,32 +358,32 @@ alias distribution='. /etc/os-release; echo "$ID $VERSION_ID"'
 EOF
 
 if (which -s podman-remote) ; then
-    sudo sh -c 'echo "# Alias for podman"                                >> /etc/profile.d/bash.sh'
-    sudo sh -c 'echo "alias podman='podman-remote'"                      >> /etc/profile.d/bash.sh'
-    sudo sh -c 'echo "#podman-remote system connection list"             >> /etc/profile.d/bash.sh'
-    sudo sh -c 'echo "echo \"Podman (podman-remote) found!\""            >> /etc/profile.d/bash.sh'
+    sudo sh -c 'echo "# Alias for podman"                                >> /etc/profile.d/podman-remote.sh'
+    sudo sh -c 'echo "alias podman='podman-remote'"                      >> /etc/profile.d/podman-remote.sh'
+    sudo sh -c 'echo "#podman-remote system connection list"             >> /etc/profile.d/podman-remote.sh'
+    sudo sh -c 'echo "echo \"Podman (podman-remote) found!\""            >> /etc/profile.d/podman-remote.sh'
 fi
 
-## Azure environment
-sudo sh -c 'echo "# Setup Azure environment up - if it exists"               >  /etc/profile.d/azure.sh'
-sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/env-azure.sh\" ] ; then " >> /etc/profile.d/azure.sh'
-sudo sh -c 'echo "    echo \"Found Azure (Microsoft) environment\""          >> /etc/profile.d/azure.sh'
-sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-azure.sh\""        >> /etc/profile.d/azure.sh'
-sudo sh -c 'echo "fi"                                                        >> /etc/profile.d/azure.sh'
+## Azure cloud environment
+sudo sh -c 'echo "# Setup Azure environment up - if it exists"               >  /etc/profile.d/hyperscale-azure.sh'
+sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/env-azure.sh\" ] ; then " >> /etc/profile.d/hyperscale-azure.sh'
+sudo sh -c 'echo "    echo \"Found Azure (Microsoft) environment\""          >> /etc/profile.d/hyperscale-azure.sh'
+sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-azure.sh\""        >> /etc/profile.d/hyperscale-azure.sh'
+sudo sh -c 'echo "fi"                                                        >> /etc/profile.d/hyperscale-azure.sh'
 
-## AWS environment
-sudo sh -c 'echo "# Setup AWS environment up - if it exists"               >  /etc/profile.d/aws.sh'
-sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/env-aws.sh\" ] ; then " >> /etc/profile.d/aws.sh'
-sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""             >> /etc/profile.d/aws.sh'
-sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-aws.sh\""        >> /etc/profile.d/aws.sh'
-sudo sh -c 'echo "fi"                                                      >> /etc/profile.d/aws.sh'
+## AWS cloud environment
+sudo sh -c 'echo "# Setup AWS environment up - if it exists"               >  /etc/profile.d/hyperscale-aws.sh'
+sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/env-aws.sh\" ] ; then " >> /etc/profile.d/hyperscale-aws.sh'
+sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""             >> /etc/profile.d/hyperscale-aws.sh'
+sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-aws.sh\""        >> /etc/profile.d/hyperscale-aws.sh'
+sudo sh -c 'echo "fi"                                                      >> /etc/profile.d/hyperscale-aws.sh'
 
-## Google Cloud environment
-sudo sh -c 'echo "# Setup Google GCP environment up - if it exists"        >  /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/env-gcp.sh\" ] ; then " >> /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""             >> /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-gcp.sh\""        >> /etc/profile.d/gcp.sh'
-sudo sh -c 'echo "fi"                                                      >> /etc/profile.d/gcp.sh'
+## Google cloud environment
+sudo sh -c 'echo "# Setup Google GCP environment up - if it exists"        >  /etc/profile.d/hyperscale-gcp.sh'
+sudo sh -c 'echo "if [ -f \"\${OneDriveCommercial}/env-gcp.sh\" ] ; then " >> /etc/profile.d/hyperscale-gcp.sh'
+sudo sh -c 'echo "    echo \"Found GCP (Google) environment\""             >> /etc/profile.d/hyperscale-gcp.sh'
+sudo sh -c 'echo "    source \"\${OneDriveCommercial}/env-gcp.sh\""        >> /etc/profile.d/hyperscale-gcp.sh'
+sudo sh -c 'echo "fi"                                                      >> /etc/profile.d/hyperscale-gcp.sh'
 
 sudo sh -c 'echo "if ! [ -x \~.go/bin/go ] ; then"                         >  /etc/profile.d/golang.sh'
 sudo sh -c 'echo echo    \"Golang \(go\) found!\"                          >> /etc/profile.d/golang.sh'
