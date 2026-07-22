@@ -472,7 +472,7 @@ function Reset-Podman {
     Write-Host 'podman-remote system connection default winpodman'
     #podman machine info
     ## Download and Run Container
-    $$ podman run --rm quay.io/podman/hello
+    ## podman run --rm quay.io/podman/hello
 }
 
 if ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue )) {
