@@ -79,20 +79,20 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
         ## Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
         xeyes &
     fi
-    ## WSL Audio (via Pulse Audio)
+    ## WSL Audio (via Pulse Audio) -- THIS IS NOT DONE AUTOMATIC by WSL
     ## https://github.com/mikeroyal/PipeWire-Guide
     #sudo apt-get install -y pulseaudio pulseaudio-utils mpv
-    sudo apt-get install -y pipewire pipewire-audio-client-libraries pipewire-pulse pipewire-alsa wireplumber mpv
-    sudo mkdir -p /etc/pulse && sudo tee /etc/pulse/client-rt.conf >/dev/null <<'EOF'
-realtime-scheduling = yes
-realtime-priority = 5
-nice-level = -11
-EOF
+    #sudo apt-get install -y pipewire pipewire-audio-client-libraries pipewire-pulse pipewire-alsa wireplumber mpv
+    #sudo mkdir -p /etc/pulse && sudo tee /etc/pulse/client-rt.conf >/dev/null <<'EOF'
+#realtime-scheduling = yes
+#realtime-priority = 5
+#nice-level = -11
+#EOF
     if ( !(LANG=C pactl info >/dev/null 2>&1 || echo "⚠ Pulse/PipeWire not running")) ; then
         LANG=C pactl info | grep "Server Name"
         LANG=C pactl info | grep "Server String"
         wget --https-only --no-verbose -O /tmp/jump.ogg https://commondatastorage.googleapis.com/codeskulptor-assets/jump.ogg
-        mpv --no-video /tmp/jump.ogg
+        #mpv --no-video /tmp/jump.ogg
     fi
 else
     ## Not running under WSL, so we assume baremetal or full VM
@@ -176,7 +176,6 @@ sudo apt-get install -y git
 if [ -x /usr/bin/git ]; then
     git config --global color.ui true
     git config --global --add safe.directory '*'
-    git config --global user.name "Andrew Webster"
     if [ ! ${UPN} == '' ]; then 
         git config --global user.email "${UPN}"
     fi
