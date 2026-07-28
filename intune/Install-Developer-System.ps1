@@ -1106,8 +1106,9 @@ function Install-SysInternalsTools {
         @{ Name = 'handle64.exe'; Friendly = 'handle.exe' },
         @{ Name = 'procexp64.exe'; Friendly = 'Process Explorer.exe' },
         @{ Name = 'procmon64.exe'; Friendly = 'Process Monitor.exe' },
-        @{ Name = 'RDCMan.exe'; Friendly = 'Remote Desktop Manager.exe' }
-        #        @{ Name = "whois64.exe";     Friendly = "Whois Utility.exe" },
+        @{ Name = 'RDCMan.exe'; Friendly = 'Remote Desktop Manager.exe' },
+        @{ Name = 'Bginfo64.exe'; Friendly = 'BGInfo.exe' },
+        @{ Name = "whois64.exe";  Friendly = "Whois.exe" }
         #        @{ Name = "PsExec64.exe";    Friendly = "PS Exec.exe" },
         #        @{ Name = "Psfile64.exe";    Friendly = "PS File.exe" }
     )
