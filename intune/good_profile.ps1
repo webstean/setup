@@ -1243,6 +1243,90 @@ function Get-Azure-Meta {
     return $true | Out-Null
 }
 
+function Test-ManagedIdentity {
+    <#
+    .SYNOPSIS
+        Tests whether the current Azure compute resource can obtain a token via
+        its managed identity through the Instance Metadata Service (IMDS).
+
+    .DESCRIPTION
+        Calls the IMDS token endpoint (169.254.169.254) directly, bypassing any
+        Az PowerShell module dependency. Useful for diagnosing managed identity
+        issues on VMs, VMSS instances, or containers before Connect-AzAccount
+        -Identity is attempted.
+
+    .PARAMETER Resource
+        The Azure resource URI to request a token for. Defaults to Azure
+        Resource Manager.
+
+    .PARAMETER ClientId
+        Client ID of a specific user-assigned managed identity. Omit for
+        system-assigned identity, or when only one user-assigned identity is
+        attached.
+
+    .PARAMETER TimeoutSec
+        Request timeout. IMDS normally responds in milliseconds — a low
+        default (2s) means failures surface quickly instead of hanging when
+        run somewhere IMDS isn't reachable (e.g. on-prem, local dev box).
+
+    .PARAMETER ShowToken
+        Include the full access token in the returned object. Off by default
+        — the token is a live bearer credential and shouldn't land in
+        transcripts, CI logs, or console scrollback by accident.
+
+    .EXAMPLE
+        Test-ManagedIdentity
+
+    .EXAMPLE
+        Test-ManagedIdentity -Resource 'https://storage.azure.com/' -ClientId '11111111-2222-3333-4444-555555555555'
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$Resource = 'https://management.azure.com/',
+        [string]$ClientId = '00000003-0000-0000-c000-000000000000', ## Microsoft Graph
+        [ValidateRange(1, 30)]
+        [int]$TimeoutSec = 2,
+        [switch]$ShowToken
+    )
+
+    $uri = 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource={0}' -f [uri]::EscapeDataString($Resource)
+    if ($ClientId) {
+        $uri += "&client_id=$ClientId"
+    }
+
+    try {
+        $response = Invoke-RestMethod -Uri $uri -Headers @{ Metadata = 'true' } -Method Get -TimeoutSec $TimeoutSec -ErrorAction Stop
+    }
+    catch [System.Net.WebException] {
+        Write-Error "IMDS endpoint unreachable — this likely isn't running on an Azure VM/VMSS/App Service instance, or no network path to 169.254.169.254 exists: $($_.Exception.Message)"
+        return
+    }
+    catch {
+        # IMDS returns 400 with a JSON error body when no identity is assigned,
+        # or the requested client_id doesn't match an attached identity
+        $errorBody = $null
+        if ($_.ErrorDetails.Message) {
+            try { $errorBody = ($_.ErrorDetails.Message | ConvertFrom-Json).error_description } catch { $errorBody = $_.ErrorDetails.Message }
+        }
+        Write-Error "Managed identity token request failed: $($errorBody ?? $_.Exception.Message)"
+        return
+    }
+
+    $expiresOn = [DateTimeOffset]::FromUnixTimeSeconds([long]$response.expires_on).LocalDateTime
+
+    $result = [PSCustomObject]@{
+        Success     = $true
+        Resource    = $Resource
+        ClientId    = $ClientId
+        TokenType   = $response.token_type
+        ExpiresOn   = $expiresOn
+        ExpiresInMin = [math]::Round(([datetime]$expiresOn - (Get-Date)).TotalMinutes, 1)
+        AccessToken = if ($ShowToken) { $response.access_token } else { '<redacted — use -ShowToken to include>' }
+    }
+
+    return $result
+}
+
 ## See: https://www.chanceofsecurity.com/post/microsoft-entra-pim-bulk-role-activation-tool
 function Enable-PIMRole {
     param(
