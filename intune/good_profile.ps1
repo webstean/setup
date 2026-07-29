@@ -942,7 +942,7 @@ function cdw {
     param()
 
     $cdwpath = "$env:SystemDrive\workspaces"
-    if (Test-Path -Path $path -PathType Container -ErrorAction SilentlyContinue ) {
+    if (Test-Path -Path $cdwpath -PathType Container -ErrorAction SilentlyContinue ) {
         Set-Location -Path $cdwpath
     } else {
         Write-Warning "$cdwpath does not exist."
