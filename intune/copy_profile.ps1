@@ -495,6 +495,37 @@ function Compare-DirectoryChecksum {
     }
 }
 
+function Compare-SharePointToFileShare {
+    param(
+        [Parameter(Mandatory)] [string]$SiteUrl,
+        [Parameter(Mandatory)] [string]$LibraryName,
+        [Parameter(Mandatory)] [string]$FileSharePath,
+        [string]$Algorithm = 'SHA256'
+    )
+    Connect-PnPOnline -Url $SiteUrl -Interactive
+    $spFiles = Get-PnPListItem -List $LibraryName -PageSize 500
+
+    foreach ($item in $spFiles) {
+        $fileName = $item.FieldValues.FileLeafRef
+        $serverRelativeUrl = $item.FieldValues.FileRef
+        $localTemp = Join-Path $env:TEMP $fileName
+
+        Get-PnPFile -Url $serverRelativeUrl -Path $env:TEMP -FileName $fileName -AsFile -Force
+
+        $spHash = (Get-FileHash -Path $localTemp -Algorithm $Algorithm).Hash
+        $shareHash = (Get-FileHash -Path (Join-Path $FileSharePath $fileName) -Algorithm $Algorithm).Hash
+
+        [PSCustomObject]@{
+            FileName    = $fileName
+            SPHash      = $spHash
+            ShareHash   = $shareHash
+            IsIdentical = $spHash -eq $shareHash
+        }
+
+        Remove-Item $localTemp -Force
+    }
+}
+
 Function Get-Robocopyinfo {
     Write-Host "+========================================================="
     Write-Host "RoboCopy Info:"
