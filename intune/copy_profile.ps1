@@ -559,7 +559,76 @@ Function Get-Robocopyinfo {
     $type = if ($os.ProductType -eq 1) { "Client" } else { "Server" }
     Write-Host "$type - $($os.Caption) (Build $($os.BuildNumber))"
     Write-Host "+========================================================="
-}    
+}
+
+function Import-EnvFile {
+    param(
+        [Parameter(Mandatory)]
+        [string]$EnvId,
+        [bool]$silent = $false
+    )
+
+    # Decide candidate paths in order — no early return here; OneDriveCommercial
+    # missing just means that candidate is skipped, not that the whole function bails.
+    $paths = @()
+    if ($env:OneDriveCommercial) {
+        $paths += (Join-Path $env:OneDriveCommercial ".env-$EnvId")
+    }
+    if ($env:OneDrive) {
+        $paths += (Join-Path $env:OneDrive ".env-$EnvId")
+    }
+    $paths += (Join-Path $HOME ".env-$EnvId")
+
+    # Select the first existing path
+    $Path = $null
+    foreach ($p in $paths) {
+        if (Test-Path -Path $p) {
+            $Path = $p
+            break
+        }
+    }
+
+    if (-not $Path) {
+        return
+    }
+
+    Get-Content $Path | ForEach-Object {
+        $line = $_.Trim()
+        # Skip blank lines and comments
+        if ($line -eq '' -or $line -match '^\s*#') { return }
+        # Split KEY=value — supports values with '=' inside quotes
+        if ($line -match '^\s*([^=]+?)\s*=\s*(.*)\s*$') {
+            $key = $matches[1].Trim()
+            $val = $matches[2].Trim()
+            # Remove optional surrounding quotes
+            if ($val -match '^"(.*)"$') { $val = $matches[1] }
+            elseif ($val -match "^'(.*)'$") { $val = $matches[1] }
+            # Set environment variable
+            if ($script:IsLanguagePermissive) {
+                ## Make it permanent, if not constrained by PowerShell
+                [System.Environment]::SetEnvironmentVariable($key, $val, 'User')
+            } else {
+                Set-ItemProperty -Path 'HKCU:\Environment' -Name $key -Value $val
+            }
+            Set-Item -Path "Env:\$key" -Value "$val"
+
+            Write-Verbose "Set `$Env:$key = '$val'"
+        }
+    }
+
+    if (-not $silent) {
+        Write-Host "Portal Logon: https://entra.microsoft.com/?tenant=$env:AZURE_TENANT_ID"
+        if ($env:AZURE_CLIENT_ID) {
+            Write-Host 'DELEGATION'
+            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -ClientId $env:AZURE_CLIENT_ID -Scope .default -UseDeviceAuthentication:$false -NoWelcome"
+            Write-Host "Get-MgContext"
+        } else {
+            Write-Host 'AS INTERACTIVE USER'
+            Write-Host "Connect-MgGraph -TenantId $env:AZURE_TENANT_ID -Scope .default -UseDeviceAuthentication:$false -NoWelcome"
+            Write-Host "Get-MgContext"
+        }
+    }
+}
 
 Write-StepSummary -Type 'Info' -ShowTimeStamp $false "Ready for copies from Azure Files to both SharePoint/NAS"
 Write-StepSummary -Type 'Info' -ShowTimeStamp $false "Functions defined: Invoke-RobocopyMirrorforNAS, Compare-DirectoryChecksum, Compare-SharePointToFileShare, Compare-FileChecksum"
