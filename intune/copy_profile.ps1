@@ -8,9 +8,31 @@
 # New-Item -ItemType File -Path $PROFILE -Force
 # Invoke-RestMethod -Uri "https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/copy_profile.ps1" | Set-Content -Path $PROFILE -Force
 
-# Install-PsResource -Name PnP.PowerShell -Scope CurrentUser -Force
-# Install-PsResource -Name Microsoft.Graph -Scope CurrentUser -Force
+# Install-PsResource -Name PnP.PowerShell -Scope CurrentUser
+# Install-PsResource -Name Microsoft.Graph -Scope CurrentUser
+# Install-PsResource -Name ExchangeOnlineManagement -Scope CurrentUser
 
+# D: is temporary storage, with label: 'Temporary Storage'
+
+function Test-DiskSpace {
+    (Get-Volume -DriveLetter C).SizeRemaining | ForEach-Object {
+        $sizeInGB = [math]::Round($_ / 1GB, 2)
+        if ($sizeInGB -lt 5) {
+            Write-Host "Warning: Free space on Drive C: less than 5GB. Space remaining is $sizeInGB GB!" -ForegroundColor Red
+        }
+    }
+
+    $volumeD = Get-Volume -DriveLetter D -ErrorAction SilentlyContinue
+    if ($volumeD) {
+        $sizeInGB = [math]::Round($volumeD.SizeRemaining / 1GB, 2)
+        Write-Host "Free space on Drive D: is $sizeInGB"
+
+        if ($volumeD.FileSystemLabel -eq 'Temporary Storage') {
+            Write-Host "Warning: Drive D: is labeled 'Temporary Storage' — data here is not persistent (lost on deallocation/redeploy)." -ForegroundColor Red
+        }
+    }
+}
+Test-DiskSpace
 
 function Update-Profile {
     [CmdletBinding()]
@@ -540,7 +562,7 @@ Function Get-Robocopyinfo {
     Write-Host "+========================================================="
 }    
 
-Write-Output "Ready for NAS (at Jefferies) copies"
-Write-Output "Functions defined: Invoke-RobocopyMirrorforNAS"
+Write-StepSummary -Write-Output "Ready for copies from Azure Files to SharePoint/NAS"
+Write-Output "Functions defined: Invoke-RobocopyMirrorforNAS, Compare-DirectoryChecksum, Compare-SharePointToFileShare, Compare-FileChecksum"
 Get-Robocopyinfo
 
