@@ -562,7 +562,14 @@ Function Get-Robocopyinfo {
     Write-Host "+========================================================="
 }    
 
-Write-StepSummary -Type 'Info' "Ready for copies from Azure Files to SharePoint/NAS"
-Write-StepSummary -Type 'Info' "Functions defined: Invoke-RobocopyMirrorforNAS, Compare-DirectoryChecksum, Compare-SharePointToFileShare, Compare-FileChecksum"
+Write-StepSummary -Type 'Info' -ShowTimeStamp $false "Ready for copies from Azure Files to SharePoint/NAS"
+Write-StepSummary -Type 'Info' -ShowTimeStamp $false "Functions defined: Invoke-RobocopyMirrorforNAS, Compare-DirectoryChecksum, Compare-SharePointToFileShare, Compare-FileChecksum"
 Get-Robocopyinfo
 
+$modulesToImport = @('Az', 'PnP.PowerShell', 'ExchangeOnlineManagement', 'Microsoft.Graph.Authentication', 'Microsoft.Graph.User', 'Microsoft.Graph.Group')
+foreach ($module in $modulesToImport) {
+    if (Get-Module -ListAvailable -Name $module) {
+        Write-StepSummary -Type 'start' -ShowTimeStamp $false "Importing PowerShell module ${module}"
+        Import-Module -Name $module *> $null
+    }
+}
