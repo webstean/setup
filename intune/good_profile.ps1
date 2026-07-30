@@ -443,48 +443,54 @@ function Search {
 }
 
 function Reset-Podman {
-    ## Run as required
-    if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
-        Write-Host 'Podman was not found/not installed!'
-        return $false
+    
+    try {
+        ## Run as required
+        if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
+            Write-Host 'Podman was not found/not installed!'
+            return $false
+        }
+        if ( ( [bool](Get-Command wslc.exe -ErrorAction SilentlyContinue ))) {
+            Write-Host 'Found WSLC (WSL for Containers) - stopping it...'
+            wslc stop
+        }
+        podman machine stop
+        podman machine rm --force 
+        podman system connection rm podman-machine-default
+        podman system connection rm podman-machine-default-root
+        podman machine init --timezone 'Australia/Melbourne'
+        podman machine start
+        podman system connection list
+        #podman machine inspect | jq
+        $PODMAN_IDENTITY = & podman machine inspect --format '{{.SSHConfig.IdentityPath}}' ## Private Key
+        $PODMAN_PORT = & podman machine inspect podman-machine-default --format '{{.SSHConfig.Port}}'
+        $PODMAN_USER = & podman machine inspect --format '{{.SSHConfig.RemoteUsername}}'
+        $PODMAN_PATH = & podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}'
+        $PODMAN_CONNECTION = "ssh://${PODMAN_USER}@localhost/${PODMAN_PATH}"
+        ## $PODMAN_IDENTITY = '/mnt/c/users/vid9na6/.local/share/containers/podman/machine/machine'
+        Write-Host 'In WSL run:'
+        Write-Host "podman-remote system connection add --identity ${PODMAN_IDENTITY} --port ${PODMAN_PORT} winpodman ${PODMAN_CONNECTION}"
+        Write-Host 'podman-remote system connection default winpodman'
+        #podman machine info
+        ## Download and Run Container
+        ## podman run --rm quay.io/podman/hello
+        Set-Alias -Name docker -Value podman
+        ## Set-Item -Path Env:\ASPIRE_CONTAINER_RUNTIME -Value 'podman'
+        [System.Environment]::SetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME","podman","User")
+        #Set-WslNetConfig
+        ## podman run -dt -p 8080:80/tcp docker.io/library/httpd:latest
+        ## podman run -it mcr.microsoft.com/azure-cli:azurelinux3.0
+        ## podman run -it mcr.microsoft.com/devcontainers/base:ubuntu
+        ## podman run -it mcr.microsoft.com/azure-cloudshell
+        ## podman run -it --env AZURE_SUBSCRIPTION_ID=$env:AZURE_SUBSCRIPTION_ID --env AZURE_TENANT_ID=$env:AZURE_TENANT_ID --env AZURE_USERNAME=$env:AZURE_USERNAME mcr.microsoft.com/azure-cloudshell 
+        ## podman run --rm -it ghcr.io/baresip/docker/baresip:latest
+        if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
+            Write-Host 'Podman is supposed to be the container runtime but the podman executable was not found/not installed!'
+        }
     }
-    if ( ( [bool](Get-Command wslc.exe -ErrorAction SilentlyContinue ))) {
-        Write-Host 'Found WSLC (WSL for Containers) - stopping it...'
-        wslc stop
+    catch {
     }
-    podman machine stop
-    podman machine rm --force 
-    podman system connection rm podman-machine-default
-    podman system connection rm podman-machine-default-root
-    podman machine init --timezone 'Australia/Melbourne'
-    podman machine start
-    podman system connection list
-    #podman machine inspect | jq
-    $PODMAN_IDENTITY = & podman machine inspect --format '{{.SSHConfig.IdentityPath}}' ## Private Key
-    $PODMAN_PORT = & podman machine inspect podman-machine-default --format '{{.SSHConfig.Port}}'
-    $PODMAN_USER = & podman machine inspect --format '{{.SSHConfig.RemoteUsername}}'
-    $PODMAN_PATH = & podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}'
-    $PODMAN_CONNECTION = "ssh://${PODMAN_USER}@localhost/${PODMAN_PATH}"
-    ## $PODMAN_IDENTITY = '/mnt/c/users/vid9na6/.local/share/containers/podman/machine/machine'
-    Write-Host 'In WSL run:'
-    Write-Host "podman-remote system connection add --identity ${PODMAN_IDENTITY} --port ${PODMAN_PORT} winpodman ${PODMAN_CONNECTION}"
-    Write-Host 'podman-remote system connection default winpodman'
-    #podman machine info
-    ## Download and Run Container
-    ## podman run --rm quay.io/podman/hello
-}
-
-if ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue )) {
-    Set-Alias -Name docker -Value podman
-    Set-Item -Path Env:\ASPIRE_CONTAINER_RUNTIME -Value 'podman'
-    #Set-WslNetConfig
-    ## podman run -dt -p 8080:80/tcp docker.io/library/httpd:latest
-    ## docker run -it mcr.microsoft.com/azure-cli:azurelinux3.0
-    ## docker run -it mcr.microsoft.com/devcontainers/base:ubuntu
-    ## docker run -it mcr.microsoft.com/azure-cloudshell
-    ## podman run -it --env AZURE_SUBSCRIPTION_ID=$env:AZURE_SUBSCRIPTION_ID --env AZURE_TENANT_ID=$env:AZURE_TENANT_ID --env AZURE_USERNAME=$env:AZURE_USERNAME mcr.microsoft.com/azure-cloudshell 
-    ## docker run --rm -it ghcr.io/baresip/docker/baresip:latest
-}
+}    
 
 function Set-Developer-Variables {
     ## Edit as required
