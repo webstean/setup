@@ -12,7 +12,7 @@
 # Install-PsResource -Name Microsoft.Graph -Scope CurrentUser
 # Install-PsResource -Name ExchangeOnlineManagement -Scope CurrentUser
 
-# D: is temporary storage, with label: 'Temporary Storage'
+# D: is temporary storage, with label: 'Temporary Storage',  290GB
 
 function Test-DiskSpace {
     (Get-Volume -DriveLetter C).SizeRemaining | ForEach-Object {
@@ -25,7 +25,7 @@ function Test-DiskSpace {
     $volumeD = Get-Volume -DriveLetter D -ErrorAction SilentlyContinue
     if ($volumeD) {
         $sizeInGB = [math]::Round($volumeD.SizeRemaining / 1GB, 2)
-        Write-Host "Free space on Drive D: is $sizeInGB"
+        Write-Host "Free space on Drive D: is ${sizeInGB}GB"
 
         if ($volumeD.FileSystemLabel -eq 'Temporary Storage') {
             Write-Host "Warning: Drive D: is labeled 'Temporary Storage' — data here is not persistent (lost on deallocation/redeploy)." -ForegroundColor Red
