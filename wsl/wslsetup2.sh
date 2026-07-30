@@ -17,6 +17,7 @@ sudo dpkg --configure -a
 sudo apt-get update -y
 sudo apt-get upgrade -y
 sudo apt-get install -y podman-remote
+sudo apt-get install -y systemd systemd-sysv
 
 if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
     ## make sure prereqs are installs
