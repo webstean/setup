@@ -6,7 +6,7 @@
 #    --query value -o tsv
     
 #Set-ExecutionPolicy Unrestricted -Scope Process
-#Set-ExecutionPolicy Unrestricted -Scope CurrentUser
+#Set-ExecutionPolicy Unrestricted -Scogpe CurrentUser
 #Set-ExecutionPolicy -ExecutionPolicy Unrestricted
 
 ## Ignore	        Completely discard output
@@ -2731,126 +2731,6 @@ function Get-EntraDelegatedGrantsReport {
     $output | Sort-Object AppName, Resource
 }
 
-function Test-TlsConnection {
-    <#
-    .SYNOPSIS
-        Tests HTTPS connectivity and TLS/certificate validation for a given URL.
-
-    .PARAMETER Url
-        The HTTPS URL to test (default: https://example.com)
-
-    .PARAMETER TimeoutSeconds
-        Connection timeout in seconds (default: 5)
-
-    .EXAMPLE
-        Test-TlsConnection -Url "https://graph.microsoft.com"
-
-    .EXAMPLE
-        Test-TlsConnection -Url "https://login.microsoftonline.com" -TimeoutSeconds 10
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter()]
-        [ValidateNotNullOrEmpty()]
-        [string]$Url = 'https://cnn.com',
-
-        [Parameter()]
-        [ValidateRange(1, 300)]
-        [int]$TimeoutSeconds = 5
-    )
-
-    # Normalize / validate URL
-    if ($Url -notmatch '^\w+://') { $Url = "https://$Url" }
-
-    $uri = $null
-    try { $uri = [Uri]$Url } catch { throw "Invalid Url: $Url" }
-    if ($uri.Scheme -ne 'https') { throw "Url must be HTTPS: $Url" }
-
-    $handler = $null
-    $client = $null
-    $response = $null
-
-    # Capture TLS/cert info
-    $cert2 = $null
-    $sslErrors = $null
-
-    try {
-        $handler = [System.Net.Http.HttpClientHandler]::new()
-
-        # Capture certificate details and any policy errors
-        $handler.ServerCertificateCustomValidationCallback = {
-            param($req, $cert, $chain, $errors)
-
-            if ($cert) {
-                try { $script:cert2 = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($cert) } catch { }
-            }
-            $script:sslErrors = $errors
-
-            # Return $true only when there are no SSL policy errors (i.e., "valid")
-            return ($errors -eq [System.Net.Security.SslPolicyErrors]::None)
-        }
-
-        $client = [System.Net.Http.HttpClient]::new($handler)
-
-        # Reliable timeout with cancellation token
-        $cts = [System.Threading.CancellationTokenSource]::new([TimeSpan]::FromSeconds($TimeoutSeconds))
-
-        # Ask for headers only (faster) then dispose
-        $response = $client.GetAsync($uri, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead, $cts.Token).GetAwaiter().GetResult()
-
-        $tlsProtocol = $null
-        try {
-            # Best-effort: only available if HttpClient exposes the underlying connection info (often not).
-            # So we return null unless we can infer via SslStream (not directly accessible here).
-            $tlsProtocol = $null
-        } catch { }
-
-        $ok = $response.IsSuccessStatusCode -and ($sslErrors -eq [System.Net.Security.SslPolicyErrors]::None)
-
-        if ($ok) {
-            Write-Host "✅ HTTPS + TLS OK ($($response.StatusCode)) - $Url" -ForegroundColor Green
-        } else {
-            Write-Warning "⚠️ HTTPS connected but TLS policy errors: $sslErrors - $Url"
-        }
-
-        [pscustomobject]@{
-            Url             = $uri.AbsoluteUri
-            StatusCode      = [int]$response.StatusCode
-            ReasonPhrase    = $response.ReasonPhrase
-            HttpSuccess     = $response.IsSuccessStatusCode
-            TlsValid        = ($sslErrors -eq [System.Net.Security.SslPolicyErrors]::None)
-            SslPolicyErrors = $sslErrors
-            CertSubject     = $cert2?.Subject
-            CertIssuer      = $cert2?.Issuer
-            CertThumbprint  = $cert2?.Thumbprint
-            CertNotBefore   = $cert2?.NotBefore
-            CertNotAfter    = $cert2?.NotAfter
-            TimeoutSeconds  = $TimeoutSeconds
-        }
-    } catch {
-        Write-Warning "❌ HTTPS/TLS failed for $Url — $($_.Exception.Message)"
-        [pscustomobject]@{
-            Url             = $Url
-            StatusCode      = $null
-            ReasonPhrase    = $null
-            HttpSuccess     = $false
-            TlsValid        = $false
-            SslPolicyErrors = $sslErrors
-            CertSubject     = $cert2?.Subject
-            CertIssuer      = $cert2?.Issuer
-            CertThumbprint  = $cert2?.Thumbprint
-            CertNotBefore   = $cert2?.NotBefore
-            CertNotAfter    = $cert2?.NotAfter
-            TimeoutSeconds  = $TimeoutSeconds
-            Error           = $_.Exception.Message
-        }
-    } finally {
-        if ($response) { $response.Dispose() }
-        if ($client) { $client.Dispose() }
-        if ($handler) { $handler.Dispose() }
-    }
-}
-
 function Export-CAPolicies {
     <#
     .SYNOPSIS
@@ -3213,16 +3093,65 @@ function Install-OrUpdate-Module {
 }
 
 function Invoke-WorkIQQuery {
+    <#
+    .SYNOPSIS
+        Runs a Work IQ query, installing the workiq CLI first if it's missing.
+
+    .DESCRIPTION
+        Work IQ ships as the @microsoft/workiq npm package. This checks for
+        the CLI on PATH and installs it globally via npm if absent, then
+        runs the query. Does NOT auto-accept the Work IQ EULA — that's a
+        one-time explicit action the user needs to run themselves
+        (`workiq accept-eula`), since silently accepting license terms on
+        someone's behalf isn't something this function should do.
+
+    .PARAMETER Query
+        The natural-language query to send to Work IQ.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
         [string]$Query
     )
-
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    $result = & workiq ask $Query
+    if (-not (Get-Command workiq -ErrorAction SilentlyContinue)) {
+        Write-Verbose "workiq CLI not found on PATH — installing @microsoft/workiq globally via npm."
+
+        if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+            throw 'workiq is not installed, and npm is not available to install it. Install Node.js 18+ first (Work IQ requires it for its fetch/async usage): https://nodejs.org'
+        }
+
+        npm install -g @microsoft/workiq
+        if ($LASTEXITCODE -ne 0) {
+            throw "npm install -g @microsoft/workiq failed with exit code $LASTEXITCODE."
+        }
+
+        # A global npm install updates the machine/user PATH, but this
+        # process's own environment block was already loaded before that
+        # happened — refresh it so 'workiq' resolves without needing a new
+        # PowerShell session.
+        $machinePath = [System.Environment]::GetEnvironmentVariable('PATH', 'Machine')
+        $userPath = [System.Environment]::GetEnvironmentVariable('PATH', 'User')
+        $env:PATH = "$machinePath;$userPath"
+
+        if (-not (Get-Command workiq -ErrorAction SilentlyContinue)) {
+            throw 'workiq was installed but could not be resolved on PATH in this session. Open a new terminal and try again.'
+        }
+    }
+
+    # ask expects the query via -q per the documented CLI syntax, not
+    # positionally.
+    workiq accept-eula
+    $result = & workiq ask -q "$Query"
+
+    if ($LASTEXITCODE -ne 0) {
+        # Native executables don't respect $ErrorActionPreference on a
+        # non-zero exit code — that only applies to PowerShell-native cmdlet
+        # errors, so this has to be checked explicitly.
+        throw "workiq exited with code $LASTEXITCODE. Output: $result"
+    }
 
     if (-not $result) {
         throw 'No response from Work IQ'
