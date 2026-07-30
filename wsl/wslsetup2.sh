@@ -170,8 +170,8 @@ sudo systemctl --no-pager status sysstat
 # sar -u
 
 ## sync the time automatically (NO LONGER required - WSL can keep time finally)
-sudo systemctl --no-pager enable systemd-timesyncd.service
-sudo systemctl --no-pager status systemd-timesyncd.service
+#sudo systemctl --no-pager enable systemd-timesyncd.service
+#sudo systemctl --no-pager status systemd-timesyncd.service
 
 ## install WASM
 curl https://get.wasmer.io -sSfL | sh
