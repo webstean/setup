@@ -2317,7 +2317,7 @@ function Set-FolderAclUsersModify {
 #Set-FolderAclUsersModify -Path "$env:SystemDrive\Workspaces"
 #Set-FolderAclUsersModify -Path "$env:SystemDrive\Scripts"
 
-function Get-HttpsCertificateInfo {
+function Get-TLSInfo {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, Position = 0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
@@ -2340,9 +2340,9 @@ function Get-HttpsCertificateInfo {
     )
 
     begin {
-        #if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
-        #    throw "Cannot inspect certificates because PowerShell LanguageMode is '$($ExecutionContext.SessionState.LanguageMode)'."
-        #}
+        if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
+            throw "Cannot inspect certificates because PowerShell LanguageMode is '$($ExecutionContext.SessionState.LanguageMode)'."
+        }
 
         # Tracks export paths already written during this pipeline invocation,
         # so piping multiple hosts at the same -ExportCerPath doesn't silently
@@ -2395,16 +2395,22 @@ function Get-HttpsCertificateInfo {
             )
 
             # .PublicKey.Key throws NotSupportedException for ECDSA certificates —
-            # it's a legacy property that never gained EC support. Algorithm-specific
-            # accessors are the correct, non-throwing way to get key size regardless
-            # of algorithm.
-            $rsa = $Cert.GetRSAPublicKey()
+            # it's a legacy property that never gained EC support. The algorithm-
+            # specific accessors below are the correct way to get key size
+            # regardless of algorithm — but they are C# EXTENSION methods (defined
+            # in RSACertificateExtensions / ECDsaCertificateExtensions /
+            # DSACertificateExtensions), not real instance members of
+            # X509Certificate2. PowerShell has no extension-method call sugar, so
+            # they must be invoked as explicit static calls on the extension
+            # class — calling $Cert.GetRSAPublicKey() directly fails with
+            # "does not contain a method named 'GetRSAPublicKey'".
+            $rsa = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($Cert)
             if ($rsa) { return $rsa.KeySize }
 
-            $ecdsa = $Cert.GetECDsaPublicKey()
+            $ecdsa = [System.Security.Cryptography.X509Certificates.ECDsaCertificateExtensions]::GetECDsaPublicKey($Cert)
             if ($ecdsa) { return $ecdsa.KeySize }
 
-            $dsa = $Cert.GetDSAPublicKey()
+            $dsa = [System.Security.Cryptography.X509Certificates.DSACertificateExtensions]::GetDSAPublicKey($Cert)
             if ($dsa) { return $dsa.KeySize }
 
             return $null
@@ -2412,15 +2418,34 @@ function Get-HttpsCertificateInfo {
     }
 
     process {
+        # Accept a full URL (e.g. copy-pasted from a browser address bar) as
+        # well as a bare hostname. TcpClient.ConnectAsync and SNI both need
+        # just the host — a scheme, path, or trailing slash would otherwise
+        # cause a DNS/connection failure. [Uri] parsing is used rather than a
+        # plain string replace so it also correctly strips any path/query
+        # string, not just the scheme.
+        $targetHost = $Fqdn
+        if ($Fqdn -match '^[a-zA-Z][a-zA-Z0-9+.-]*://') {
+            $parsedUri = $null
+            if ([System.Uri]::TryCreate($Fqdn, [System.UriKind]::Absolute, [ref]$parsedUri)) {
+                $targetHost = $parsedUri.Host
+            } else {
+                # Fallback if it looked like a URL but didn't parse cleanly —
+                # strip scheme and anything from the first '/' onward manually.
+                $targetHost = $Fqdn -replace '^[a-zA-Z][a-zA-Z0-9+.-]*://', '' -replace '/.*$', ''
+            }
+            Write-Verbose "Normalized '$Fqdn' to host '$targetHost'."
+        }
+
         $actualExportPath = $ExportCerPath
         if ($ExportCerPath) {
             if ($usedExportPaths.Contains($ExportCerPath)) {
                 $dir = Split-Path -Path $ExportCerPath -Parent
                 $base = [System.IO.Path]::GetFileNameWithoutExtension($ExportCerPath)
                 $ext = [System.IO.Path]::GetExtension($ExportCerPath)
-                $safeHost = $Fqdn -replace '[^\w\.-]', '_'
+                $safeHost = $targetHost -replace '[^\w\.-]', '_'
                 $actualExportPath = if ($dir) { Join-Path $dir "$base-$safeHost$ext" } else { "$base-$safeHost$ext" }
-                Write-Warning "ExportCerPath '$ExportCerPath' was already used earlier in this pipeline run; writing '$Fqdn' to '$actualExportPath' instead to avoid overwriting the previous host's certificate."
+                Write-Warning "ExportCerPath '$ExportCerPath' was already used earlier in this pipeline run; writing '$targetHost' to '$actualExportPath' instead to avoid overwriting the previous host's certificate."
             }
 
             $exportDir = Split-Path -Path $actualExportPath -Parent
@@ -2438,13 +2463,13 @@ function Get-HttpsCertificateInfo {
         try {
             $client = [System.Net.Sockets.TcpClient]::new()
 
-            $connectTask = $client.ConnectAsync($Fqdn, $Port)
+            $connectTask = $client.ConnectAsync($targetHost, $Port)
             if (-not $connectTask.Wait($TimeoutMs)) {
-                throw "Timeout connecting to ${Fqdn}:${Port} after ${TimeoutMs} ms."
+                throw "Timeout connecting to ${targetHost}:${Port} after ${TimeoutMs} ms."
             }
 
             if (-not $client.Connected) {
-                throw "TCP connection to ${Fqdn}:${Port} failed."
+                throw "TCP connection to ${targetHost}:${Port} failed."
             }
 
             $stream = $client.GetStream()
@@ -2464,16 +2489,16 @@ function Get-HttpsCertificateInfo {
 
             try {
                 $authOptions = [System.Net.Security.SslClientAuthenticationOptions]::new()
-                $authOptions.TargetHost = $Fqdn
+                $authOptions.TargetHost = $targetHost
                 $authOptions.EnabledSslProtocols = $TlsProtocols
                 $ssl.AuthenticateAsClient($authOptions)
             } catch {
                 Write-Verbose "Modern AuthenticateAsClient overload failed, falling back: $($_.Exception.Message)"
-                $ssl.AuthenticateAsClient($Fqdn)
+                $ssl.AuthenticateAsClient($targetHost)
             }
 
             if (-not $ssl.RemoteCertificate) {
-                throw "No certificate was presented by ${Fqdn}:${Port}."
+                throw "No certificate was presented by ${targetHost}:${Port}."
             }
 
             $cert2 = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($ssl.RemoteCertificate)
@@ -2496,7 +2521,7 @@ function Get-HttpsCertificateInfo {
             }
 
             [PSCustomObject]@{
-                Hostname           = $Fqdn
+                Hostname           = $targetHost
                 Port               = $Port
                 OwnerSubject       = $cert2.Subject
                 SubjectCN          = $cert2.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::DnsName, $false)
@@ -2514,7 +2539,7 @@ function Get-HttpsCertificateInfo {
                 ExportedCerPath    = $actualExportPath
             }
         } catch {
-            $message = "Failed to retrieve certificate from ${Fqdn}:${Port}. $($_.Exception.Message)"
+            $message = "Failed to retrieve certificate from ${targetHost}:${Port}. $($_.Exception.Message)"
             Write-Error $message
         } finally {
             if ($cert2) { $cert2.Dispose() }
@@ -2527,11 +2552,10 @@ function Get-HttpsCertificateInfo {
 }
 # Examples:
 # Show owner/subject for a site
-# Get-HttpsCertificateInfo -Fqdn "www.microsoft.com"
-# Get-HttpsCertificateInfo -Fqdn "cnn.com"
-
+# Get-TLSInfo -Fqdn "www.microsoft.com"
+# Get-TLSInfo -Fqdn "cnn.com"
 # Export the certificate to a file as well
-# Get-HttpsCertificateInfo -Fqdn "example.com" -ExportCerPath "C:\Temp\example.cer"
+# Get-TLSInfo -Fqdn "example.com" -ExportCerPath "C:\Temp\example.cer"
 
 function Show-Toast-Message {
     [CmdletBinding()]
@@ -2647,158 +2671,6 @@ function Get-DefaultRouteAdapter {
         $results
     } else {
         Write-Warning 'No default routes found.'
-    }
-}
-
-function Get-ZscalerClientState {
-    <#
-    .SYNOPSIS
-        Gathers Zscaler-related configuration/state on a Windows endpoint (read-only).
-
-    .DESCRIPTION
-        Enumerates likely locations for Zscaler Client Connector and tunnel info:
-        - Installed Apps (registry)
-        - Services & Processes
-        - System proxy (WinINET) and WinHTTP proxy
-        - Network adapters & default route
-        - Root certs containing "Zscaler"
-        - Common file system paths
-
-        NOTE: Uses broad matching (Zscaler|ZSA) to be resilient across versions.
-
-    .PARAMETER IncludeRoutes
-        Include default route and candidate tunnel routes.
-
-    .PARAMETER AsJson
-        Emit JSON instead of a PowerShell object.
-
-    .EXAMPLE
-        Get-ZscalerClientState -IncludeRoutes | Format-List
-
-    .EXAMPLE
-        Get-ZscalerClientState -AsJson | Out-File .\zscaler_state.json -Encoding utf8
-    #>
-
-    [CmdletBinding()]
-    param(
-        [switch]$IncludeRoutes,
-        [switch]$AsJson
-    )
-
-    function Get-RegistryValues {
-        param([string]$Path, [string[]]$Names)
-        $h = @{}
-        try {
-            $item = Get-Item -LiteralPath $Path -ErrorAction Stop
-            foreach ($n in $Names) {
-                $h[$n] = (Get-ItemProperty -LiteralPath $Path -Name $n -ErrorAction SilentlyContinue).$n
-            }
-        } catch {}
-        [pscustomobject]$h
-    }
-
-    # 1) Installed App (Uninstall registry)
-    $uninstallRoots = @(
-        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
-        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall'
-    )
-    $installed = foreach ($root in $uninstallRoots) {
-        Get-ChildItem $root -ErrorAction SilentlyContinue | ForEach-Object {
-            $p = Get-ItemProperty $_.PsPath -ErrorAction SilentlyContinue
-            if ($p.DisplayName -match 'Zscaler|Client Connector|ZSA') {
-                [pscustomobject]@{
-                    DisplayName     = $p.DisplayName
-                    DisplayVersion  = $p.DisplayVersion
-                    Publisher       = $p.Publisher
-                    InstallLocation = $p.InstallLocation
-                    UninstallString = $p.UninstallString
-                    RegistryPath    = $_.PsPath
-                }
-            }
-        }
-    }
-
-    # 2) Services / Processes
-    $services = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match 'Zscaler|ZSA' -or $_.Name -match 'Zscaler|ZSA' } |
-    Select-Object Name, DisplayName, Status, StartType
-    $processes = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Zscaler|ZSA' } |
-    ForEach-Object {
-        [pscustomobject]@{
-            Name = $_.Name; Id = $_.Id; Path = ($_.Path)
-        }
-    }
-
-    # 3) Proxy (WinINET = user), WinHTTP = machine
-    $inetCU = Get-RegistryValues -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -Names ProxyEnable, ProxyServer, AutoConfigURL
-    $inetLM = Get-RegistryValues -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -Names ProxyEnable, ProxyServer, AutoConfigURL
-
-    $winHttpProxy = try {
-        $out = & netsh winhttp show proxy 2>$null
-        if ($LASTEXITCODE -eq 0) { $out -join "`n" } else { $null }
-    } catch { $null }
-
-    # 4) Adapters / Routes (look for “Zscaler”/“ZSA”)
-    $adapters = Get-NetAdapter -IncludeHidden -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -match 'Zscaler|ZSA' -or $_.InterfaceDescription -match 'Zscaler|ZSA' } |
-    Select-Object Name, InterfaceDescription, InterfaceIndex, Status, MacAddress, ifIndex
-
-    $defaultRoute4 = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
-    Sort-Object RouteMetric, InterfaceMetric | Select-Object -First 1
-    $defaultAdapter = if ($defaultRoute4) {
-        Get-NetAdapter -InterfaceIndex $defaultRoute4.InterfaceIndex -ErrorAction SilentlyContinue |
-        Select-Object Name, InterfaceDescription, InterfaceIndex, Status
-    }
-
-    $routes = $null
-    if ($IncludeRoutes) {
-        $routes = Get-NetRoute -ErrorAction SilentlyContinue |
-        Where-Object { $_.DestinationPrefix -in @('0.0.0.0/0', '::/0') -or $_.InterfaceIndex -in ($adapters.InterfaceIndex) } |
-        Sort-Object AddressFamily, RouteMetric, InterfaceMetric |
-        Select-Object AddressFamily, DestinationPrefix, NextHop, InterfaceIndex, RouteMetric, InterfaceMetric
-    }
-
-    # 5) Root certificates containing "Zscaler"
-    $zscalerCerts = @()
-    foreach ($store in @('Cert:\LocalMachine\Root', 'Cert:\CurrentUser\Root')) {
-        $zscalerCerts += Get-ChildItem $store -ErrorAction SilentlyContinue |
-        Where-Object { $_.Subject -match 'Zscaler' -or $_.Issuer -match 'Zscaler' } |
-        Select-Object @{n = 'Store'; e = { $store } },
-        Subject, Issuer, NotAfter, Thumbprint, FriendlyName
-    }
-
-    # 6) Common file system paths
-    $paths = @(
-        'C:\Program Files\Zscaler',
-        'C:\Program Files (x86)\Zscaler',
-        'C:\ProgramData\Zscaler',
-        "$env:LOCALAPPDATA\Zscaler",
-        "$env:PROGRAMDATA\Zscaler"
-    ) | ForEach-Object {
-        if (Test-Path $_) { $_ }
-    }
-
-    $result = [pscustomobject]@{
-        ComputerName         = $env:COMPUTERNAME
-        UserName             = $env:USERNAME
-        PowerShellVersion    = $PSVersionTable.PSVersion.ToString()
-        InstalledApps        = $installed
-        Services             = $services
-        Processes            = $processes
-        ProxyWinINET_User    = $inetCU
-        ProxyWinINET_Machine = $inetLM
-        ProxyWinHTTP         = $winHttpProxy
-        DefaultAdapter       = $defaultAdapter
-        DefaultRouteIPv4     = if ($defaultRoute4) { [pscustomobject]@{ NextHop = $defaultRoute4.NextHop; IfIndex = $defaultRoute4.InterfaceIndex; RouteMetric = $defaultRoute4.RouteMetric; InterfaceMetric = $defaultRoute4.InterfaceMetric } }
-        ZscalerAdapters      = $adapters
-        RoutesSummary        = $routes
-        ZscalerRootCerts     = $zscalerCerts
-        ExistingPaths        = $paths
-    }
-
-    if ($AsJson) {
-        $result | ConvertTo-Json -Depth 6
-    } else {
-        $result
     }
 }
 
