@@ -7,6 +7,9 @@
 
 # New-Item -ItemType File -Path $PROFILE -Force
 # Invoke-RestMethod -Uri "https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/copy_profile.ps1" | Set-Content -Path $PROFILE -Force
+# Invoke-RestMethod -Uri "https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/copy_profile.ps1" -OutFile "C:\LOGS\profile.ps1"
+# cd \logs
+# copy profile.ps1 $profile
 
 function Update-Profile {
     [CmdletBinding()]
