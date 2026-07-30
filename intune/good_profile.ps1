@@ -113,21 +113,49 @@ function Test-NFS {
         throw 'Administrator privileges are required to install NFS.'
     }
 
-    $feature = Get-WindowsOptionalFeature -Online -FeatureName ServicesForNFS-ClientOnly -ErrorAction SilentlyContinue
+    # Get-WindowsOptionalFeature relies on a DISM COM interop layer that's
+    # part of the legacy Windows PowerShell 5.1 binary module. On PowerShell
+    # 7/Core, that COM class frequently fails to register correctly, causing
+    # a "Class not registered" COMException — a known, recurring PS7 issue
+    # (not specific to this script), inconsistent across machines/builds.
+    # Loading DISM via the Windows PowerShell compatibility layer avoids it.
+    if ($PSVersionTable.PSEdition -eq 'Core') {
+        try {
+            Import-Module DISM -UseWindowsPowerShell -ErrorAction Stop *> $null
+        } catch {
+            Write-Verbose "Could not import DISM via -UseWindowsPowerShell: $($_.Exception.Message)"
+        }
+    }
+
+    $featureState = $null
+    try {
+        $feature = Get-WindowsOptionalFeature -Online -FeatureName ServicesForNFS-ClientOnly -ErrorAction Stop
+        $featureState = $feature.State
+    } catch [System.Runtime.InteropServices.COMException] {
+        Write-Verbose "Get-WindowsOptionalFeature COM call failed ('$($_.Exception.Message)') — falling back to dism.exe directly."
+        # Fall back to parsing dism.exe's own output, bypassing the COM API
+        # path entirely — dism.exe itself doesn't hit this registration issue.
+        $dismOutput = & dism.exe /online /get-featureinfo /featurename:ServicesForNFS-ClientOnly 2>&1
+        $stateLine = $dismOutput | Where-Object { $_ -match '^\s*State\s*:\s*(.+)$' }
+        if ($stateLine -and $stateLine -match '^\s*State\s*:\s*(.+)$') {
+            $featureState = $matches[1].Trim()
+        } else {
+            Write-Warning "Could not determine NFS feature state via dism.exe fallback either. Raw output: $($dismOutput -join ' | ')"
+        }
+    }
+
     $service = Get-Service -Name NfsClnt -ErrorAction SilentlyContinue
-
-    $installed     = ($feature.State -eq 'Enabled')
+    $installed     = ($featureState -eq 'Enabled')
     $serviceExists = ($null -ne $service)
-
     [PSCustomObject]@{
         Installed     = $installed
-        FeatureState  = $feature.State
+        FeatureState  = $featureState
         ServiceExists = $serviceExists
         ServiceStatus = if ($service) { $service.Status } else { $null }
         Available     = ($installed -and $serviceExists)
     }
 }
-   
+
 function Install-WindowsNfsClient {
     [CmdletBinding()]
     param()
@@ -139,55 +167,125 @@ function Install-WindowsNfsClient {
         throw 'Administrator privileges are required to install NFS.'
     }
 
+    # Falls back to Write-Host if Write-StepSummary isn't defined elsewhere in
+    # the session/profile — avoids a hard failure on every call if that
+    # helper isn't actually loaded.
+    if (-not (Get-Command Write-StepSummary -ErrorAction SilentlyContinue)) {
+        function Write-StepSummary {
+            param([string]$type, [string]$Message)
+            $color = switch ($type) {
+                'warning' { 'Yellow' }
+                'error'   { 'Red' }
+                default   { 'Cyan' }
+            }
+            Write-Host $Message -ForegroundColor $color
+        }
+    }
+
+    # Get-WindowsOptionalFeature/Enable-WindowsOptionalFeature rely on a DISM
+    # COM interop layer that frequently fails to register correctly on
+    # PowerShell 7/Core, throwing "Class not registered" — a known, recurring
+    # PS7 issue. Loading DISM via the Windows PowerShell compatibility layer
+    # avoids it in most cases.
+    if ($PSVersionTable.PSEdition -eq 'Core') {
+        try {
+            Import-Module DISM -UseWindowsPowerShell -ErrorAction Stop *> $null
+        } catch {
+            Write-Verbose "Could not import DISM via -UseWindowsPowerShell: $($_.Exception.Message)"
+        }
+    }
+
     Write-StepSummary -type 'info' 'Checking if Windows NFS Client is installed...'
     $featureName = 'ServicesForNFS-ClientOnly'
 
-    $feature = Get-WindowsOptionalFeature `
-        -Online `
-        -FeatureName $featureName `
-        -ErrorAction SilentlyContinue
+    function Get-NfsFeatureState {
+        try {
+            return (Get-WindowsOptionalFeature -Online -FeatureName $featureName -ErrorAction Stop).State
+        } catch [System.Runtime.InteropServices.COMException] {
+            Write-Verbose "Get-WindowsOptionalFeature COM call failed — falling back to dism.exe directly."
+            $dismOutput = & dism.exe /online /get-featureinfo /featurename:$featureName 2>&1
+            $stateLine = $dismOutput | Where-Object { $_ -match '^\s*State\s*:\s*(.+)$' }
+            if ($stateLine -and $stateLine -match '^\s*State\s*:\s*(.+)$') {
+                return $matches[1].Trim()
+            }
+            Write-Warning "Could not determine NFS feature state via dism.exe fallback either."
+            return $null
+        }
+    }
 
-    if ($feature.State -ne 'Enabled') {
+    $featureState = Get-NfsFeatureState
+    $restartNeeded = $false
+
+    if ($featureState -ne 'Enabled') {
         Write-StepSummary -type 'info' 'Installing Windows NFS Client...'
-
         $result = Enable-WindowsOptionalFeature `
             -Online `
             -FeatureName $featureName `
             -All `
             -NoRestart `
             -ErrorAction Stop
+        $restartNeeded = [bool]$result.RestartNeeded
+        # Re-check state after enabling rather than trusting the pre-install
+        # value — but a restart-pending install may still report the old
+        # state until the reboot actually happens.
+        $featureState = Get-NfsFeatureState
 
-        if ($result.RestartNeeded) {
+        if ($restartNeeded) {
             Write-StepSummary -type 'warning' 'A restart is required before the NFS client can be used.'
+            # The NfsClnt service is very likely not registered yet at this
+            # point — attempting to query/start it now would fail. Return
+            # early with what's actually known rather than crashing on a
+            # service that may not exist until after reboot.
+            return [PSCustomObject]@{
+                Installed       = $false
+                FeatureState    = $featureState
+                ServiceStatus   = $null
+                StartupType     = $null
+                MountCommand    = [bool](Get-Command mount.exe -ErrorAction SilentlyContinue)
+                RestartRequired = $true
+                Ready           = $false
+            }
         }
     }
 
-    $service = Get-Service -Name NfsClnt -ErrorAction Stop
+    $service = Get-Service -Name NfsClnt -ErrorAction SilentlyContinue
+    if (-not $service) {
+        Write-StepSummary -type 'warning' 'NFS feature reports enabled, but the NfsClnt service was not found. A restart may still be pending.'
+        return [PSCustomObject]@{
+            Installed       = ($featureState -eq 'Enabled')
+            FeatureState    = $featureState
+            ServiceStatus   = $null
+            StartupType     = $null
+            MountCommand    = [bool](Get-Command mount.exe -ErrorAction SilentlyContinue)
+            RestartRequired = $restartNeeded
+            Ready           = $false
+        }
+    }
 
     if ($service.StartType -ne 'Automatic') {
         Set-Service -Name NfsClnt -StartupType Automatic
     }
-
     if ($service.Status -ne 'Running') {
         Start-Service -Name NfsClnt
     }
-
     $service = Get-Service -Name NfsClnt
+    $mountAvailable = [bool](Get-Command mount.exe -ErrorAction SilentlyContinue)
 
     [PSCustomObject]@{
-        Installed       = $true
-        FeatureState    = (Get-WindowsOptionalFeature -Online -FeatureName $featureName).State
+        Installed       = ($featureState -eq 'Enabled')
+        FeatureState    = $featureState
         ServiceStatus   = $service.Status
         StartupType     = $service.StartType
-        MountCommand    = [bool](Get-Command mount.exe -ErrorAction SilentlyContinue)
-        RestartRequired = if ($result) { $result.RestartNeeded } else { $false }
+        MountCommand    = $mountAvailable
+        RestartRequired = $restartNeeded
         Ready           = (
-            (Get-WindowsOptionalFeature -Online -FeatureName $featureName).State -eq 'Enabled' -and
+            $featureState -eq 'Enabled' -and
             $service.Status -eq 'Running' -and
-            (Get-Command mount.exe -ErrorAction SilentlyContinue)
+            $mountAvailable
         )
     }
 }
+
 
 function Get-DotNetHostInfo {
     [CmdletBinding()]
