@@ -2752,7 +2752,7 @@ function Test-TlsConnection {
     param(
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [string]$Url = 'https://example.com',
+        [string]$Url = 'https://cnn.com',
 
         [Parameter()]
         [ValidateRange(1, 300)]
