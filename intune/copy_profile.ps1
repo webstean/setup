@@ -562,7 +562,7 @@ Function Get-Robocopyinfo {
     Write-Host "+========================================================="
 }    
 
-Write-StepSummary -Write-Output "Ready for copies from Azure Files to SharePoint/NAS"
-Write-Output "Functions defined: Invoke-RobocopyMirrorforNAS, Compare-DirectoryChecksum, Compare-SharePointToFileShare, Compare-FileChecksum"
+Write-StepSummary -Type 'Info' "Ready for copies from Azure Files to SharePoint/NAS"
+Write-StepSummary -Type 'Info' "Functions defined: Invoke-RobocopyMirrorforNAS, Compare-DirectoryChecksum, Compare-SharePointToFileShare, Compare-FileChecksum"
 Get-Robocopyinfo
 
