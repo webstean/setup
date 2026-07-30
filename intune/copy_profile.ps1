@@ -42,6 +42,7 @@ function Update-Profile {
 
 
 [int]$DefaultThreads = 16
+[string]$DefaultHash = 'MD5'
 
 [string]$LogDirectory = 'C:\Logs'
 if (-not (Test-Path -LiteralPath $LogDirectory)) { New-Item -ItemType Directory -Path $LogDirectory -Force *> $null }
@@ -481,11 +482,11 @@ function Compare-DirectoryChecksum {
     # across two different filesystems/shares).
     $hashes1 = @{}
     foreach ($f in $files1) {
-        $hashes1[$f.Name] = (Get-FileHash -LiteralPath $f.FullName -Algorithm MD5).Hash
+        $hashes1[$f.Name] = (Get-FileHash -LiteralPath $f.FullName -Algorithm $DefaultHash).Hash
     }
     $hashes2 = @{}
     foreach ($f in $files2) {
-        $hashes2[$f.Name] = (Get-FileHash -LiteralPath $f.FullName -Algorithm MD5).Hash
+        $hashes2[$f.Name] = (Get-FileHash -LiteralPath $f.FullName -Algorithm $DefaultHash).Hash
     }
 
     $onlyInPath1 = @($hashes1.Keys | Where-Object { -not $hashes2.ContainsKey($_) })
@@ -526,7 +527,7 @@ function Compare-SharePointToFileShare {
         [Parameter(Mandatory)] [string]$SiteUrl,
         [Parameter(Mandatory)] [string]$LibraryName,
         [Parameter(Mandatory)] [string]$FileSharePath,
-        [string]$Algorithm = 'SHA256'
+        [string]$Algorithm = $DefaultHash
     )
     Connect-PnPOnline -Url $SiteUrl -Interactive
     $spFiles = Get-PnPListItem -List $LibraryName -PageSize 500
