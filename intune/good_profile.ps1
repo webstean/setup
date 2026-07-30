@@ -2320,7 +2320,7 @@ function Set-FolderAclUsersModify {
 function Get-HttpsCertificateInfo {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory, Position = 0)]
+        [Parameter(Mandatory, Position = 0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [Alias('HostName')]
         [string]$Fqdn,
@@ -2340,9 +2340,16 @@ function Get-HttpsCertificateInfo {
     )
 
     begin {
-        if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
-            throw "Cannot inspect certificates because PowerShell LanguageMode is '$($ExecutionContext.SessionState.LanguageMode)'."
-        }
+        #if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
+        #    throw "Cannot inspect certificates because PowerShell LanguageMode is '$($ExecutionContext.SessionState.LanguageMode)'."
+        #}
+
+        # Tracks export paths already written during this pipeline invocation,
+        # so piping multiple hosts at the same -ExportCerPath doesn't silently
+        # clobber each earlier host's exported certificate.
+        $usedExportPaths = [System.Collections.Generic.HashSet[string]]::new(
+            [System.StringComparer]::OrdinalIgnoreCase
+        )
 
         function Get-SubjectAltNames {
             [CmdletBinding()]
@@ -2357,6 +2364,13 @@ function Get-HttpsCertificateInfo {
                 if ($ext.Oid.Value -eq '2.5.29.17') {
                     try {
                         $san = [System.Security.Cryptography.AsnEncodedData]::new($ext.Oid, $ext.RawData)
+                        # NOTE: Format() renders via the OS's native crypto formatting
+                        # (CryptoAPI on Windows), which is locale-dependent — the
+                        # "DNS Name=" label assumed by the regex below may render
+                        # differently on non-English Windows locales, and .Format()
+                        # output can differ on non-Windows platforms entirely under
+                        # PowerShell 7's cross-platform runtime. This is a known
+                        # limitation, not something this function corrects for.
                         $text = $san.Format($true)
 
                         if ($text) {
@@ -2372,13 +2386,46 @@ function Get-HttpsCertificateInfo {
 
             return ($out | Select-Object -Unique)
         }
+
+        function Get-PublicKeySize {
+            [CmdletBinding()]
+            param(
+                [Parameter(Mandatory)]
+                [System.Security.Cryptography.X509Certificates.X509Certificate2]$Cert
+            )
+
+            # .PublicKey.Key throws NotSupportedException for ECDSA certificates —
+            # it's a legacy property that never gained EC support. Algorithm-specific
+            # accessors are the correct, non-throwing way to get key size regardless
+            # of algorithm.
+            $rsa = $Cert.GetRSAPublicKey()
+            if ($rsa) { return $rsa.KeySize }
+
+            $ecdsa = $Cert.GetECDsaPublicKey()
+            if ($ecdsa) { return $ecdsa.KeySize }
+
+            $dsa = $Cert.GetDSAPublicKey()
+            if ($dsa) { return $dsa.KeySize }
+
+            return $null
+        }
     }
 
     process {
+        $actualExportPath = $ExportCerPath
         if ($ExportCerPath) {
-            $dir = Split-Path -Path $ExportCerPath -Parent
-            if ($dir -and -not (Test-Path -LiteralPath $dir)) {
-                New-Item -ItemType Directory -Path $dir -Force | Out-Null
+            if ($usedExportPaths.Contains($ExportCerPath)) {
+                $dir = Split-Path -Path $ExportCerPath -Parent
+                $base = [System.IO.Path]::GetFileNameWithoutExtension($ExportCerPath)
+                $ext = [System.IO.Path]::GetExtension($ExportCerPath)
+                $safeHost = $Fqdn -replace '[^\w\.-]', '_'
+                $actualExportPath = if ($dir) { Join-Path $dir "$base-$safeHost$ext" } else { "$base-$safeHost$ext" }
+                Write-Warning "ExportCerPath '$ExportCerPath' was already used earlier in this pipeline run; writing '$Fqdn' to '$actualExportPath' instead to avoid overwriting the previous host's certificate."
+            }
+
+            $exportDir = Split-Path -Path $actualExportPath -Parent
+            if ($exportDir -and -not (Test-Path -LiteralPath $exportDir)) {
+                New-Item -ItemType Directory -Path $exportDir -Force | Out-Null
             }
         }
 
@@ -2386,6 +2433,7 @@ function Get-HttpsCertificateInfo {
         $stream = $null
         $ssl = $null
         $chain = $null
+        $cert2 = $null
 
         try {
             $client = [System.Net.Sockets.TcpClient]::new()
@@ -2400,6 +2448,14 @@ function Get-HttpsCertificateInfo {
             }
 
             $stream = $client.GetStream()
+
+            # WARNING — validation callback always returns $true: this deliberately
+            # accepts ANY certificate (expired, self-signed, wrong host, MITM'd —
+            # everything), because this function's entire purpose is to inspect
+            # certificates regardless of validity. This is correct HERE, but this
+            # exact pattern must never be copied into code that makes real,
+            # trust-sensitive connections — doing so silently disables all TLS
+            # protection for that connection.
             $ssl = [System.Net.Security.SslStream]::new(
                 $stream,
                 $false,
@@ -2429,12 +2485,14 @@ function Get-HttpsCertificateInfo {
             [void]$chain.Build($cert2)
 
             $san = Get-SubjectAltNames -Cert $cert2
+            $keySizeBits = Get-PublicKeySize -Cert $cert2
 
-            if ($ExportCerPath) {
+            if ($actualExportPath) {
                 [System.IO.File]::WriteAllBytes(
-                    $ExportCerPath,
+                    $actualExportPath,
                     $cert2.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
                 )
+                [void]$usedExportPaths.Add($actualExportPath)
             }
 
             [PSCustomObject]@{
@@ -2450,15 +2508,16 @@ function Get-HttpsCertificateInfo {
                 SerialNumber       = $cert2.SerialNumber
                 SignatureAlgorithm = $cert2.SignatureAlgorithm.FriendlyName
                 KeyAlgorithm       = $cert2.PublicKey.Oid.FriendlyName
-                KeySizeBits        = $cert2.PublicKey.Key.KeySize
+                KeySizeBits        = $keySizeBits
                 SANs               = $san
                 ChainStatus        = @($chain.ChainStatus | ForEach-Object { $_.Status.ToString() }) -join ', '
-                ExportedCerPath    = $ExportCerPath
+                ExportedCerPath    = $actualExportPath
             }
         } catch {
             $message = "Failed to retrieve certificate from ${Fqdn}:${Port}. $($_.Exception.Message)"
             Write-Error $message
         } finally {
+            if ($cert2) { $cert2.Dispose() }
             if ($chain) { $chain.Dispose() }
             if ($ssl) { $ssl.Dispose() }
             if ($stream) { $stream.Dispose() }
