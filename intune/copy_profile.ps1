@@ -18,7 +18,7 @@ function Test-DiskSpace {
     (Get-Volume -DriveLetter C).SizeRemaining | ForEach-Object {
         $sizeInGB = [math]::Round($_ / 1GB, 2)
         if ($sizeInGB -lt 5) {
-            Write-Host "Warning: Free space on Drive C: less than 5GB. Space remaining is $sizeInGB GB!" -ForegroundColor Red
+            Write-Host "Warning: Free space on Drive C: is less than 5GB (${sizeInGB}GB)!" -ForegroundColor Red
         }
     }
 
@@ -39,7 +39,6 @@ function Update-Profile {
     param()
     Invoke-RestMethod -Uri "https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/copy_profile.ps1" | Set-Content -Path $PROFILE -Force
 }
-
 
 [int]$DefaultThreads = 16
 [string]$DefaultHash = 'MD5'
@@ -84,7 +83,6 @@ function Test-InternetConnection {
             $response.Close()
         }
     }
-
     return $false
 }
 
@@ -563,7 +561,7 @@ Function Get-Robocopyinfo {
     Write-Host "+========================================================="
 }    
 
-Write-StepSummary -Type 'Info' -ShowTimeStamp $false "Ready for copies from Azure Files to SharePoint/NAS"
+Write-StepSummary -Type 'Info' -ShowTimeStamp $false "Ready for copies from Azure Files to both SharePoint/NAS"
 Write-StepSummary -Type 'Info' -ShowTimeStamp $false "Functions defined: Invoke-RobocopyMirrorforNAS, Compare-DirectoryChecksum, Compare-SharePointToFileShare, Compare-FileChecksum"
 Get-Robocopyinfo
 
