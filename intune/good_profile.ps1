@@ -103,27 +103,34 @@ function Update-ProfileForce {
 #Update-ProfileForce
 
 function Test-NFS {
-       [CmdletBinding()]
-       param()
-       $feature = Get-WindowsOptionalFeature -Online -FeatureName ServicesForNFS-ClientOnly -ErrorAction SilentlyContinue
-       $service = Get-Service -Name NfsClnt -ErrorAction SilentlyContinue
+    [CmdletBinding()]
+    param()
+    # Ensure running as Administrator
+    $principal = [Security.Principal.WindowsPrincipal]::new(
+        [Security.Principal.WindowsIdentity]::GetCurrent()
+    )
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw 'Administrator privileges are required to install NFS.'
+    }
 
-       $installed     = ($feature.State -eq 'Enabled')
-       $serviceExists = ($null -ne $service)
+    $feature = Get-WindowsOptionalFeature -Online -FeatureName ServicesForNFS-ClientOnly -ErrorAction SilentlyContinue
+    $service = Get-Service -Name NfsClnt -ErrorAction SilentlyContinue
 
-       [PSCustomObject]@{
-           Installed     = $installed
-           FeatureState  = $feature.State
-           ServiceExists = $serviceExists
-           ServiceStatus = if ($service) { $service.Status } else { $null }
-           Available     = ($installed -and $serviceExists)
-       }
+    $installed     = ($feature.State -eq 'Enabled')
+    $serviceExists = ($null -ne $service)
+
+    [PSCustomObject]@{
+        Installed     = $installed
+        FeatureState  = $feature.State
+        ServiceExists = $serviceExists
+        ServiceStatus = if ($service) { $service.Status } else { $null }
+        Available     = ($installed -and $serviceExists)
+    }
 }
    
 function Install-WindowsNfsClient {
     [CmdletBinding()]
-    param()install-windowsn
-
+    param()
     # Ensure running as Administrator
     $principal = [Security.Principal.WindowsPrincipal]::new(
         [Security.Principal.WindowsIdentity]::GetCurrent()
