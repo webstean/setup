@@ -17,7 +17,7 @@ function Update-Profile {
 
 [int]$DefaultThreads = 16
 
-[string]$LogDirectory = 'C:\Logs',
+[string]$LogDirectory = 'C:\Logs'
 if (-not (Test-Path -LiteralPath $LogDirectory)) { New-Item -ItemType Directory -Path $LogDirectory -Force *> $null }
 
 $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
