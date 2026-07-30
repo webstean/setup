@@ -5,6 +5,8 @@
 # Save and Exit
 # pwsh
 
+# Invoke-RestMethod -Uri "https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/copy_profile.ps1" | Set-Content -Path $PROFILE -Force
+
 [int]$DefaultThreads = 16
 
 [string]$LogDirectory = 'C:\Logs',
