@@ -634,7 +634,7 @@ Write-StepSummary -Type 'Info' -ShowTimeStamp $false "Ready for copies from Azur
 Write-StepSummary -Type 'Info' -ShowTimeStamp $false "Functions defined: Invoke-RobocopyMirrorforNAS, Compare-DirectoryChecksum, Compare-SharePointToFileShare, Compare-FileChecksum"
 Get-Robocopyinfo
 
-$modulesToImport = @('Az', 'PnP.PowerShell', 'ExchangeOnlineManagement', 'Microsoft.Graph.Authentication', 'Microsoft.Graph.User', 'Microsoft.Graph.Group')
+$modulesToImport = @('PnP.PowerShell', 'ExchangeOnlineManagement', 'Microsoft.Graph.Authentication', 'Microsoft.Graph.User', 'Microsoft.Graph.Group')
 foreach ($module in $modulesToImport) {
     if (Get-Module -ListAvailable -Name $module) {
         Write-StepSummary -Type 'start' -ShowTimeStamp $false "Importing PowerShell module ${module}"
