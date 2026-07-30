@@ -8,6 +8,10 @@
 # New-Item -ItemType File -Path $PROFILE -Force
 # Invoke-RestMethod -Uri "https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/copy_profile.ps1" | Set-Content -Path $PROFILE -Force
 
+# Install-PsResource -Name PnP.PowerShell -Scope CurrentUser -Force
+# Install-PsResource -Name Microsoft.Graph -Scope CurrentUser -Force
+
+
 function Update-Profile {
     [CmdletBinding()]
     param()
