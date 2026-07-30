@@ -606,5 +606,7 @@ setup-iotedge() {
     fi
 }
 #setup-iotedge
+exit 0
+
 
 
