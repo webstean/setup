@@ -438,7 +438,7 @@ function Search {
         [Parameter(Mandatory = $true, Position = 0)]
         [string]$Filter
     )
-    Write-Output "Searching for '$filter'..."
+    Write-Output "Searching for '$filter' accross the $env:SystemDrive\ drive..."
     Get-ChildItem -Path "$env:SystemDrive\" -Recurse -Filter $Filter -Force 2>$null
 }
 
@@ -956,29 +956,24 @@ function cdw {
 }
 
 function free {
-    if (-not ($IsLanguagePermissive -eq $true)) { return }
-    $driveLetter = $env:SystemDrive.TrimEnd(':')
-    (Get-Volume -DriveLetter $driveLetter).SizeRemaining | ForEach-Object {
-        $sizeInGB = [math]::Round($_ / 1GB, 2)
-        if ($sizeInGB -lt 5) {
-            Write-Host "Warning: Free space on Drive ${driveLetter}: is only $sizeInGB GB!" -ForegroundColor Red
-        } else {
-            Write-Host "Free space on Drive ${driveLetter}: is $sizeInGB GB" -ForegroundColor Green
-        }
-    }
-}
-
-## Won't display anything, unless less than 5GB
-function checkdiskspace {
-    if (-not ($IsLanguagePermissive -eq $true )) { return }
     (Get-Volume -DriveLetter C).SizeRemaining | ForEach-Object {
         $sizeInGB = [math]::Round($_ / 1GB, 2)
         if ($sizeInGB -lt 5) {
-            Write-Host "Warning: Free space on Drive C: less than 5GB. Space remaining is $sizeInGB GB!" -ForegroundColor Red
+            Write-Host "Warning: Free space on Drive C: is less than 5GB (${sizeInGB}GB)!" -ForegroundColor Red
+        }
+    }
+
+    $volumeD = Get-Volume -DriveLetter D -ErrorAction SilentlyContinue
+    if ($volumeD) {
+        $sizeInGB = [math]::Round($volumeD.SizeRemaining / 1GB, 2)
+        Write-Host "Free space on Drive D: is ${sizeInGB}GB"
+
+        if ($volumeD.FileSystemLabel -eq 'Temporary Storage') {
+            Write-Host "Warning: Drive D: is labeled 'Temporary Storage' — data here is not persistent (lost on deallocation/redeploy)." -ForegroundColor Red
         }
     }
 }
-checkdiskspace
+free
 
 function Restore-Terminal {
     <#
