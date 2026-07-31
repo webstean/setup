@@ -477,11 +477,13 @@ function Compare-Directories {
     # are neither counted nor entered.
     $files1 = Get-ChildItem -LiteralPath $Path1 -File
     $files2 = Get-ChildItem -LiteralPath $Path2 -File
-    Write-StepSummary -type 'info' "Comparing directory contents..."
     Write-StepSummary -type 'info' "Started: $($startTime.ToString('yyyy-MM-dd HH:mm:ss'))"
-    Write-StepSummary -type 'info' "Path: '${Path1}'"
+    Write-StepSummary -type 'info' "Comparing directory contents..."
+    $Path1Count = (Get-ChildItem -LiteralPath "${Path1}" -File).Count
+    Write-StepSummary -type 'info' "Path: '${Path1}' Count: '${Path1Count}' files"
     Write-StepSummary -type 'info' "to"
-    Write-StepSummary -type 'info' "Path: '${Path2}'"
+    $Path2Count = (Get-ChildItem -LiteralPath "${Path2}" -File).Count
+    Write-StepSummary -type 'info' "Path: '${Path1}' Count: '${Path1Count}' files"
     Write-StepSummary -type 'info' "======================================================="
     Write-StepSummary -type 'info' "Files: $files2.Name"
     Write-StepSummary -type 'info' "======================================================="
