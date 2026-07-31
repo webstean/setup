@@ -640,5 +640,7 @@ foreach ($module in $modulesToImport) {
     if (Get-Module -ListAvailable -Name $module) {
         Write-StepSummary -Type 'start' -ShowTimeStamp $false "Importing PowerShell module ${module}"
         Import-Module -Name $module *> $null
+    } else {
+        Write-StepSummary -Type 'warning' -ShowTimeStamp $false "PowerShell module ${module} missing!"
     }
 }
