@@ -419,6 +419,11 @@ function Compare-Directories {
         entirely (neither counted nor descended into). Useful as a quick
         top-level integrity check after a copy/migration step, without the
         cost of a full recursive hash of an entire tree.
+
+        Also computes a single aggregate hash per directory (hash of all
+        individual file hashes, sorted by filename so ordering is
+        deterministic) — a quick single-value fingerprint you can diff
+        across runs or store as a manifest checksum.
     .PARAMETER Path1
         First directory path.
     .PARAMETER Path2
@@ -442,6 +447,32 @@ function Compare-Directories {
     if (-not (Test-Path -LiteralPath $Path2 -PathType Container)) {
         throw "Directory not found: $Path2"
     }
+    if (-not (Get-Variable -Name DefaultHash -Scope Script -ErrorAction SilentlyContinue) -and
+        -not (Get-Variable -Name DefaultHash -Scope Global -ErrorAction SilentlyContinue)) {
+        [string]$DefaultHash = 'MD5'
+        [string]$Algorithm = 'MD5'
+    }
+
+    function Get-AggregateHash {
+        param(
+            [hashtable]$Hashes,
+            [string]$Algorithm
+        )
+        # Sort by filename so the aggregate is deterministic regardless of
+        # directory listing / hashtable enumeration order.
+        $combined = ($Hashes.GetEnumerator() | Sort-Object Name | ForEach-Object {
+            "$($_.Name)=$($_.Value)"
+        }) -join "`n"
+
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($combined)
+        $stream = [System.IO.MemoryStream]::new($bytes)
+        try {
+            (Get-FileHash -InputStream $stream -Algorithm $Algorithm).Hash
+        } finally {
+            $stream.Dispose()
+        }
+    }
+
     # -File with no -Recurse: only files directly in the folder, subfolders
     # are neither counted nor entered.
     $files1 = Get-ChildItem -LiteralPath $Path1 -File
@@ -467,6 +498,10 @@ function Compare-Directories {
     foreach ($f in $files2) {
         $hashes2[$f.Name] = (Get-FileHash -LiteralPath $f.FullName -Algorithm $DefaultHash).Hash
     }
+
+    $aggregateHash1 = Get-AggregateHash -Hashes $hashes1 -Algorithm $DefaultHash
+    $aggregateHash2 = Get-AggregateHash -Hashes $hashes2 -Algorithm $DefaultHash
+
     $onlyInPath1 = @($hashes1.Keys | Where-Object { -not $hashes2.ContainsKey($_) })
     $onlyInPath2 = @($hashes2.Keys | Where-Object { -not $hashes1.ContainsKey($_) })
     $mismatchedFiles = @(
@@ -489,10 +524,12 @@ function Compare-Directories {
     $duration = $endTime - $startTime
 
     if ($IsIdentical) {
-        Write-StepSummary -type 'complete' "Directory contents are Identical"
+        Write-StepSummary -type 'success' "Directory contents are Identical"
     } else {
         Write-StepSummary -type 'warn' "Directory contents are NOT Identical!"
     }
+    Write-StepSummary -type 'info' "Aggregate Hash 1: $aggregateHash1"
+    Write-StepSummary -type 'info' "Aggregate Hash 2: $aggregateHash2"
     Write-StepSummary -type 'info' "Finished: $($endTime.ToString('yyyy-MM-dd HH:mm:ss')) (Duration: $($duration.ToString('hh\:mm\:ss')))"
 
     [PSCustomObject]@{
@@ -502,6 +539,9 @@ function Compare-Directories {
         FileCount1       = $files1.Count
         FileCount2       = $files2.Count
         CountMatch       = $countMatch
+        AggregateHash1   = $aggregateHash1
+        AggregateHash2   = $aggregateHash2
+        AggregateMatch   = $aggregateHash1 -eq $aggregateHash2
         #OnlyInPath1      = $onlyInPath1
         #OnlyInPath2      = $onlyInPath2
         #MismatchedFiles  = $mismatchedFiles
@@ -523,6 +563,12 @@ function Compare-SharePointToDirectory {
         [Parameter(Mandatory)] [string]$FileSharePath,
         [string]$Algorithm = $DefaultHash
     )
+
+    if (-not (Get-Variable -Name DefaultHash -Scope Script -ErrorAction SilentlyContinue) -and
+        -not (Get-Variable -Name DefaultHash -Scope Global -ErrorAction SilentlyContinue)) {
+        [string]$DefaultHash = 'MD5'
+        [string]$Algorithm = 'MD5'
+    }
     Connect-PnPOnline -Url $SiteUrl -Interactive
     Write-StepSummary -type 'info' "Comparing directory contents to SharePoint contents..."
     Write-StepSummary -type 'info' "Path      : '${FileSharePath}'"
