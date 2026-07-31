@@ -413,20 +413,16 @@ function Compare-Directories {
     .SYNOPSIS
         Compares two directories, one level deep only, verifying both file
         count and MD5 checksum match for every file.
-
     .DESCRIPTION
         Does NOT recurse into subdirectories — only files directly inside
         Path1/Path2 are compared. Subdirectories themselves are ignored
         entirely (neither counted nor descended into). Useful as a quick
         top-level integrity check after a copy/migration step, without the
         cost of a full recursive hash of an entire tree.
-
     .PARAMETER Path1
         First directory path.
-
     .PARAMETER Path2
         Second directory path, typically the migration/copy destination.
-
     .EXAMPLE
         Compare-Directories -Path1 'D:\Source\Finance' -Path2 '\\nas\share\Finance'
         Compare-Directories -Path1 'D:\Source' -Path2 'D:\Dest'
@@ -435,10 +431,10 @@ function Compare-Directories {
     param(
         [Parameter(Mandatory)]
         [string]$Path1,
-
         [Parameter(Mandatory)]
         [string]$Path2
     )
+    $startTime = Get-Date
 
     if (-not (Test-Path -LiteralPath $Path1 -PathType Container)) {
         throw "Directory not found: $Path1"
@@ -446,13 +442,12 @@ function Compare-Directories {
     if (-not (Test-Path -LiteralPath $Path2 -PathType Container)) {
         throw "Directory not found: $Path2"
     }
-
     # -File with no -Recurse: only files directly in the folder, subfolders
     # are neither counted nor entered.
     $files1 = Get-ChildItem -LiteralPath $Path1 -File
     $files2 = Get-ChildItem -LiteralPath $Path2 -File
-
     Write-StepSummary -type 'info' "Comparing directory contents..."
+    Write-StepSummary -type 'info' "Started: $($startTime.ToString('yyyy-MM-dd HH:mm:ss'))"
     Write-StepSummary -type 'info' "Path: '${Path1}'"
     Write-StepSummary -type 'info' "to"
     Write-StepSummary -type 'info' "Path: '${Path2}'"
@@ -461,7 +456,6 @@ function Compare-Directories {
     Write-StepSummary -type 'info' "======================================================="
     
     $countMatch = $files1.Count -eq $files2.Count
-
     # Build name -> hash lookups so files are matched by name, not by
     # directory listing order (Get-ChildItem order isn't guaranteed identical
     # across two different filesystems/shares).
@@ -473,10 +467,8 @@ function Compare-Directories {
     foreach ($f in $files2) {
         $hashes2[$f.Name] = (Get-FileHash -LiteralPath $f.FullName -Algorithm $DefaultHash).Hash
     }
-
     $onlyInPath1 = @($hashes1.Keys | Where-Object { -not $hashes2.ContainsKey($_) })
     $onlyInPath2 = @($hashes2.Keys | Where-Object { -not $hashes1.ContainsKey($_) })
-
     $mismatchedFiles = @(
         foreach ($name in $hashes1.Keys) {
             if ($hashes2.ContainsKey($name) -and $hashes1[$name] -ne $hashes2[$name]) {
@@ -488,18 +480,21 @@ function Compare-Directories {
             }
         }
     )
-
     $isIdentical = $countMatch -and
                    $onlyInPath1.Count -eq 0 -and
                    $onlyInPath2.Count -eq 0 -and
                    $mismatchedFiles.Count -eq 0
+
+    $endTime = Get-Date
+    $duration = $endTime - $startTime
 
     if ($IsIdentical) {
         Write-StepSummary -type 'complete' "Directory contents are Identical"
     } else {
         Write-StepSummary -type 'warn' "Directory contents are NOT Identical!"
     }
-   
+    Write-StepSummary -type 'info' "Finished: $($endTime.ToString('yyyy-MM-dd HH:mm:ss')) (Duration: $($duration.ToString('hh\:mm\:ss')))"
+
     [PSCustomObject]@{
         Path1            = $Path1
         Path2            = $Path2
@@ -511,6 +506,9 @@ function Compare-Directories {
         #OnlyInPath2      = $onlyInPath2
         #MismatchedFiles  = $mismatchedFiles
         IsIdentical      = $isIdentical
+        StartTime        = $startTime
+        EndTime          = $endTime
+        Duration         = $duration
     }
 }
 
