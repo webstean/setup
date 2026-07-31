@@ -428,10 +428,8 @@ function Compare-Directories {
         Second directory path, typically the migration/copy destination.
 
     .EXAMPLE
-        Compare-DirectoryChecksum -Path1 'D:\Source\Finance' -Path2 '\\nas\share\Finance'
-
-    .EXAMPLE
-        Compare-DirectoryChecksum -Path1 'D:\Source' -Path2 'D:\Dest' | Select-Object -ExpandProperty MismatchedFiles
+        Compare-Directories -Path1 'D:\Source\Finance' -Path2 '\\nas\share\Finance'
+        Compare-Directories -Path1 'D:\Source' -Path2 'D:\Dest'
     #>
     [CmdletBinding()]
     param(
