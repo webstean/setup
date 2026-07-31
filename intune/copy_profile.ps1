@@ -408,7 +408,7 @@ function Compare-FileChecksum {
     }
 }
 
-function Compare-DirectoryChecksum {
+function Compare-Directories {
     <#
     .SYNOPSIS
         Compares two directories, one level deep only, verifying both file
@@ -454,9 +454,14 @@ function Compare-DirectoryChecksum {
     $files1 = Get-ChildItem -LiteralPath $Path1 -File
     $files2 = Get-ChildItem -LiteralPath $Path2 -File
 
-    Write-StepSummary -type 'info' "Comparing directory contents '${Path1}' and '${Path2}'..."
-    $files2.Name
-
+    Write-StepSummary -type 'info' "Comparing directory contents..."
+    Write-StepSummary -type 'info' "Path: '${Path1}'"
+    Write-StepSummary -type 'info' "to"
+    Write-StepSummary -type 'info' "Path: '${Path2}'"
+    Write-StepSummary -type 'info' "======================================================="
+    Write-StepSummary -type 'info' "Files: $files2.Name"
+    Write-StepSummary -type 'info' "======================================================="
+    
     $countMatch = $files1.Count -eq $files2.Count
 
     # Build name -> hash lookups so files are matched by name, not by
@@ -504,14 +509,18 @@ function Compare-DirectoryChecksum {
         FileCount1       = $files1.Count
         FileCount2       = $files2.Count
         CountMatch       = $countMatch
-        OnlyInPath1      = $onlyInPath1
-        OnlyInPath2      = $onlyInPath2
-        MismatchedFiles  = $mismatchedFiles
+        #OnlyInPath1      = $onlyInPath1
+        #OnlyInPath2      = $onlyInPath2
+        #MismatchedFiles  = $mismatchedFiles
         IsIdentical      = $isIdentical
     }
 }
 
-function Compare-SharePointToFileShare {
+function Compare-SharePointToDirectory {
+    <#
+    .SYNOPSIS
+        Compares files in a SharePoint document library against their counterparts on a file share using hash comparison.
+    #>
     param(
         [Parameter(Mandatory)] [string]$SiteUrl,
         [Parameter(Mandatory)] [string]$LibraryName,
@@ -519,25 +528,25 @@ function Compare-SharePointToFileShare {
         [string]$Algorithm = $DefaultHash
     )
     Connect-PnPOnline -Url $SiteUrl -Interactive
+    Write-StepSummary -type 'info' "Comparing directory contents to SharePoint contents..."
+    Write-StepSummary -type 'info' "Path      : '${FileSharePath}'"
+    Write-StepSummary -type 'info' "to"
+    Write-StepSummary -type 'info' "SharePoint: '${SiteUrl}/${LibraryName}'"
+    Write-StepSummary -type 'info' "======================================================="
     $spFiles = Get-PnPListItem -List $LibraryName -PageSize 500
-
     foreach ($item in $spFiles) {
         $fileName = $item.FieldValues.FileLeafRef
         $serverRelativeUrl = $item.FieldValues.FileRef
         $localTemp = Join-Path $env:TEMP $fileName
-
         Get-PnPFile -Url $serverRelativeUrl -Path $env:TEMP -FileName $fileName -AsFile -Force
-
         $spHash = (Get-FileHash -Path $localTemp -Algorithm $Algorithm).Hash
         $shareHash = (Get-FileHash -Path (Join-Path $FileSharePath $fileName) -Algorithm $Algorithm).Hash
-
         [PSCustomObject]@{
             FileName    = $fileName
             SPHash      = $spHash
             ShareHash   = $shareHash
             IsIdentical = $spHash -eq $shareHash
         }
-
         Remove-Item $localTemp -Force
     }
 }
@@ -622,7 +631,7 @@ function Import-EnvFile {
 }
 
 Write-StepSummary -Type 'Info' -ShowTimeStamp $false "Ready for copies from Azure Files to both SharePoint/NAS"
-Write-StepSummary -Type 'Info' -ShowTimeStamp $false "Functions defined: Invoke-RobocopyMirrorforNAS, Compare-DirectoryChecksum, Compare-SharePointToFileShare, Compare-FileChecksum"
+Write-StepSummary -Type 'Info' -ShowTimeStamp $false "Functions defined: Invoke-RobocopyMirrorforNAS, Compare-SharePointToDirectory, Compare-SharePointToDirectory"
 Get-Robocopyinfo
 
 ## $modulesToImport = @('PnP.PowerShell', 'ExchangeOnlineManagement', 'Microsoft.Graph.Authentication', 'Microsoft.Graph.User', 'Microsoft.Graph.Group')
