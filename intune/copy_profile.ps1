@@ -380,25 +380,6 @@ function Invoke-RobocopyMirrorforNAS {
 }
 
 function Compare-FileChecksum {
-    <#
-    .SYNOPSIS
-        Compares two files by MD5 checksum to verify they are identical.
-
-    .DESCRIPTION
-        Computes an MD5 hash for each file independently and compares them.
-        Useful for verifying copy integrity across a migration/transfer path
-        (e.g. NFS -> DataBox, robocopy destination verification) without
-        relying on file size/timestamp alone.
-
-    .PARAMETER Path1
-        Path to the first file.
-
-    .PARAMETER Path2
-        Path to the second file, typically at a different location.
-
-    .EXAMPLE
-        Compare-FileChecksum -Path1 'D:\Source\file.zip' -Path2 '\\nas\share\file.zip'
-    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -415,14 +396,14 @@ function Compare-FileChecksum {
         throw "File not found: $Path2"
     }
 
-    $hash1 = Get-FileHash -LiteralPath $Path1 -Algorithm MD5
-    $hash2 = Get-FileHash -LiteralPath $Path2 -Algorithm MD5
+    $hash1 = Get-FileHash -LiteralPath $Path1 -Algorithm $DefaultHash
+    $hash2 = Get-FileHash -LiteralPath $Path2 -Algorithm $DefaultHash
 
     [PSCustomObject]@{
-        Path1      = $Path1
-        Path2      = $Path2
-        Hash1      = $hash1.Hash
-        Hash2      = $hash2.Hash
+        Source      = $Path1
+        Destination = $Path2
+        Hash1       = $hash1.Hash
+        Hash2       = $hash2.Hash
         AreIdentical = $hash1.Hash -eq $hash2.Hash
     }
 }
@@ -473,6 +454,9 @@ function Compare-DirectoryChecksum {
     $files1 = Get-ChildItem -LiteralPath $Path1 -File
     $files2 = Get-ChildItem -LiteralPath $Path2 -File
 
+    Write-StepSummary -type 'info' "Comparing directory contents '${Path1}' and '${Path2}'..."
+    $files2.Name
+
     $countMatch = $files1.Count -eq $files2.Count
 
     # Build name -> hash lookups so files are matched by name, not by
@@ -507,9 +491,16 @@ function Compare-DirectoryChecksum {
                    $onlyInPath2.Count -eq 0 -and
                    $mismatchedFiles.Count -eq 0
 
+    if ($IsIdentical) {
+        Write-StepSummary -type 'complete' "Directory contents are Identical"
+    } else {
+        Write-StepSummary -type 'warn' "Directory contents are NOT Identical!"
+    }
+   
     [PSCustomObject]@{
         Path1            = $Path1
         Path2            = $Path2
+        HashAlgorith     = $DefaultHash
         FileCount1       = $files1.Count
         FileCount2       = $files2.Count
         CountMatch       = $countMatch
