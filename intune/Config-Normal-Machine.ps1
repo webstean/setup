@@ -767,6 +767,7 @@ function Set-EdgeNoFirstRun {
         'SeamlessWebToBrowserSignInEnabled'    = 0
         'ConfigureOnPremisesAccountAutoSignIn' = 1
         'ForceSync'                            = 1
+        'PasswordManagerPasskeysEnabled'       = 1
     }
 
     foreach ($policy in $policies.GetEnumerator()) {
@@ -781,8 +782,7 @@ function Set-EdgeNoFirstRun {
         Write-Warning "Edge SignIn CTA: $($result.Error)"
     }
     Write-Host 'Microsoft Edge configured to skip first run, auto sign-in, and force sync (subject to device/account setup).'
-    Get-Item HKLM:SOFTWARE\Policies\Microsoft\Edge\HideFirstRunExperience
-    Get-Item HKLM:SOFTWARE\Policies\Microsoft\Edge\BrowserAddProfileEnabled
+    Get-ItemProperty HKLM:SOFTWARE\Policies\Microsoft\Edge
 }
 Set-EdgeNoFirstRun
 
