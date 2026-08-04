@@ -756,36 +756,33 @@ function Set-EdgeNoFirstRun {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    $edgePolicyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge'
-
-    if (-not (Test-Path -Path $edgePolicyPath)) {
-        New-Item -Path $edgePolicyPath -Force | Out-Null
-    }
-
     $policies = @{
         'HideFirstRunExperience'               = 1
         'ImportFavorites'                      = 0
         'AutoImportAtFirstRun'                 = 0
-        'BrowserAddProfileEnabled'             = 0
+        'BrowserAddProfileEnabled'             = 1
         'DefaultBrowserSettingEnabled'         = 0
-        'BrowserSignin'                        = 2
-        'WebToBrowserSignInEnabled'            = 1
-        'SeamlessWebToBrowserSignInEnabled'    = 1
+        'BrowserSignin'                        = 0  
+        'WebToBrowserSignInEnabled'            = 0
+        'SeamlessWebToBrowserSignInEnabled'    = 0
         'ConfigureOnPremisesAccountAutoSignIn' = 1
         'ForceSync'                            = 1
     }
 
     foreach ($policy in $policies.GetEnumerator()) {
-        New-ItemProperty -Path $edgePolicyPath -Name $policy.Key -Value $policy.Value -PropertyType DWord -Force | Out-Null
+        $result = Set-RegistryValue -Hive HKLM -SubKey 'SOFTWARE\Policies\Microsoft\Edge' -Name $policy.Key -Value $policy.Value -Type DWord
+        if ($result.Status -eq 'Failed') {
+            Write-Warning "Edge policy '$($policy.Key)': $($result.Error)"
+        }
     }
 
-    $userCtaPath = 'HKCU:\Software\Microsoft\Edge\SignIn'
-    if (-not (Test-Path -Path $userCtaPath)) {
-        New-Item -Path $userCtaPath -Force | Out-Null
+    $result = Set-RegistryValue -Hive HKCU -SubKey 'Software\Microsoft\Edge\SignIn' -Name 'SignInCtaShownCount' -Value 1 -Type DWord
+    if ($result.Status -eq 'Failed') {
+        Write-Warning "Edge SignIn CTA: $($result.Error)"
     }
-
-    New-ItemProperty -Path $userCtaPath -Name 'SignInCtaShownCount' -Value 1 -PropertyType DWord -Force | Out-Null
     Write-Host 'Microsoft Edge configured to skip first run, auto sign-in, and force sync (subject to device/account setup).'
+    Get-Item HKLM:SOFTWARE\Policies\Microsoft\Edge\HideFirstRunExperience
+    Get-Item HKLM:SOFTWARE\Policies\Microsoft\Edge\BrowserAddProfileEnabled
 }
 Set-EdgeNoFirstRun
 

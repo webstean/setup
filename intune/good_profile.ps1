@@ -342,6 +342,240 @@ function Invoke-WindowsPowerShell {
     }
 }
 
+function Set-RegistryValue {
+    <#
+        .SYNOPSIS
+            Idempotently create or update a registry value.
+
+        .DESCRIPTION
+            Robust replacement for the original Set-RegistryValue.
+            - Accepts hive aliases (HKLM, HKCU, HKCR, HKU, HKCC, plus the long
+              HKEY_* names and trailing ':' forms).
+            - Accepts type aliases in any case (String, DWORD, REG_SZ, ...).
+            - Coerces $Value to the requested registry type.
+            - Creates parent keys as needed, including deep paths.
+            - Detects existing values: returns 'Unchanged' when value+type
+              already match, 'Updated' when overwriting, 'Created' for new
+              values, 'Failed' on error.
+            - Re-creates the value when the existing kind doesn't match the
+              requested kind (PowerShell can't change kind in place).
+            - Honours -WhatIf / -Confirm.
+            - Never throws (returns a status object); callers can opt into
+              throwing via -ErrorAction Stop on Write-Error if needed.
+
+        .EXAMPLE
+            Set-RegistryValue -Hive HKLM -SubKey 'SOFTWARE\Contoso' -Name 'Url' -Value 'https://x' -Type String
+
+        .EXAMPLE
+            Set-RegistryValue -Hive HKCU -SubKey 'Software\Foo' -Name 'Bar' -Value 1 -Type DWORD -WhatIf
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Low')]
+    [OutputType([pscustomobject])]
+    param(
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Hive,
+
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('Key')]
+        [string]$SubKey,
+
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('PropertyName')]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
+        [AllowEmptyCollection()]
+        [object]$Value,
+
+        [Parameter(ValueFromPipelineByPropertyName = $true)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('PropertyType', 'Kind')]
+        [string]$Type = 'String'
+    )
+
+    begin {
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+
+        $hiveMap = @{
+            'HKLM' = 'HKLM'; 'HKEY_LOCAL_MACHINE' = 'HKLM'
+            'HKCU' = 'HKCU'; 'HKEY_CURRENT_USER' = 'HKCU'
+            'HKCR' = 'HKCR'; 'HKEY_CLASSES_ROOT' = 'HKCR'
+            'HKU' = 'HKU'; 'HKEY_USERS' = 'HKU'
+            'HKCC' = 'HKCC'; 'HKEY_CURRENT_CONFIG' = 'HKCC'
+        }
+
+        $typeMap = @{
+            'STRING' = 'String'; 'REG_SZ' = 'String'
+            'DWORD' = 'DWord'; 'REG_DWORD' = 'DWord'
+            'QWORD' = 'QWord'; 'REG_QWORD' = 'QWord'
+            'BINARY' = 'Binary'; 'REG_BINARY' = 'Binary'
+            'MULTISTRING' = 'MultiString'; 'REG_MULTI_SZ' = 'MultiString'
+            'EXPANDSTRING' = 'ExpandString'; 'REG_EXPAND_SZ' = 'ExpandString'
+        }
+    }
+
+    process {
+        # ---- Normalize hive ----
+        $hiveKey = $Hive.Trim().TrimEnd(':').ToUpperInvariant()
+        if (-not $hiveMap.ContainsKey($hiveKey)) {
+            return [pscustomobject]@{
+                Path   = "$Hive\$SubKey"
+                Name   = $Name
+                Type   = $Type
+                Status = 'Failed'
+                Error  = "Unsupported hive '$Hive'. Use HKLM, HKCU, HKCR, HKU or HKCC."
+            }
+        }
+        $resolvedHive = $hiveMap[$hiveKey]
+
+        # ---- Normalize subkey (strip drive prefixes, leading slashes, swap /) ----
+        $cleanSub = $SubKey.Trim().Replace('/', '\')
+        $cleanSub = $cleanSub -replace '^(HKLM|HKCU|HKCR|HKU|HKCC):\\?', ''
+        $cleanSub = $cleanSub -replace '^(HKEY_LOCAL_MACHINE|HKEY_CURRENT_USER|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\', ''
+        $cleanSub = $cleanSub.TrimStart('\')
+
+        # ---- Normalize type ----
+        $typeKey = $Type.Trim().ToUpperInvariant()
+        if ($typeMap.ContainsKey($typeKey)) {
+            $resolvedType = $typeMap[$typeKey]
+        } else {
+            return [pscustomobject]@{
+                Path   = "${resolvedHive}:\$cleanSub"
+                Name   = $Name
+                Type   = $Type
+                Status = 'Failed'
+                Error  = "Unsupported registry type '$Type'."
+            }
+        }
+
+        $path = "${resolvedHive}:\$cleanSub"
+
+        # ---- Coerce $Value into the requested registry kind ----
+        try {
+            $coerced =
+            switch ($resolvedType) {
+                'DWord' { [int]$Value }
+                'QWord' { [long]$Value }
+                'Binary' {
+                    if ($null -eq $Value) { [byte[]]@() }
+                    elseif ($Value -is [byte[]]) { , $Value }
+                    elseif ($Value -is [string]) { [System.Text.Encoding]::UTF8.GetBytes([string]$Value) }
+                    elseif ($Value -is [System.Collections.IEnumerable]) {
+                        , ([byte[]]@($Value | ForEach-Object { [byte]$_ }))
+                    } else {
+                        throw 'Binary values must be a byte[] (or convertible).'
+                    }
+                }
+                'MultiString' {
+                    if ($null -eq $Value) { , [string[]]@() }
+                    elseif ($Value -is [string[]]) { , $Value }
+                    elseif ($Value -is [string]) { , @([string]$Value) }
+                    elseif ($Value -is [System.Collections.IEnumerable]) {
+                        , ([string[]]@($Value | ForEach-Object { [string]$_ }))
+                    } else {
+                        , @([string]$Value)
+                    }
+                }
+                default { [string]$Value }   # String / ExpandString
+            }
+        } catch {
+            return [pscustomobject]@{
+                Path   = $path
+                Name   = $Name
+                Type   = $resolvedType
+                Status = 'Failed'
+                Error  = "Value coercion failed: $($_.Exception.Message)"
+            }
+        }
+
+        try {
+            # ---- Ensure parent key exists ----
+            if (-not (Test-Path -LiteralPath $path)) {
+                if ($PSCmdlet.ShouldProcess($path, 'Create registry key')) {
+                    New-Item -Path $path -Force -ErrorAction Stop | Out-Null
+                }
+            }
+
+            # ---- Discover existing value (if any) ----
+            $existing = $null
+            $existingKind = $null
+            try {
+                $regKey = Get-Item -LiteralPath $path -ErrorAction Stop
+                $existingKind = $regKey.GetValueKind($Name)        # throws if missing
+                $existing = $regKey.GetValue($Name, $null, 'DoNotExpandEnvironmentNames')
+            } catch {
+                $existingKind = $null
+                $existing = $null
+            }
+
+            $status = 'Created'
+
+            if ($null -ne $existingKind) {
+                $status = 'Updated'
+                $existingKindString = [string]$existingKind
+
+                if ($existingKindString -ne $resolvedType) {
+                    # Different kind — must remove and recreate
+                    Write-Verbose "Replacing $existingKindString value '$Name' at '$path' with $resolvedType."
+                    if ($PSCmdlet.ShouldProcess("$path!$Name", "Remove existing $existingKindString value")) {
+                        Remove-ItemProperty -LiteralPath $path -Name $Name -Force -ErrorAction Stop
+                    }
+                } else {
+                    # Same kind — short-circuit if equal (idempotency)
+                    $isEqual = $false
+                    try {
+                        $isEqual =
+                        switch ($resolvedType) {
+                            'Binary' { -not (Compare-Object $existing $coerced -SyncWindow 0) }
+                            'MultiString' { -not (Compare-Object $existing $coerced -SyncWindow 0) }
+                            default { $existing -eq $coerced }
+                        }
+                    } catch {
+                        $isEqual = $false
+                    }
+
+                    if ($isEqual) {
+                        return [pscustomobject]@{
+                            Path   = $path
+                            Name   = $Name
+                            Value  = $coerced
+                            Type   = $resolvedType
+                            Status = 'Unchanged'
+                        }
+                    }
+                }
+            }
+
+            if ($PSCmdlet.ShouldProcess("$path!$Name", "Set $resolvedType value")) {
+                New-ItemProperty -LiteralPath $path -Name $Name -Value $coerced -PropertyType $resolvedType -Force -ErrorAction Stop | Out-Null
+            }
+
+            return [pscustomobject]@{
+                Path   = $path
+                Name   = $Name
+                Value  = $coerced
+                Type   = $resolvedType
+                Status = $status
+            }
+        } catch {
+            return [pscustomobject]@{
+                Path   = $path
+                Name   = $Name
+                Type   = $resolvedType
+                Status = 'Failed'
+                Error  = $_.Exception.Message
+            }
+        }
+    }
+}
+#Set-RegistryValue -Hive HKLM -SubKey 'SOFTWARE\Contoso\MyApp' -Name 'ServerUrl' -Value 'https://example.local' -Type 'String'
+
+
 ## FullLanguage: No restrictions (default in most PowerShell sessions)
 ## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
 ## RestrictedLanguage: Very limited (e.g., only basic expressions)
