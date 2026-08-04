@@ -17,66 +17,181 @@ sudo dpkg --configure -a
 sudo apt-get update -y
 sudo apt-get upgrade -y
 sudo apt-get install -y podman-remote
+sudo apt-get install -y systemd systemd-sysv
 
-if [ ! -f /etc/apt/keyrings/microsoft.gpg ] ; then
-    ## make sure prereqs are installs
-    sudo apt-get install -y --no-install-recommends apt-transport-https ca-certificates curl software-properties-common gpg
-    
-    ## Create the keyring directory if not present
-    sudo install -m 0755 -d /etc/apt/keyrings
+# Adds Microsoft's official Linux package repository (packages.microsoft.com)
+# for the current Ubuntu release, auto-detecting version from /etc/os-release.
+#
+# Usage:
+#   source add-microsoft-repo.sh
+#   sudo add_microsoft_repo
+#
+# Optional: force a specific version (e.g. to work around a brand-new Ubuntu
+# release not yet having Microsoft packages published — see the resolute/26.04
+# gap this was written around):
+#   sudo add_microsoft_repo --version-override 24.04
+#
+add_microsoft_repo() {
+    local version_override=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --version-override)
+                version_override="$2"
+                shift 2
+                ;;
+            *)
+                echo "add_microsoft_repo: unknown argument '$1'" >&2
+                return 1
+                ;;
+        esac
+    done
 
-    ## Download and convert Microsoft’s GPG key
-    sudo install -o root -g root -m 0644 microsoft.gpg /usr/share/keyrings/microsoft.gpg
-    rm microsoft.gpg
+    # NOTE: uses 'return', not 'exit' — this function is meant to be sourced
+    # into an interactive shell or another script. 'exit' here would kill the
+    # entire calling shell, not just this function.
+    if [[ $EUID -ne 0 ]]; then
+        echo "add_microsoft_repo: must be run as root (sudo)." >&2
+        return 1
+    fi
 
-    if gpg --show-keys /usr/share/keyrings/microsoft.gpg > /dev/null 2>&1; then
-        if ! command -v lsb_release > /dev/null 2>&1; then
-            echo "lsb_release not found; aborting repo setup" >&2
+    if [[ ! -f /etc/os-release ]]; then
+        echo "add_microsoft_repo: /etc/os-release not found — cannot detect distribution/version." >&2
+        return 1
+    fi
+
+    # Deliberately not 'source /etc/os-release' directly into the function's
+    # scope beyond what's needed — read only the fields we use, into local
+    # variables, so this doesn't leak/overwrite unrelated variables in
+    # whatever shell this function is sourced into.
+    local os_id os_version_id os_pretty_name
+    os_id="$(. /etc/os-release && echo "$ID")"
+    os_version_id="$(. /etc/os-release && echo "$VERSION_ID")"
+    os_pretty_name="$(. /etc/os-release && echo "$PRETTY_NAME")"
+
+    if [[ "$os_id" != "ubuntu" ]]; then
+        echo "add_microsoft_repo: Warning — detected distro ID '${os_id:-unknown}', not 'ubuntu'." >&2
+        echo "Microsoft's repo paths are per-distro (e.g. /config/debian/... vs /config/ubuntu/...)." >&2
+        echo "This function assumes Ubuntu-style paths and may not work correctly on derivatives" >&2
+        echo "like Linux Mint, Pop!_OS, etc." >&2
+    fi
+
+    local target_version="${version_override:-$os_version_id}"
+    if [[ -z "$target_version" ]]; then
+        echo "add_microsoft_repo: VERSION_ID not found in /etc/os-release and no --version-override given." >&2
+        return 1
+    fi
+
+    local config_url="https://packages.microsoft.com/config/${os_id}/${target_version}/packages-microsoft-prod.deb"
+    local tmp_deb
+    tmp_deb="$(mktemp --suffix=.deb)" || {
+        echo "add_microsoft_repo: mktemp failed." >&2
+        return 1
+    }
+
+    echo "Detected: ${os_pretty_name:-$os_id $os_version_id}"
+    if [[ -n "$version_override" ]]; then
+        echo "Using version override: ${version_override} (actual OS reports ${os_version_id})"
+    fi
+    echo "Config package URL: ${config_url}"
+
+    # Local cleanup trap, scoped to this function only — RETURN trap fires
+    # when the function returns by any path, without affecting any trap
+    # already set in the calling shell.
+    trap 'rm -f "$tmp_deb"' RETURN
+
+    local http_status
+    http_status="$(curl -s -o /dev/null -w '%{http_code}' "$config_url")"
+    if [[ "$http_status" != "200" ]]; then
+        echo "add_microsoft_repo: ${config_url} returned HTTP ${http_status}." >&2
+        echo "Microsoft may not yet support ${os_id} ${target_version} in its package repo." >&2
+        echo "Check https://packages.microsoft.com/config/${os_id}/ for supported versions," >&2
+        echo "or retry with --version-override pointing at a supported LTS release." >&2
+        return 1
+    fi
+
+    echo "Downloading Microsoft signing key + repo config..."
+    if ! curl -sSL -o "$tmp_deb" "$config_url"; then
+        echo "add_microsoft_repo: download failed." >&2
+        return 1
+    fi
+
+    echo "Installing..."
+    if ! dpkg -i "$tmp_deb"; then
+        echo "add_microsoft_repo: dpkg -i failed — retrying after purging any partial prior install..." >&2
+        dpkg --purge packages-microsoft-prod 2>/dev/null || true
+        if ! dpkg -i "$tmp_deb"; then
+            echo "add_microsoft_repo: dpkg -i failed again after purge — giving up." >&2
             return 1
         fi
-        UBUNTU_RELEASE=$(lsb_release -rs)
-        UBUNTU_CODENAME=$(lsb_release -cs)
-        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/${UBUNTU_RELEASE}/prod ${UBUNTU_CODENAME} main" | sudo tee "/etc/apt/sources.list.d/microsoft-ubuntu-${UBUNTU_CODENAME}-prod.list" > /dev/null
-        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/edge stable main" | sudo tee /etc/apt/sources.list.d/microsoft-edge-stable.list > /dev/null
-        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/ms-teams stable main" | sudo tee /etc/apt/sources.list.d/microsoft-teams-stable.list > /dev/null
-        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/microsoft-vscode-stable.list > /dev/null
-        sudo apt update -y
     fi
-    
-    ## Install WSL Utilities
-    ## https://wslu.wedotstud.io/wslu/
-    sudo apt-get install -y wslu
-    #wslsys
 
-    ## Install Microsoft fonts
-    echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ttf-mscorefonts-installer
-    
-    ## Install Azure Function Toolkit
-    #sudo apt-get install -y azure-functions-core-tools
-
-    ## Install Microsoft SQL Server Command-Line Tools
-    export ACCEPT_EULA=Y && sudo apt-get install -y mssql-tools18
-
-    ## Install Powershell
-    sudo apt-get install -y powershell
-    if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
-    if (which -s pwsh) ; then 
-        sudo sh -c 'echo if \(which -s pwsh\) \; then            >  /etc/profile.d/microsoft-powershell.sh'
-        sudo sh -c 'echo    echo \"PowerShell \(pwsh\) found!\"  >> /etc/profile.d/microsoft-powershell.sh'
-        sudo sh -c 'echo fi                                      >> /etc/profile.d/microsoft-powershell.sh'
+    echo "Refreshing package lists..."
+    if ! apt-get update; then
+        echo "add_microsoft_repo: apt-get update failed after install — repo may be misconfigured." >&2
+        return 1
     fi
+
+    echo "Done. Microsoft repository added for ${os_pretty_name:-$os_id $os_version_id}."
+    return 0
+}
+add_microsoft_repo
+
+sudo apt-get install -y --no-install-recommends apt-transport-https ca-certificates curl software-properties-common gpg
+
+## Install WSL Utilities
+## https://wslu.wedotstud.io/wslu/
+sudo apt-get install -y wslu
+#wslsys
+
+## Install Microsoft fonts
+echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ttf-mscorefonts-installer
     
-    ## Install Java from Microsoft - but only if java not installed already
-    #sudo apt-get install -y default-jre
-    if (! which -s java) ; then
-        sudo apt-get install -y msopenjdk-17
-        ## Adding a new alternative for "java".
-        #sudo update-alternatives --install /usr/bin/java java /media/mydisk/jdk/bin/java 1
-        ## Setting the new alternative as default for "java".
-        #sudo update-alternatives --config java
-    fi
+## Install Azure Function Toolkit
+#sudo apt-get install -y azure-functions-core-tools
+
+## Install Microsoft SQL Server Command-Line Tools
+export ACCEPT_EULA=Y && sudo apt-get install -y mssql-tools18
+
+## Install Powershell
+sudo apt-get install -y powershell
+if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
+if (which -s pwsh) ; then 
+    sudo sh -c 'echo if \(which -s pwsh\) \; then            >  /etc/profile.d/microsoft-powershell.sh'
+    sudo sh -c 'echo    echo \"PowerShell \(pwsh\) found!\"  >> /etc/profile.d/microsoft-powershell.sh'
+    sudo sh -c 'echo fi                                      >> /etc/profile.d/microsoft-powershell.sh'
 fi
+    
+## Install Java from Microsoft - but only if java not installed already
+#sudo apt-get install -y default-jre
+if (! which -s java) ; then
+    sudo apt-get install -y msopenjdk-17
+    ## Adding a new alternative for "java".
+    #sudo update-alternatives --install /usr/bin/java java /media/mydisk/jdk/bin/java 1
+    ## Setting the new alternative as default for "java".
+    #sudo update-alternatives --config java
+fi
+
+## Podman Remote - using Windows
+setup-podman-remote() {
+    podman_socket="$(find /mnt/wsl/podman-sockets -name '*.sock' | head -n 1)"
+    if [ ! -S "$podman_socket" ]; then
+      echo "Podman socket not found (Windows PODMAN not running VM?): $podman_socket" >&2
+    else
+      sudo apt install -y podman-remote
+      # Create/replace connection (idempotent-ish)
+      podman-remote system connection remove winpodman >/dev/null 2>&1 || true
+      podman-remote system connection add winpodman "unix://$podman_socket"
+      podman-remote system connection default winpodman
+      # Only do this if user isn't root, add user to uucp (permission for podman to work)
+      if [ "$(id -u)" -ne 0 ]; then
+        sudo usermod --append --groups 10 "$USER"
+      fi
+      podman-remote ps
+      podman-remote info
+      podman-remote run --rm quay.io/podman/hello
+    fi
+}
 
 ## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff and get sound working
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
@@ -86,6 +201,8 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
         ## Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
         xeyes &
     fi
+    ## Tell podman to use Windows - Podman Desktop
+    setup-podman-remote
     ## WSL Audio (via Pulse Audio) -- THIS IS NOT DONE AUTOMATIC by WSL
     ## https://github.com/mikeroyal/PipeWire-Guide
     sudo apt-get install -y pulseaudio pulseaudio-utils mpv
@@ -134,30 +251,6 @@ timedatectl --no-pager status
 
 source ~/.bashrc
 
-## Add Microsoft Repos and Applications
-## https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt
-
-## Podman Remote - using Windows
-setup-podman-remote() {
-    podman_socket="$(find /mnt/wsl/podman-sockets -name '*.sock' | head -n 1)"
-    if [ ! -S "$podman_socket" ]; then
-      echo "Podman socket not found (Windows PODMAN not running VM?): $podman_socket" >&2
-    else
-      sudo apt install -y podman-remote
-      # Create/replace connection (idempotent-ish)
-      podman-remote system connection remove winpodman >/dev/null 2>&1 || true
-      podman-remote system connection add winpodman "unix://$podman_socket"
-      podman-remote system connection default winpodman
-      # Only do this if user isn't root, add user to uucp (permission for podman to work)
-      if [ "$(id -u)" -ne 0 ]; then
-        sudo usermod --append --groups 10 "$USER"
-      fi
-      podman-remote ps
-      podman-remote info
-      podman-remote run --rm quay.io/podman/hello
-    fi
-}
-setup-podman-remote
 
 ## install and config sysstat
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" sysstat
@@ -169,8 +262,8 @@ sudo systemctl --no-pager status sysstat
 # sar -u
 
 ## sync the time automatically (NO LONGER required - WSL can keep time finally)
-sudo systemctl --no-pager enable systemd-timesyncd.service
-sudo systemctl --no-pager status systemd-timesyncd.service
+#sudo systemctl --no-pager enable systemd-timesyncd.service
+#sudo systemctl --no-pager status systemd-timesyncd.service
 
 ## install WASM
 curl https://get.wasmer.io -sSfL | sh
@@ -605,3 +698,7 @@ setup-iotedge() {
     fi
 }
 #setup-iotedge
+exit 0
+
+
+

@@ -14,4 +14,6 @@ sudo sh -c "echo export POWERSHELL_TELEMETRY_OPTOUT=1            >> /etc/profile
 ##sudo locale-gen "C.UTF-8"
 ##sudo update-locale LANG=C.UTF-8 LANGUAGE=C.UTF-8 LC_MESSAGES=C.UTF-8 LC_COLLATE= LC_CTYPE= LC_ALL=C
 
+sudo apt-get install -y systemd systemd-sysv
+
 # the system will now reboot

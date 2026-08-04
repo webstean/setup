@@ -6,7 +6,7 @@
 #    --query value -o tsv
     
 #Set-ExecutionPolicy Unrestricted -Scope Process
-#Set-ExecutionPolicy Unrestricted -Scope CurrentUser
+#Set-ExecutionPolicy Unrestricted -Scogpe CurrentUser
 #Set-ExecutionPolicy -ExecutionPolicy Unrestricted
 
 ## Ignore	        Completely discard output
@@ -103,27 +103,8 @@ function Update-ProfileForce {
 #Update-ProfileForce
 
 function Test-NFS {
-       [CmdletBinding()]
-       param()
-       $feature = Get-WindowsOptionalFeature -Online -FeatureName ServicesForNFS-ClientOnly -ErrorAction SilentlyContinue
-       $service = Get-Service -Name NfsClnt -ErrorAction SilentlyContinue
-
-       $installed     = ($feature.State -eq 'Enabled')
-       $serviceExists = ($null -ne $service)
-
-       [PSCustomObject]@{
-           Installed     = $installed
-           FeatureState  = $feature.State
-           ServiceExists = $serviceExists
-           ServiceStatus = if ($service) { $service.Status } else { $null }
-           Available     = ($installed -and $serviceExists)
-       }
-}
-   
-function Install-WindowsNfsClient {
     [CmdletBinding()]
-    param()install-windowsn
-
+    param()
     # Ensure running as Administrator
     $principal = [Security.Principal.WindowsPrincipal]::new(
         [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -132,55 +113,179 @@ function Install-WindowsNfsClient {
         throw 'Administrator privileges are required to install NFS.'
     }
 
+    # Get-WindowsOptionalFeature relies on a DISM COM interop layer that's
+    # part of the legacy Windows PowerShell 5.1 binary module. On PowerShell
+    # 7/Core, that COM class frequently fails to register correctly, causing
+    # a "Class not registered" COMException — a known, recurring PS7 issue
+    # (not specific to this script), inconsistent across machines/builds.
+    # Loading DISM via the Windows PowerShell compatibility layer avoids it.
+    if ($PSVersionTable.PSEdition -eq 'Core') {
+        try {
+            Import-Module DISM -UseWindowsPowerShell -ErrorAction Stop *> $null
+        } catch {
+            Write-Verbose "Could not import DISM via -UseWindowsPowerShell: $($_.Exception.Message)"
+        }
+    }
+
+    $featureState = $null
+    try {
+        $feature = Get-WindowsOptionalFeature -Online -FeatureName ServicesForNFS-ClientOnly -ErrorAction Stop
+        $featureState = $feature.State
+    } catch [System.Runtime.InteropServices.COMException] {
+        Write-Verbose "Get-WindowsOptionalFeature COM call failed ('$($_.Exception.Message)') — falling back to dism.exe directly."
+        # Fall back to parsing dism.exe's own output, bypassing the COM API
+        # path entirely — dism.exe itself doesn't hit this registration issue.
+        $dismOutput = & dism.exe /online /get-featureinfo /featurename:ServicesForNFS-ClientOnly 2>&1
+        $stateLine = $dismOutput | Where-Object { $_ -match '^\s*State\s*:\s*(.+)$' }
+        if ($stateLine -and $stateLine -match '^\s*State\s*:\s*(.+)$') {
+            $featureState = $matches[1].Trim()
+        } else {
+            Write-Warning "Could not determine NFS feature state via dism.exe fallback either. Raw output: $($dismOutput -join ' | ')"
+        }
+    }
+
+    $service = Get-Service -Name NfsClnt -ErrorAction SilentlyContinue
+    $installed     = ($featureState -eq 'Enabled')
+    $serviceExists = ($null -ne $service)
+    [PSCustomObject]@{
+        Installed     = $installed
+        FeatureState  = $featureState
+        ServiceExists = $serviceExists
+        ServiceStatus = if ($service) { $service.Status } else { $null }
+        Available     = ($installed -and $serviceExists)
+    }
+}
+
+function Install-WindowsNfsClient {
+    [CmdletBinding()]
+    param()
+    # Ensure running as Administrator
+    $principal = [Security.Principal.WindowsPrincipal]::new(
+        [Security.Principal.WindowsIdentity]::GetCurrent()
+    )
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw 'Administrator privileges are required to install NFS.'
+    }
+
+    # Falls back to Write-Host if Write-StepSummary isn't defined elsewhere in
+    # the session/profile — avoids a hard failure on every call if that
+    # helper isn't actually loaded.
+    if (-not (Get-Command Write-StepSummary -ErrorAction SilentlyContinue)) {
+        function Write-StepSummary {
+            param([string]$type, [string]$Message)
+            $color = switch ($type) {
+                'warning' { 'Yellow' }
+                'error'   { 'Red' }
+                default   { 'Cyan' }
+            }
+            Write-Host $Message -ForegroundColor $color
+        }
+    }
+
+    # Get-WindowsOptionalFeature/Enable-WindowsOptionalFeature rely on a DISM
+    # COM interop layer that frequently fails to register correctly on
+    # PowerShell 7/Core, throwing "Class not registered" — a known, recurring
+    # PS7 issue. Loading DISM via the Windows PowerShell compatibility layer
+    # avoids it in most cases.
+    if ($PSVersionTable.PSEdition -eq 'Core') {
+        try {
+            Import-Module DISM -UseWindowsPowerShell -ErrorAction Stop *> $null
+        } catch {
+            Write-Verbose "Could not import DISM via -UseWindowsPowerShell: $($_.Exception.Message)"
+        }
+    }
+
     Write-StepSummary -type 'info' 'Checking if Windows NFS Client is installed...'
     $featureName = 'ServicesForNFS-ClientOnly'
 
-    $feature = Get-WindowsOptionalFeature `
-        -Online `
-        -FeatureName $featureName `
-        -ErrorAction SilentlyContinue
+    function Get-NfsFeatureState {
+        try {
+            return (Get-WindowsOptionalFeature -Online -FeatureName $featureName -ErrorAction Stop).State
+        } catch [System.Runtime.InteropServices.COMException] {
+            Write-Verbose "Get-WindowsOptionalFeature COM call failed — falling back to dism.exe directly."
+            $dismOutput = & dism.exe /online /get-featureinfo /featurename:$featureName 2>&1
+            $stateLine = $dismOutput | Where-Object { $_ -match '^\s*State\s*:\s*(.+)$' }
+            if ($stateLine -and $stateLine -match '^\s*State\s*:\s*(.+)$') {
+                return $matches[1].Trim()
+            }
+            Write-Warning "Could not determine NFS feature state via dism.exe fallback either."
+            return $null
+        }
+    }
 
-    if ($feature.State -ne 'Enabled') {
+    $featureState = Get-NfsFeatureState
+    $restartNeeded = $false
+
+    if ($featureState -ne 'Enabled') {
         Write-StepSummary -type 'info' 'Installing Windows NFS Client...'
-
         $result = Enable-WindowsOptionalFeature `
             -Online `
             -FeatureName $featureName `
             -All `
             -NoRestart `
             -ErrorAction Stop
+        $restartNeeded = [bool]$result.RestartNeeded
+        # Re-check state after enabling rather than trusting the pre-install
+        # value — but a restart-pending install may still report the old
+        # state until the reboot actually happens.
+        $featureState = Get-NfsFeatureState
 
-        if ($result.RestartNeeded) {
+        if ($restartNeeded) {
             Write-StepSummary -type 'warning' 'A restart is required before the NFS client can be used.'
+            # The NfsClnt service is very likely not registered yet at this
+            # point — attempting to query/start it now would fail. Return
+            # early with what's actually known rather than crashing on a
+            # service that may not exist until after reboot.
+            return [PSCustomObject]@{
+                Installed       = $false
+                FeatureState    = $featureState
+                ServiceStatus   = $null
+                StartupType     = $null
+                MountCommand    = [bool](Get-Command mount.exe -ErrorAction SilentlyContinue)
+                RestartRequired = $true
+                Ready           = $false
+            }
         }
     }
 
-    $service = Get-Service -Name NfsClnt -ErrorAction Stop
+    $service = Get-Service -Name NfsClnt -ErrorAction SilentlyContinue
+    if (-not $service) {
+        Write-StepSummary -type 'warning' 'NFS feature reports enabled, but the NfsClnt service was not found. A restart may still be pending.'
+        return [PSCustomObject]@{
+            Installed       = ($featureState -eq 'Enabled')
+            FeatureState    = $featureState
+            ServiceStatus   = $null
+            StartupType     = $null
+            MountCommand    = [bool](Get-Command mount.exe -ErrorAction SilentlyContinue)
+            RestartRequired = $restartNeeded
+            Ready           = $false
+        }
+    }
 
     if ($service.StartType -ne 'Automatic') {
         Set-Service -Name NfsClnt -StartupType Automatic
     }
-
     if ($service.Status -ne 'Running') {
         Start-Service -Name NfsClnt
     }
-
     $service = Get-Service -Name NfsClnt
+    $mountAvailable = [bool](Get-Command mount.exe -ErrorAction SilentlyContinue)
 
     [PSCustomObject]@{
-        Installed       = $true
-        FeatureState    = (Get-WindowsOptionalFeature -Online -FeatureName $featureName).State
+        Installed       = ($featureState -eq 'Enabled')
+        FeatureState    = $featureState
         ServiceStatus   = $service.Status
         StartupType     = $service.StartType
-        MountCommand    = [bool](Get-Command mount.exe -ErrorAction SilentlyContinue)
-        RestartRequired = if ($result) { $result.RestartNeeded } else { $false }
+        MountCommand    = $mountAvailable
+        RestartRequired = $restartNeeded
         Ready           = (
-            (Get-WindowsOptionalFeature -Online -FeatureName $featureName).State -eq 'Enabled' -and
+            $featureState -eq 'Enabled' -and
             $service.Status -eq 'Running' -and
-            (Get-Command mount.exe -ErrorAction SilentlyContinue)
+            $mountAvailable
         )
     }
 }
+
 
 function Get-DotNetHostInfo {
     [CmdletBinding()]
@@ -672,7 +777,7 @@ function Search {
         [Parameter(Mandatory = $true, Position = 0)]
         [string]$Filter
     )
-    Write-Output "Searching for '$filter'..."
+    Write-Output "Searching for '$filter' accross the $env:SystemDrive\ drive..."
     Get-ChildItem -Path "$env:SystemDrive\" -Recurse -Filter $Filter -Force 2>$null
 }
 
@@ -1190,29 +1295,24 @@ function cdw {
 }
 
 function free {
-    if (-not ($IsLanguagePermissive -eq $true)) { return }
-    $driveLetter = $env:SystemDrive.TrimEnd(':')
-    (Get-Volume -DriveLetter $driveLetter).SizeRemaining | ForEach-Object {
-        $sizeInGB = [math]::Round($_ / 1GB, 2)
-        if ($sizeInGB -lt 5) {
-            Write-Host "Warning: Free space on Drive ${driveLetter}: is only $sizeInGB GB!" -ForegroundColor Red
-        } else {
-            Write-Host "Free space on Drive ${driveLetter}: is $sizeInGB GB" -ForegroundColor Green
-        }
-    }
-}
-
-## Won't display anything, unless less than 5GB
-function checkdiskspace {
-    if (-not ($IsLanguagePermissive -eq $true )) { return }
     (Get-Volume -DriveLetter C).SizeRemaining | ForEach-Object {
         $sizeInGB = [math]::Round($_ / 1GB, 2)
         if ($sizeInGB -lt 5) {
-            Write-Host "Warning: Free space on Drive C: less than 5GB. Space remaining is $sizeInGB GB!" -ForegroundColor Red
+            Write-Host "Warning: Free space on Drive C: is less than 5GB (${sizeInGB}GB)!" -ForegroundColor Red
+        }
+    }
+
+    $volumeD = Get-Volume -DriveLetter D -ErrorAction SilentlyContinue
+    if ($volumeD) {
+        $sizeInGB = [math]::Round($volumeD.SizeRemaining / 1GB, 2)
+        Write-Host "Free space on Drive D: is ${sizeInGB}GB"
+
+        if ($volumeD.FileSystemLabel -eq 'Temporary Storage') {
+            Write-Host "Warning: Drive D: is labeled 'Temporary Storage' — data here is not persistent (lost on deallocation/redeploy)." -ForegroundColor Red
         }
     }
 }
-checkdiskspace
+free
 
 function Restore-Terminal {
     <#
@@ -2549,10 +2649,10 @@ function Set-FolderAclUsersModify {
 #Set-FolderAclUsersModify -Path "$env:SystemDrive\Workspaces"
 #Set-FolderAclUsersModify -Path "$env:SystemDrive\Scripts"
 
-function Get-HttpsCertificateInfo {
+function Get-TLSInfo {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory, Position = 0)]
+        [Parameter(Mandatory, Position = 0, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [Alias('HostName')]
         [string]$Fqdn,
@@ -2576,6 +2676,13 @@ function Get-HttpsCertificateInfo {
             throw "Cannot inspect certificates because PowerShell LanguageMode is '$($ExecutionContext.SessionState.LanguageMode)'."
         }
 
+        # Tracks export paths already written during this pipeline invocation,
+        # so piping multiple hosts at the same -ExportCerPath doesn't silently
+        # clobber each earlier host's exported certificate.
+        $usedExportPaths = [System.Collections.Generic.HashSet[string]]::new(
+            [System.StringComparer]::OrdinalIgnoreCase
+        )
+
         function Get-SubjectAltNames {
             [CmdletBinding()]
             param(
@@ -2589,6 +2696,13 @@ function Get-HttpsCertificateInfo {
                 if ($ext.Oid.Value -eq '2.5.29.17') {
                     try {
                         $san = [System.Security.Cryptography.AsnEncodedData]::new($ext.Oid, $ext.RawData)
+                        # NOTE: Format() renders via the OS's native crypto formatting
+                        # (CryptoAPI on Windows), which is locale-dependent — the
+                        # "DNS Name=" label assumed by the regex below may render
+                        # differently on non-English Windows locales, and .Format()
+                        # output can differ on non-Windows platforms entirely under
+                        # PowerShell 7's cross-platform runtime. This is a known
+                        # limitation, not something this function corrects for.
                         $text = $san.Format($true)
 
                         if ($text) {
@@ -2604,13 +2718,71 @@ function Get-HttpsCertificateInfo {
 
             return ($out | Select-Object -Unique)
         }
+
+        function Get-PublicKeySize {
+            [CmdletBinding()]
+            param(
+                [Parameter(Mandatory)]
+                [System.Security.Cryptography.X509Certificates.X509Certificate2]$Cert
+            )
+
+            # .PublicKey.Key throws NotSupportedException for ECDSA certificates —
+            # it's a legacy property that never gained EC support. The algorithm-
+            # specific accessors below are the correct way to get key size
+            # regardless of algorithm — but they are C# EXTENSION methods (defined
+            # in RSACertificateExtensions / ECDsaCertificateExtensions /
+            # DSACertificateExtensions), not real instance members of
+            # X509Certificate2. PowerShell has no extension-method call sugar, so
+            # they must be invoked as explicit static calls on the extension
+            # class — calling $Cert.GetRSAPublicKey() directly fails with
+            # "does not contain a method named 'GetRSAPublicKey'".
+            $rsa = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($Cert)
+            if ($rsa) { return $rsa.KeySize }
+
+            $ecdsa = [System.Security.Cryptography.X509Certificates.ECDsaCertificateExtensions]::GetECDsaPublicKey($Cert)
+            if ($ecdsa) { return $ecdsa.KeySize }
+
+            $dsa = [System.Security.Cryptography.X509Certificates.DSACertificateExtensions]::GetDSAPublicKey($Cert)
+            if ($dsa) { return $dsa.KeySize }
+
+            return $null
+        }
     }
 
     process {
+        # Accept a full URL (e.g. copy-pasted from a browser address bar) as
+        # well as a bare hostname. TcpClient.ConnectAsync and SNI both need
+        # just the host — a scheme, path, or trailing slash would otherwise
+        # cause a DNS/connection failure. [Uri] parsing is used rather than a
+        # plain string replace so it also correctly strips any path/query
+        # string, not just the scheme.
+        $targetHost = $Fqdn
+        if ($Fqdn -match '^[a-zA-Z][a-zA-Z0-9+.-]*://') {
+            $parsedUri = $null
+            if ([System.Uri]::TryCreate($Fqdn, [System.UriKind]::Absolute, [ref]$parsedUri)) {
+                $targetHost = $parsedUri.Host
+            } else {
+                # Fallback if it looked like a URL but didn't parse cleanly —
+                # strip scheme and anything from the first '/' onward manually.
+                $targetHost = $Fqdn -replace '^[a-zA-Z][a-zA-Z0-9+.-]*://', '' -replace '/.*$', ''
+            }
+            Write-Verbose "Normalized '$Fqdn' to host '$targetHost'."
+        }
+
+        $actualExportPath = $ExportCerPath
         if ($ExportCerPath) {
-            $dir = Split-Path -Path $ExportCerPath -Parent
-            if ($dir -and -not (Test-Path -LiteralPath $dir)) {
-                New-Item -ItemType Directory -Path $dir -Force | Out-Null
+            if ($usedExportPaths.Contains($ExportCerPath)) {
+                $dir = Split-Path -Path $ExportCerPath -Parent
+                $base = [System.IO.Path]::GetFileNameWithoutExtension($ExportCerPath)
+                $ext = [System.IO.Path]::GetExtension($ExportCerPath)
+                $safeHost = $targetHost -replace '[^\w\.-]', '_'
+                $actualExportPath = if ($dir) { Join-Path $dir "$base-$safeHost$ext" } else { "$base-$safeHost$ext" }
+                Write-Warning "ExportCerPath '$ExportCerPath' was already used earlier in this pipeline run; writing '$targetHost' to '$actualExportPath' instead to avoid overwriting the previous host's certificate."
+            }
+
+            $exportDir = Split-Path -Path $actualExportPath -Parent
+            if ($exportDir -and -not (Test-Path -LiteralPath $exportDir)) {
+                New-Item -ItemType Directory -Path $exportDir -Force | Out-Null
             }
         }
 
@@ -2618,20 +2790,29 @@ function Get-HttpsCertificateInfo {
         $stream = $null
         $ssl = $null
         $chain = $null
+        $cert2 = $null
 
         try {
             $client = [System.Net.Sockets.TcpClient]::new()
 
-            $connectTask = $client.ConnectAsync($Fqdn, $Port)
+            $connectTask = $client.ConnectAsync($targetHost, $Port)
             if (-not $connectTask.Wait($TimeoutMs)) {
-                throw "Timeout connecting to ${Fqdn}:${Port} after ${TimeoutMs} ms."
+                throw "Timeout connecting to ${targetHost}:${Port} after ${TimeoutMs} ms."
             }
 
             if (-not $client.Connected) {
-                throw "TCP connection to ${Fqdn}:${Port} failed."
+                throw "TCP connection to ${targetHost}:${Port} failed."
             }
 
             $stream = $client.GetStream()
+
+            # WARNING — validation callback always returns $true: this deliberately
+            # accepts ANY certificate (expired, self-signed, wrong host, MITM'd —
+            # everything), because this function's entire purpose is to inspect
+            # certificates regardless of validity. This is correct HERE, but this
+            # exact pattern must never be copied into code that makes real,
+            # trust-sensitive connections — doing so silently disables all TLS
+            # protection for that connection.
             $ssl = [System.Net.Security.SslStream]::new(
                 $stream,
                 $false,
@@ -2640,16 +2821,16 @@ function Get-HttpsCertificateInfo {
 
             try {
                 $authOptions = [System.Net.Security.SslClientAuthenticationOptions]::new()
-                $authOptions.TargetHost = $Fqdn
+                $authOptions.TargetHost = $targetHost
                 $authOptions.EnabledSslProtocols = $TlsProtocols
                 $ssl.AuthenticateAsClient($authOptions)
             } catch {
                 Write-Verbose "Modern AuthenticateAsClient overload failed, falling back: $($_.Exception.Message)"
-                $ssl.AuthenticateAsClient($Fqdn)
+                $ssl.AuthenticateAsClient($targetHost)
             }
 
             if (-not $ssl.RemoteCertificate) {
-                throw "No certificate was presented by ${Fqdn}:${Port}."
+                throw "No certificate was presented by ${targetHost}:${Port}."
             }
 
             $cert2 = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($ssl.RemoteCertificate)
@@ -2661,16 +2842,18 @@ function Get-HttpsCertificateInfo {
             [void]$chain.Build($cert2)
 
             $san = Get-SubjectAltNames -Cert $cert2
+            $keySizeBits = Get-PublicKeySize -Cert $cert2
 
-            if ($ExportCerPath) {
+            if ($actualExportPath) {
                 [System.IO.File]::WriteAllBytes(
-                    $ExportCerPath,
+                    $actualExportPath,
                     $cert2.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
                 )
+                [void]$usedExportPaths.Add($actualExportPath)
             }
 
             [PSCustomObject]@{
-                Hostname           = $Fqdn
+                Hostname           = $targetHost
                 Port               = $Port
                 OwnerSubject       = $cert2.Subject
                 SubjectCN          = $cert2.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::DnsName, $false)
@@ -2682,15 +2865,16 @@ function Get-HttpsCertificateInfo {
                 SerialNumber       = $cert2.SerialNumber
                 SignatureAlgorithm = $cert2.SignatureAlgorithm.FriendlyName
                 KeyAlgorithm       = $cert2.PublicKey.Oid.FriendlyName
-                KeySizeBits        = $cert2.PublicKey.Key.KeySize
+                KeySizeBits        = $keySizeBits
                 SANs               = $san
                 ChainStatus        = @($chain.ChainStatus | ForEach-Object { $_.Status.ToString() }) -join ', '
-                ExportedCerPath    = $ExportCerPath
+                ExportedCerPath    = $actualExportPath
             }
         } catch {
-            $message = "Failed to retrieve certificate from ${Fqdn}:${Port}. $($_.Exception.Message)"
+            $message = "Failed to retrieve certificate from ${targetHost}:${Port}. $($_.Exception.Message)"
             Write-Error $message
         } finally {
+            if ($cert2) { $cert2.Dispose() }
             if ($chain) { $chain.Dispose() }
             if ($ssl) { $ssl.Dispose() }
             if ($stream) { $stream.Dispose() }
@@ -2700,11 +2884,10 @@ function Get-HttpsCertificateInfo {
 }
 # Examples:
 # Show owner/subject for a site
-# Get-HttpsCertificateInfo -Fqdn "www.microsoft.com"
-# Get-HttpsCertificateInfo -Fqdn "cnn.com"
-
+# Get-TLSInfo -Fqdn "www.microsoft.com"
+# Get-TLSInfo -Fqdn "cnn.com"
 # Export the certificate to a file as well
-# Get-HttpsCertificateInfo -Fqdn "example.com" -ExportCerPath "C:\Temp\example.cer"
+# Get-TLSInfo -Fqdn "example.com" -ExportCerPath "C:\Temp\example.cer"
 
 function Show-Toast-Message {
     [CmdletBinding()]
@@ -2823,158 +3006,6 @@ function Get-DefaultRouteAdapter {
     }
 }
 
-function Get-ZscalerClientState {
-    <#
-    .SYNOPSIS
-        Gathers Zscaler-related configuration/state on a Windows endpoint (read-only).
-
-    .DESCRIPTION
-        Enumerates likely locations for Zscaler Client Connector and tunnel info:
-        - Installed Apps (registry)
-        - Services & Processes
-        - System proxy (WinINET) and WinHTTP proxy
-        - Network adapters & default route
-        - Root certs containing "Zscaler"
-        - Common file system paths
-
-        NOTE: Uses broad matching (Zscaler|ZSA) to be resilient across versions.
-
-    .PARAMETER IncludeRoutes
-        Include default route and candidate tunnel routes.
-
-    .PARAMETER AsJson
-        Emit JSON instead of a PowerShell object.
-
-    .EXAMPLE
-        Get-ZscalerClientState -IncludeRoutes | Format-List
-
-    .EXAMPLE
-        Get-ZscalerClientState -AsJson | Out-File .\zscaler_state.json -Encoding utf8
-    #>
-
-    [CmdletBinding()]
-    param(
-        [switch]$IncludeRoutes,
-        [switch]$AsJson
-    )
-
-    function Get-RegistryValues {
-        param([string]$Path, [string[]]$Names)
-        $h = @{}
-        try {
-            $item = Get-Item -LiteralPath $Path -ErrorAction Stop
-            foreach ($n in $Names) {
-                $h[$n] = (Get-ItemProperty -LiteralPath $Path -Name $n -ErrorAction SilentlyContinue).$n
-            }
-        } catch {}
-        [pscustomobject]$h
-    }
-
-    # 1) Installed App (Uninstall registry)
-    $uninstallRoots = @(
-        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
-        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall'
-    )
-    $installed = foreach ($root in $uninstallRoots) {
-        Get-ChildItem $root -ErrorAction SilentlyContinue | ForEach-Object {
-            $p = Get-ItemProperty $_.PsPath -ErrorAction SilentlyContinue
-            if ($p.DisplayName -match 'Zscaler|Client Connector|ZSA') {
-                [pscustomobject]@{
-                    DisplayName     = $p.DisplayName
-                    DisplayVersion  = $p.DisplayVersion
-                    Publisher       = $p.Publisher
-                    InstallLocation = $p.InstallLocation
-                    UninstallString = $p.UninstallString
-                    RegistryPath    = $_.PsPath
-                }
-            }
-        }
-    }
-
-    # 2) Services / Processes
-    $services = Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match 'Zscaler|ZSA' -or $_.Name -match 'Zscaler|ZSA' } |
-    Select-Object Name, DisplayName, Status, StartType
-    $processes = Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Zscaler|ZSA' } |
-    ForEach-Object {
-        [pscustomobject]@{
-            Name = $_.Name; Id = $_.Id; Path = ($_.Path)
-        }
-    }
-
-    # 3) Proxy (WinINET = user), WinHTTP = machine
-    $inetCU = Get-RegistryValues -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -Names ProxyEnable, ProxyServer, AutoConfigURL
-    $inetLM = Get-RegistryValues -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -Names ProxyEnable, ProxyServer, AutoConfigURL
-
-    $winHttpProxy = try {
-        $out = & netsh winhttp show proxy 2>$null
-        if ($LASTEXITCODE -eq 0) { $out -join "`n" } else { $null }
-    } catch { $null }
-
-    # 4) Adapters / Routes (look for “Zscaler”/“ZSA”)
-    $adapters = Get-NetAdapter -IncludeHidden -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -match 'Zscaler|ZSA' -or $_.InterfaceDescription -match 'Zscaler|ZSA' } |
-    Select-Object Name, InterfaceDescription, InterfaceIndex, Status, MacAddress, ifIndex
-
-    $defaultRoute4 = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
-    Sort-Object RouteMetric, InterfaceMetric | Select-Object -First 1
-    $defaultAdapter = if ($defaultRoute4) {
-        Get-NetAdapter -InterfaceIndex $defaultRoute4.InterfaceIndex -ErrorAction SilentlyContinue |
-        Select-Object Name, InterfaceDescription, InterfaceIndex, Status
-    }
-
-    $routes = $null
-    if ($IncludeRoutes) {
-        $routes = Get-NetRoute -ErrorAction SilentlyContinue |
-        Where-Object { $_.DestinationPrefix -in @('0.0.0.0/0', '::/0') -or $_.InterfaceIndex -in ($adapters.InterfaceIndex) } |
-        Sort-Object AddressFamily, RouteMetric, InterfaceMetric |
-        Select-Object AddressFamily, DestinationPrefix, NextHop, InterfaceIndex, RouteMetric, InterfaceMetric
-    }
-
-    # 5) Root certificates containing "Zscaler"
-    $zscalerCerts = @()
-    foreach ($store in @('Cert:\LocalMachine\Root', 'Cert:\CurrentUser\Root')) {
-        $zscalerCerts += Get-ChildItem $store -ErrorAction SilentlyContinue |
-        Where-Object { $_.Subject -match 'Zscaler' -or $_.Issuer -match 'Zscaler' } |
-        Select-Object @{n = 'Store'; e = { $store } },
-        Subject, Issuer, NotAfter, Thumbprint, FriendlyName
-    }
-
-    # 6) Common file system paths
-    $paths = @(
-        'C:\Program Files\Zscaler',
-        'C:\Program Files (x86)\Zscaler',
-        'C:\ProgramData\Zscaler',
-        "$env:LOCALAPPDATA\Zscaler",
-        "$env:PROGRAMDATA\Zscaler"
-    ) | ForEach-Object {
-        if (Test-Path $_) { $_ }
-    }
-
-    $result = [pscustomobject]@{
-        ComputerName         = $env:COMPUTERNAME
-        UserName             = $env:USERNAME
-        PowerShellVersion    = $PSVersionTable.PSVersion.ToString()
-        InstalledApps        = $installed
-        Services             = $services
-        Processes            = $processes
-        ProxyWinINET_User    = $inetCU
-        ProxyWinINET_Machine = $inetLM
-        ProxyWinHTTP         = $winHttpProxy
-        DefaultAdapter       = $defaultAdapter
-        DefaultRouteIPv4     = if ($defaultRoute4) { [pscustomobject]@{ NextHop = $defaultRoute4.NextHop; IfIndex = $defaultRoute4.InterfaceIndex; RouteMetric = $defaultRoute4.RouteMetric; InterfaceMetric = $defaultRoute4.InterfaceMetric } }
-        ZscalerAdapters      = $adapters
-        RoutesSummary        = $routes
-        ZscalerRootCerts     = $zscalerCerts
-        ExistingPaths        = $paths
-    }
-
-    if ($AsJson) {
-        $result | ConvertTo-Json -Depth 6
-    } else {
-        $result
-    }
-}
-
 function Get-EntraDelegatedGrantsReport {
     [CmdletBinding()]
     param(
@@ -3030,126 +3061,6 @@ function Get-EntraDelegatedGrantsReport {
 
     # Return the objects (caller decides how to display)
     $output | Sort-Object AppName, Resource
-}
-
-function Test-TlsConnection {
-    <#
-    .SYNOPSIS
-        Tests HTTPS connectivity and TLS/certificate validation for a given URL.
-
-    .PARAMETER Url
-        The HTTPS URL to test (default: https://example.com)
-
-    .PARAMETER TimeoutSeconds
-        Connection timeout in seconds (default: 5)
-
-    .EXAMPLE
-        Test-TlsConnection -Url "https://graph.microsoft.com"
-
-    .EXAMPLE
-        Test-TlsConnection -Url "https://login.microsoftonline.com" -TimeoutSeconds 10
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter()]
-        [ValidateNotNullOrEmpty()]
-        [string]$Url = 'https://example.com',
-
-        [Parameter()]
-        [ValidateRange(1, 300)]
-        [int]$TimeoutSeconds = 5
-    )
-
-    # Normalize / validate URL
-    if ($Url -notmatch '^\w+://') { $Url = "https://$Url" }
-
-    $uri = $null
-    try { $uri = [Uri]$Url } catch { throw "Invalid Url: $Url" }
-    if ($uri.Scheme -ne 'https') { throw "Url must be HTTPS: $Url" }
-
-    $handler = $null
-    $client = $null
-    $response = $null
-
-    # Capture TLS/cert info
-    $cert2 = $null
-    $sslErrors = $null
-
-    try {
-        $handler = [System.Net.Http.HttpClientHandler]::new()
-
-        # Capture certificate details and any policy errors
-        $handler.ServerCertificateCustomValidationCallback = {
-            param($req, $cert, $chain, $errors)
-
-            if ($cert) {
-                try { $script:cert2 = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($cert) } catch { }
-            }
-            $script:sslErrors = $errors
-
-            # Return $true only when there are no SSL policy errors (i.e., "valid")
-            return ($errors -eq [System.Net.Security.SslPolicyErrors]::None)
-        }
-
-        $client = [System.Net.Http.HttpClient]::new($handler)
-
-        # Reliable timeout with cancellation token
-        $cts = [System.Threading.CancellationTokenSource]::new([TimeSpan]::FromSeconds($TimeoutSeconds))
-
-        # Ask for headers only (faster) then dispose
-        $response = $client.GetAsync($uri, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead, $cts.Token).GetAwaiter().GetResult()
-
-        $tlsProtocol = $null
-        try {
-            # Best-effort: only available if HttpClient exposes the underlying connection info (often not).
-            # So we return null unless we can infer via SslStream (not directly accessible here).
-            $tlsProtocol = $null
-        } catch { }
-
-        $ok = $response.IsSuccessStatusCode -and ($sslErrors -eq [System.Net.Security.SslPolicyErrors]::None)
-
-        if ($ok) {
-            Write-Host "✅ HTTPS + TLS OK ($($response.StatusCode)) - $Url" -ForegroundColor Green
-        } else {
-            Write-Warning "⚠️ HTTPS connected but TLS policy errors: $sslErrors - $Url"
-        }
-
-        [pscustomobject]@{
-            Url             = $uri.AbsoluteUri
-            StatusCode      = [int]$response.StatusCode
-            ReasonPhrase    = $response.ReasonPhrase
-            HttpSuccess     = $response.IsSuccessStatusCode
-            TlsValid        = ($sslErrors -eq [System.Net.Security.SslPolicyErrors]::None)
-            SslPolicyErrors = $sslErrors
-            CertSubject     = $cert2?.Subject
-            CertIssuer      = $cert2?.Issuer
-            CertThumbprint  = $cert2?.Thumbprint
-            CertNotBefore   = $cert2?.NotBefore
-            CertNotAfter    = $cert2?.NotAfter
-            TimeoutSeconds  = $TimeoutSeconds
-        }
-    } catch {
-        Write-Warning "❌ HTTPS/TLS failed for $Url — $($_.Exception.Message)"
-        [pscustomobject]@{
-            Url             = $Url
-            StatusCode      = $null
-            ReasonPhrase    = $null
-            HttpSuccess     = $false
-            TlsValid        = $false
-            SslPolicyErrors = $sslErrors
-            CertSubject     = $cert2?.Subject
-            CertIssuer      = $cert2?.Issuer
-            CertThumbprint  = $cert2?.Thumbprint
-            CertNotBefore   = $cert2?.NotBefore
-            CertNotAfter    = $cert2?.NotAfter
-            TimeoutSeconds  = $TimeoutSeconds
-            Error           = $_.Exception.Message
-        }
-    } finally {
-        if ($response) { $response.Dispose() }
-        if ($client) { $client.Dispose() }
-        if ($handler) { $handler.Dispose() }
-    }
 }
 
 function Export-CAPolicies {
@@ -3514,16 +3425,65 @@ function Install-OrUpdate-Module {
 }
 
 function Invoke-WorkIQQuery {
+    <#
+    .SYNOPSIS
+        Runs a Work IQ query, installing the workiq CLI first if it's missing.
+
+    .DESCRIPTION
+        Work IQ ships as the @microsoft/workiq npm package. This checks for
+        the CLI on PATH and installs it globally via npm if absent, then
+        runs the query. Does NOT auto-accept the Work IQ EULA — that's a
+        one-time explicit action the user needs to run themselves
+        (`workiq accept-eula`), since silently accepting license terms on
+        someone's behalf isn't something this function should do.
+
+    .PARAMETER Query
+        The natural-language query to send to Work IQ.
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
         [string]$Query
     )
-
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
-    $result = & workiq ask $Query
+    if (-not (Get-Command workiq -ErrorAction SilentlyContinue)) {
+        Write-Verbose "workiq CLI not found on PATH — installing @microsoft/workiq globally via npm."
+
+        if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+            throw 'workiq is not installed, and npm is not available to install it. Install Node.js 18+ first (Work IQ requires it for its fetch/async usage): https://nodejs.org'
+        }
+
+        npm install -g @microsoft/workiq
+        if ($LASTEXITCODE -ne 0) {
+            throw "npm install -g @microsoft/workiq failed with exit code $LASTEXITCODE."
+        }
+
+        # A global npm install updates the machine/user PATH, but this
+        # process's own environment block was already loaded before that
+        # happened — refresh it so 'workiq' resolves without needing a new
+        # PowerShell session.
+        $machinePath = [System.Environment]::GetEnvironmentVariable('PATH', 'Machine')
+        $userPath = [System.Environment]::GetEnvironmentVariable('PATH', 'User')
+        $env:PATH = "$machinePath;$userPath"
+
+        if (-not (Get-Command workiq -ErrorAction SilentlyContinue)) {
+            throw 'workiq was installed but could not be resolved on PATH in this session. Open a new terminal and try again.'
+        }
+    }
+
+    # ask expects the query via -q per the documented CLI syntax, not
+    # positionally.
+    workiq accept-eula
+    $result = & workiq ask -q "$Query"
+
+    if ($LASTEXITCODE -ne 0) {
+        # Native executables don't respect $ErrorActionPreference on a
+        # non-zero exit code — that only applies to PowerShell-native cmdlet
+        # errors, so this has to be checked explicitly.
+        throw "workiq exited with code $LASTEXITCODE. Output: $result"
+    }
 
     if (-not $result) {
         throw 'No response from Work IQ'
@@ -4283,3 +4243,78 @@ function Get-AzVmSku {
     $results | Format-Table -AutoSize
     "Count: $($results.Count) in $($Location)"
 }
+
+function Get-QuickXorHashFromFile {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath
+    )
+
+    $BitsInLastCell = 32
+    $Shift = 11
+    $Threshold = 600
+    $WidthInBits = 160
+
+    $data = @(0..2 | ForEach-Object { [UInt64]0 })
+    $lengthSoFar = 0
+    $shiftSoFar = 0
+
+    $buffer = [System.IO.File]::ReadAllBytes($FilePath)
+    $lengthSoFar = $buffer.Length
+
+    $ibStart = 0
+    $cbSize = $buffer.Length
+
+    $currentShift = $shiftSoFar
+    $vectorArrayIndex = [math]::Floor($currentShift / 64)
+    $vectorOffset = $currentShift % 64
+    $iterations = [math]::Min($cbSize, $WidthInBits)
+
+    for ($i = 0; $i -lt $iterations; $i++) {
+        $isLastCell = $vectorArrayIndex -eq ($data.Length - 1)
+        $bitsInVectorCell = $isLastCell ? $BitsInLastCell : 64
+
+        if ($vectorOffset -le ($bitsInVectorCell - 8)) {
+            for ($j = $ibStart + $i; $j -lt ($cbSize + $ibStart); $j += $WidthInBits) {
+                $data[$vectorArrayIndex] = $data[$vectorArrayIndex] -bxor ([UInt64]$buffer[$j] -shl $vectorOffset)
+            }
+        } else {
+            $index1 = $vectorArrayIndex
+            $index2 = $isLastCell ? 0 : ($vectorArrayIndex + 1)
+            $low = $bitsInVectorCell - $vectorOffset
+
+            $xoredByte = 0
+            for ($j = $ibStart + $i; $j -lt ($cbSize + $ibStart); $j += $WidthInBits) {
+                $xoredByte = $xoredByte -bxor $buffer[$j]
+            }
+
+            $data[$index1] = $data[$index1] -bxor ([UInt64]$xoredByte -shl $vectorOffset)
+            $data[$index2] = $data[$index2] -bxor ([UInt64]$xoredByte -shr $low)
+        }
+
+        $vectorOffset += $Shift
+        while ($vectorOffset -ge $bitsInVectorCell) {
+            $vectorArrayIndex = $isLastCell ? 0 : ($vectorArrayIndex + 1)
+            $vectorOffset -= $bitsInVectorCell
+        }
+    }
+
+    $shiftSoFar = ($shiftSoFar + $Shift * ($cbSize % $WidthInBits)) % $WidthInBits
+
+    # Finalize hash
+    $rgb = New-Object byte[] 20
+    for ($i = 0; $i -lt $data.Length - 1; $i++) {
+        [System.Buffer]::BlockCopy([BitConverter]::GetBytes($data[$i]), 0, $rgb, $i * 8, 8)
+    }
+
+    $lastIndex = ($data.Length - 1)
+    [System.Buffer]::BlockCopy([BitConverter]::GetBytes($data[$lastIndex]), 0, $rgb, $lastIndex * 8, $rgb.Length - ($lastIndex * 8))
+
+    $lengthBytes = [BitConverter]::GetBytes([Int64]$lengthSoFar)
+    for ($i = 0; $i -lt $lengthBytes.Length; $i++) {
+        $rgb[($WidthInBits / 8) - $lengthBytes.Length + $i] = $rgb[($WidthInBits / 8) - $lengthBytes.Length + $i] -bxor $lengthBytes[$i]
+    }
+
+    return [Convert]::ToBase64String($rgb)
+}
+
