@@ -427,158 +427,6 @@ function New-TempDirectories {
 # Call the function
 New-TempDirectories
 
-function Install-LatestWindowsSDK {
-    <#
-    .SYNOPSIS
-        Installs the latest Windows SDK using winget if Developer Mode is enabled.
-
-    .DESCRIPTION
-        - Verifies Developer Mode is enabled via registry.
-        - Queries winget to detect the latest Windows SDK package ID.
-        - Installs it silently.
-        - Returns $true on success, $false on failure.
-
-    .NOTES
-        - Requires administrator privileges.
-        - Works on Windows 10/11.
-        - Developer Mode check is based on registry:
-          HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock
-    #>
-
-    [CmdletBinding()]
-    param()
-
-    Write-Verbose 'Checking if Developer Mode is enabled...'
-    if (-not (Test-DeveloperMode)) {
-        Write-Warning '❌ Developer Mode is not enabled. Enable it in Settings > For Developers or via registry.'
-        return $false
-    }
-    Write-Verbose 'Developer Mode is enabled. Searching for Windows SDK packages...'
-
-    # --- Find latest Windows SDK ---
-    $packageIdPrefix = 'Windows SDK'
-    $Output = Find-WinGetPackage -Name $packageIdPrefix
-    if (-not $output[0] ) {
-        Write-Error 'Could not find Windows SDK packages in winget.'
-        return $false
-    }
-
-    $output = $output | Sort-Object -Verson
-    $ids = ($output -split "`r?`n") |
-    Where-Object { $_ -match $packageIdPrefix } |
-    ForEach-Object { ($_ -split '\s+')[0] } |
-    Sort-Object -Unique
-
-    if (-not $ids) {
-        Write-Error 'No matching Windows SDK packages found.'
-        return $false
-    }
-
-    $versions = $ids | ForEach-Object { $_ -replace [regex]::Escape($packageIdPrefix), '' }
-    $latestVersion = ($versions | Sort-Object { [version]$_ } -Descending)[0]
-
-    if (-not $latestVersion) {
-        Write-Error 'Could not determine the latest SDK version.'
-        return $false
-    }
-
-    $latestId = "$packageIdPrefix$latestVersion"
-    Write-Verbose "Latest Windows SDK version detected: $latestVersion (ID: $latestId)"
-
-    # --- Install ---
-    try {
-        & winget install --id $latestId -e --accept-package-agreements --accept-source-agreements
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "✅ Windows SDK $latestVersion installed successfully."
-            return $true
-        } else {
-            Write-Error "❌ Installation failed with exit code $LASTEXITCODE."
-            return $false
-        }
-    } catch {
-        Write-Error "❌ Exception during installation: $($_.Exception.Message)"
-        return $false
-    }
-}
-#Install-LatestWindowsSDK
-
-function Enable-DeveloperDevicePortal {
-    ## Device Discovery requires Windows SDK (1803 or later)
-    ## 
-    
-    [CmdletBinding(SupportsShouldProcess)]
-    param ()
-
-    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole] 'Administrator')) {
-        Write-Error '❌ This function must be run as Administrator.'
-        return
-    }
-
-    Write-Verbose 'Checking if Developer Mode is enabled...'
-    if (-not (Test-DeveloperMode)) {
-        Write-Warning '❌ Developer Mode is not enabled. Enable it in Settings > For Developers or via registry.'
-        return $false
-    }
-
-    ## Network profiles MUST be private for DevPortal
-    Set-NetworkProfilesToPrivate
-
-    #if ( -not (Install-LatestWindowsSDK)) {
-    #    Write-Warning "❌ WindowsSDK installation has failed (or wasn't found)"
-    #    return $false
-    #}
-        
-    Write-Host '📦 Installing required Windows capabilities...'
-    $capabilities = @(
-        'Tools.DeveloperMode.Core'
-    )
-
-    foreach ($capability in $capabilities) {
-        Write-Host "→ Installing $capability..."
-        try {
-            Add-WindowsCapability -Online -Name "${capability}~~~~0.0.1.0" -ErrorAction Stop
-        } catch {
-            Write-Warning "⚠️ Could not install ${capability}: $_"
-        }
-    }
-
-    Write-Host '🔐 Enabling Device Portal via registry...'
-    $regPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DevicePortal'
-    New-Item -Path $regPath -Force | Out-Null
-    Set-ItemProperty -Path $regPath -Name 'EnableDevPortal' -Value 1 -Force
-
-    Write-Host '🔄 Restarting services...'
-    try {
-        Restart-Service -Name dmwappushservice -ErrorAction SilentlyContinue
-    } catch {
-        Write-Warning "⚠️ Could not restart dmwappushservice: $_"
-    }
-    if (Get-ItemProperty -Path $regPath -Name 'EnableDevicePortal' -ErrorAction SilentlyContinue) {
-        Set-ItemProperty -Path $regPath -Name 'EnableDevicePortal' -Value 1
-    } else {
-        New-ItemProperty -Path $regPath -Name 'EnableDevicePortal' -PropertyType DWORD -Value 1
-    }
-
-    ## Enable authentication (optional but recommended)
-    if (Get-ItemProperty -Path $regPath -Name 'Authentication' -ErrorAction SilentlyContinue) {
-        Set-ItemProperty -Path $regPath -Name 'Authentication' -Value 0
-    } else {
-        New-ItemProperty -Path $regPath -Name 'Authentication' -PropertyType DWORD -Value 0
-    }
-
-    Get-Item -Path $regPath
-    # Open firewall port for Device Portal (usually 50080 for HTTP and 50443 for HTTPS)
-    New-NetFirewallRule -DisplayName 'Developer Device Portal HTTP' -Direction Inbound -LocalPort 50080 -Protocol TCP -Action Allow
-    New-NetFirewallRule -DisplayName 'Developer Device Portal HTTPS' -Direction Inbound -LocalPort 50443 -Protocol TCP -Action Allow
-    Write-Host '🔄 Restarting Web Management Service...'
-    Set-Service -Name webmanagement -StartupType Automatic
-    Restart-Service -Name webmanagement -ErrorAction SilentlyContinue
-
-    Write-Host "`n✅ Device Portal is enabled."
-    Write-Host '   🔗 Open: https://localhost:50080'
-}
-#Enable-DeveloperDevicePortal
-
 ## Enable sudo, if installed
 if (Get-Command sudo ) {
     sudo config --enable enable
@@ -663,50 +511,95 @@ function Install-SqlLocalDBLatest {
     [CmdletBinding()]
     param(
         [string]$DownloadFolder = "$env:TEMP\SqlLocalDBInstall",
-        [switch]$Force = $true
+        [switch]$Force
     )
 
+    Write-Host "Installing the latest SQL Server Express LocalDB: downloads the LocalDB-specific setup media via the SQL Server Express bootstrapper, then installs SqlLocalDB.msi silently." -ForegroundColor Cyan
+
     # Ensure we run elevated
-    if (-not ([bool]([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
-            ).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator'))) {
+    if (-not ([Security.Principal.WindowsPrincipal]::new(
+                [Security.Principal.WindowsIdentity]::GetCurrent()
+            )).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         throw 'This function must be run as Administrator.'
     }
 
-    # Create download folder
     if (-not (Test-Path -Path $DownloadFolder)) {
-        Write-Host "Creating download folder: $DownloadFolder"
+        Write-Verbose "Creating download folder: $DownloadFolder"
         New-Item -ItemType Directory -Path $DownloadFolder | Out-Null
     }
 
-    # Define download URL for SqlLocalDB.msi
-    # Note: This is for SQL Server 2022 English en-US. Adjust if you need a different locale or newer version.
-    $url = 'https://download.microsoft.com/download/3/8/d/38de7036-2433-4207-8eae-06e247e17b25/SqlLocalDB.msi'  
-    $fileName = 'SqlLocalDB.msi'
-    $filePath = Join-Path $DownloadFolder $fileName
+    # Stable Microsoft fwlink that always resolves to the latest SQL Server Express bootstrapper
+    $bootstrapUrl = 'https://go.microsoft.com/fwlink/?linkid=2216019'
+    $bootstrapPath = Join-Path $DownloadFolder 'SQLServerExpress.exe'
+    $mediaPath = Join-Path $DownloadFolder 'LocalDBMedia'
 
-    # Download if missing or force
-    if ((Test-Path $filePath) -and (-not $Force)) {
-        Write-Host "Installer already exists at $filePath. Skipping download."
+    $existingMsi = if (Test-Path $mediaPath) {
+        Get-ChildItem -Path $mediaPath -Recurse -Filter 'SqlLocalDB.msi' -File -ErrorAction SilentlyContinue |
+            Select-Object -First 1 -ExpandProperty FullName
+    }
+
+    if ($existingMsi -and -not $Force) {
+        Write-Verbose "LocalDB media already downloaded at $existingMsi. Skipping download."
+        $msiPath = $existingMsi
     } else {
-        Write-Host "Downloading SqlLocalDB installer from $url to $filePath"
+        Write-Verbose "Downloading SQL Server Express bootstrapper from $bootstrapUrl"
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         try {
-            Invoke-WebRequest -Uri $url -OutFile $filePath -UseBasicParsing
+            Invoke-WebRequest -Uri $bootstrapUrl -OutFile $bootstrapPath -UseBasicParsing
         } catch {
-            throw "SqlLocalDB installer download failed: $_"
+            throw "SQL Server Express bootstrapper download failed: $_"
+        }
+
+        Write-Verbose "Downloading LocalDB-only setup media to $mediaPath"
+        if (Test-Path $mediaPath) { Remove-Item $mediaPath -Recurse -Force }
+        New-Item -ItemType Directory -Path $mediaPath | Out-Null
+
+        $downloadProcess = Start-Process -FilePath $bootstrapPath -ArgumentList @(
+            '/Action=Download',
+            '/MediaType=LocalDB',
+            "/MediaPath=`"$mediaPath`"",
+            '/Quiet'
+        ) -Wait -PassThru
+
+        if ($downloadProcess.ExitCode -ne 0) {
+            throw "Downloading LocalDB setup media failed with exit code $($downloadProcess.ExitCode)."
+        }
+
+        $msiPath = Get-ChildItem -Path $mediaPath -Recurse -Filter 'SqlLocalDB.msi' -File -ErrorAction SilentlyContinue |
+            Select-Object -First 1 -ExpandProperty FullName
+
+        if (-not $msiPath) {
+            throw "Could not locate SqlLocalDB.msi under $mediaPath after download. Check that folder to see the actual layout Microsoft delivered."
         }
     }
 
-    # Perform silent install
-    $msiArgs = "/i `"$filePath`" /qn IACCEPTSQLLOCALDBLICENSETERMS=YES"
+    $msiArgs = "/i `"$msiPath`" /qn IACCEPTSQLLOCALDBLICENSETERMS=YES"
     Write-Verbose "Installing LocalDB silently: msiexec.exe $msiArgs"
-    try {
-        $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $msiArgs -Wait -PassThru
-        if ($process.ExitCode -ne 0) {
-            throw "SqlLocalDB installation failed with exit code $($process.ExitCode)."
-        }
-    } catch {
-        Write-Host "❌ Exception during SqlLocalDB installation: $($_.Exception.Message)"
+    $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $msiArgs -Wait -PassThru
+    if ($process.ExitCode -notin 0, 3010) {
+        throw "SqlLocalDB installation failed with exit code $($process.ExitCode)."
     }
+    if ($process.ExitCode -eq 3010) {
+        Write-Warning "SqlLocalDB installed successfully but requires a reboot to finish."
+    }
+
+    Write-Host "SqlLocalDB installation complete." -ForegroundColor Green
+    sqllocaldb versions
+    $instanceName = 'DEVMSSQLLocalDB'
+    $exists = (sqllocaldb info) | ForEach-Object { $_.Trim() } | Where-Object { $_ -eq $instanceName }
+    if (-not $exists) {
+        sqllocaldb create $instanceName
+    }
+    sqllocaldb start $instanceName
+    sqllocaldb info $instanceName
+    ## Test SQL Connection
+    $conn = New-Object System.Data.SqlClient.SqlConnection "Server=(localdb)\$instanceName;Integrated Security=true;"
+    $conn.Open()
+    $cmd = $conn.CreateCommand()
+    $cmd.CommandText = "SELECT @@VERSION"
+    $reader = $cmd.ExecuteReader()
+    while ($reader.Read()) { $reader[0] }
+    $conn.Close()
 }
 Install-SqlLocalDBLatest
 
