@@ -230,11 +230,22 @@ if [[ -n "$PODMAN_IDENTITY" && -n "$PODMAN_PORT" ]]; then
 fi
 EOF
 
+sudo tee /etc/profile.d/dotnet-install.sh > /dev/null <<'EOF'
+if ! command -v dotnet >/dev/null 2>&1 && [[ ! -x "$HOME/.dotnet/bin/dotnet" ]]; then
+    curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel LTS
+else {
+    echo "dotnet SDK was found!"
+fi
+alias dotnet='$HOME/.dotnet/dotnet'
+#export PATH="$HOME/.dotnet:$PATH"
+EOF
+
+
 sudo tee /etc/profile.d/aspire.sh > /dev/null <<'EOF'
 if ! command -v aspire >/dev/null 2>&1 && [[ ! -x "$HOME/.aspire/bin/aspire" ]]; then
     curl -sSL https://aspire.dev/install.sh | bash -s -- --skip-path
 else {
-    echo "aspire CLI is installed!"
+    echo "aspire CLI was found!"
 fi
 export PATH="$HOME/.aspire/bin:$PATH"
 EOF
