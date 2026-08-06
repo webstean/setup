@@ -1219,6 +1219,10 @@ function tc {
     Write-StepSummary -type 'info' 'Starting Terraform Console...'
     terraform.exe console @args
 }
+function ar {
+    Write-StepSummary -type 'info' 'Aspure run...'
+    aspire run @args
+}
 
 ## Sysinternal shortcuts
 ## function handle { handle.exe init -nobanner @args }
