@@ -1220,7 +1220,7 @@ function tc {
     terraform.exe console @args
 }
 function ar {
-    Write-StepSummary -type 'info' 'Aspure run...'
+    Write-StepSummary -type 'info' 'Running Aspire app in current directory...'
     aspire run @args
 }
 
@@ -4320,4 +4320,99 @@ function Get-QuickXorHashFromFile {
 
     return [Convert]::ToBase64String($rgb)
 }
+
+function Connect-AzureCliSession {
+    <#
+    .SYNOPSIS
+        Logs on with Azure CLI and captures TenantId, TenantName, SubscriptionId, and ClientId as variables.
+
+    .DESCRIPTION
+        Runs 'az login' (interactively, or as a service principal if -ClientId/-ClientSecret
+        are supplied), then reads back 'az account show' plus the tenant's display name,
+        and stores everything both as global variables ($global:AzTenantId, etc.) and as the
+        returned object.
+
+    .PARAMETER TenantId
+        Restrict login to a specific Entra tenant.
+
+    .PARAMETER ClientId
+        App (client) ID for a service principal login. If supplied, -ClientSecret is required
+        and the function performs a non-interactive service principal login instead of the
+        normal interactive/browser login.
+
+    .PARAMETER ClientSecret
+        Secret for the service principal identified by -ClientId. SecureString.
+
+    .EXAMPLE
+        Connect-AzureCliSession
+
+    .EXAMPLE
+        Connect-AzureCliSession -TenantId $tenantId -ClientId $appId -ClientSecret (Read-Host -AsSecureString)
+    #>
+    [CmdletBinding(DefaultParameterSetName = 'Interactive')]
+    param(
+        [Parameter(ParameterSetName = 'Interactive')]
+        [Parameter(ParameterSetName = 'ServicePrincipal')]
+        [string]$TenantId,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'ServicePrincipal')]
+        [string]$ClientId,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'ServicePrincipal')]
+        [SecureString]$ClientSecret
+    )
+
+    if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+        throw "Azure CLI ('az') was not found on PATH. Install it first."
+    }
+
+    if ($PSCmdlet.ParameterSetName -eq 'ServicePrincipal') {
+        $plainSecret = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+            [Runtime.InteropServices.Marshal]::SecureStringToBSTR($ClientSecret)
+        )
+        az login --service-principal -u $ClientId -p $plainSecret --tenant $TenantId | Out-Null
+    } elseif ($TenantId) {
+        az login --tenant $TenantId | Out-Null
+    } else {
+        az login | Out-Null
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "az login failed with exit code $LASTEXITCODE."
+    }
+
+    $account = az account show -o json | ConvertFrom-Json
+    if (-not $account) {
+        throw "Could not read account details from 'az account show' after login."
+    }
+
+    $global:AzTenantId       = $account.tenantId
+    $global:AzSubscriptionId = $account.id
+    $global:AzClientId       = if ($PSCmdlet.ParameterSetName -eq 'ServicePrincipal') {
+        $ClientId
+    } elseif ($account.user.type -eq 'servicePrincipal') {
+        $account.user.name
+    } else {
+        $null
+    }
+
+    # az account show doesn't return the tenant's display name; fetch it separately (best-effort)
+    $global:AzTenantName = $null
+    try {
+        $tenants = (az rest --method get --uri "https://management.azure.com/tenants?api-version=2022-12-01" -o json | ConvertFrom-Json).value
+        $global:AzTenantName = ($tenants | Where-Object { $_.tenantId -eq $global:AzTenantId }).displayName
+    } catch {
+        Write-Verbose "Could not resolve tenant display name: $_"
+    }
+
+    [PSCustomObject]@{
+        TenantId         = $global:AzTenantId
+        TenantName       = $global:AzTenantName
+        SubscriptionId   = $global:AzSubscriptionId
+        SubscriptionName = $account.name
+        ClientId         = $global:AzClientId
+        UserName         = $account.user.name
+    }
+}
+#Connect-AzureCliSession
 
