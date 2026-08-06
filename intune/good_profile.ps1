@@ -714,7 +714,7 @@ function Search {
         [string]$Filter
     )
     Write-Output "Searching for '$Filter' in $(Get-Location) and subfolders..."
-    Get-ChildItem -Path . -Recurse -Filter $Filter -Force 2>$null
+    Get-ChildItem -Path . -Recurse -Filter $Filter -Force -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
 }
 
 function Reset-Podman {
