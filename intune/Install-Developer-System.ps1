@@ -73,8 +73,36 @@ function Set-NetworkProfilesToPrivate {
 }
 Set-NetworkProfilesToPrivate
 
-## This won't work on DevBoxes, get access denied
+function Test-EntraIdJoined {
+    [CmdletBinding()]
+    param(
+        [switch]$Detailed
+    )
+
+    $status = dsregcmd /status
+
+    $result = [PSCustomObject]@{
+        AzureAdJoined    = $false
+        DomainJoined     = $false
+        EnterpriseJoined = $false
+        WorkplaceJoined  = $false
+    }
+
+    foreach ($line in $status) {
+        if ($line -match '^\s*(AzureAdJoined|DomainJoined|EnterpriseJoined|WorkplaceJoined)\s*:\s*(\w+)') {
+            $result.($Matches[1]) = ($Matches[2] -eq 'YES')
+        }
+    }
+
+    if ($Detailed) {
+        return $result
+    }
+
+    return $result.AzureAdJoined
+}
+
 function Install-WinRM {
+    
     ## Network profiles MUST be private for WinRM to work (see above)
     Set-NetworkProfilesToPrivate
 
@@ -95,22 +123,33 @@ function Install-WinRM {
     ## default is 500, 8192 would be better for performance
     Set-Item -Path WSMAN:\localhost\MaxEnvelopeSizeKb 8192 -Force
     Set-Item -Path WSMan:\localhost\Client\TrustedHosts -Value * -Force  ## $env:COMPUTERNAME -Force
-    Set-Item -Path WSMan:\localhost\Client\Auth\Kerberos -Value $false
+    Set-Item WSMan:\localhost\Client\TrustedHosts "*" -Force
     Set-Item -Path WSMan:\localhost\Client\AllowUnencrypted -Value $true
-    Set-Item -Path WSMan:\localhost\Service\Auth\Kerberos -Value $false
     Set-Item -Path WSMan:\localhost\Service\AllowUnencrypted -Value $true
     Set-Service -Name WinRM -StartupType Automatic
+    if ( Test-EntraIdJoined) {
+        Write-Host "WSMAN: Entra ID Joined, disabled Kerberos"
+        ## WinRM considers the Microsoft Entra-only joined machines as workgroup machines.
+        ## Default SPN prefix HTTP prevents Microsoft Entra authenticatio, so it needs to be set to HOST
+        Set-Item -Path WSMan:\localhost\Service\Auth\Kerberos -Value $false
+        Set-Item -Path WSMan:\localhost\Client\Auth\Kerberos -Value $false
+        reg add HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WSMAN\Client /v spn_prefix /t REG_SZ /d "HOST" /f
+    } else {
+        Write-Host "WSMAN: NON-Entra ID Joined, enabling Kerberos"
+        Set-Item -Path WSMan:\localhost\Service\Auth\Kerberos -Value $true
+        Set-Item -Path WSMan:\localhost\Client\Auth\Kerberos -Value $true
+        reg add HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WSMAN\Client /v spn_prefix /t REG_SZ /d "HTTP" /f
+    }
     Restart-Service WinRM
     winrm get winrm/config/client
     winrm get winrm/config/service
-    if (Test-WSMan localhost -ErrorAction Continue ) {
-        $cred = Get-Credential
-        Invoke-Command -ComputerName localhost -Authentication Negotiate -Credential $cred -ScriptBlock { hostname }
-        Invoke-Command -ComputerName $env:COMPUTERNAME -Authentication Negotiate -Credential $cred -ScriptBlock { hostname }
-        return $true
-    } else {
-        return $false
-    }
+    Test-WSMan localhost
+    #Set-Item WSMan:\localhost\Client\TrustedHosts -Value "*" -Concatenate -Force
+    Invoke-Command -ScriptBlock { hostname }
+    ## $cred = Get-Credential
+    ## Invoke-Command -ComputerName localhost -Authentication Negotiate -Credential $cred -ScriptBlock { hostname }
+    ## Invoke-Command -ComputerName $env:COMPUTERNAME -Authentication Negotiate -Credential $cred -ScriptBlock { hostname }
+    return $true
 }
 #
 #Install-WinRM
