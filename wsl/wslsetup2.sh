@@ -237,7 +237,7 @@ sudo tee /etc/profile.d/dotnet-install.sh > /dev/null <<'EOF'
 if ! command -v dotnet >/dev/null 2>&1 && [[ ! -x "$HOME/.dotnet/dotnet" ]]; then
     curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel LTS
 else
-    echo "The Dotnet SDK (dotnet) was found!"
+    echo "Microsoft Dotnet SDK (dotnet) was found!"
 fi
 export PATH="$HOME/.dotnet:$PATH"
 EOF
@@ -248,12 +248,11 @@ export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 ## systemctl list-units --type=service --all --no-pager
 EOF
 
-
 sudo tee /etc/profile.d/aspire.sh > /dev/null <<'EOF'
 if ! command -v aspire >/dev/null 2>&1 && [[ ! -x "$HOME/.aspire/bin/aspire" ]]; then
     curl -sSL https://aspire.dev/install.sh | bash -s -- --skip-path
-else {
-    echo "aspire CLI was found!"
+else
+    echo "Aspire CLI (aspire) was found!"
 fi
 export PATH="$HOME/.aspire/bin:$PATH"
 EOF
