@@ -786,15 +786,16 @@ function Reset-Podman {
     try {
         ## Run as required
         if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
-            Write-Host 'Podman was not found/not installed!'
+            Write-Host 'Windows Podman CLI was not found/not installed!'
             return $false
         }
-        if ( ( [bool](Get-Command wslc.exe -ErrorAction SilentlyContinue ))) {
-            Write-Host 'Found WSLC (WSL for Containers) - stopping it...'
-            wslc stop
-        }
+        #if ( ( [bool](Get-Command wslc.exe -ErrorAction SilentlyContinue ))) {
+        #    Write-Host 'Found WSLC (WSL for Containers) - stopping it...'
+        #    wslc stop
+        #}
         podman machine stop
-        podman machine rm --force 
+        wsl --shutdown
+        podman machine rm --force
         podman system connection rm podman-machine-default
         podman system connection rm podman-machine-default-root
         podman machine init --timezone 'Australia/Melbourne'
@@ -805,11 +806,16 @@ function Reset-Podman {
         $PODMAN_PORT = & podman machine inspect podman-machine-default --format '{{.SSHConfig.Port}}'
         $PODMAN_USER = & podman machine inspect --format '{{.SSHConfig.RemoteUsername}}'
         $PODMAN_PATH = & podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}'
-        $PODMAN_CONNECTION = "ssh://${PODMAN_USER}@localhost/${PODMAN_PATH}"
         ## $PODMAN_IDENTITY = '/mnt/c/users/vid9na6/.local/share/containers/podman/machine/machine'
         Write-Host 'In WSL run:'
-        Write-Host "podman-remote system connection add --identity ${PODMAN_IDENTITY} --port ${PODMAN_PORT} winpodman ${PODMAN_CONNECTION}"
-        Write-Host 'podman-remote system connection default winpodman'
+        ## /mnt/c/Users/andreww/.local/share/containers/podman/machine/machine
+        Write-Host 'mkdir -p ~/.ssh && chmod 700 ~/.ssh'
+        Write-Host "key_path=$(wslpath '$PODMAN_IDENTITY')"
+        Write-Host 'cp "$key_path" ~/.ssh/podman-machine-default'
+        Write-Host 'chmod 600 ~/.ssh/podman-machine-default'
+        Write-Host "podman system connection add --default podman-machine-default --identity ~/.ssh/podman-machine-default ssh://user@127.0.0.1:${PODMAN_PORT}/run/user/1000/podman/podman.sock"
+        ## Write-Host "podman-remote system connection add --identity ${PODMAN_IDENTITY} --port ${PODMAN_PORT} winpodman ${PODMAN_CONNECTION}"
+        ## Write-Host 'podman-remote system connection default winpodman'
         #podman machine info
         ## Download and Run Container
         ## podman run --rm quay.io/podman/hello
@@ -2672,10 +2678,6 @@ function Get-TLSInfo {
     )
 
     begin {
-        if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
-            throw "Cannot inspect certificates because PowerShell LanguageMode is '$($ExecutionContext.SessionState.LanguageMode)'."
-        }
-
         # Tracks export paths already written during this pipeline invocation,
         # so piping multiple hosts at the same -ExportCerPath doesn't silently
         # clobber each earlier host's exported certificate.
@@ -3971,7 +3973,7 @@ function Initialize-WinGetCommandNotFound {
 Initialize-WinGetCommandNotFound | Out-Null
 
 function Enable-WSL {
-    [Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:WSL_INSTALLED_TIMEZONE', 'User')
+    [Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:USERDNSDOMAIN:USERDOMAIN:PODMAN_IDENTITY:PODMAN_PORT:USERNAME:UPN:WSL_INSTALLED_TIMEZONE', 'User')
 
     $flagPath = Join-Path $env:ProgramData 'Enable-WSL.done'
     if (Test-Path $flagPath) { return }
@@ -4017,7 +4019,8 @@ fi
         $wslConfigPath = Join-Path $env:USERPROFILE '.wslconfig'
         $content = @"
 [wsl2]
-networkingMode=Mirrored
+networkingMode=NAT
+guiApplications=true
 [experimental]
 hostAddressLoopback=true
 "@
