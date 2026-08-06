@@ -7,6 +7,58 @@
 # set +x to disable
 set -x
 
+sudo_cmd=""
+if [ "$(id -u)" -ne 0 ]; then
+    command -v sudo >/dev/null 2>&1 && sudo_cmd="sudo"
+fi
+
+install_pkg() {
+    if [ "$#" -eq 0 ]; then
+        echo "Usage: install_pkg <package> [package...]" >&2
+        return 1
+    fi
+
+    local sudo_cmd=""
+    if [ "$(id -u)" -ne 0 ]; then
+        command -v sudo >/dev/null 2>&1 && sudo_cmd="sudo"
+    fi
+
+    if command -v apt-get >/dev/null 2>&1; then
+        $sudo_cmd env DEBIAN_FRONTEND=noninteractive apt-get update -y && \
+        $sudo_cmd env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            -o Dpkg::Options::="--force-confdef" \
+            -o Dpkg::Options::="--force-confold" \
+            "$@"
+
+    elif command -v dnf >/dev/null 2>&1; then
+        $sudo_cmd dnf install -y --setopt=install_weak_deps=False "$@"
+
+    elif command -v tdnf >/dev/null 2>&1; then
+        # tdnf (Photon/Azure Linux) has no recommends/weak-deps concept to disable
+        $sudo_cmd tdnf install -y "$@"
+
+    elif command -v yum >/dev/null 2>&1; then
+        # RHEL8+ yum is a dnf wrapper and understands this; classic yum (RHEL/CentOS 7) doesn't
+        if ! $sudo_cmd yum install -y --setopt=install_weak_deps=False "$@" 2>/dev/null; then
+            $sudo_cmd yum install -y "$@"
+        fi
+
+    elif command -v zypper >/dev/null 2>&1; then
+        $sudo_cmd zypper --non-interactive install --no-recommends "$@"
+
+    elif command -v apk >/dev/null 2>&1; then
+        # Alpine has no interactive prompts or recommends concept
+        $sudo_cmd apk add --no-cache "$@"
+
+    elif command -v pacman >/dev/null 2>&1; then
+        # --noconfirm is pacman's non-interactive equivalent
+        $sudo_cmd pacman -Sy --noconfirm "$@"
+
+    else
+        echo "install_pkg: no supported package manager found" >&2
+        return 1
+    fi
+}
 sudo dpkg --configure -a
 
 ## start from scratch - normally no!
@@ -16,8 +68,8 @@ sudo dpkg --configure -a
 ## get everything upto date
 sudo apt-get update -y
 sudo apt-get upgrade -y
-sudo apt-get install -y podman-remote
-sudo apt-get install -y systemd systemd-sysv
+install_pkg podman-remote
+install_pkg systemd systemd-sysv
 
 # Adds Microsoft's official Linux package repository (packages.microsoft.com)
 # for the current Ubuntu release, auto-detecting version from /etc/os-release.
@@ -136,25 +188,26 @@ add_microsoft_repo() {
 }
 add_microsoft_repo
 
-sudo apt-get install -y --no-install-recommends apt-transport-https ca-certificates curl software-properties-common gpg
+install_pkg apt-transport-https ca-certificates curl software-properties-common gpg
 
 ## Install WSL Utilities
 ## https://wslu.wedotstud.io/wslu/
-sudo apt-get install -y wslu
+install_pkg wslu
 #wslsys
 
 ## Install Microsoft fonts
 echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ttf-mscorefonts-installer
+## sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ttf-mscorefonts-installer
+install_pkg ttf-mscorefonts-installer
     
 ## Install Azure Function Toolkit
-#sudo apt-get install -y azure-functions-core-tools
+#install_pkg azure-functions-core-tools
 
 ## Install Microsoft SQL Server Command-Line Tools
-export ACCEPT_EULA=Y && sudo apt-get install -y mssql-tools18
+export ACCEPT_EULA=Y && install_pkg mssql-tools18
 
 ## Install Powershell
-sudo apt-get install -y powershell
+install_pkg powershell
 if [ -f /etc/profile.d/microsoft-powershell.sh ] ; then sudo rm -f /etc/profile.d/microsoft-powershell.sh ; fi
 if (which -s pwsh) ; then 
     sudo sh -c 'echo if \(which -s pwsh\) \; then            >  /etc/profile.d/microsoft-powershell.sh'
@@ -165,7 +218,7 @@ fi
 ## Install Java from Microsoft - but only if java not installed already
 #sudo apt-get install -y default-jre
 if (! which -s java) ; then
-    sudo apt-get install -y msopenjdk-17
+    install_pkg msopenjdk-17
     ## Adding a new alternative for "java".
     #sudo update-alternatives --install /usr/bin/java java /media/mydisk/jdk/bin/java 1
     ## Setting the new alternative as default for "java".
@@ -178,7 +231,7 @@ setup-podman-remote() {
     if [ ! -S "$podman_socket" ]; then
       echo "Podman socket not found (Windows PODMAN not running VM?): $podman_socket" >&2
     else
-      sudo apt install -y podman-remote
+      install_pkg podman-remote
       # Create/replace connection (idempotent-ish)
       podman-remote system connection remove winpodman >/dev/null 2>&1 || true
       podman-remote system connection add winpodman "unix://$podman_socket"
@@ -223,7 +276,7 @@ else
     ## Note, WSL is not supported for Intune enrollment 
 
     ## Microsoft Defender for Endpoint
-    sudo apt-get install -y mdatp
+    install_pkg mdatp
     mdatp --version
     sudo mdatp health
     sudo mdatp health --field real_time_protection_enabled
@@ -231,16 +284,16 @@ else
     ## Microsoft Identity Broker (BIG package - around 350MB ) - need reboot
     #sudo apt install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
     #sudo dnf install -y libx11-6 libc++1 libc++abi1 libsecret-1-0 libwebkit2gtk-4.0-37
-    #sudo apt install -y microsoft-identity-broker
-    #sudo dnf install -y microsoft-identity-broker
-    sudo apt install -y intune-portal 
+    install_pkg intune-portal 
     #sudo apt install -y msft-broker msft-edge
 
     ## need reboot
-    sudo apt install -y microsoft-identity-broker
+    install_pkg microsoft-identity-broker
+    ## dsreg --help
+    dsreg --status
     #sudo apt install -y microsoft-identity-diagnostics ## only avialable on certin Linux distirbutions
     ## and need full desktop
-    sudo apt install -y ubuntu-desktop ## then startx
+    install_pkg ubuntu-desktop ## then startx
 fi
     
 ## Set Timezone - includes keeping the machine to the right time but not sure how?
@@ -251,9 +304,8 @@ timedatectl --no-pager status
 
 source ~/.bashrc
 
-
 ## install and config sysstat
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" sysstat
+install_pkg sysstat
 sudo sh -c 'echo ENABLED="true" >  /etc/default/sysstat'
 sudo systemctl --no-pager stop sysstat 
 sudo systemctl --no-pager enable sysstat 
@@ -272,7 +324,7 @@ curl https://get.wasmer.io -sSfL | sh
 ## wasmer run python/python -- -c "for x in range(999): print(f'{x} square: {x*x}')"
 
 ## Ensure git is install and then configure it 
-sudo apt-get install -y git
+install_pkg git
 if [ -x /usr/bin/git ]; then
     git config --global color.ui true
     git config --global --add safe.directory '*'
@@ -288,10 +340,10 @@ fi
 ## Install Oracle Database Instant Client via permanent OTN link
 oracleinstantclientinstall() {
     # Dependencies for Oracle Client
-    sudo apt-get install -y libaio1
-    sudo apt-get install -y libaio1t64
+    install_pkg libaio1
+    install_pkg libaio1t64
     #apt-get install -y libaio2 
-    apt-get install -y unzip
+    install_pkg unzip
     if [ ! -f /usr/lib/x86_64-linux-gnu/libaio.so.1 ] ; then
         sudo ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
     fi
@@ -386,21 +438,20 @@ oraclesqldeveloperinstall() {
     echo 
 }
 
-
 ## essentials
-sudo apt-get install -y apt-transport-https ca-certificates software-properties-common screenfetch unzip git curl wget jq dos2unix gnupg2 python3 python3-pip
+install_pkg apt-transport-https ca-certificates software-properties-common screenfetch unzip git curl wget jq dos2unix gnupg2 python3 python3-pip
 
 ## build/development dependencies
 if [ -d /usr/local/src ] ; then sudo rm -rf /usr/local/src ; fi
 sudo mkdir -p /usr/local/src && sudo chown ${USER} /usr/local/src && chmod 744 /usr/local/src 
-apt-get install -y build-essential pkg-config intltool libtool autoconf
+install_pkg build-essential pkg-config intltool libtool autoconf
 
 install-sqlite() {
     ## sqllite
-    sudo apt-get install -y sqlite3 sqlite3-tools libsqlite3-dev
+    install_pkg sqlite3 sqlite3-tools libsqlite3-dev
     if (which -s sqlite3 ) ; then
         ## Install browser (X11) for sqlite
-        sudo apt-get install -y sqlitebrowser
+        install_pkg sqlitebrowser
     fi
     if (which -s sqlitebrowserxxxx ) ; then
         ## Run SQLite browser (X11) for sqlite
@@ -441,7 +492,6 @@ sudo sh -c 'echo export HISTCONTROL=ignoreboth                         >>  /etc/
 
 sudo sh -c 'echo "# Append to the history file, dont overwrite it."    >>  /etc/profile.d/bash.sh'
 sudo sh -c 'echo shopt -s histappend                                   >>  /etc/profile.d/bash.sh'
-
 
 sudo tee /etc/profile.d/bash.sh >/dev/null <<'EOF'
 # Improve output of less for binary files
@@ -486,8 +536,7 @@ sudo sh -c 'echo fi                                                        >> /e
 #sudo sh -c 'echo "export WINHOME=\$(wslpath \"\$(wslvar USERPROFILE)\")"   > /etc/profile.d/winhome.sh'
 
 ## Install Node.js + npm
-sudo apt install -y nodejs npm
-
+install_pkg nodejs npm
 if [ -f /etc/profile.d/nodejs.sh ] ; then sudo rm -f /etc/profile.d/nodejs.sh ; fi
 if (which -s node) ; then 
     sudo sh -c 'echo if \(which -s node\) \; then           >  /etc/profile.d/nodejs.sh'
@@ -540,7 +589,7 @@ setup-starship() {
     ## Starship - cross shell prompt
     ## https://starship.rs/
    
-    sudo apt install -y fonts-firacode
+    install_pkg fonts-firacode
    
     ## wants to be installed posis sh, not bash
     curl -fsSL https://starship.rs/install.sh | /bin/sh -s -- -y
@@ -629,7 +678,7 @@ joinactivedirectory() {
     FULLJOINACC = '${JOINACC}@${USERDNSDOMAIN}'
         
     ## Dependencies for AD Join
-    sudo apt-get install -y realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
+    install_pkg realmd sssd krb5-workstation krb5-libs oddjob oddjob-mkhomedir samba-common-tools
     #apt-get install -y cifs-utils
     ## Info on Domain
     echo "Join AD domain: ${USERDNSDOMAIN}"
@@ -647,8 +696,8 @@ joinactivedirectory() {
 ## Mount SMB Azure File Share on Linux - expects to already be logged in with az login
 mountazurefiles() {
     ## https://learn.microsoft.com/en-us/azure/storage/files/storage-how-to-use-files-linux?tabs=Ubuntu%2Csmb311
-    ${CMD_INSTALL} cifs-utils
-    ${CMD_INSTALL} autofs
+    install_pkg cifs-utils
+    install_pkg autofs
     
     az login
     if [ -z ${RESOURCE_GROUP_NAME} ] ; then
@@ -674,7 +723,7 @@ mountazurefiles() {
 ## Azure IOTEdge
 setup-iotedge() {
     if (true) ; then
-        sudo apt-get -y update; sudo apt-get -y install moby-engine  
+        install_pkg moby-engine  
         if [ -f /etc/docker/daemon.json ] ; then
             sudo sh -c "{                                >  ~/config-docker-for-iotedge.sh"
             sudo sh -c "    \"log-driver\": \"local\"    >> ~/config-docker-for-iotedge.sh"
@@ -687,7 +736,7 @@ setup-iotedge() {
         #sudo apt-get -y install aziot-edge defender-iot-micro-agent-edge
         #sudo apt-get -y install aziot-edge defender-iot-micro-agent-edge
 
-        sudo apt-get -y install aziot-edge aziot-identity-service
+        install_pkg aziot-edge aziot-identity-service
         ## sudo iotedge config mp --connection-string 'PASTE_DEVICE_CONNECTION_STRING_HERE'
         ## sudo iotedge config apply -c '/etc/aziot/config.toml'
         sudo iotedge system status
