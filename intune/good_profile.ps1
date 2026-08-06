@@ -639,7 +639,9 @@ if ([bool](Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage
 # Get the current language mode
 if ($IsLanguagePermissive) {
     Write-Host -ForegroundColor DarkGreen "PowerShell Language Mode is: $currentMode"
-    $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    ## Ensure running as Administrator
+    $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
+    $IsAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 } else {
     Write-Host -ForegroundColor DarkYellow "PowerShell Language Mode is: $currentMode (most advanced things won't work here)"
     $IsAdmin = $null -ne (whoami /groups | Select-String 'S-1-5-32-544')
