@@ -216,7 +216,16 @@ fi
 ## Configure Podman
 sudo tee /etc/profile.d/podman-remote.sh > /dev/null <<'EOF'
 if [[ -n "$PODMAN_IDENTITY" && -n "$PODMAN_PORT" ]]; then
-    echo "podman set to use Podman Desktop on Windows"
+    if [ ! -d ~/.ssh ]; then
+        mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    fi
+    cp -f $PODMAN_IDENTITY  ~/.ssh/podman-machine-default
+    chmod 600 ~/.ssh/podman-machine-default
+    podman-remote system connection add --default winpodman --identity ~/.ssh/podman-machine-default "ssh://user@127.0.0.1:${PODMAN_PORT}/run/user/1000/podman/podman.sock"
+    echo "podman is set to use Podman Desktop on Windows"
+    #podman-remote run quay.io/podman/hello
+    #podman system info
+    alias podman=podman-remote
 fi
 EOF
     
