@@ -212,6 +212,13 @@ if (which -s pwsh) ; then
     sudo sh -c 'echo    echo \"PowerShell \(pwsh\) found!\"  >> /etc/profile.d/microsoft-powershell.sh'
     sudo sh -c 'echo fi                                      >> /etc/profile.d/microsoft-powershell.sh'
 fi
+
+## Configure Podman
+sudo tee /etc/profile.d/podman-remote.sh > /dev/null <<'EOF'
+if [[ -n "$PODMAN_IDENTITY" && -n "$PODMAN_PORT" ]]; then
+    echo "podman set to use Podman Desktop on Windows"
+fi
+EOF
     
 ## Install Java from Microsoft - but only if java not installed already
 #sudo apt-get install -y default-jre
