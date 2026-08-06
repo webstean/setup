@@ -66,8 +66,6 @@ sudo dpkg --configure -a
 #if [ ! -d /opt ] ; then sudo mkdir -p /opt ; sudo chmod 755 /opt ; fi 
 
 ## get everything upto date
-sudo apt-get update -y
-sudo apt-get upgrade -y
 install_pkg podman-remote
 install_pkg systemd systemd-sysv
 
