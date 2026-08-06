@@ -1001,30 +1001,30 @@ if (-not (Test-Path -Path "${Scripts}" -PathType Container -ErrorAction Silently
     Write-Output "Directory ${Scripts} already exists." 
 }
 
-Write-Output 'Turning off Sysinternals EULA prompt.' 
-if (-not (Test-Path -Path 'HKCU:\Software\Sysinternals')) {
-    New-Item -Path 'HKCU:\Software\Sysinternals' -Force | Out-Null
-}
-if (-not (Test-Path -Path 'HKLM:\Software\Sysinternals')) {
-    New-Item -Path 'HKLM:\Software\Sysinternals' -Force | Out-Null
-}
-
-if (Get-ItemProperty -Path 'HKCU:\Software\Sysinternals' -Name 'EulaAccepted' -ErrorAction SilentlyContinue) {
-    Set-ItemProperty -Path 'HKCU:\Software\Sysinternals' -Name 'EulaAccepted' -Value 1
-} else {
-    New-ItemProperty -Path 'HKCU:\Software\Sysinternals' -Name 'EulaAccepted' -PropertyType DWORD -Value 1
-}
-if (Get-ItemProperty -Path 'HKLM:\Software\Sysinternals' -Name 'EulaAccepted' -ErrorAction SilentlyContinue) {
-    Set-ItemProperty -Path 'HKLM:\Software\Sysinternals' -Name 'EulaAccepted' -Value 1
-} else {
-    New-ItemProperty -Path 'HKLM:\Software\Sysinternals' -Name 'EulaAccepted' -PropertyType DWORD -Value 1
-}
-
 function Install-SysInternalsTools {
     param (
         [Parameter(Mandatory = $true)]
         [string]$Bin
     )
+
+    Write-Output 'Turning off Sysinternals EULA prompt.' 
+    if (-not (Test-Path -Path 'HKCU:\Software\Sysinternals')) {
+        New-Item -Path 'HKCU:\Software\Sysinternals' -Force | Out-Null
+    }
+    if (-not (Test-Path -Path 'HKLM:\Software\Sysinternals')) {
+        New-Item -Path 'HKLM:\Software\Sysinternals' -Force | Out-Null
+    }
+
+    if (Get-ItemProperty -Path 'HKCU:\Software\Sysinternals' -Name 'EulaAccepted' -ErrorAction SilentlyContinue) {
+        Set-ItemProperty -Path 'HKCU:\Software\Sysinternals' -Name 'EulaAccepted' -Value 1
+    } else {
+        New-ItemProperty -Path 'HKCU:\Software\Sysinternals' -Name 'EulaAccepted' -PropertyType DWORD -Value 1
+    }
+    if (Get-ItemProperty -Path 'HKLM:\Software\Sysinternals' -Name 'EulaAccepted' -ErrorAction SilentlyContinue) {
+        Set-ItemProperty -Path 'HKLM:\Software\Sysinternals' -Name 'EulaAccepted' -Value 1
+    } else {
+        New-ItemProperty -Path 'HKLM:\Software\Sysinternals' -Name 'EulaAccepted' -PropertyType DWORD -Value 1
+    }
 
     Write-Output 'Installing a small subset of SysInternals tools...' 
 
@@ -1154,18 +1154,7 @@ aspire config set features.singlefileAppHostEnabled true
 # Disable the minimum SDK version check
 #aspire config set features.minimumSdkCheckEnabled false
 
-$wauConfig = 'C:\ProgramData\Winget-AutoUpdate\Winget-AutoUpdate.json'
-if (Test-Path $wauConfig) {
-    $json = Get-Content $wauConfig | ConvertFrom-Json
-    $json.ToastNotification = $false
-    $json.ShowInstallerResults = $false
-    $json.ShowUpdatesFound = $false
-    $json | ConvertTo-Json -Depth 4 | Set-Content $wauConfig -Encoding UTF8
-}
-
 Add-Type -AssemblyName System.Windows.Forms
-
-
 
 openfiles /local on
 ## SUCCESS: The system global flag 'maintain objects list' is enabled.
