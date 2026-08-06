@@ -1129,6 +1129,7 @@ function Install-SysInternalsTools {
 Install-SysInternalsTools -Bin $BIN
 Add-MpPreference -ExclusionPath $BIN
 Add-MpPreference -ExclusionPath 'C:\Program Files\starship\'
+Add-MpPreference -ExclusionPath "%USERPROFILE%\.local\share\containers"
 #Get-MpPreference
 
 function Add-WSLShortcutToDesktop {
