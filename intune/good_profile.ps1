@@ -3331,12 +3331,10 @@ function Install-OrUpdate-Module {
     $PSDefaultParameterValues['*:Verbose'] = $false
 
     try {
-        # TLS 1.2 for older Windows / PS 5.1 gallery access
-        [Net.ServicePointManager]::SecurityProtocol =
-        [Net.ServicePointManager]::SecurityProtocol -bor
-        [Net.SecurityProtocolType]::Tls12
+        ## TLS 1.2 for older Windows / PS 5.1 gallery access
+        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
-        # Trust PSGallery for legacy Install-Module path (PowerShellGet v2)
+        ## Trust PSGallery for legacy Install-Module path (PowerShellGet v2)
         if (Get-Command Set-PSRepository -ErrorAction SilentlyContinue) {
             $psg = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
             if ($psg -and $psg.InstallationPolicy -ne 'Trusted') {
@@ -3344,20 +3342,17 @@ function Install-OrUpdate-Module {
             }
         }
 
-        # If PSResourceGet cmdlets not available, bootstrap silently.
+        ## If PSResourceGet cmdlets not available, bootstrap silently.
         if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
-
             # On Windows PowerShell 5.1, avoid NuGet provider prompts for Install-Module
             if ($PSVersionTable.PSVersion.Major -lt 6 -and (Get-Command Install-PackageProvider -ErrorAction SilentlyContinue)) {
                 Invoke-WithRetry -Action 'Install NuGet provider' -Script {
                     Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Confirm:$false | Out-Null
                 }
             }
-
             Invoke-WithRetry -Action 'Install Microsoft.PowerShell.PSResourceGet' -Script {
                 Install-Module -Name Microsoft.PowerShell.PSResourceGet -Scope $Scope -Force -AllowClobber -Confirm:$false
             }
-
             Import-Module Microsoft.PowerShell.PSResourceGet -Force
         }
 
@@ -3984,9 +3979,7 @@ function Enable-WSL {
     [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:DOCKER_HOST:PODMAN_IDENTITY/p:PODMAN_PORT:PODMAN_CONNECTION/p:WSL_INSTALLED_TIMEZONE', 'User')
 
     ## Ensure running as Administrator
-    $principal = [Security.Principal.WindowsPrincipal]::new(
-        [Security.Principal.WindowsIdentity]::GetCurrent()
-    )
+    $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         throw 'Local Administrator privileges are required to enable WSL.'
     }
@@ -4087,9 +4080,7 @@ sudo apt-get install -y podman-remote
 Enable-WSL
 
 function Reset-WSL {
-    $principal = [Security.Principal.WindowsPrincipal]::new(
-        [Security.Principal.WindowsIdentity]::GetCurrent()
-    )
+    $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         throw 'Local Administrator privileges are required to reset WSL.'
     }
@@ -4119,7 +4110,8 @@ function Set-WSLConfig-Ubuntu {
     if ($env:WSL_INSTALLED_DISTRIBUTION -ne 'Ubuntu') {
         Write-Warning "Ubuntu not installed"
         return
-    $principal = [Security.Principal.WindowsPrincipal]::new(Security.Principal.WindowsIdentity]::GetCurrent())
+    }
+    $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         throw 'Local Administrator privileges are required to config Ubuntu with WSL.'
     }
