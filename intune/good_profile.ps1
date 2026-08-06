@@ -4008,6 +4008,33 @@ sudo apt-get install -y podman-remote
 }
 Enable-WSL
 
+function Set-WSLConfig-Ubuntu {
+    if ([Environment]::GetEnvironmentVariable('WSL_INSTALLED_DISTRIBUTION', [EnvironmentVariableTarget]::User) -ne 'Ubuntu') {
+        Write-Warning "Ubuntu not installed"
+        return
+    }
+
+    #$principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
+    #if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    #    throw 'Local Administrator privileges are required to config Ubuntu with WSL.'
+    #}
+
+    try {
+        Write-Output "Configuring Ubuntu inside WSL..."
+        $wslsetuppre = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup-pre.sh' -UseBasicParsing).Content -replace "`r", ''
+        $wslsetup1   = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh' -UseBasicParsing).Content -replace "`r", ''
+        $wslsetup2   = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh' -UseBasicParsing).Content -replace "`r", ''
+
+        ($wslsetuppre + "`n" + $wslsetup1) | wsl --user root --distribution "${env:WSL_INSTALLED_DISTRIBUTION}" -- bash
+        wsl --terminate "${env:WSL_INSTALLED_DISTRIBUTION}"
+        $wslsetup2 | wsl --user root --distribution "${env:WSL_INSTALLED_DISTRIBUTION}" -- bash
+    }
+    catch {
+        Write-Error "Set-WSLConfig-Ubuntu failed: $_"
+    }
+}
+#Set-WSLConfig-Ubuntu
+
 function Reset-WSL {
     $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
@@ -4031,35 +4058,10 @@ function Reset-WSL {
     }
     finally {
         Enable-WSL
+        Set-WSLConfig-Ubuntu
     }
 }
 #Reset-WSL
-
-function Set-WSLConfig-Ubuntu {
-    if ($env:WSL_INSTALLED_DISTRIBUTION -ne 'Ubuntu') {
-        Write-Warning "Ubuntu not installed"
-        return
-    }
-    $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        throw 'Local Administrator privileges are required to config Ubuntu with WSL.'
-    }
-
-    try {
-        Write-Output "Configuring Ubuntu inside WSL..."
-        $wslsetuppre = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup-pre.sh' -UseBasicParsing).Content -replace "`r", ''
-        $wslsetup1   = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh' -UseBasicParsing).Content -replace "`r", ''
-        $wslsetup2   = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh' -UseBasicParsing).Content -replace "`r", ''
-
-        ($wslsetuppre + "`n" + $wslsetup1) | wsl --user root --distribution "${env:WSL_INSTALLED_DISTRIBUTION}" -- bash
-        wsl --terminate "${env:WSL_INSTALLED_DISTRIBUTION}"
-        $wslsetup2 | wsl --user root --distribution "${env:WSL_INSTALLED_DISTRIBUTION}" -- bash
-    }
-    catch {
-        Write-Error "Set-WSLConfig-Ubuntu failed: $_"
-    }
-}
-#Set-WSLConfig-Ubuntu
 
 ## https://github.com/direnv/direnv
 ## .envrc files are written in shell syntax, even when you're using PowerShell. direnv reads the file and then injects the resulting environment variables into your PowerShell session.
