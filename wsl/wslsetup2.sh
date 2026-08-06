@@ -221,8 +221,11 @@ if [[ -n "$PODMAN_IDENTITY" && -n "$PODMAN_PORT" ]]; then
     fi
     cp -f $PODMAN_IDENTITY  ~/.ssh/podman-machine-default
     chmod 600 ~/.ssh/podman-machine-default
+    if [ "$(id -u)" -ne 0 ]; then
+        sudo usermod --append --groups 10 "$USER"
+    fi
     podman-remote system connection add --default winpodman --identity ~/.ssh/podman-machine-default "ssh://user@127.0.0.1:${PODMAN_PORT}/run/user/1000/podman/podman.sock"
-    echo "podman is set to use Podman Desktop on Windows"
+    echo "podman (podman-remote) is set to use Podman Desktop on Windows!"
     #podman-remote run quay.io/podman/hello
     #podman system info
     alias podman=podman-remote
@@ -233,11 +236,10 @@ EOF
 sudo tee /etc/profile.d/dotnet-install.sh > /dev/null <<'EOF'
 if ! command -v dotnet >/dev/null 2>&1 && [[ ! -x "$HOME/.dotnet/dotnet" ]]; then
     curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel LTS
-else {
-    echo "dotnet SDK was found!"
+else
+    echo "The Dotnet SDK (dotnet) was found!"
 fi
-alias dotnet='$HOME/.dotnet/dotnet'
-#export PATH="$HOME/.dotnet:$PATH"
+export PATH="$HOME/.dotnet:$PATH"
 EOF
 
 sudo tee /etc/profile.d/systemctl-config.sh > /dev/null <<'EOF'
@@ -266,27 +268,6 @@ if (! which -s java) ; then
     #sudo update-alternatives --config java
 fi
 
-## Podman Remote - using Windows
-setup-podman-remote() {
-    podman_socket="$(find /mnt/wsl/podman-sockets -name '*.sock' | head -n 1)"
-    if [ ! -S "$podman_socket" ]; then
-      echo "Podman socket not found (Windows PODMAN not running VM?): $podman_socket" >&2
-    else
-      install_pkg podman-remote
-      # Create/replace connection (idempotent-ish)
-      podman-remote system connection remove winpodman >/dev/null 2>&1 || true
-      podman-remote system connection add winpodman "unix://$podman_socket"
-      podman-remote system connection default winpodman
-      # Only do this if user isn't root, add user to uucp (permission for podman to work)
-      if [ "$(id -u)" -ne 0 ]; then
-        sudo usermod --append --groups 10 "$USER"
-      fi
-      podman-remote ps
-      podman-remote info
-      podman-remote run --rm quay.io/podman/hello
-    fi
-}
-
 ## Check if WSL2, - XWindows is supported (natively) - so install some GUI stuff and get sound working
 if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
     if ! [ -x /usr/bin/sqlitebrowser ] ; then
@@ -295,8 +276,6 @@ if [[ $(grep -i WSL2 /proc/sys/kernel/osrelease) ]] ; then
         ## Start xeyes to show X11 working - hopefully (now just works with WSL 2 plus GUI)
         xeyes &
     fi
-    ## Tell podman to use Windows - Podman Desktop
-    setup-podman-remote
     ## WSL Audio (via Pulse Audio) -- THIS IS NOT DONE AUTOMATIC by WSL
     ## https://github.com/mikeroyal/PipeWire-Guide
     sudo apt-get install -y pulseaudio pulseaudio-utils mpv
@@ -540,13 +519,6 @@ sudo tee /etc/profile.d/bash.sh >/dev/null <<'EOF'
 # Alias to provide distribution name"
 alias distribution='. /etc/os-release; echo "$ID $VERSION_ID"'
 EOF
-
-if (which -s podman-remote) ; then
-    sudo sh -c 'echo "# Alias for podman"                                >> /etc/profile.d/podman-remote.sh'
-    sudo sh -c 'echo "alias podman='podman-remote'"                      >> /etc/profile.d/podman-remote.sh'
-    sudo sh -c 'echo "#podman-remote system connection list"             >> /etc/profile.d/podman-remote.sh'
-    sudo sh -c 'echo "echo \"Podman (podman-remote) found!\""            >> /etc/profile.d/podman-remote.sh'
-fi
 
 ## Azure cloud environment
 sudo sh -c 'echo "# Setup Azure environment up - if it exists"               >  /etc/profile.d/hyperscale-azure.sh'
