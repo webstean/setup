@@ -105,10 +105,9 @@ function Update-ProfileForce {
 function Test-NFS {
     [CmdletBinding()]
     param()
-    # Ensure running as Administrator
-    $principal = [Security.Principal.WindowsPrincipal]::new(
-        [Security.Principal.WindowsIdentity]::GetCurrent()
-    )
+
+    ## Ensure running as Administrator
+    $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         throw 'Administrator privileges are required to install NFS.'
     }
@@ -159,10 +158,9 @@ function Test-NFS {
 function Install-WindowsNfsClient {
     [CmdletBinding()]
     param()
-    # Ensure running as Administrator
-    $principal = [Security.Principal.WindowsPrincipal]::new(
-        [Security.Principal.WindowsIdentity]::GetCurrent()
-    )
+
+    ## Ensure running as Administrator
+    $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         throw 'Administrator privileges are required to install NFS.'
     }
@@ -286,7 +284,6 @@ function Install-WindowsNfsClient {
     }
 }
 
-
 function Get-DotNetHostInfo {
     [CmdletBinding()]
     param()
@@ -362,66 +359,6 @@ function New-ProfileObject {
 #            Where-Object { $_.GetName().Name -eq 'System.Text.Json' } |
 #            ForEach-Object { "{0} | {1}" -f $_.GetName().Version, $_.Location }
 #        )
-
-function Get-ClmAuditState {
-    [CmdletBinding()]
-    param()
-
-    $languageMode = $ExecutionContext.SessionState.LanguageMode.ToString()
-
-    $envPolicy = $null
-    if (Test-Path -LiteralPath 'Env:\__PSLockdownPolicy') {
-        $envPolicy = $env:__PSLockdownPolicy
-    }
-
-    $isConstrained = $languageMode -eq 'ConstrainedLanguage'
-
-    $isAudit = $false
-    $isEnforced = $false
-    $confidence = 'Low'
-
-    switch ($envPolicy) {
-        '8' {
-            $isAudit = $true
-            $confidence = 'Medium (__PSLockdownPolicy)'
-        }
-        '4' {
-            $isEnforced = $true
-            $confidence = 'Medium (__PSLockdownPolicy)'
-        }
-        default {
-            if ($isConstrained) {
-                $isEnforced = $true
-                $confidence = 'Medium (LanguageMode only)'
-            }
-        }
-    }
-
-    New-ProfileObject @{
-        LanguageMode      = $languageMode
-        EnvLockdownPolicy = $envPolicy
-        IsConstrained     = $isConstrained
-        IsAudit           = $isAudit
-        IsEnforced        = $isEnforced
-        Confidence        = $confidence
-    }
-}
-
-function Get-ConstrainedLanguageState {
-    [CmdletBinding()]
-    param()
-
-    $languageMode = $ExecutionContext.SessionState.LanguageMode
-    $lockdownPolicy = $ExecutionContext.SessionState.PSVariable.GetValue('__PSLockdownPolicy')
-
-    New-ProfileObject @{
-        LanguageMode   = $languageMode
-        LockdownPolicy = $lockdownPolicy
-        IsConstrained  = ($languageMode -eq 'ConstrainedLanguage')
-        IsAudit        = ((Get-ClmAuditState).IsAudit -eq $true)
-        IsEnforced     = ((Get-ClmAuditState).IsEnforced -eq $true)
-    }
-}
 
 function Invoke-WindowsPowerShell {
     [CmdletBinding()]
@@ -1242,7 +1179,6 @@ if ($env:STARSHIP_CONFIG -and (Test-Path "$env:STARSHIP_CONFIG" -PathType Leaf) 
 }
 
 function Reset-GitBranch {
-
     # Check Git availability
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
         Write-Error 'Git is not installed or not available in PATH.'
@@ -3978,12 +3914,6 @@ Initialize-WinGetCommandNotFound | Out-Null
 function Enable-WSL {
     [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:DOCKER_HOST:PODMAN_IDENTITY/p:PODMAN_PORT:PODMAN_CONNECTION/p:WSL_INSTALLED_TIMEZONE', 'User')
 
-    ## Ensure running as Administrator
-    $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        throw 'Local Administrator privileges are required to enable WSL.'
-    }
-    
     if ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue )) {
         try {
             Set-Item -Path Env:\PODMAN_IDENTITY -Value (& podman machine inspect --format '{{.SSHConfig.IdentityPath}}')
