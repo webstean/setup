@@ -4059,49 +4059,94 @@ function Reset-WSL {
 }
 #Reset-WSL
 
-## https://github.com/direnv/direnv
-## .envrc files are written in shell syntax, even when you're using PowerShell. direnv reads the file and then injects the resulting environment variables into your PowerShell session.
-## New-Item .envrc -ItemType File
-if (Get-Command direnv -ErrorAction SilentlyContinue ) {
+function Enable-DirenvIntegration {
+    <#
+    .SYNOPSIS
+        Hooks direnv into the current PowerShell session so .envrc files load/unload automatically as you cd between directories.
+
+    .DESCRIPTION
+        https://github.com/direnv/direnv
+
+        .envrc files are written in shell syntax, even when you're using PowerShell.
+        direnv reads the file and injects the resulting environment variables into your PowerShell session.
+
+        Example .envrc (create one with: New-Item .envrc -ItemType File):
+
+            # .envrc
+            export ASPIRE_CONTAINER_RUNTIME=podman
+            export DATABASE_URL="Server=(localdb)\MSSQLLocalDB;Integrated Security=true;"
+            PATH_add bin
+            layout python
+
+        After creating a .envrc, run `direnv allow` once inside that directory —
+        direnv refuses to load any .envrc it hasn't been explicitly told to trust.
+
+    .NOTES
+        Call this once from your $PROFILE. Requires direnv.exe on PATH
+        (e.g. `winget install direnv`); does nothing if direnv isn't found.
+        Safe to call more than once — subsequent calls are a no-op.
+    #>
+    [CmdletBinding()]
+    param()
+
+    if ($global:__DirenvIntegrationEnabled) {
+        Write-Verbose "direnv integration already enabled; skipping."
+        return
+    }
+
+    if (-not (Get-Command direnv -ErrorAction SilentlyContinue)) {
+        Write-Verbose "direnv not found on PATH; skipping direnv integration."
+        return
+    }
+
     $env:DIRENV_LOG_FORMAT = ''
 
-    $script:DirenvLastPath = $null
+    function global:Invoke-RepoDirenv {
+        [CmdletBinding()]
+        param()
 
-    function Invoke-RepoDirenv {
-        $repoRoot = git rev-parse --show-toplevel 2>$null
-
-        $shouldRunDirenv = $false
-
-        if ($repoRoot) {
-            $envrcPath = Join-Path $repoRoot '.envrc'
-
-            if (Test-Path -LiteralPath $envrcPath) {
+        try {
+            $repoRoot = git rev-parse --show-toplevel 2>$null
+            $shouldRunDirenv = $false
+            if ($repoRoot) {
+                $envrcPath = Join-Path $repoRoot '.envrc'
+                if (Test-Path -LiteralPath $envrcPath) {
+                    $shouldRunDirenv = $true
+                }
+            }
+            # Also run direnv when leaving a previously loaded repo, so it can unload vars
+            if (-not $shouldRunDirenv -and $env:DIRENV_DIR) {
                 $shouldRunDirenv = $true
             }
-        }
-
-        # Also run direnv when leaving a previously loaded repo, so it can unload vars
-        if (-not $shouldRunDirenv -and $env:DIRENV_DIR) {
-            $shouldRunDirenv = $true
-        }
-
-        if ($shouldRunDirenv) {
-            $direnvOutput = direnv export pwsh 2>$null
-
-            if ($direnvOutput) {
-                Invoke-Expression $direnvOutput
+            if ($shouldRunDirenv) {
+                $direnvOutput = direnv export pwsh 2>$null
+                if ($direnvOutput) {
+                    Invoke-Expression $direnvOutput
+                }
             }
+        } catch {
+            Write-Verbose "Invoke-RepoDirenv failed: $_"
         }
     }
 
-    function prompt {
-        Invoke-RepoDirenv -ErrorAction SilentlyContinue
-        "PS $($executionContext.SessionState.Path.CurrentLocation)> "
+    # Preserve any existing prompt (Oh My Posh, Starship, posh-git, etc.) instead of clobbering it
+    if (Test-Path Function:\prompt) {
+        $global:PreDirenvPrompt = $function:prompt
     }
 
-    ##    Invoke-Expression "$(direnv hook pwsh)"
-    Write-StepSummary -ShowTimeStamp $false -type 'info' "Enabled 'direnv' to pickup environment variables from the '.envrc' file (if found)"
+    function global:prompt {
+        Invoke-RepoDirenv
+        if ($global:PreDirenvPrompt) {
+            & $global:PreDirenvPrompt
+        } else {
+            "PS $($executionContext.SessionState.Path.CurrentLocation)> "
+        }
+    }
+
+    $global:__DirenvIntegrationEnabled = $true
+    Write-StepSummary -ShowTimeStamp $false -type 'info' "Enabled 'direnv' to pick up environment variables from the '.envrc' file (if found)"
 }
+Enable-DirenvIntegration
 
 function Initialize-GitHubCliAuth {
     [CmdletBinding()]
