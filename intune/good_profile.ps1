@@ -3973,7 +3973,7 @@ function Initialize-WinGetCommandNotFound {
 Initialize-WinGetCommandNotFound | Out-Null
 
 function Enable-WSL {
-    [Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:USERDNSDOMAIN:USERDOMAIN:PODMAN_IDENTITY:PODMAN_PORT:USERNAME:UPN:WSL_INSTALLED_TIMEZONE', 'User')
+    [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:DOCKER_HOST:PODMAN_IDENTITY/p:PODMAN_PORT:PODMAN_CONNECTION/p:WSL_INSTALLED_TIMEZONE', 'User')
 
     $flagPath = Join-Path $env:ProgramData 'Enable-WSL.done'
     if (Test-Path $flagPath) { return }
