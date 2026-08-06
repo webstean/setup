@@ -102,6 +102,94 @@ function Update-ProfileForce {
 }
 #Update-ProfileForce
 
+function Get-WindowsEditionInfo {
+    [CmdletBinding()]
+    param(
+        [string]$ComputerName = $env:COMPUTERNAME
+    )
+
+    try {
+        $cim = Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $ComputerName -ErrorAction Stop
+    }
+    catch {
+        Write-Error "Failed to query Win32_OperatingSystem on $ComputerName : $_"
+        return
+    }
+
+    # Registry path — works locally; for remote, use Invoke-Command or remote registry provider
+    $regPath = if ($ComputerName -eq $env:COMPUTERNAME) {
+        'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+    } else {
+        $null
+    }
+
+    if ($regPath) {
+        $reg = Get-ItemProperty -Path $regPath -ErrorAction SilentlyContinue
+    } else {
+        # Remote fallback via CIM/WMI registry provider
+        $reg = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
+            Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+        } -ErrorAction SilentlyContinue
+    }
+
+    $productName   = $reg.ProductName
+    $editionId     = $reg.EditionID
+    $releaseId     = $reg.ReleaseId
+    $displayVer    = $reg.DisplayVersion
+    $currentBuild  = $reg.CurrentBuild
+    $ubr           = $reg.UBR
+    $installType   = $reg.InstallationType   # e.g. "Client", "Server", "Client Core"
+    $compositionEd = $reg.CompositionEditionID  # sometimes populated on IoT/LTSC images
+
+    # Detect LTSC — EditionID and ProductName both carry "LTSC" on 10/11,
+    # older 2015/2016 LTSB builds carry "LTSB" instead
+    $isLTSC = ($editionId -match 'LTSC') -or ($productName -match 'LTSC')
+    $isLTSB = ($editionId -match 'LTSB') -or ($productName -match 'LTSB')
+
+    # Detect IoT
+    $isIoT = ($editionId -match 'IoT') -or ($productName -match 'IoT')
+
+    # Servicing channel classification
+    $servicingChannel = if ($isLTSC -or $isLTSB) {
+        'LTSC'
+    } elseif ($installType -eq 'Server') {
+        'Server'
+    } else {
+        'GAC'   # General Availability Channel (was "SAC" pre-2021 naming)
+    }
+
+    # Build-to-release mapping for major Win10/11 releases (extend as needed)
+    $buildMap = @{
+        '19044' = '21H2 (Win10)'
+        '19045' = '22H2 (Win10)'
+        '22621' = '22H2 (Win11)'
+        '22631' = '23H2 (Win11)'
+        '26100' = '24H2 (Win11)'
+    }
+    $friendlyRelease = $buildMap[$currentBuild]
+
+    [PSCustomObject]@{
+        ComputerName      = $ComputerName
+        ProductName       = $productName
+        EditionID         = $editionId
+        CompositionEdID   = $compositionEd
+        DisplayVersion    = $displayVer
+        ReleaseId         = $releaseId
+        FriendlyRelease   = $friendlyRelease
+        CurrentBuild      = $currentBuild
+        UBR               = $ubr
+        FullBuildNumber   = "$currentBuild.$ubr"
+        InstallationType  = $installType
+        ServicingChannel  = $servicingChannel
+        IsLTSC            = $isLTSC
+        IsLTSB            = $isLTSB
+        IsIoT             = $isIoT
+        OSArchitecture    = $cim.OSArchitecture
+        Caption           = $cim.Caption
+        Version           = $cim.Version
+    }
+}
+
 function Test-NFS {
     [CmdletBinding()]
     param()
