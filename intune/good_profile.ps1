@@ -782,6 +782,14 @@ function Search {
 }
 
 function Reset-Podman {
+
+    ## Ensure running as Administrator
+    $principal = [Security.Principal.WindowsPrincipal]::new(
+        [Security.Principal.WindowsIdentity]::GetCurrent()
+    )
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw 'Local Administrator privileges are required to reset podman.'
+    }
     
     try {
         ## Run as required
@@ -3975,6 +3983,14 @@ Initialize-WinGetCommandNotFound | Out-Null
 function Enable-WSL {
     [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:DOCKER_HOST:PODMAN_IDENTITY/p:PODMAN_PORT:PODMAN_CONNECTION/p:WSL_INSTALLED_TIMEZONE', 'User')
 
+    ## Ensure running as Administrator
+    $principal = [Security.Principal.WindowsPrincipal]::new(
+        [Security.Principal.WindowsIdentity]::GetCurrent()
+    )
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw 'Local Administrator privileges are required to enable WSL.'
+    }
+    
     if ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue )) {
         try {
             Set-Item -Path Env:\PODMAN_IDENTITY -Value (& podman machine inspect --format '{{.SSHConfig.IdentityPath}}')
@@ -4071,10 +4087,12 @@ sudo apt-get install -y podman-remote
 Enable-WSL
 
 function Reset-WSL {
-    if (-not $isAdmin) { 
-        throw "You need to be local admin to reset/reinstall WSL"
+    $principal = [Security.Principal.WindowsPrincipal]::new(
+        [Security.Principal.WindowsIdentity]::GetCurrent()
+    )
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw 'Local Administrator privileges are required to reset WSL.'
     }
-
     try {
         $Distro = 'Ubuntu'
         Write-Output "Shutting down WSL..."
@@ -4101,7 +4119,11 @@ function Set-WSLConfig-Ubuntu {
     if ($env:WSL_INSTALLED_DISTRIBUTION -ne 'Ubuntu') {
         Write-Warning "Ubuntu not installed"
         return
+    $principal = [Security.Principal.WindowsPrincipal]::new(Security.Principal.WindowsIdentity]::GetCurrent())
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw 'Local Administrator privileges are required to config Ubuntu with WSL.'
     }
+
     try {
         Write-Output "Configuring Ubuntu inside WSL..."
         $wslsetuppre = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup-pre.sh' -UseBasicParsing).Content -replace "`r", ''
