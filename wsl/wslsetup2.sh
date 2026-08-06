@@ -229,6 +229,9 @@ if [[ -n "$PODMAN_IDENTITY" && -n "$PODMAN_PORT" ]]; then
     #podman-remote run quay.io/podman/hello
     #podman system info
     alias podman=podman-remote
+    alias podman-hello='podman-remote run quay.io/podman/hello'
+    alias podman-test=podman-hello
+    
     export ASPIRE_CONTAINER_RUNTIME=podman
 fi
 EOF
