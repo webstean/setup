@@ -226,16 +226,19 @@ if [[ -n "$PODMAN_IDENTITY" && -n "$PODMAN_PORT" ]]; then
     #podman-remote run quay.io/podman/hello
     #podman system info
     alias podman=podman-remote
+    export ASPIRE_CONTAINER_RUNTIME=podman
 fi
 EOF
 
 sudo tee /etc/profile.d/aspire.sh > /dev/null <<'EOF'
 if ! command -v aspire >/dev/null 2>&1 && [[ ! -x "$HOME/.aspire/bin/aspire" ]]; then
-    curl -sSL https://aspire.dev/install.sh --skip-path | bash
+    curl -sSL https://aspire.dev/install.sh | bash -s -- --skip-path
+else {
+    echo "aspire CLI is installed!"
 fi
-## export PATH="$PATH:$HOME/.aspire/bin"
+export PATH="$HOME/.aspire/bin:$PATH"
 EOF
-    
+
 ## Install Java from Microsoft - but only if java not installed already
 #sudo apt-get install -y default-jre
 if (! which -s java) ; then
