@@ -228,6 +228,13 @@ if [[ -n "$PODMAN_IDENTITY" && -n "$PODMAN_PORT" ]]; then
     alias podman=podman-remote
 fi
 EOF
+
+sudo tee /etc/profile.d/aspire.sh > /dev/null <<'EOF'
+if ! command -v aspire >/dev/null 2>&1 && [[ ! -x "$HOME/.aspire/bin/aspire" ]]; then
+    curl -sSL https://aspire.dev/install.sh --skip-path | bash
+fi
+## export PATH="$PATH:$HOME/.aspire/bin"
+EOF
     
 ## Install Java from Microsoft - but only if java not installed already
 #sudo apt-get install -y default-jre
