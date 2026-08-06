@@ -231,13 +231,19 @@ fi
 EOF
 
 sudo tee /etc/profile.d/dotnet-install.sh > /dev/null <<'EOF'
-if ! command -v dotnet >/dev/null 2>&1 && [[ ! -x "$HOME/.dotnet/bin/dotnet" ]]; then
+if ! command -v dotnet >/dev/null 2>&1 && [[ ! -x "$HOME/.dotnet/dotnet" ]]; then
     curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel LTS
 else {
     echo "dotnet SDK was found!"
 fi
 alias dotnet='$HOME/.dotnet/dotnet'
 #export PATH="$HOME/.dotnet:$PATH"
+EOF
+
+sudo tee /etc/profile.d/systemctl-config.sh > /dev/null <<'EOF'
+export XDG_RUNTIME_DIR=/run/user/$(id -u)
+export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+## systemctl list-units --type=service --all --no-pager
 EOF
 
 
@@ -688,7 +694,10 @@ sudo sh -c 'echo fi >>  /etc/profile.d/zlogo.sh'
 
 touch $HOME/.hushlogin
 
-sudo apt autoremove -y
+## systemctl enable --now apt-daily.service
+if command -v apt >/dev/null 2>&1; then
+  sudo apt autoremove -y
+fi
 
 # Join Active Directory - not really applicable for WSL (use on actual Linux installs) - but include here for completeness
 joinactivedirectory() {
