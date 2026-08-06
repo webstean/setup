@@ -127,18 +127,22 @@ function Install-WinRM {
     Set-Item -Path WSMan:\localhost\Client\AllowUnencrypted -Value $true
     Set-Item -Path WSMan:\localhost\Service\AllowUnencrypted -Value $true
     Set-Service -Name WinRM -StartupType Automatic
+    $regPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WSMAN\Client'
+    if (-not (Test-Path $regPath)) {
+        New-Item -Path $regPath -Force | Out-Null
+    }
     if ( Test-EntraIdJoined) {
         Write-Host "WSMAN: Entra ID Joined, disabled Kerberos"
         ## WinRM considers the Microsoft Entra-only joined machines as workgroup machines.
         ## Default SPN prefix HTTP prevents Microsoft Entra authenticatio, so it needs to be set to HOST
         Set-Item -Path WSMan:\localhost\Service\Auth\Kerberos -Value $false
         Set-Item -Path WSMan:\localhost\Client\Auth\Kerberos -Value $false
-        reg add HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WSMAN\Client /v spn_prefix /t REG_SZ /d "HOST" /f
+        New-ItemProperty -Path $regPath -Name 'spn_prefix' -PropertyType String -Value 'HOST' -Force | Out-Null
     } else {
         Write-Host "WSMAN: NON-Entra ID Joined, enabling Kerberos"
         Set-Item -Path WSMan:\localhost\Service\Auth\Kerberos -Value $true
         Set-Item -Path WSMan:\localhost\Client\Auth\Kerberos -Value $true
-        reg add HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WSMAN\Client /v spn_prefix /t REG_SZ /d "HTTP" /f
+        New-ItemProperty -Path $regPath -Name 'spn_prefix' -PropertyType String -Value 'HTTP' -Force | Out-Null
     }
     Restart-Service WinRM
     winrm get winrm/config/client
