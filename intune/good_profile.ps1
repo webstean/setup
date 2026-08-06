@@ -750,14 +750,6 @@ function Reset-Podman {
         $PODMAN_PORT = & podman machine inspect podman-machine-default --format '{{.SSHConfig.Port}}'
         $PODMAN_USER = & podman machine inspect --format '{{.SSHConfig.RemoteUsername}}'
         $PODMAN_PATH = & podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}'
-        ## $PODMAN_IDENTITY = '/mnt/c/users/vid9na6/.local/share/containers/podman/machine/machine'
-        Write-Host 'In WSL run:'
-        ## /mnt/c/Users/andreww/.local/share/containers/podman/machine/machine
-        Write-Host 'mkdir -p ~/.ssh && chmod 700 ~/.ssh'
-        Write-Host "key_path=$(wslpath '$PODMAN_IDENTITY')"
-        Write-Host 'cp "$key_path" ~/.ssh/podman-machine-default'
-        Write-Host 'chmod 600 ~/.ssh/podman-machine-default'
-        Write-Host "podman system connection add --default podman-machine-default --identity ~/.ssh/podman-machine-default ssh://user@127.0.0.1:${PODMAN_PORT}/run/user/1000/podman/podman.sock"
         ## Write-Host "podman-remote system connection add --identity ${PODMAN_IDENTITY} --port ${PODMAN_PORT} winpodman ${PODMAN_CONNECTION}"
         ## Write-Host 'podman-remote system connection default winpodman'
         #podman machine info
