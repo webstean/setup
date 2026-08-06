@@ -713,8 +713,8 @@ function Search {
         [Parameter(Mandatory = $true, Position = 0)]
         [string]$Filter
     )
-    Write-Output "Searching for '$filter' accross the $env:SystemDrive\ drive..."
-    Get-ChildItem -Path "$env:SystemDrive\" -Recurse -Filter $Filter -Force 2>$null
+    Write-Output "Searching for '$Filter' in $(Get-Location) and subfolders..."
+    Get-ChildItem -Path . -Recurse -Filter $Filter -Force 2>$null
 }
 
 function Reset-Podman {
