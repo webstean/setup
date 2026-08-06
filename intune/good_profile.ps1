@@ -4046,6 +4046,7 @@ sudo apt-get install -y podman-remote
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED', $True, 'User')
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED_DISTRIBUTION', $Distro, 'User')
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED_TIMEZONE', 'Australia/Melbourne', 'User')
+        wsl --list --verbose
     }
     catch {
         Write-Error "Enable-WSL failed with: $_"
