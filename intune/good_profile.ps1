@@ -3976,11 +3976,16 @@ function Enable-WSL {
     [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:DOCKER_HOST:PODMAN_IDENTITY/p:PODMAN_PORT:PODMAN_CONNECTION/p:WSL_INSTALLED_TIMEZONE', 'User')
 
     if ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue )) {
-        Write-Host 'Setting Podman variables...'
-        Set-Item -Path Env:\PODMAN_IDENTITY = & podman machine inspect --format '{{.SSHConfig.IdentityPath}}' ## Private Key
-        Set-Item -Path Env:\PODMAN_PORT = & podman machine inspect podman-machine-default --format '{{.SSHConfig.Port}}'
-        Set-Item -Path Env:\PODMAN_USER = & podman machine inspect --format '{{.SSHConfig.RemoteUsername}}'
-        Set-Item -Path Env:\PODMAN_PATH = & podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}'
+        try {
+            Set-Item -Path Env:\PODMAN_IDENTITY -Value (& podman machine inspect --format '{{.SSHConfig.IdentityPath}}')
+            Write-Host 'Found podman.. setting variables...'
+            Set-Item -Path Env:\PODMAN_PORT -Value (& podman machine inspect podman-machine-default --format '{{.SSHConfig.Port}}')
+            Set-Item -Path Env:\PODMAN_USER -Value (& podman machine inspect --format '{{.SSHConfig.RemoteUsername}}')
+            Set-Item -Path Env:\PODMAN_PATH -Value (& podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}')
+        }
+        catch {
+            Write-Host 'podman machine is NOT running! Use 'RESET-PODMAN' to confgure it'
+        }
     }    
 
     $flagPath = Join-Path $env:ProgramData 'Enable-WSL.done'
