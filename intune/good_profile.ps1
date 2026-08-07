@@ -125,6 +125,21 @@ function Get-HostInfo {
         $domainName   = $null
         $partOfDomain = $null
     }
+    # Entra ID (Azure AD) join status — dsregcmd has no native remoting, so shell out locally
+    # or via Invoke-Command for a remote target
+    try {
+        $dsregOutput = if ($ComputerName -eq $env:COMPUTERNAME) {
+            dsregcmd /status
+        } else {
+            Invoke-Command -ComputerName $ComputerName -ScriptBlock { dsregcmd /status } -ErrorAction Stop
+        }
+        $entraJoinedLine = $dsregOutput | Select-String '^\s*AzureAdJoined\s*:\s*(\w+)'
+        $entraIdJoined = if ($entraJoinedLine) { $entraJoinedLine.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
+    }
+    catch {
+        Write-Warning "Failed to query Entra ID join status on $ComputerName : $_"
+        $entraIdJoined = $null
+    }
     # Registry path — works locally; for remote, use Invoke-Command or remote registry provider
     $regPath = if ($ComputerName -eq $env:COMPUTERNAME) {
         'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
@@ -184,11 +199,12 @@ function Get-HostInfo {
     # to avoid clock-skew errors between the local machine running this and the target machine
     $lastBoot = $cim.LastBootUpTime
     $uptime = if ($lastBoot) { [math]::Round(($cim.LocalDateTime - $lastBoot).TotalMinutes, 2) } else { $null }
-    $lastBootFormatted = if ($lastBoot) { $lastBoot.ToString('yyyy-MM-dd HH:mm:ss') } else { $null }
+    $lastBootFormatted = if ($lastBoot) { $lastBoot.ToString('yyyy-MMM-dd HH:mm:ss') } else { $null }
     [PSCustomObject]@{
         ComputerName      = $ComputerName
         DomainName        = $domainName
         PartOfDomain      = $partOfDomain
+        EntraIDJoined     = $entraIdJoined
         ProductName       = $productName
         EditionID         = $editionId
         CompositionEdID   = $compositionEd
