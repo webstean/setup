@@ -102,135 +102,162 @@ function Update-ProfileForce {
 }
 #Update-ProfileForce
 
+$script:HostInfoCache = @{}
+
 function Get-HostInfo {
     [CmdletBinding()]
     param(
-        [string]$ComputerName = $env:COMPUTERNAME
+        [string]$ComputerName = $env:COMPUTERNAME,
+        [switch]$NoCache,
+        [timespan]$CacheDuration = (New-TimeSpan -Hours 1)
     )
-    try {
-        $cim = Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $ComputerName -ErrorAction Stop
+
+    $cacheEntry   = $script:HostInfoCache[$ComputerName]
+    $cacheIsFresh = $cacheEntry -and (((Get-Date) - $cacheEntry.CachedAt) -lt $CacheDuration)
+
+    if (-not $NoCache -and $cacheIsFresh) {
+        Write-Verbose "Using cached static info for $ComputerName (cached $($cacheEntry.CachedAt))."
+        $static   = $cacheEntry.Static
+        $lastBoot = $cacheEntry.LastBoot
     }
-    catch {
-        Write-Error "Failed to query Win32_OperatingSystem on $ComputerName : $_"
-        return
-    }
-    # Domain / workgroup membership
-    try {
-        $csInfo = Get-CimInstance -ClassName Win32_ComputerSystem -ComputerName $ComputerName -ErrorAction Stop
-        $domainName   = $csInfo.Domain
-        $partOfDomain = $csInfo.PartOfDomain
-    }
-    catch {
-        Write-Warning "Failed to query Win32_ComputerSystem on $ComputerName : $_"
-        $domainName   = $null
-        $partOfDomain = $null
-    }
-    # Entra ID (Azure AD) join status — dsregcmd has no native remoting, so shell out locally
-    # or via Invoke-Command for a remote target
-    try {
-        $dsregOutput = if ($ComputerName -eq $env:COMPUTERNAME) {
-            dsregcmd /status
-        } else {
-            Invoke-Command -ComputerName $ComputerName -ScriptBlock { dsregcmd /status } -ErrorAction Stop
+    else {
+        Write-Verbose "Querying $ComputerName fresh (no valid cache, -NoCache, or cache expired)."
+
+        try {
+            $cim = Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $ComputerName -ErrorAction Stop
         }
-        $azureAdJoinedLine = $dsregOutput | Select-String '^\s*AzureAdJoined\s*:\s*(\w+)'
-        $domainJoinedLine  = $dsregOutput | Select-String '^\s*DomainJoined\s*:\s*(\w+)'
-        $entraIdJoined     = if ($azureAdJoinedLine) { $azureAdJoinedLine.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
-        $dsregDomainJoined = if ($domainJoinedLine)  { $domainJoinedLine.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
-        $entraHybridJoined = if ($null -ne $entraIdJoined -and $null -ne $dsregDomainJoined) { $entraIdJoined -and $dsregDomainJoined } else { $null }
+        catch {
+            Write-Error "Failed to query Win32_OperatingSystem on $ComputerName : $_"
+            return
+        }
+        # Domain / workgroup membership
+        try {
+            $csInfo = Get-CimInstance -ClassName Win32_ComputerSystem -ComputerName $ComputerName -ErrorAction Stop
+            $domainName   = $csInfo.Domain
+            $partOfDomain = $csInfo.PartOfDomain
+        }
+        catch {
+            Write-Warning "Failed to query Win32_ComputerSystem on $ComputerName : $_"
+            $domainName   = $null
+            $partOfDomain = $null
+        }
+        # Entra ID (Azure AD) join status — dsregcmd has no native remoting, so shell out locally
+        # or via Invoke-Command for a remote target
+        try {
+            $dsregOutput = if ($ComputerName -eq $env:COMPUTERNAME) {
+                dsregcmd /status
+            } else {
+                Invoke-Command -ComputerName $ComputerName -ScriptBlock { dsregcmd /status } -ErrorAction Stop
+            }
+            $azureAdJoinedLine = $dsregOutput | Select-String '^\s*AzureAdJoined\s*:\s*(\w+)'
+            $domainJoinedLine  = $dsregOutput | Select-String '^\s*DomainJoined\s*:\s*(\w+)'
+            $entraIdJoined     = if ($azureAdJoinedLine) { $azureAdJoinedLine.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
+            $dsregDomainJoined = if ($domainJoinedLine)  { $domainJoinedLine.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
+            $entraHybridJoined = if ($null -ne $entraIdJoined -and $null -ne $dsregDomainJoined) { $entraIdJoined -and $dsregDomainJoined } else { $null }
+        }
+        catch {
+            Write-Warning "Failed to query Entra ID join status on $ComputerName : $_"
+            $entraIdJoined = $null
+            $entraHybridJoined = $null
+        }
+        # Registry path — works locally; for remote, use Invoke-Command or remote registry provider
+        $regPath = if ($ComputerName -eq $env:COMPUTERNAME) {
+            'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+        } else {
+            $null
+        }
+        if ($regPath) {
+            $reg = Get-ItemProperty -Path $regPath -ErrorAction SilentlyContinue
+        } else {
+            # Remote fallback via CIM/WMI registry provider
+            $reg = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
+                Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+            } -ErrorAction SilentlyContinue
+        }
+        $productName   = $reg.ProductName
+        $editionId     = $reg.EditionID
+        $releaseId     = $reg.ReleaseId
+        $displayVer    = $reg.DisplayVersion
+        $currentBuild  = $reg.CurrentBuild
+        $ubr           = $reg.UBR
+        $installType   = $reg.InstallationType   # e.g. "Client", "Server", "Client Core"
+        $compositionEd = $reg.CompositionEditionID  # sometimes populated on IoT/LTSC images
+        # Detect LTSC — EditionID and ProductName both carry "LTSC" on 10/11,
+        # older 2015/2016 LTSB builds carry "LTSB" instead
+        $isLTSC = ($editionId -match 'LTSC') -or ($productName -match 'LTSC')
+        $isLTSB = ($editionId -match 'LTSB') -or ($productName -match 'LTSB')
+        # Detect IoT
+        $isIoT = ($editionId -match 'IoT') -or ($productName -match 'IoT')
+        # Servicing channel classification
+        $servicingChannel = if ($isLTSC -or $isLTSB) {
+            'LTSC'
+        } elseif ($installType -eq 'Server') {
+            'Server'
+        } else {
+            'GAC'   # General Availability Channel (was "SAC" pre-2021 naming)
+        }
+        # Build-to-release mapping for major Win10/11 releases (extend as needed)
+        $buildMap = @{
+            '19044' = '21H2 (Win10)'
+            '19045' = '22H2 (Win10)'
+            '22621' = '22H2 (Win11)'
+            '22631' = '23H2 (Win11)'
+            '26100' = '24H2 (Win11)'
+        }
+        $friendlyRelease = $buildMap[$currentBuild]
+        # Activation status — LicenseStatus 1 = Licensed/Activated
+        try {
+            $licensingProduct = Get-CimInstance -ClassName SoftwareLicensingProduct -ComputerName $ComputerName `
+                -Filter "PartialProductKey is not null and Name like 'Windows%'" -ErrorAction Stop
+            $activated = [bool]($licensingProduct | Where-Object { $_.LicenseStatus -eq 1 })
+        }
+        catch {
+            Write-Warning "Failed to query activation status on $ComputerName : $_"
+            $activated = $null
+        }
+
+        $lastBoot = $cim.LastBootUpTime
+        $lastBootFormatted = if ($lastBoot) { $lastBoot.ToString('yyyy-MMM-dd HH:mm:ss') } else { $null }
+
+        $static = [PSCustomObject]@{
+            ComputerName      = $ComputerName
+            DomainName        = $domainName
+            PartOfDomain      = $partOfDomain
+            EntraIDJoined     = $entraIdJoined
+            EntraHybridJoined = $entraHybridJoined
+            ProductName       = $productName
+            EditionID         = $editionId
+            CompositionEdID   = $compositionEd
+            DisplayVersion    = $displayVer
+            ReleaseId         = $releaseId
+            FriendlyRelease   = $friendlyRelease
+            CurrentBuild      = $currentBuild
+            UBR               = $ubr
+            FullBuildNumber   = "$currentBuild.$ubr"
+            InstallationType  = $installType
+            ServicingChannel  = $servicingChannel
+            IsLTSC            = $isLTSC
+            IsLTSB            = $isLTSB
+            IsIoT             = $isIoT
+            Activated         = $activated
+            LastBootUpTime    = $lastBootFormatted
+            UptimeMinutes     = $null   # filled in fresh below, every call, cached or not
+            OSArchitecture    = $cim.OSArchitecture
+            Caption           = $cim.Caption
+            Version           = $cim.Version
+        }
+
+        $script:HostInfoCache[$ComputerName] = @{
+            CachedAt = Get-Date
+            Static   = $static
+            LastBoot = $lastBoot
+        }
     }
-    catch {
-        Write-Warning "Failed to query Entra ID join status on $ComputerName : $_"
-        $entraIdJoined = $null
-        $entraHybridJoined = $null
-    }
-    # Registry path — works locally; for remote, use Invoke-Command or remote registry provider
-    $regPath = if ($ComputerName -eq $env:COMPUTERNAME) {
-        'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
-    } else {
-        $null
-    }
-    if ($regPath) {
-        $reg = Get-ItemProperty -Path $regPath -ErrorAction SilentlyContinue
-    } else {
-        # Remote fallback via CIM/WMI registry provider
-        $reg = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
-            Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
-        } -ErrorAction SilentlyContinue
-    }
-    $productName   = $reg.ProductName
-    $editionId     = $reg.EditionID
-    $releaseId     = $reg.ReleaseId
-    $displayVer    = $reg.DisplayVersion
-    $currentBuild  = $reg.CurrentBuild
-    $ubr           = $reg.UBR
-    $installType   = $reg.InstallationType   # e.g. "Client", "Server", "Client Core"
-    $compositionEd = $reg.CompositionEditionID  # sometimes populated on IoT/LTSC images
-    # Detect LTSC — EditionID and ProductName both carry "LTSC" on 10/11,
-    # older 2015/2016 LTSB builds carry "LTSB" instead
-    $isLTSC = ($editionId -match 'LTSC') -or ($productName -match 'LTSC')
-    $isLTSB = ($editionId -match 'LTSB') -or ($productName -match 'LTSB')
-    # Detect IoT
-    $isIoT = ($editionId -match 'IoT') -or ($productName -match 'IoT')
-    # Servicing channel classification
-    $servicingChannel = if ($isLTSC -or $isLTSB) {
-        'LTSC'
-    } elseif ($installType -eq 'Server') {
-        'Server'
-    } else {
-        'GAC'   # General Availability Channel (was "SAC" pre-2021 naming)
-    }
-    # Build-to-release mapping for major Win10/11 releases (extend as needed)
-    $buildMap = @{
-        '19044' = '21H2 (Win10)'
-        '19045' = '22H2 (Win10)'
-        '22621' = '22H2 (Win11)'
-        '22631' = '23H2 (Win11)'
-        '26100' = '24H2 (Win11)'
-    }
-    $friendlyRelease = $buildMap[$currentBuild]
-    # Activation status — LicenseStatus 1 = Licensed/Activated
-    try {
-        $licensingProduct = Get-CimInstance -ClassName SoftwareLicensingProduct -ComputerName $ComputerName `
-            -Filter "PartialProductKey is not null and Name like 'Windows%'" -ErrorAction Stop
-        $activated = [bool]($licensingProduct | Where-Object { $_.LicenseStatus -eq 1 })
-    }
-    catch {
-        Write-Warning "Failed to query activation status on $ComputerName : $_"
-        $activated = $null
-    }
-    # Uptime — use the remote machine's own current time (LocalDateTime) rather than (Get-Date),
-    # to avoid clock-skew errors between the local machine running this and the target machine
-    $lastBoot = $cim.LastBootUpTime
-    $uptime = if ($lastBoot) { [int][math]::Round(($cim.LocalDateTime - $lastBoot).TotalMinutes) } else { $null }
-    $lastBootFormatted = if ($lastBoot) { $lastBoot.ToString('yyyy-MMM-dd HH:mm:ss') } else { $null }
-    [PSCustomObject]@{
-        ComputerName      = $ComputerName
-        DomainName        = $domainName
-        PartOfDomain      = $partOfDomain
-        EntraIDJoined     = $entraIdJoined
-        EntraHybridJoined = $entraHybridJoined
-        ProductName       = $productName
-        EditionID         = $editionId
-        CompositionEdID   = $compositionEd
-        DisplayVersion    = $displayVer
-        ReleaseId         = $releaseId
-        FriendlyRelease   = $friendlyRelease
-        CurrentBuild      = $currentBuild
-        UBR               = $ubr
-        FullBuildNumber   = "$currentBuild.$ubr"
-        InstallationType  = $installType
-        ServicingChannel  = $servicingChannel
-        IsLTSC            = $isLTSC
-        IsLTSB            = $isLTSB
-        IsIoT             = $isIoT
-        Activated         = $activated
-        LastBootUpTime    = $lastBootFormatted
-        UptimeMinutes     = $uptime
-        OSArchitecture    = $cim.OSArchitecture
-        Caption           = $cim.Caption
-        Version           = $cim.Version
-    }
+
+    # Recomputed every call, cache hit or not — this is the one value that's never stale
+    $static.UptimeMinutes = if ($lastBoot) { [int][math]::Round(((Get-Date) - $lastBoot).TotalMinutes) } else { $null }
+
+    $static
 }
 
 function Test-NFS {
