@@ -107,7 +107,6 @@ function Get-HostInfo {
     param(
         [string]$ComputerName = $env:COMPUTERNAME
     )
-
     try {
         $cim = Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $ComputerName -ErrorAction Stop
     }
@@ -115,14 +114,12 @@ function Get-HostInfo {
         Write-Error "Failed to query Win32_OperatingSystem on $ComputerName : $_"
         return
     }
-
     # Registry path — works locally; for remote, use Invoke-Command or remote registry provider
     $regPath = if ($ComputerName -eq $env:COMPUTERNAME) {
         'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
     } else {
         $null
     }
-
     if ($regPath) {
         $reg = Get-ItemProperty -Path $regPath -ErrorAction SilentlyContinue
     } else {
@@ -131,7 +128,6 @@ function Get-HostInfo {
             Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
         } -ErrorAction SilentlyContinue
     }
-
     $productName   = $reg.ProductName
     $editionId     = $reg.EditionID
     $releaseId     = $reg.ReleaseId
@@ -140,15 +136,12 @@ function Get-HostInfo {
     $ubr           = $reg.UBR
     $installType   = $reg.InstallationType   # e.g. "Client", "Server", "Client Core"
     $compositionEd = $reg.CompositionEditionID  # sometimes populated on IoT/LTSC images
-
     # Detect LTSC — EditionID and ProductName both carry "LTSC" on 10/11,
     # older 2015/2016 LTSB builds carry "LTSB" instead
     $isLTSC = ($editionId -match 'LTSC') -or ($productName -match 'LTSC')
     $isLTSB = ($editionId -match 'LTSB') -or ($productName -match 'LTSB')
-
     # Detect IoT
     $isIoT = ($editionId -match 'IoT') -or ($productName -match 'IoT')
-
     # Servicing channel classification
     $servicingChannel = if ($isLTSC -or $isLTSB) {
         'LTSC'
@@ -157,7 +150,6 @@ function Get-HostInfo {
     } else {
         'GAC'   # General Availability Channel (was "SAC" pre-2021 naming)
     }
-
     # Build-to-release mapping for major Win10/11 releases (extend as needed)
     $buildMap = @{
         '19044' = '21H2 (Win10)'
@@ -167,7 +159,16 @@ function Get-HostInfo {
         '26100' = '24H2 (Win11)'
     }
     $friendlyRelease = $buildMap[$currentBuild]
-
+    # Activation status — LicenseStatus 1 = Licensed/Activated
+    try {
+        $licensingProduct = Get-CimInstance -ClassName SoftwareLicensingProduct -ComputerName $ComputerName `
+            -Filter "PartialProductKey is not null and Name like 'Windows%'" -ErrorAction Stop
+        $activated = [bool]($licensingProduct | Where-Object { $_.LicenseStatus -eq 1 })
+    }
+    catch {
+        Write-Warning "Failed to query activation status on $ComputerName : $_"
+        $activated = $null
+    }
     [PSCustomObject]@{
         ComputerName      = $ComputerName
         ProductName       = $productName
@@ -184,6 +185,7 @@ function Get-HostInfo {
         IsLTSC            = $isLTSC
         IsLTSB            = $isLTSB
         IsIoT             = $isIoT
+        Activated         = $activated
         OSArchitecture    = $cim.OSArchitecture
         Caption           = $cim.Caption
         Version           = $cim.Version
