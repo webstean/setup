@@ -133,12 +133,16 @@ function Get-HostInfo {
         } else {
             Invoke-Command -ComputerName $ComputerName -ScriptBlock { dsregcmd /status } -ErrorAction Stop
         }
-        $entraJoinedLine = $dsregOutput | Select-String '^\s*AzureAdJoined\s*:\s*(\w+)'
-        $entraIdJoined = if ($entraJoinedLine) { $entraJoinedLine.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
+        $azureAdJoinedLine = $dsregOutput | Select-String '^\s*AzureAdJoined\s*:\s*(\w+)'
+        $domainJoinedLine  = $dsregOutput | Select-String '^\s*DomainJoined\s*:\s*(\w+)'
+        $entraIdJoined     = if ($azureAdJoinedLine) { $azureAdJoinedLine.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
+        $dsregDomainJoined = if ($domainJoinedLine)  { $domainJoinedLine.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
+        $entraHybridJoined = if ($null -ne $entraIdJoined -and $null -ne $dsregDomainJoined) { $entraIdJoined -and $dsregDomainJoined } else { $null }
     }
     catch {
         Write-Warning "Failed to query Entra ID join status on $ComputerName : $_"
         $entraIdJoined = $null
+        $entraHybridJoined = $null
     }
     # Registry path — works locally; for remote, use Invoke-Command or remote registry provider
     $regPath = if ($ComputerName -eq $env:COMPUTERNAME) {
@@ -198,13 +202,14 @@ function Get-HostInfo {
     # Uptime — use the remote machine's own current time (LocalDateTime) rather than (Get-Date),
     # to avoid clock-skew errors between the local machine running this and the target machine
     $lastBoot = $cim.LastBootUpTime
-    $uptime = if ($lastBoot) { [math]::Round(($cim.LocalDateTime - $lastBoot).TotalMinutes, 2) } else { $null }
-    $lastBootFormatted = if ($lastBoot) { $lastBoot.ToString('yyyy-MMM-dd HH:mm:ss') } else { $null }
+    $uptime = if ($lastBoot) { [int][math]::Round(($cim.LocalDateTime - $lastBoot).TotalMinutes) } else { $null }
+    $lastBootFormatted = if ($lastBoot) { $lastBoot.ToString('yyyy-MM-dd HH:mm:ss') } else { $null }
     [PSCustomObject]@{
         ComputerName      = $ComputerName
         DomainName        = $domainName
         PartOfDomain      = $partOfDomain
         EntraIDJoined     = $entraIdJoined
+        EntraHybridJoined = $entraHybridJoined
         ProductName       = $productName
         EditionID         = $editionId
         CompositionEdID   = $compositionEd
@@ -227,6 +232,7 @@ function Get-HostInfo {
         Version           = $cim.Version
     }
 }
+
 
 function Test-NFS {
     [CmdletBinding()]
