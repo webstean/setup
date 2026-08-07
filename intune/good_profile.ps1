@@ -203,7 +203,7 @@ function Get-HostInfo {
     # to avoid clock-skew errors between the local machine running this and the target machine
     $lastBoot = $cim.LastBootUpTime
     $uptime = if ($lastBoot) { [int][math]::Round(($cim.LocalDateTime - $lastBoot).TotalMinutes) } else { $null }
-    $lastBootFormatted = if ($lastBoot) { $lastBoot.ToString('yyyy-MM-dd HH:mm:ss') } else { $null }
+    $lastBootFormatted = if ($lastBoot) { $lastBoot.ToString('yyyy-MMM-dd HH:mm:ss') } else { $null }
     [PSCustomObject]@{
         ComputerName      = $ComputerName
         DomainName        = $domainName
@@ -232,7 +232,6 @@ function Get-HostInfo {
         Version           = $cim.Version
     }
 }
-
 
 function Test-NFS {
     [CmdletBinding()]
