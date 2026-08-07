@@ -238,6 +238,56 @@ function Get-HostInfo {
             $bootDiskBusType = $null
             $isNVMeBoot      = $null
         }
+        # Boot completion — Event ID 100 in Diagnostics-Performance/Operational fires once
+        # per boot after the system reaches steady state (all auto-start services settled),
+        # not just kernel boot. Filtered to StartTime=LastBootUpTime so a stale event from a
+        # prior boot cycle isn't mistaken for this one.
+        try {
+            $bootEventParams = @{
+                LogName   = 'Microsoft-Windows-Diagnostics-Performance/Operational'
+                Id        = 100
+                StartTime = $cim.LastBootUpTime
+            }
+            $bootEvent = if ($ComputerName -eq $env:COMPUTERNAME) {
+                Get-WinEvent -FilterHashtable $bootEventParams -MaxEvents 1 -ErrorAction Stop
+            } else {
+                Invoke-Command -ComputerName $ComputerName -ScriptBlock {
+                    param($p) Get-WinEvent -FilterHashtable $p -MaxEvents 1 -ErrorAction Stop
+                } -ArgumentList $bootEventParams -ErrorAction Stop
+            }
+            $bootCompleted     = $true
+            $bootCompletedTime = $bootEvent.TimeCreated.ToString('yyyy-MMM-dd HH:mm:ss')
+        }
+        catch {
+            # No matching event yet = boot still in progress (or event log unavailable)
+            Write-Verbose "No boot-complete event found yet for $ComputerName (still booting, or log unavailable): $_"
+            $bootCompleted     = $false
+            $bootCompletedTime = $null
+        }
+        # Running inside Azure — Azure Instance Metadata Service is only reachable from
+        # within an Azure VM (link-local address 169.254.169.254, never routed). Short
+        # timeout so this resolves fast (and $false) on non-Azure hosts.
+        $azureCheckScript = {
+            try {
+                $null = Invoke-RestMethod -Uri 'http://169.254.169.254/metadata/instance?api-version=2021-02-01' `
+                    -Headers @{Metadata = 'true'} -TimeoutSec 2 -ErrorAction Stop
+                $true
+            }
+            catch {
+                $false
+            }
+        }
+        try {
+            $isWithinAzure = if ($ComputerName -eq $env:COMPUTERNAME) {
+                & $azureCheckScript
+            } else {
+                Invoke-Command -ComputerName $ComputerName -ScriptBlock $azureCheckScript -ErrorAction Stop
+            }
+        }
+        catch {
+            Write-Warning "Failed to determine Azure IMDS reachability on $ComputerName : $_"
+            $isWithinAzure = $false
+        }
         # Outbound adapter IP — the source address the OS would use to reach the internet.
         # A UDP "connect" just consults the routing table (no packet sent), so it still
         # resolves correctly even with no internet access, UNLESS there's no default route
@@ -287,35 +337,38 @@ function Get-HostInfo {
         $lastBoot = $cim.LastBootUpTime
         $lastBootFormatted = if ($lastBoot) { $lastBoot.ToString('yyyy-MMM-dd HH:mm:ss') } else { $null }
         $static = [PSCustomObject]@{
-            ComputerName      = $ComputerName
-            DomainName        = $domainName
-            PartOfDomain      = $partOfDomain
-            EntraIDJoined     = $entraIdJoined
-            EntraHybridJoined = $entraHybridJoined
-            ProductName       = $productName
-            EditionID         = $editionId
-            CompositionEdID   = $compositionEd
-            DisplayVersion    = $displayVer
-            ReleaseId         = $releaseId
-            FriendlyRelease   = $friendlyRelease
-            CurrentBuild      = $currentBuild
-            UBR               = $ubr
-            FullBuildNumber   = "$currentBuild.$ubr"
-            InstallationType  = $installType
-            ServicingChannel  = $servicingChannel
-            IsLTSC            = $isLTSC
-            IsLTSB            = $isLTSB
-            IsIoT             = $isIoT
-            Activated         = $activated
-            BootDiskBusType   = $bootDiskBusType
-            IsNVMeBoot        = $isNVMeBoot
-            OutboundIPAddress = $outboundIP
-            ExternalIPAddress = $externalIP
-            LastBootUpTime    = $lastBootFormatted
-            UptimeMinutes     = $null   # filled in fresh below, every call, cached or not
-            OSArchitecture    = $cim.OSArchitecture
-            Caption           = $cim.Caption
-            Version           = $cim.Version
+            ComputerName       = $ComputerName
+            DomainName         = $domainName
+            PartOfDomain       = $partOfDomain
+            EntraIDJoined      = $entraIdJoined
+            EntraHybridJoined  = $entraHybridJoined
+            ProductName        = $productName
+            EditionID          = $editionId
+            CompositionEdID    = $compositionEd
+            DisplayVersion     = $displayVer
+            ReleaseId          = $releaseId
+            FriendlyRelease    = $friendlyRelease
+            CurrentBuild       = $currentBuild
+            UBR                = $ubr
+            FullBuildNumber    = "$currentBuild.$ubr"
+            InstallationType   = $installType
+            ServicingChannel   = $servicingChannel
+            IsLTSC             = $isLTSC
+            IsLTSB             = $isLTSB
+            IsIoT              = $isIoT
+            Activated          = $activated
+            BootDiskBusType    = $bootDiskBusType
+            IsNVMeBoot         = $isNVMeBoot
+            BootCompleted      = $bootCompleted
+            BootCompletedTime  = $bootCompletedTime
+            IsWithinAzure      = $isWithinAzure
+            OutboundIPAddress  = $outboundIP
+            ExternalIPAddress  = $externalIP
+            LastBootUpTime     = $lastBootFormatted
+            UptimeMinutes      = $null   # filled in fresh below, every call, cached or not
+            OSArchitecture     = $cim.OSArchitecture
+            Caption            = $cim.Caption
+            Version            = $cim.Version
         }
         $script:HostInfoCache[$ComputerName] = @{
             CachedAt = Get-Date
