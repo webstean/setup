@@ -238,8 +238,38 @@ function Get-HostInfo {
             $bootDiskBusType = $null
             $isNVMeBoot      = $null
         }
+        # Outbound adapter IP — the source address the OS would use to reach the internet.
+        # A UDP "connect" just consults the routing table (no packet sent), so it still
+        # resolves correctly even with no internet access, UNLESS there's no default route
+        # at all (no gateway/NIC up), in which case it throws — caught and left as $null.
+        $outboundIPScript = {
+            $socket = $null
+            try {
+                $socket = [System.Net.Sockets.Socket]::new(
+                    [System.Net.Sockets.AddressFamily]::InterNetwork,
+                    [System.Net.Sockets.SocketType]::Dgram,
+                    [System.Net.Sockets.ProtocolType]::Udp)
+                $socket.Connect('8.8.8.8', 65530)
+                $socket.LocalEndPoint.Address.IPAddressToString
+            }
+            finally {
+                if ($socket) { $socket.Close() }
+            }
+        }
+        try {
+            $outboundIP = if ($ComputerName -eq $env:COMPUTERNAME) {
+                & $outboundIPScript
+            } else {
+                Invoke-Command -ComputerName $ComputerName -ScriptBlock $outboundIPScript -ErrorAction Stop
+            }
+        }
+        catch {
+            Write-Warning "Failed to determine outbound IP on $ComputerName (likely no route/connectivity): $_"
+            $outboundIP = $null
+        }
         # External (public) IP — only meaningful for the local machine; a remote target's
-        # egress IP can't be queried from here without running code on that box
+        # egress IP can't be queried from here without running code on that box.
+        # Requires actual internet access; $null if offline.
         try {
             if ($ComputerName -eq $env:COMPUTERNAME) {
                 $externalIP = (Invoke-RestMethod -Uri 'https://api.ipify.org?format=json' -TimeoutSec 5).ip
@@ -251,7 +281,7 @@ function Get-HostInfo {
             }
         }
         catch {
-            Write-Warning "Failed to query external IP address for $ComputerName : $_"
+            Write-Warning "Failed to query external IP address for $ComputerName (likely no internet access): $_"
             $externalIP = $null
         }
         $lastBoot = $cim.LastBootUpTime
@@ -279,6 +309,7 @@ function Get-HostInfo {
             Activated         = $activated
             BootDiskBusType   = $bootDiskBusType
             IsNVMeBoot        = $isNVMeBoot
+            OutboundIPAddress = $outboundIP
             ExternalIPAddress = $externalIP
             LastBootUpTime    = $lastBootFormatted
             UptimeMinutes     = $null   # filled in fresh below, every call, cached or not
