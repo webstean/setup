@@ -23,29 +23,21 @@ $PSDefaultParameterValues['*:Verbose'] = $false
 function Update-ProfileForce {
     param(
         [string] $Uri = 'https://raw.githubusercontent.com/webstean/setup/main/intune/good_profile.ps1',
-
         [string] $ProfilePath = $PROFILE,
-
-        [ValidateSet('utf8NoBOM', 'utf8BOM', 'ascii')]
-        [string] $Encoding = 'utf8NoBOM',
-
+        [ValidateSet('utf8', 'utf8NoBOM', 'utf8BOM', 'ascii')]
+        [string] $Encoding = 'utf8', ## 'utf8NoBOM',
         [switch] $Backup
     )
-
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
-
     if ([string]::IsNullOrWhiteSpace($ProfilePath)) {
         throw 'PROFILE path is empty.'
     }
-
     $profileDir = Split-Path -Path $ProfilePath -Parent
-
     if (-not (Test-Path -Path $profileDir -PathType Container)) {
         New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
     }
-
     try {
         $response = Invoke-WebRequest `
             -Uri $Uri `
@@ -55,48 +47,44 @@ function Update-ProfileForce {
     } catch {
         throw "Failed to download profile from '$Uri'. $($_.Exception.Message)"
     }
-
     if ($response.StatusCode -lt 200 -or $response.StatusCode -gt 299) {
         throw "Download failed. HTTP status: $($response.StatusCode) $($response.StatusDescription)"
     }
-
     $newContent = [string] $response.Content
-
     if ([string]::IsNullOrWhiteSpace($newContent)) {
         throw 'Downloaded profile content is empty.'
     }
-
     $oldContent = $null
     $exists = Test-Path -Path $ProfilePath -PathType Leaf
-
     if ($exists) {
         $oldContent = Get-Content -Path $ProfilePath -Raw -ErrorAction Stop
     }
-
     $oldNormalized = if ($null -ne $oldContent) {
         $oldContent.Trim() -replace "`r`n", "`n"
     } else {
         $null
     }
-
     $newNormalized = $newContent.Trim() -replace "`r`n", "`n"
-
     if ($exists -and $oldNormalized -ceq $newNormalized) {
         Write-Host "Profile already current: $ProfilePath" -ForegroundColor Yellow
         return
     }
-
     if ($Backup -and $exists) {
         $backupPath = "$ProfilePath.$(Get-Date -Format 'yyyyMMdd-HHmmss').bak"
         Copy-Item -Path $ProfilePath -Destination $backupPath -Force
         Write-Host "Backup created: $backupPath" -ForegroundColor DarkCyan
     }
 
-    Set-Content `
-        -Path $ProfilePath `
-        -Value $newContent `
-        -Encoding $Encoding `
-        -Force
+    # Windows PowerShell 5.1's Set-Content -Encoding doesn't recognize 'utf8NoBOM'/'utf8BOM'
+    # (those are PS7+-only encoding names) — write via .NET directly so behavior is identical
+    # on both PowerShell versions.
+    $encodingObject = switch ($Encoding) {
+        'utf8'      { [System.Text.UTF8Encoding]::new($true) }   # with BOM
+        'utf8BOM'   { [System.Text.UTF8Encoding]::new($true) }   # with BOM
+        'utf8NoBOM' { [System.Text.UTF8Encoding]::new($false) }  # without BOM
+        'ascii'     { [System.Text.Encoding]::ASCII }
+    }
+    [System.IO.File]::WriteAllText($ProfilePath, $newContent, $encodingObject)
 
     Write-Host "Profile updated: $ProfilePath" -ForegroundColor Green
 }
