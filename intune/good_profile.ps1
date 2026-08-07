@@ -102,7 +102,7 @@ function Update-ProfileForce {
 }
 #Update-ProfileForce
 
-function Get-WindowsEditionInfo {
+function Get-HostInfo {
     [CmdletBinding()]
     param(
         [string]$ComputerName = $env:COMPUTERNAME
@@ -4409,98 +4409,208 @@ function Get-QuickXorHashFromFile {
     return [Convert]::ToBase64String($rgb)
 }
 
-function Connect-AzureCliSession {
+function Connect-AzureTenant {
     <#
     .SYNOPSIS
-        Logs on with Azure CLI and captures TenantId, TenantName, SubscriptionId, and ClientId as variables.
+        Logs on with the Az PowerShell module — to a specific tenant, or interactively to
+        whichever tenant you choose — and saves/imports context per tenant for fast switching.
+        Also grabs a raw access token, copies it to the clipboard, and sets $env:ACCESS_TOKEN.
 
     .DESCRIPTION
-        Runs 'az login' (interactively, or as a service principal if -ClientId/-ClientSecret
-        are supplied), then reads back 'az account show' plus the tenant's display name,
-        and stores everything both as global variables ($global:AzTenantId, etc.) and as the
-        returned object.
+        Three ways to use this:
+          1. Connect-AzureTenant                         -> log in, pick a tenant if you have more than one, auto-save by its resolved display name.
+          2. Connect-AzureTenant -TenantName Contoso      -> import a previously saved context instantly, no login prompt.
+          3. Connect-AzureTenant -TenantId <guid>         -> log in directly to a known tenant.
+
+        In all cases, once connected, the context is (re)saved to disk keyed by the tenant's
+        display name, $global:AzTenantId / AzTenantName / AzSubscriptionId / AzClientId are
+        populated, and a fresh ARM access token is copied to the clipboard and set as
+        $env:ACCESS_TOKEN for use with az CLI, curl, Postman, etc.
+
+        Context files are stored under the folder named by the 'OneDriveCommercial' environment
+        variable by default, so saved tenant contexts sync across machines via OneDrive. Falls
+        back to your local profile folder if that variable isn't set.
+
+        Note: Save-AzContext persists a real, working Az PowerShell token cache — that's why
+        Import-AzContext can restore a live session without re-prompting. It is NOT usable by
+        Azure CLI though; Az PowerShell and az CLI keep entirely separate credential stores.
+        The access token grabbed at the end of this function is the portable alternative for
+        using other tools, but it's short-lived (~60-75 min), unlike the saved context.
+
+    .PARAMETER TenantName
+        Friendly name used to save/look up a context file. If a saved context exists under
+        this name, it's imported instead of prompting to log in.
 
     .PARAMETER TenantId
-        Restrict login to a specific Entra tenant.
+        Connect directly to a known Entra tenant ID, skipping any tenant picker.
+
+    .PARAMETER SubscriptionId
+        Subscription to select as active after connecting.
 
     .PARAMETER ClientId
-        App (client) ID for a service principal login. If supplied, -ClientSecret is required
-        and the function performs a non-interactive service principal login instead of the
-        normal interactive/browser login.
+        App (client) ID for a service principal login. Requires -ClientSecret and -TenantId.
 
     .PARAMETER ClientSecret
         Secret for the service principal identified by -ClientId. SecureString.
 
-    .EXAMPLE
-        Connect-AzureCliSession
+    .PARAMETER Force
+        Ignore any saved context for -TenantName and force a fresh login.
+
+    .PARAMETER ContextFolder
+        Where saved context files live. Defaults to "<OneDriveCommercial>\.azcontexts",
+        falling back to "$HOME\.azcontexts" if OneDriveCommercial isn't set.
 
     .EXAMPLE
-        Connect-AzureCliSession -TenantId $tenantId -ClientId $appId -ClientSecret (Read-Host -AsSecureString)
+        Connect-AzureTenant
+        Interactive login to any tenant you have access to; prompts you to pick one if there's more than one, then saves it under its real display name.
+
+    .EXAMPLE
+        Connect-AzureTenant -TenantName Contoso
+        Instantly re-imports the previously saved Contoso context, no login prompt.
+
+    .EXAMPLE
+        Connect-AzureTenant -TenantName Fabrikam -TenantId $tenantId -ClientId $appId -ClientSecret (Read-Host -AsSecureString) -Force
+        Non-interactive service principal login, forcing a fresh auth even if a saved context exists.
     #>
-    [CmdletBinding(DefaultParameterSetName = 'Interactive')]
+    [CmdletBinding()]
     param(
-        [Parameter(ParameterSetName = 'Interactive')]
-        [Parameter(ParameterSetName = 'ServicePrincipal')]
+        [string]$TenantName,
         [string]$TenantId,
-
-        [Parameter(Mandatory = $true, ParameterSetName = 'ServicePrincipal')]
+        [string]$SubscriptionId,
         [string]$ClientId,
-
-        [Parameter(Mandatory = $true, ParameterSetName = 'ServicePrincipal')]
-        [SecureString]$ClientSecret
+        [SecureString]$ClientSecret,
+        [switch]$Force,
+        [string]$ContextFolder = $(
+            if ($env:OneDriveCommercial) {
+                Join-Path $env:OneDriveCommercial '.azcontexts'
+            } else {
+                Write-Warning "OneDriveCommercial environment variable not set; falling back to local profile folder."
+                Join-Path $HOME '.azcontexts'
+            }
+        )
     )
 
-    if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
-        throw "Azure CLI ('az') was not found on PATH. Install it first."
+    if ($ClientId -and -not $ClientSecret) {
+        throw "-ClientSecret is required when -ClientId is supplied."
     }
 
-    if ($PSCmdlet.ParameterSetName -eq 'ServicePrincipal') {
-        $plainSecret = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-            [Runtime.InteropServices.Marshal]::SecureStringToBSTR($ClientSecret)
+    if (-not (Get-Module -ListAvailable -Name Az.Accounts)) {
+        throw "The Az PowerShell module (Az.Accounts) was not found. Install it with: Install-Module Az -Scope CurrentUser"
+    }
+    Import-Module Az.Accounts -ErrorAction Stop
+
+    if (-not (Test-Path $ContextFolder)) {
+        New-Item -ItemType Directory -Path $ContextFolder -Force | Out-Null
+    }
+
+    function Get-SafeFileName([string]$Name) {
+        $invalid = [IO.Path]::GetInvalidFileNameChars() -join ''
+        ($Name -replace "[$([regex]::Escape($invalid))]", '_')
+    }
+
+    $contextPath = if ($TenantName) {
+        Join-Path $ContextFolder "$(Get-SafeFileName $TenantName).json"
+    }
+
+    # Fast path: import a previously saved context instead of re-authenticating
+    if ($contextPath -and (Test-Path $contextPath) -and -not $Force) {
+        Write-Verbose "Importing saved context for '$TenantName' from $contextPath"
+        Import-AzContext -Path $contextPath | Out-Null
+    } else {
+        Write-Verbose "No matching saved context (or -Force specified); performing a fresh login."
+        if ($ClientId) {
+            if (-not $TenantId) { throw "-TenantId is required for a service principal login." }
+            $cred = [Management.Automation.PSCredential]::new($ClientId, $ClientSecret)
+            Connect-AzAccount -ServicePrincipal -Credential $cred -Tenant $TenantId | Out-Null
+        } elseif ($TenantId) {
+            Connect-AzAccount -Tenant $TenantId | Out-Null
+        } else {
+            # No tenant specified at all: log in, then let the user pick from whatever tenants they can access
+            Connect-AzAccount | Out-Null
+            $availableTenants = @(Get-AzTenant)
+            if ($availableTenants.Count -gt 1) {
+                Write-Host "Multiple tenants available for this account:"
+                for ($i = 0; $i -lt $availableTenants.Count; $i++) {
+                    Write-Host "  [$i] $($availableTenants[$i].Name)  ($($availableTenants[$i].Id))"
+                }
+                $selection = Read-Host "Select a tenant by number"
+                $chosen = $availableTenants[[int]$selection]
+                if ($chosen.Id -ne (Get-AzContext).Tenant.Id) {
+                    Write-Verbose "Switching to tenant $($chosen.Name) ($($chosen.Id))"
+                    Connect-AzAccount -Tenant $chosen.Id | Out-Null
+                }
+            }
+        }
+    }
+
+    if ($SubscriptionId) {
+        Set-AzContext -SubscriptionId $SubscriptionId | Out-Null
+    }
+
+    $context = Get-AzContext
+    if (-not $context) {
+        throw "No active Az context after connecting."
+    }
+
+    $resolvedTenantName = (Get-AzTenant -TenantId $context.Tenant.Id -ErrorAction SilentlyContinue).Name
+    if (-not $resolvedTenantName) { $resolvedTenantName = $TenantName }
+
+    $global:AzTenantId       = $context.Tenant.Id
+    $global:AzTenantName     = $resolvedTenantName
+    $global:AzSubscriptionId = $context.Subscription.Id
+    $global:AzClientId       = if ($context.Account.Type -eq 'ServicePrincipal') { $context.Account.Id } else { $null }
+
+    # Save/refresh the context on disk, keyed by the tenant's (resolved) display name
+    $saveName = if ($TenantName) { $TenantName } else { $resolvedTenantName }
+    if ($saveName) {
+        $savePath = Join-Path $ContextFolder "$(Get-SafeFileName $saveName).json"
+        Save-AzContext -Path $savePath -Force | Out-Null
+        Write-Verbose "Context saved to $savePath"
+    }
+
+    # Grab a raw access token too — usable with any tool that accepts a bearer token
+    # (az CLI itself can't consume an Az PowerShell context directly; this is the portable alternative)
+    $tokenObj = Get-AzAccessToken -ResourceUrl 'https://management.azure.com/'
+    $accessToken = $tokenObj.Token
+    if ($accessToken -is [SecureString]) {
+        # Az.Accounts 14.0+ returns Token as SecureString by default
+        $accessToken = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+            [Runtime.InteropServices.Marshal]::SecureStringToBSTR($accessToken)
         )
-        az login --service-principal -u $ClientId -p $plainSecret --tenant $TenantId | Out-Null
-    } elseif ($TenantId) {
-        az login --tenant $TenantId | Out-Null
-    } else {
-        az login | Out-Null
     }
 
-    if ($LASTEXITCODE -ne 0) {
-        throw "az login failed with exit code $LASTEXITCODE."
-    }
-
-    $account = az account show -o json | ConvertFrom-Json
-    if (-not $account) {
-        throw "Could not read account details from 'az account show' after login."
-    }
-
-    $global:AzTenantId       = $account.tenantId
-    $global:AzSubscriptionId = $account.id
-    $global:AzClientId       = if ($PSCmdlet.ParameterSetName -eq 'ServicePrincipal') {
-        $ClientId
-    } elseif ($account.user.type -eq 'servicePrincipal') {
-        $account.user.name
-    } else {
-        $null
-    }
-
-    # az account show doesn't return the tenant's display name; fetch it separately (best-effort)
-    $global:AzTenantName = $null
-    try {
-        $tenants = (az rest --method get --uri "https://management.azure.com/tenants?api-version=2022-12-01" -o json | ConvertFrom-Json).value
-        $global:AzTenantName = ($tenants | Where-Object { $_.tenantId -eq $global:AzTenantId }).displayName
-    } catch {
-        Write-Verbose "Could not resolve tenant display name: $_"
-    }
+    Set-Clipboard -Value $accessToken
+    $env:ACCESS_TOKEN = $accessToken
+    Write-Verbose "Access token copied to clipboard and set as `$env:ACCESS_TOKEN (expires around $($tokenObj.ExpiresOn))."
 
     [PSCustomObject]@{
-        TenantId         = $global:AzTenantId
-        TenantName       = $global:AzTenantName
-        SubscriptionId   = $global:AzSubscriptionId
-        SubscriptionName = $account.name
-        ClientId         = $global:AzClientId
-        UserName         = $account.user.name
+        TenantId             = $global:AzTenantId
+        TenantName           = $global:AzTenantName
+        SubscriptionId       = $global:AzSubscriptionId
+        SubscriptionName     = $context.Subscription.Name
+        ClientId             = $global:AzClientId
+        Account              = $context.Account.Id
+        AccessTokenExpiresOn = $tokenObj.ExpiresOn
     }
 }
-#Connect-AzureCliSession
 
+function Get-SavedAzureTenant {
+    <#
+    .SYNOPSIS
+        Lists saved Az contexts available for quick tenant switching via Connect-AzureTenant -TenantName.
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$ContextFolder = $(
+            if ($env:OneDriveCommercial) {
+                Join-Path $env:OneDriveCommercial '.azcontexts'
+            } else {
+                Join-Path $HOME '.azcontexts'
+            }
+        )
+    )
+
+    if (-not (Test-Path $ContextFolder)) { return }
+    Get-ChildItem -Path $ContextFolder -Filter '*.json' |
+        Select-Object @{N='TenantName';E={$_.BaseName}}, @{N='LastSaved';E={$_.LastWriteTime}}
+}
