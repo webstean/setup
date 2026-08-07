@@ -238,6 +238,22 @@ function Get-HostInfo {
             $bootDiskBusType = $null
             $isNVMeBoot      = $null
         }
+        # External (public) IP — only meaningful for the local machine; a remote target's
+        # egress IP can't be queried from here without running code on that box
+        try {
+            if ($ComputerName -eq $env:COMPUTERNAME) {
+                $externalIP = (Invoke-RestMethod -Uri 'https://api.ipify.org?format=json' -TimeoutSec 5).ip
+            }
+            else {
+                $externalIP = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
+                    (Invoke-RestMethod -Uri 'https://api.ipify.org?format=json' -TimeoutSec 5).ip
+                } -ErrorAction Stop
+            }
+        }
+        catch {
+            Write-Warning "Failed to query external IP address for $ComputerName : $_"
+            $externalIP = $null
+        }
         $lastBoot = $cim.LastBootUpTime
         $lastBootFormatted = if ($lastBoot) { $lastBoot.ToString('yyyy-MMM-dd HH:mm:ss') } else { $null }
         $static = [PSCustomObject]@{
@@ -263,6 +279,7 @@ function Get-HostInfo {
             Activated         = $activated
             BootDiskBusType   = $bootDiskBusType
             IsNVMeBoot        = $isNVMeBoot
+            ExternalIPAddress = $externalIP
             LastBootUpTime    = $lastBootFormatted
             UptimeMinutes     = $null   # filled in fresh below, every call, cached or not
             OSArchitecture    = $cim.OSArchitecture
