@@ -114,6 +114,17 @@ function Get-HostInfo {
         Write-Error "Failed to query Win32_OperatingSystem on $ComputerName : $_"
         return
     }
+    # Domain / workgroup membership
+    try {
+        $csInfo = Get-CimInstance -ClassName Win32_ComputerSystem -ComputerName $ComputerName -ErrorAction Stop
+        $domainName   = $csInfo.Domain
+        $partOfDomain = $csInfo.PartOfDomain
+    }
+    catch {
+        Write-Warning "Failed to query Win32_ComputerSystem on $ComputerName : $_"
+        $domainName   = $null
+        $partOfDomain = $null
+    }
     # Registry path — works locally; for remote, use Invoke-Command or remote registry provider
     $regPath = if ($ComputerName -eq $env:COMPUTERNAME) {
         'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
@@ -171,6 +182,8 @@ function Get-HostInfo {
     }
     [PSCustomObject]@{
         ComputerName      = $ComputerName
+        DomainName        = $domainName
+        PartOfDomain      = $partOfDomain
         ProductName       = $productName
         EditionID         = $editionId
         CompositionEdID   = $compositionEd
@@ -191,7 +204,6 @@ function Get-HostInfo {
         Version           = $cim.Version
     }
 }
-
 function Test-NFS {
     [CmdletBinding()]
     param()
