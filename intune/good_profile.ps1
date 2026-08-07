@@ -103,7 +103,6 @@ function Update-ProfileForce {
 #Update-ProfileForce
 
 $script:HostInfoCache = @{}
-
 function Get-HostInfo {
     [CmdletBinding()]
     param(
@@ -111,10 +110,8 @@ function Get-HostInfo {
         [switch]$NoCache,
         [timespan]$CacheDuration = (New-TimeSpan -Hours 1)
     )
-
     $cacheEntry   = $script:HostInfoCache[$ComputerName]
     $cacheIsFresh = $cacheEntry -and (((Get-Date) - $cacheEntry.CachedAt) -lt $CacheDuration)
-
     if (-not $NoCache -and $cacheIsFresh) {
         Write-Verbose "Using cached static info for $ComputerName (cached $($cacheEntry.CachedAt))."
         $static   = $cacheEntry.Static
@@ -122,7 +119,6 @@ function Get-HostInfo {
     }
     else {
         Write-Verbose "Querying $ComputerName fresh (no valid cache, -NoCache, or cache expired)."
-
         try {
             $cim = Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $ComputerName -ErrorAction Stop
         }
@@ -215,10 +211,35 @@ function Get-HostInfo {
             Write-Warning "Failed to query activation status on $ComputerName : $_"
             $activated = $null
         }
-
+        # Boot disk controller type (NVMe vs SATA/SAS/etc.) — Get-Partition/Get-Disk/Get-PhysicalDisk
+        # are CDXML cmdlets: no -ComputerName, so use a CimSession for remote targets
+        try {
+            if ($ComputerName -eq $env:COMPUTERNAME) {
+                $bootPartition = Get-Partition | Where-Object IsBoot -eq $true
+                $bootDisk      = Get-Disk -Number $bootPartition.DiskNumber
+                $physicalDisk  = Get-PhysicalDisk | Where-Object DeviceId -eq $bootDisk.Number
+            }
+            else {
+                $cimSession    = New-CimSession -ComputerName $ComputerName -ErrorAction Stop
+                try {
+                    $bootPartition = Get-Partition -CimSession $cimSession | Where-Object IsBoot -eq $true
+                    $bootDisk      = Get-Disk -CimSession $cimSession -Number $bootPartition.DiskNumber
+                    $physicalDisk  = Get-PhysicalDisk -CimSession $cimSession | Where-Object DeviceId -eq $bootDisk.Number
+                }
+                finally {
+                    Remove-CimSession $cimSession
+                }
+            }
+            $bootDiskBusType = $physicalDisk.BusType
+            $isNVMeBoot      = $bootDiskBusType -eq 'NVMe'
+        }
+        catch {
+            Write-Warning "Failed to query boot disk controller type on $ComputerName : $_"
+            $bootDiskBusType = $null
+            $isNVMeBoot      = $null
+        }
         $lastBoot = $cim.LastBootUpTime
         $lastBootFormatted = if ($lastBoot) { $lastBoot.ToString('yyyy-MMM-dd HH:mm:ss') } else { $null }
-
         $static = [PSCustomObject]@{
             ComputerName      = $ComputerName
             DomainName        = $domainName
@@ -240,23 +261,22 @@ function Get-HostInfo {
             IsLTSB            = $isLTSB
             IsIoT             = $isIoT
             Activated         = $activated
+            BootDiskBusType   = $bootDiskBusType
+            IsNVMeBoot        = $isNVMeBoot
             LastBootUpTime    = $lastBootFormatted
             UptimeMinutes     = $null   # filled in fresh below, every call, cached or not
             OSArchitecture    = $cim.OSArchitecture
             Caption           = $cim.Caption
             Version           = $cim.Version
         }
-
         $script:HostInfoCache[$ComputerName] = @{
             CachedAt = Get-Date
             Static   = $static
             LastBoot = $lastBoot
         }
     }
-
     # Recomputed every call, cache hit or not — this is the one value that's never stale
     $static.UptimeMinutes = if ($lastBoot) { [int][math]::Round(((Get-Date) - $lastBoot).TotalMinutes) } else { $null }
-
     $static
 }
 
