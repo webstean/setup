@@ -180,6 +180,10 @@ function Get-HostInfo {
         Write-Warning "Failed to query activation status on $ComputerName : $_"
         $activated = $null
     }
+    # Uptime — use the remote machine's own current time (LocalDateTime) rather than (Get-Date),
+    # to avoid clock-skew errors between the local machine running this and the target machine
+    $lastBoot = $cim.LastBootUpTime
+    $uptime = if ($lastBoot) { $cim.LocalDateTime - $lastBoot } else { $null }
     [PSCustomObject]@{
         ComputerName      = $ComputerName
         DomainName        = $domainName
@@ -199,11 +203,14 @@ function Get-HostInfo {
         IsLTSB            = $isLTSB
         IsIoT             = $isIoT
         Activated         = $activated
+        LastBootUpTime    = $lastBoot
+        Uptime            = $uptime
         OSArchitecture    = $cim.OSArchitecture
         Caption           = $cim.Caption
         Version           = $cim.Version
     }
 }
+
 function Test-NFS {
     [CmdletBinding()]
     param()
