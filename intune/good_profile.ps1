@@ -1833,7 +1833,8 @@ function Test-ManagedIdentity {
         if ($_.ErrorDetails.Message) {
             try { $errorBody = ($_.ErrorDetails.Message | ConvertFrom-Json).error_description } catch { $errorBody = $_.ErrorDetails.Message }
         }
-        Write-Error "Managed identity token request failed: $($errorBody ?? $_.Exception.Message)"
+        $errorMessage = if ($errorBody) { $errorBody } else { $_.Exception.Message }
+        Write-Error "Managed identity token request failed: $errorMessage"
         return
     }
 
@@ -4407,85 +4408,6 @@ function Initialize-GitHubCliAuth {
     }
 }
 #Initialize-GitHubCliAuth
-
-function Get-AzVmSku {
-    [CmdletBinding()]
-    param(
-        [string]$Location = $(if ($env:AZURE_LOCATION) { $env:AZURE_LOCATION } else { 'australiaeast' }),
-        [string]$SkuPrefix = 'Standard_D',
-        [double]$MinimumRamGB = 9,
-        [double]$MaximumRamGB = 19,
-        [int]$MaximumCPU = 5,
-        [bool]$SpotOnly = $false,
-        [bool]$EncryptionAtHostOnly = $true,
-        [bool]$AcceleratedNetworkingOnly = $true,
-        [bool]$AvailableOnly = $true
-    )
-
-    $skus = az vm list-skus `
-        --location $Location `
-        --resource-type virtualMachines `
-        --all `
-        --output json | ConvertFrom-Json
-
-    $results = foreach ($sku in $skus) {
-        if ($sku.name -notlike "$SkuPrefix*") {
-            continue
-        }
-
-        $caps = @{}
-
-        foreach ($cap in $sku.capabilities) {
-            $caps[$cap.name] = $cap.value
-        }
-
-        $memoryGB = if ($caps.ContainsKey('MemoryGB')) { [double]$caps['MemoryGB'] } else { 0 }
-        $vcpus = if ($caps.ContainsKey('vCPUs')) { [int]$caps['vCPUs'] } else { 0 }
-
-        $hasRestrictions = $null -ne $sku.restrictions -and $sku.restrictions.Count -gt 0
-        $skuAvailable = -not $hasRestrictions
-        $spotCapable = [bool]::Parse(($caps['SpotPrioritySupported'] ?? 'False'))
-
-        [pscustomobject]@{
-            Name                      = $sku.name
-            vCPUs                     = $vcpus
-            RAM_GB                    = $memoryGB
-            SkuAvailable              = $skuAvailable
-            SpotCapable               = $spotCapable
-            RestrictionReason         = if ($hasRestrictions) { ($sku.restrictions.reasonCode -join ', ') } else { $null }
-            RestrictionType           = if ($hasRestrictions) { ($sku.restrictions.type -join ', ') } else { $null }
-            EncryptionAtHostSupported = [bool]::Parse(($caps['EncryptionAtHostSupported'] ?? 'False'))
-            AcceleratedNetworking     = [bool]::Parse(($caps['AcceleratedNetworkingEnabled'] ?? 'False'))
-        }
-    }
-
-    $results = $results | Where-Object {
-        $_.RAM_GB -ge $MinimumRamGB -and
-        $_.RAM_GB -le $MaximumRamGB -and
-        $_.vCPUs -le $MaximumCPU
-    }
-
-    if ($AvailableOnly) {
-        $results = $results | Where-Object { $_.SkuAvailable }
-    }
-
-    if ($SpotOnly) {
-        $results = $results | Where-Object { $_.SpotCapable }
-    }
-
-    if ($EncryptionAtHostOnly) {
-        $results = $results | Where-Object { $_.EncryptionAtHostSupported }
-    }
-
-    if ($AcceleratedNetworkingOnly) {
-        $results = $results | Where-Object { $_.AcceleratedNetworking }
-    }
-
-    $results = $results | Sort-Object vCPUs, RAM_GB, Name
-
-    $results | Format-Table -AutoSize
-    "Count: $($results.Count) in $($Location)"
-}
 
 function Get-QuickXorHashFromFile {
     param (
