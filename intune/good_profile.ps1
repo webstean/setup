@@ -183,7 +183,8 @@ function Get-HostInfo {
     # Uptime — use the remote machine's own current time (LocalDateTime) rather than (Get-Date),
     # to avoid clock-skew errors between the local machine running this and the target machine
     $lastBoot = $cim.LastBootUpTime
-    $uptime = if ($lastBoot) { $cim.LocalDateTime - $lastBoot } else { $null }
+    $uptime = if ($lastBoot) { [math]::Round(($cim.LocalDateTime - $lastBoot).TotalMinutes, 2) } else { $null }
+    $lastBootFormatted = if ($lastBoot) { $lastBoot.ToString('yyyy-MM-dd-HH-mm') } else { $null }
     [PSCustomObject]@{
         ComputerName      = $ComputerName
         DomainName        = $domainName
@@ -203,8 +204,8 @@ function Get-HostInfo {
         IsLTSB            = $isLTSB
         IsIoT             = $isIoT
         Activated         = $activated
-        LastBootUpTime    = $lastBoot
-        Uptime            = $uptime
+        LastBootUpTime    = $lastBootFormatted
+        UptimeMinutes     = $uptime
         OSArchitecture    = $cim.OSArchitecture
         Caption           = $cim.Caption
         Version           = $cim.Version
