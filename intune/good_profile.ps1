@@ -1373,52 +1373,6 @@ if ($IsLanguagePermissive) {
     }
 }
 
-function Get-OsInfo {
-    $cv = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
-    if (-not (Test-Path $cv)) { return }
-
-    $props = Get-ItemProperty -Path $cv -ErrorAction SilentlyContinue
-    if (-not $props) { return }
-
-    $major = $props.CurrentMajorVersionNumber
-    $minor = $props.CurrentMinorVersionNumber
-    $build = $props.CurrentBuildNumber
-    $ubr   = $props.UBR
-    $osVersion = "$major.$minor.$build.$ubr"
-
-    $cs = Get-CimInstance -ClassName Win32_ComputerSystem
-
-    if ($IsLanguagePermissive) {
-        [PSCustomObject]@{
-            ProductName  = $props.ProductName
-            ReleaseId    = $props.ReleaseId
-            DisplayVer   = $props.DisplayVersion
-            Build        = [int]$build
-            UBR          = [int]$ubr
-            OSVersion    = $osVersion
-            Type         = $props.InstallationType
-            Manufacturer = $cs.Manufacturer
-            Model        = $cs.Model
-            DevBox       = $env:IsDevBox
-        }
-    } else {
-        Write-Host 'ProductName  : ' -NoNewline; Write-Host $props.ProductName
-        Write-Host 'ReleaseId    : ' -NoNewline; Write-Host $props.ReleaseId
-        Write-Host 'DisplayVer   : ' -NoNewline; Write-Host $props.DisplayVersion
-        Write-Host 'Build        : ' -NoNewline; Write-Host ([int]$build)
-        Write-Host 'UBR          : ' -NoNewline; Write-Host ([int]$ubr)
-        Write-Host "OSVersion    : $osVersion"
-        Write-Host 'Type         : ' -NoNewline; Write-Host $props.InstallationType
-        Write-Host 'Manufacturer : ' -NoNewline; Write-Host $cs.Manufacturer
-        Write-Host 'Model        : ' -NoNewline; Write-Host $cs.Model
-        if ($env:IsDevBox -eq 'True') {
-            Write-Host 'Azure DevBox : Yes'
-        } else {
-            Write-Host 'Azure DevBox : No'
-        }
-    }
-}
-
 if ( ($env:IsDevBox ) -and (Get-Command 'devbox') ) {
     if ($env:UPN) {
         Write-Host -ForegroundColor Cyan "Welcome to your Dev Box $env:UPN"
