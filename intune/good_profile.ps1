@@ -376,6 +376,8 @@ function Get-HostInfo {
     $static
 }
 
+azd config set container.builder podman
+
 function Test-NFS {
     [CmdletBinding()]
     param()
