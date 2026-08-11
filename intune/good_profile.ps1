@@ -4601,3 +4601,27 @@ function Start-BastionTunnel {
 #     -ResourcePort 6516 `
 #     -LocalPort 8443 `
 #     -Verbose
+
+function Test-InternetConnection {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    $response = $null
+    try {
+        $request = [System.Net.WebRequest]::Create('http://www.msftconnecttest.com/connecttest.txt')
+        $request.Timeout = 5000
+        $response = [System.Net.HttpWebResponse]$request.GetResponse()
+        if ($response.StatusCode -eq [System.Net.HttpStatusCode]::OK) {
+            return $true
+        }
+    } catch {
+        return $false
+    } finally {
+        if ($null -ne $response) {
+            $response.Close()
+        }
+    }
+
+    return $false
+}
+
