@@ -376,8 +376,6 @@ function Get-HostInfo {
     $static
 }
 
-azd config set container.builder podman
-
 function Test-NFS {
     [CmdletBinding()]
     param()
@@ -558,62 +556,6 @@ function Install-WindowsNfsClient {
             $mountAvailable
         )
     }
-}
-
-function Get-DotNetHostInfo {
-    [CmdletBinding()]
-    param()
-
-    $languageMode = $ExecutionContext.SessionState.LanguageMode
-
-    # Defaults (core types only)
-    $jsonVersion = '<not loaded>'
-    $jsonLocation = '<not loaded>'
-    $isElevated = $null
-
-    # Probe System.Text.Json (may be blocked; that's fine)
-    try {
-        $asm = [System.Text.Json.JsonSerializer].Assembly
-        $jsonVersion = $asm.GetName().Version.ToString()
-        $jsonLocation = $asm.Location
-    } catch {}
-
-    # Elevation check that works in CLM on Windows
-    try {
-        $isElevated = $null -ne (whoami /groups 2>$null | Select-String -SimpleMatch 'S-1-5-32-544')
-    } catch {
-        $isElevated = $null
-    }
-
-    $osDesc = '<unknown>'
-    $fwDesc = '<unknown>'
-    $arch = '<unknown>'
-
-    try { $osDesc = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription } catch {}
-    try { $fwDesc = [System.Runtime.InteropServices.RuntimeInformation]::FrameworkDescription } catch {}
-    try { $arch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString() } catch {}
-
-    # Use a hashtable (core type) so CLM won't error
-    $data = @{
-        PowerShellVersion = $PSVersionTable.PSVersion.ToString()
-        Edition           = $PSVersionTable.PSEdition
-        Host              = $Host.Name
-        PSHome            = $PSHOME
-        LanguageMode      = $languageMode.ToString()
-        OS                = $osDesc
-        Framework         = $fwDesc
-        ProcessArch       = $arch
-        IsElevated        = $isElevated
-        JsonAssembly      = $jsonVersion
-        JsonLocation      = $jsonLocation
-    }
-
-    # If not constrained, upgrade the return type to PSCustomObject for nicer display
-    if ($languageMode -ne 'ConstrainedLanguage') {
-        return [pscustomobject]$data
-    }
-
-    return $data
 }
 
 function New-ProfileObject {
@@ -1034,6 +976,9 @@ function Reset-Podman {
         Set-Alias -Name docker -Value podman
         ## Set-Item -Path Env:\ASPIRE_CONTAINER_RUNTIME -Value 'podman'
         [System.Environment]::SetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME","podman","User")
+        if (Get-Command azd -ErrorAction SilentlyContinue) {
+            azd config set container.builder podman
+        }
         #Set-WslNetConfig
         ## podman run -dt -p 8080:80/tcp docker.io/library/httpd:latest
         ## podman run -it mcr.microsoft.com/azure-cli:azurelinux3.0
