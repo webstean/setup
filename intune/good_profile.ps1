@@ -4549,3 +4549,55 @@ function Get-SavedAzureTenant {
     Get-ChildItem -Path $ContextFolder -Filter '*.json' |
         Select-Object @{N='TenantName';E={$_.BaseName}}, @{N='LastSaved';E={$_.LastWriteTime}}
 }
+
+function Start-BastionTunnel {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$BastionName,
+
+        [Parameter(Mandatory)]
+        [string]$BastionResourceGroup,
+
+        [Parameter(Mandatory)]
+        [string]$VmName,
+
+        [Parameter(Mandatory)]
+        [string]$VmResourceGroup,
+
+        [Parameter(Mandatory)]
+        [int]$ResourcePort,
+
+        [Parameter(Mandatory)]
+        [int]$LocalPort
+    )
+
+    # --- Resolve VM resource ID inline ---
+    $targetResourceId = az vm show `
+        --resource-group $VmResourceGroup `
+        --name $VmName `
+        --query id -o tsv
+
+    if (-not $targetResourceId) {
+        Write-Error "Could not resolve resource ID for VM '$VmName' in resource group '$VmResourceGroup'."
+        return
+    }
+
+    Write-Verbose "Resolved target resource ID: $targetResourceId"
+
+    # --- Start the tunnel ---
+    az network bastion tunnel `
+        --name $BastionName `
+        --resource-group $BastionResourceGroup `
+        --target-resource-id $targetResourceId `
+        --resource-port $ResourcePort `
+        --port $LocalPort
+}
+# Example usage:
+# Start-BastionTunnel -BastionName "ba-aif-australiaeast" `
+#     -BastionResourceGroup "rg-env-aif-australiaeast" `
+#     -VmName "myvm" `
+#     -VmResourceGroup "rg-env-aif-australiaeast" `
+#     -ResourcePort 6516 `
+#     -LocalPort 8443 `
+#     -Verbose
