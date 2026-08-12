@@ -1058,7 +1058,7 @@ function Install-SysInternalsTools {
         } else {
             $outfile = Join-Path -Path $Bin -ChildPath $friendlyName
         }
-        Invoke-WebRequest -Uri $url -OutFile $outfile
+        Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $outfile
     }
     ##Invoke-WebRequest -Uri https://www.7-zip.org/a/7z2409-x64.exe -OutFile $Bin\unzip.exe
 }
