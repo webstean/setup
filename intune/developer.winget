@@ -206,6 +206,8 @@ winget install sqlcmd
         id: RedHat.Podman
         source: winget
 
+winget install Microsoft.IntelligentTerminal
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.Coreutils
       directives:
