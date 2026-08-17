@@ -9,6 +9,7 @@
 ## Docker/Podman
 ## Documentation
 ## Microsoft Learn
+## Microsoft Release Communications
 ## Local Markdown files
 
 function New-McpGateway {
@@ -151,6 +152,20 @@ catalog_servers:
       - pwsh
       - automation
       - shell
+
+  - id: microsoft-release-communications
+    name: Microsoft Release Communications
+    category: Documentation
+    url: https://www.microsoft.com/releasecommunications/mcp
+    auth_type: Open
+    provider: Microsoft
+    description: Public Microsoft release communications for Microsoft 365 roadmap and Azure Updates.
+    requires_api_key: false
+    tags:
+      - microsoft
+      - release-communications
+      - microsoft-365-roadmap
+      - azure-updates
 '@ | Set-Content -Encoding UTF8 'mcp-catalog.yml'
 
     @'
