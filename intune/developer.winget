@@ -156,8 +156,15 @@ properties:
         id: RicoSuter.NSwagStudio
         source: winget
 
-winget install sqlcmd
-
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.Sqlcmd
+      directives:
+        description: Install Microsoft.Sqlcmd
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: Microsoft.Sqlcmd
+        source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Anthropic.Claude
@@ -206,8 +213,6 @@ winget install sqlcmd
         id: RedHat.Podman
         source: winget
 
-winget install Microsoft.IntelligentTerminal
-
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.Coreutils
       directives:
@@ -242,11 +247,12 @@ winget install Microsoft.IntelligentTerminal
           [System.Environment]::SetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME","podman","Machine")
           [System.Environment]::SetEnvironmentVariable('WSLENV', 'OneDriveCommercial/p:STRONGPASSWORD:USERDNSDOMAIN:USERDOMAIN:USERNAME:UPN:DOCKER_HOST:PODMAN_IDENTITY/p:PODMAN_PORT:PODMAN_CONNECTION/p:WSL_INSTALLED_TIMEZONE', 'Machine')
 
-- resource: Microsoft.WinGet.DSC/WinGetPackage
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Kubernetes.kubectl
       directives:
         description: Install Kubernetes.kubectl
         allowPrerelease: true
+        securityContext: elevated
       settings:
         id: Kubernetes.kubectl
         source: winget
@@ -400,6 +406,16 @@ winget install Microsoft.IntelligentTerminal
         securityContext: elevated
       settings:
         id: Microsoft.WindowsTerminal
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.IntelligentTerminal
+      directives:
+        description: Install Microsoft.IntelligentTerminal
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: Microsoft.IntelligentTerminal
         source: winget
  
     - resource: Microsoft.WinGet.DSC/WinGetPackage
