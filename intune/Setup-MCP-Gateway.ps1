@@ -12,6 +12,20 @@
 ## Microsoft Release Communications
 ## Local Markdown files
 
+[CmdletBinding()]
+param(
+  [string]$Root = "$HOME\podman-mcp-gateway",
+  [string]$WorkspaceRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path,
+  [string]$ContainerRuntime = $(if ($env:ASPIRE_CONTAINER_RUNTIME) { $env:ASPIRE_CONTAINER_RUNTIME } else { 'podman' }),
+  [int]$Port = 4444,
+  [string]$AdminEmail = $env:UPN ? $env:UPN : 'admin@example.com',
+  [securestring]$AdminPassword = $env:STRONGPASSWORD ? (ConvertTo-SecureString $env:STRONGPASSWORD -AsPlainText -Force) : (ConvertTo-SecureString 'changeme' -AsPlainText -Force),
+  [string]$JwtSecret = $env:STRONGPASSWORD ? $env:STRONGPASSWORD : 'changeme',
+  [switch]$ConfigureVsCode,
+  [string]$VsCodeMcpConfigPath = (Join-Path $env:APPDATA 'Code\User\mcp.json'),
+  [int]$VsCodeTokenExpiryMinutes = 10080
+)
+
 function New-McpGateway {
   [CmdletBinding()]
   param(
@@ -21,11 +35,97 @@ function New-McpGateway {
     [int]$Port = 4444,
     [string]$AdminEmail = $env:UPN ? $env:UPN : 'admin@example.com',
     [securestring]$AdminPassword = $env:STRONGPASSWORD ? (ConvertTo-SecureString $env:STRONGPASSWORD -AsPlainText -Force) : (ConvertTo-SecureString 'changeme' -AsPlainText -Force),
-    [string]$JwtSecret = $env:STRONGPASSWORD ? $env:STRONGPASSWORD : 'changeme'
+    [string]$JwtSecret = $env:STRONGPASSWORD ? $env:STRONGPASSWORD : 'changeme',
+    [switch]$ConfigureVsCode,
+    [string]$VsCodeMcpConfigPath = (Join-Path $env:APPDATA 'Code\User\mcp.json'),
+    [int]$VsCodeTokenExpiryMinutes = 10080
   )
 
   $ErrorActionPreference = 'Stop'
   $ContainerRuntime = $ContainerRuntime.ToLowerInvariant()
+
+  function ConvertTo-Base64Url {
+    param(
+      [Parameter(Mandatory)]
+      [byte[]]$Bytes
+    )
+
+    return [Convert]::ToBase64String($Bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+  }
+
+  function New-McpGatewayBearerToken {
+    param(
+      [Parameter(Mandatory)]
+      [string]$Username,
+      [Parameter(Mandatory)]
+      [string]$Secret,
+      [Parameter(Mandatory)]
+      [int]$ExpiresInMinutes
+    )
+
+    $now = [DateTimeOffset]::UtcNow
+    $header = [ordered]@{
+      alg = 'HS256'
+      typ = 'JWT'
+    }
+    $payload = [ordered]@{
+      sub = $Username
+      iat = $now.ToUnixTimeSeconds()
+      iss = 'mcpgateway'
+      aud = 'mcpgateway-api'
+      jti = [guid]::NewGuid().ToString()
+      exp = $now.AddMinutes($ExpiresInMinutes).ToUnixTimeSeconds()
+    }
+
+    $encoding = [System.Text.Encoding]::UTF8
+    $headerPart = ConvertTo-Base64Url -Bytes $encoding.GetBytes(($header | ConvertTo-Json -Compress))
+    $payloadPart = ConvertTo-Base64Url -Bytes $encoding.GetBytes(($payload | ConvertTo-Json -Compress))
+    $unsignedToken = "$headerPart.$payloadPart"
+
+    $hmac = [System.Security.Cryptography.HMACSHA256]::new($encoding.GetBytes($Secret))
+    try {
+      $signature = ConvertTo-Base64Url -Bytes $hmac.ComputeHash($encoding.GetBytes($unsignedToken))
+    } finally {
+      $hmac.Dispose()
+    }
+
+    return "$unsignedToken.$signature"
+  }
+
+  function Set-VsCodeMcpGatewayConfig {
+    param(
+      [Parameter(Mandatory)]
+      [string]$ConfigPath,
+      [Parameter(Mandatory)]
+      [string]$GatewayUrl,
+      [Parameter(Mandatory)]
+      [string]$BearerToken
+    )
+
+    $configDirectory = Split-Path -Parent $ConfigPath
+    New-Item -ItemType Directory -Force -Path $configDirectory | Out-Null
+
+    if (Test-Path $ConfigPath) {
+      $rawConfig = Get-Content -Raw -Path $ConfigPath
+      $config = $rawConfig ? ($rawConfig | ConvertFrom-Json -AsHashtable) : [ordered]@{}
+    } else {
+      $config = [ordered]@{}
+    }
+
+    if (-not $config.ContainsKey('servers') -or $null -eq $config['servers']) {
+      $config['servers'] = [ordered]@{}
+    }
+
+    $config['servers']['mcp-gateway'] = [ordered]@{
+      type    = 'http'
+      url     = "$GatewayUrl/mcp"
+      headers = [ordered]@{
+        Authorization = "Bearer $BearerToken"
+      }
+    }
+
+    $config | ConvertTo-Json -Depth 10 | Set-Content -Encoding UTF8 -Path $ConfigPath
+  }
 
   function Invoke-Compose {
     param(
@@ -52,13 +152,13 @@ function New-McpGateway {
     }
   }
 
-  if ($ContainerRuntime -eq 'docker') {
-    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-      throw 'Docker is not installed or not in PATH.'
-    }
-  } elseif ($ContainerRuntime -eq 'podman') {
+  if ($ContainerRuntime -eq 'podman') {
     if (-not (Get-Command podman -ErrorAction SilentlyContinue)) {
       throw 'Podman is not installed or not in PATH.'
+    }
+  } elseif ($ContainerRuntime -eq 'docker') {
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+      throw 'Docker is not installed or not in PATH.'
     }
   } elseif ($ContainerRuntime -eq 'wslc') {
     if (-not (Get-Command wslc -ErrorAction SilentlyContinue)) {
@@ -304,11 +404,21 @@ volumes:
     Invoke-Compose -Action pull -ComposeFile 'compose.yml'
     Invoke-Compose -Action up -ComposeFile 'compose.yml' -Detached
 
+    if ($ConfigureVsCode) {
+      $gatewayUrl = "http://localhost:$Port"
+      $bearerToken = New-McpGatewayBearerToken -Username $AdminEmail -Secret $JwtSecret -ExpiresInMinutes $VsCodeTokenExpiryMinutes
+      Set-VsCodeMcpGatewayConfig -ConfigPath $VsCodeMcpConfigPath -GatewayUrl $gatewayUrl -BearerToken $bearerToken
+    }
+
     Write-Host ''
     Write-Host 'MCP Gateway running:'
     Write-Host "  UI/API: http://localhost:$Port"
+    Write-Host "  MCP:    http://localhost:$Port/mcp"
     Write-Host "  Admin:  $AdminEmail"
     Write-Host "  Pass:   $AdminPasswordPlain"
+    if ($ConfigureVsCode) {
+      Write-Host "  VS Code MCP config: $VsCodeMcpConfigPath"
+    }
     Write-Host ''
     Write-Host 'Useful commands:'
     Write-Host "  $ContainerRuntime compose -f `"$Root\compose.yml`" logs -f gateway"
@@ -318,7 +428,7 @@ volumes:
   }
 }
 try {
-  New-McpGateway
+  New-McpGateway @PSBoundParameters
 } catch {
   Write-Error "Failed to set up MCP Gateway: $_"  
 }
