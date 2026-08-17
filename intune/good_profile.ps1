@@ -4625,3 +4625,72 @@ function Test-InternetConnection {
     return $false
 }
 
+function Invoke-WinGetConfigureFromUrl {
+    <#
+    .SYNOPSIS
+        Downloads a WinGet configuration (.winget/.dsc.yaml) file and applies it with `winget configure`.
+
+    .DESCRIPTION
+        `winget configure` only accepts a local file path, so this pulls the file down to a
+        temp location first, then invokes winget against it. Must be run elevated (Admin) since
+        the file's resources use `securityContext: elevated`.
+
+    .PARAMETER Uri
+        Location of the .winget configuration file. Defaults to the developer.winget file.
+
+    .PARAMETER AcceptAgreements
+        Passes --accept-configuration-agreements so it doesn't prompt. On by default.
+
+    .PARAMETER Interactive
+        Leave interactive prompts on (per-resource confirmation). Off by default (unattended).
+
+    .EXAMPLE
+        Invoke-WinGetConfigureFromUrl
+
+    .EXAMPLE
+        Invoke-WinGetConfigureFromUrl -Uri 'https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/developer.winget' -Interactive
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$Uri = 'https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/developer.winget',
+        [bool]$AcceptAgreements = $true,
+        [switch]$Interactive
+    )
+
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+        throw "winget not found on PATH. Install App Installer from the Microsoft Store first."
+    }
+
+    $isElevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isElevated) {
+        Write-Warning "Not running elevated. Resources with 'securityContext: elevated' will fail. Re-run from an admin PowerShell session."
+    }
+
+    $tempFile = Join-Path $env:TEMP ("winget-config-{0}.winget" -f ([guid]::NewGuid()))
+
+    try {
+        # raw.githubusercontent.com sits behind Fastly and can serve a cached copy for a few
+        # minutes after a push. Bust the cache with a unique query string and no-cache headers
+        # so this always pulls whatever is currently on the branch, not a stale edge copy.
+        $cacheBustedUri = "{0}{1}_={2}" -f $Uri, $(if ($Uri -match '\?') { '&' } else { '?' }), [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+        $headers = @{
+            'Cache-Control' = 'no-cache, no-store, must-revalidate'
+            'Pragma'        = 'no-cache'
+        }
+
+        Write-Host "Downloading configuration from $Uri ..."
+        Invoke-WebRequest -Uri $cacheBustedUri -Headers $headers -OutFile $tempFile -UseBasicParsing
+
+        $wingetArgs = @('configure', '--file', $tempFile)
+        if ($AcceptAgreements) { $wingetArgs += '--accept-configuration-agreements' }
+        if (-not $Interactive) { $wingetArgs += '--disable-interactivity' }
+
+        Write-Host "Applying configuration: winget $($wingetArgs -join ' ')"
+        & winget @wingetArgs
+    }
+    finally {
+        Remove-Item -Path $tempFile -ErrorAction SilentlyContinue
+    }
+}
+#Invoke-WinGetConfigureFromUrl
+
