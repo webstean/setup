@@ -4646,12 +4646,17 @@ function Update-DeveloperApps {
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
 
+    Write-StepSummary -type 'info' 'Updating developer apps via winget configuration...'
     if (-not $IsAdmin) {
         Write-Host 'You have to run as administrator - to perform this action.'
         return
     }
 
-    Write-StepSummary -type 'info' 'Updating developer apps via winget configuration...'
+    if (-not (Get-Command 'winget' -ErrorAction SilentlyContinue)) {
+        Write-Host 'You need to have winget installed to perform this action.'
+        return
+    }
+
     winget configure --enable
     winget settings --enable ProxyCommandLineOptions
 
