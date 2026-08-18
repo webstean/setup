@@ -79,10 +79,10 @@ function Update-ProfileForce {
     # (those are PS7+-only encoding names) — write via .NET directly so behavior is identical
     # on both PowerShell versions.
     $encodingObject = switch ($Encoding) {
-        'utf8'      { [System.Text.UTF8Encoding]::new($true) }   # with BOM
-        'utf8BOM'   { [System.Text.UTF8Encoding]::new($true) }   # with BOM
+        'utf8' { [System.Text.UTF8Encoding]::new($true) }   # with BOM
+        'utf8BOM' { [System.Text.UTF8Encoding]::new($true) }   # with BOM
         'utf8NoBOM' { [System.Text.UTF8Encoding]::new($false) }  # without BOM
-        'ascii'     { [System.Text.Encoding]::ASCII }
+        'ascii' { [System.Text.Encoding]::ASCII }
     }
     [System.IO.File]::WriteAllText($ProfilePath, $newContent, $encodingObject)
 
@@ -98,31 +98,28 @@ function Get-HostInfo {
         [switch]$NoCache,
         [timespan]$CacheDuration = (New-TimeSpan -Hours 1)
     )
-    $cacheEntry   = $script:HostInfoCache[$ComputerName]
+    $cacheEntry = $script:HostInfoCache[$ComputerName]
     $cacheIsFresh = $cacheEntry -and (((Get-Date) - $cacheEntry.CachedAt) -lt $CacheDuration)
     if (-not $NoCache -and $cacheIsFresh) {
         Write-Verbose "Using cached static info for $ComputerName (cached $($cacheEntry.CachedAt))."
-        $static   = $cacheEntry.Static
+        $static = $cacheEntry.Static
         $lastBoot = $cacheEntry.LastBoot
-    }
-    else {
+    } else {
         Write-Verbose "Querying $ComputerName fresh (no valid cache, -NoCache, or cache expired)."
         try {
             $cim = Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $ComputerName -ErrorAction Stop
-        }
-        catch {
+        } catch {
             Write-Error "Failed to query Win32_OperatingSystem on $ComputerName : $_"
             return
         }
         # Domain / workgroup membership
         try {
             $csInfo = Get-CimInstance -ClassName Win32_ComputerSystem -ComputerName $ComputerName -ErrorAction Stop
-            $domainName   = $csInfo.Domain
+            $domainName = $csInfo.Domain
             $partOfDomain = $csInfo.PartOfDomain
-        }
-        catch {
+        } catch {
             Write-Warning "Failed to query Win32_ComputerSystem on $ComputerName : $_"
-            $domainName   = $null
+            $domainName = $null
             $partOfDomain = $null
         }
         # Entra ID (Azure AD) join status — dsregcmd has no native remoting, so shell out locally
@@ -134,12 +131,11 @@ function Get-HostInfo {
                 Invoke-Command -ComputerName $ComputerName -ScriptBlock { dsregcmd /status } -ErrorAction Stop
             }
             $azureAdJoinedLine = $dsregOutput | Select-String '^\s*AzureAdJoined\s*:\s*(\w+)'
-            $domainJoinedLine  = $dsregOutput | Select-String '^\s*DomainJoined\s*:\s*(\w+)'
-            $entraIdJoined     = if ($azureAdJoinedLine) { $azureAdJoinedLine.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
-            $dsregDomainJoined = if ($domainJoinedLine)  { $domainJoinedLine.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
+            $domainJoinedLine = $dsregOutput | Select-String '^\s*DomainJoined\s*:\s*(\w+)'
+            $entraIdJoined = if ($azureAdJoinedLine) { $azureAdJoinedLine.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
+            $dsregDomainJoined = if ($domainJoinedLine) { $domainJoinedLine.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
             $entraHybridJoined = if ($null -ne $entraIdJoined -and $null -ne $dsregDomainJoined) { $entraIdJoined -and $dsregDomainJoined } else { $null }
-        }
-        catch {
+        } catch {
             Write-Warning "Failed to query Entra ID join status on $ComputerName : $_"
             $entraIdJoined = $null
             $entraHybridJoined = $null
@@ -158,13 +154,13 @@ function Get-HostInfo {
                 Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
             } -ErrorAction SilentlyContinue
         }
-        $productName   = $reg.ProductName
-        $editionId     = $reg.EditionID
-        $releaseId     = $reg.ReleaseId
-        $displayVer    = $reg.DisplayVersion
-        $currentBuild  = $reg.CurrentBuild
-        $ubr           = $reg.UBR
-        $installType   = $reg.InstallationType   # e.g. "Client", "Server", "Client Core"
+        $productName = $reg.ProductName
+        $editionId = $reg.EditionID
+        $releaseId = $reg.ReleaseId
+        $displayVer = $reg.DisplayVersion
+        $currentBuild = $reg.CurrentBuild
+        $ubr = $reg.UBR
+        $installType = $reg.InstallationType   # e.g. "Client", "Server", "Client Core"
         $compositionEd = $reg.CompositionEditionID  # sometimes populated on IoT/LTSC images
         # Detect LTSC — EditionID and ProductName both carry "LTSC" on 10/11,
         # older 2015/2016 LTSB builds carry "LTSB" instead
@@ -194,8 +190,7 @@ function Get-HostInfo {
             $licensingProduct = Get-CimInstance -ClassName SoftwareLicensingProduct -ComputerName $ComputerName `
                 -Filter "PartialProductKey is not null and Name like 'Windows%'" -ErrorAction Stop
             $activated = [bool]($licensingProduct | Where-Object { $_.LicenseStatus -eq 1 })
-        }
-        catch {
+        } catch {
             Write-Warning "Failed to query activation status on $ComputerName : $_"
             $activated = $null
         }
@@ -203,28 +198,25 @@ function Get-HostInfo {
         # are CDXML cmdlets: no -ComputerName, so use a CimSession for remote targets
         try {
             if ($ComputerName -eq $env:COMPUTERNAME) {
-                $bootPartition = Get-Partition | Where-Object IsBoot -eq $true
-                $bootDisk      = Get-Disk -Number $bootPartition.DiskNumber
-                $physicalDisk  = Get-PhysicalDisk | Where-Object DeviceId -eq $bootDisk.Number
-            }
-            else {
-                $cimSession    = New-CimSession -ComputerName $ComputerName -ErrorAction Stop
+                $bootPartition = Get-Partition | Where-Object IsBoot -EQ $true
+                $bootDisk = Get-Disk -Number $bootPartition.DiskNumber
+                $physicalDisk = Get-PhysicalDisk | Where-Object DeviceId -EQ $bootDisk.Number
+            } else {
+                $cimSession = New-CimSession -ComputerName $ComputerName -ErrorAction Stop
                 try {
-                    $bootPartition = Get-Partition -CimSession $cimSession | Where-Object IsBoot -eq $true
-                    $bootDisk      = Get-Disk -CimSession $cimSession -Number $bootPartition.DiskNumber
-                    $physicalDisk  = Get-PhysicalDisk -CimSession $cimSession | Where-Object DeviceId -eq $bootDisk.Number
-                }
-                finally {
+                    $bootPartition = Get-Partition -CimSession $cimSession | Where-Object IsBoot -EQ $true
+                    $bootDisk = Get-Disk -CimSession $cimSession -Number $bootPartition.DiskNumber
+                    $physicalDisk = Get-PhysicalDisk -CimSession $cimSession | Where-Object DeviceId -EQ $bootDisk.Number
+                } finally {
                     Remove-CimSession $cimSession
                 }
             }
             $bootDiskBusType = $physicalDisk.BusType
-            $isNVMeBoot      = $bootDiskBusType -eq 'NVMe'
-        }
-        catch {
+            $isNVMeBoot = $bootDiskBusType -eq 'NVMe'
+        } catch {
             Write-Warning "Failed to query boot disk controller type on $ComputerName : $_"
             $bootDiskBusType = $null
-            $isNVMeBoot      = $null
+            $isNVMeBoot = $null
         }
         # Running inside Azure — Azure Instance Metadata Service is only reachable from
         # within an Azure VM (link-local address 169.254.169.254, never routed). Short
@@ -232,10 +224,9 @@ function Get-HostInfo {
         $azureCheckScript = {
             try {
                 $null = Invoke-RestMethod -Uri 'http://169.254.169.254/metadata/instance?api-version=2021-02-01' `
-                    -Headers @{Metadata = 'true'} -TimeoutSec 2 -ErrorAction Stop
+                    -Headers @{Metadata = 'true' } -TimeoutSec 2 -ErrorAction Stop
                 $true
-            }
-            catch {
+            } catch {
                 $false
             }
         }
@@ -245,8 +236,7 @@ function Get-HostInfo {
             } else {
                 Invoke-Command -ComputerName $ComputerName -ScriptBlock $azureCheckScript -ErrorAction Stop
             }
-        }
-        catch {
+        } catch {
             Write-Warning "Failed to determine Azure IMDS reachability on $ComputerName : $_"
             $isWithinAzure = $false
         }
@@ -259,10 +249,9 @@ function Get-HostInfo {
         $identityCheckScript = {
             try {
                 $null = Invoke-RestMethod -Uri 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fmanagement.azure.com%2F' `
-                    -Headers @{Metadata = 'true'} -TimeoutSec 2 -ErrorAction Stop
+                    -Headers @{Metadata = 'true' } -TimeoutSec 2 -ErrorAction Stop
                 $true
-            }
-            catch {
+            } catch {
                 $errBody = $null
                 try { $errBody = $_.ErrorDetails.Message | ConvertFrom-Json } catch {}
                 [bool]($errBody.error_description -match 'multiple')
@@ -275,13 +264,11 @@ function Get-HostInfo {
                 } else {
                     Invoke-Command -ComputerName $ComputerName -ScriptBlock $identityCheckScript -ErrorAction Stop
                 }
-            }
-            catch {
+            } catch {
                 Write-Warning "Failed to determine managed identity status on $ComputerName : $_"
                 $false
             }
-        }
-        else {
+        } else {
             $false
         }
         # Outbound adapter IP — the source address the OS would use to reach the internet.
@@ -297,8 +284,7 @@ function Get-HostInfo {
                     [System.Net.Sockets.ProtocolType]::Udp)
                 $socket.Connect('8.8.8.8', 65530)
                 $socket.LocalEndPoint.Address.IPAddressToString
-            }
-            finally {
+            } finally {
                 if ($socket) { $socket.Close() }
             }
         }
@@ -308,8 +294,7 @@ function Get-HostInfo {
             } else {
                 Invoke-Command -ComputerName $ComputerName -ScriptBlock $outboundIPScript -ErrorAction Stop
             }
-        }
-        catch {
+        } catch {
             Write-Warning "Failed to determine outbound IP on $ComputerName (likely no route/connectivity): $_"
             $outboundIP = $null
         }
@@ -319,51 +304,49 @@ function Get-HostInfo {
         try {
             if ($ComputerName -eq $env:COMPUTERNAME) {
                 $externalIP = (Invoke-RestMethod -Uri 'https://api.ipify.org?format=json' -TimeoutSec 5).ip
-            }
-            else {
+            } else {
                 $externalIP = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
                     (Invoke-RestMethod -Uri 'https://api.ipify.org?format=json' -TimeoutSec 5).ip
                 } -ErrorAction Stop
             }
-        }
-        catch {
+        } catch {
             Write-Warning "Failed to query external IP address for $ComputerName (likely no internet access): $_"
             $externalIP = $null
         }
         $lastBoot = $cim.LastBootUpTime
         $lastBootFormatted = if ($lastBoot) { $lastBoot.ToString('yyyy-MMM-dd HH:mm:ss') } else { $null }
         $static = [PSCustomObject]@{
-            ComputerName         = $ComputerName
-            DomainName           = $domainName
-            PartOfDomain         = $partOfDomain
-            EntraIDJoined        = $entraIdJoined
-            EntraHybridJoined    = $entraHybridJoined
-            ProductName          = $productName
-            EditionID            = $editionId
-            CompositionEdID      = $compositionEd
-            DisplayVersion       = $displayVer
-            ReleaseId            = $releaseId
-            FriendlyRelease      = $friendlyRelease
-            CurrentBuild         = $currentBuild
-            UBR                  = $ubr
-            FullBuildNumber      = "$currentBuild.$ubr"
-            InstallationType     = $installType
-            ServicingChannel     = $servicingChannel
-            IsLTSC               = $isLTSC
-            IsLTSB               = $isLTSB
-            IsIoT                = $isIoT
-            Activated            = $activated
-            BootDiskBusType      = $bootDiskBusType
-            IsNVMeBoot           = $isNVMeBoot
-            IsWithinAzure        = $isWithinAzure
-            HasManagedIdentity   = $hasManagedIdentity
-            OutboundIPAddress    = $outboundIP
-            ExternalIPAddress    = $externalIP
-            LastBootUpTime       = $lastBootFormatted
-            UptimeMinutes        = $null   # filled in fresh below, every call, cached or not
-            OSArchitecture       = $cim.OSArchitecture
-            Caption              = $cim.Caption
-            Version              = $cim.Version
+            ComputerName       = $ComputerName
+            DomainName         = $domainName
+            PartOfDomain       = $partOfDomain
+            EntraIDJoined      = $entraIdJoined
+            EntraHybridJoined  = $entraHybridJoined
+            ProductName        = $productName
+            EditionID          = $editionId
+            CompositionEdID    = $compositionEd
+            DisplayVersion     = $displayVer
+            ReleaseId          = $releaseId
+            FriendlyRelease    = $friendlyRelease
+            CurrentBuild       = $currentBuild
+            UBR                = $ubr
+            FullBuildNumber    = "$currentBuild.$ubr"
+            InstallationType   = $installType
+            ServicingChannel   = $servicingChannel
+            IsLTSC             = $isLTSC
+            IsLTSB             = $isLTSB
+            IsIoT              = $isIoT
+            Activated          = $activated
+            BootDiskBusType    = $bootDiskBusType
+            IsNVMeBoot         = $isNVMeBoot
+            IsWithinAzure      = $isWithinAzure
+            HasManagedIdentity = $hasManagedIdentity
+            OutboundIPAddress  = $outboundIP
+            ExternalIPAddress  = $externalIP
+            LastBootUpTime     = $lastBootFormatted
+            UptimeMinutes      = $null   # filled in fresh below, every call, cached or not
+            OSArchitecture     = $cim.OSArchitecture
+            Caption            = $cim.Caption
+            Version            = $cim.Version
         }
         $script:HostInfoCache[$ComputerName] = @{
             CachedAt = Get-Date
@@ -418,7 +401,7 @@ function Test-NFS {
     }
 
     $service = Get-Service -Name NfsClnt -ErrorAction SilentlyContinue
-    $installed     = ($featureState -eq 'Enabled')
+    $installed = ($featureState -eq 'Enabled')
     $serviceExists = ($null -ne $service)
     [PSCustomObject]@{
         Installed     = $installed
@@ -447,8 +430,8 @@ function Install-WindowsNfsClient {
             param([string]$type, [string]$Message)
             $color = switch ($type) {
                 'warning' { 'Yellow' }
-                'error'   { 'Red' }
-                default   { 'Cyan' }
+                'error' { 'Red' }
+                default { 'Cyan' }
             }
             Write-Host $Message -ForegroundColor $color
         }
@@ -474,13 +457,13 @@ function Install-WindowsNfsClient {
         try {
             return (Get-WindowsOptionalFeature -Online -FeatureName $featureName -ErrorAction Stop).State
         } catch [System.Runtime.InteropServices.COMException] {
-            Write-Verbose "Get-WindowsOptionalFeature COM call failed — falling back to dism.exe directly."
+            Write-Verbose 'Get-WindowsOptionalFeature COM call failed — falling back to dism.exe directly.'
             $dismOutput = & dism.exe /online /get-featureinfo /featurename:$featureName 2>&1
             $stateLine = $dismOutput | Where-Object { $_ -match '^\s*State\s*:\s*(.+)$' }
             if ($stateLine -and $stateLine -match '^\s*State\s*:\s*(.+)$') {
                 return $matches[1].Trim()
             }
-            Write-Warning "Could not determine NFS feature state via dism.exe fallback either."
+            Write-Warning 'Could not determine NFS feature state via dism.exe fallback either.'
             return $null
         }
     }
@@ -975,7 +958,7 @@ function Reset-Podman {
         ## podman run --rm quay.io/podman/hello
         Set-Alias -Name docker -Value podman
         ## Set-Item -Path Env:\ASPIRE_CONTAINER_RUNTIME -Value 'podman'
-        [System.Environment]::SetEnvironmentVariable("ASPIRE_CONTAINER_RUNTIME","podman","User")
+        [System.Environment]::SetEnvironmentVariable('ASPIRE_CONTAINER_RUNTIME', 'podman', 'User')
         if (Get-Command azd -ErrorAction SilentlyContinue) {
             azd config set container.builder podman
         }
@@ -989,8 +972,7 @@ function Reset-Podman {
         if ( -not ( [bool](Get-Command podman.exe -ErrorAction SilentlyContinue ))) {
             Write-Host 'Podman is supposed to be the container runtime but the podman executable was not found/not installed!'
         }
-    }
-    catch {
+    } catch {
     }
 }    
 
@@ -1756,12 +1738,10 @@ function Test-ManagedIdentity {
 
     try {
         $response = Invoke-RestMethod -Uri $uri -Headers @{ Metadata = 'true' } -Method Get -TimeoutSec $TimeoutSec -ErrorAction Stop
-    }
-    catch [System.Net.WebException] {
+    } catch [System.Net.WebException] {
         Write-Error "IMDS endpoint unreachable — this likely isn't running on an Azure VM/VMSS/App Service instance, or no network path to 169.254.169.254 exists: $($_.Exception.Message)"
         return
-    }
-    catch {
+    } catch {
         # IMDS returns 400 with a JSON error body when no identity is assigned,
         # or the requested client_id doesn't match an attached identity
         $errorBody = $null
@@ -1776,13 +1756,13 @@ function Test-ManagedIdentity {
     $expiresOn = [DateTimeOffset]::FromUnixTimeSeconds([long]$response.expires_on).LocalDateTime
 
     $result = [PSCustomObject]@{
-        Success     = $true
-        Resource    = $Resource
-        ClientId    = $ClientId
-        TokenType   = $response.token_type
-        ExpiresOn   = $expiresOn
+        Success      = $true
+        Resource     = $Resource
+        ClientId     = $ClientId
+        TokenType    = $response.token_type
+        ExpiresOn    = $expiresOn
         ExpiresInMin = [math]::Round(([datetime]$expiresOn - (Get-Date)).TotalMinutes, 1)
-        AccessToken = if ($ShowToken) { $response.access_token } else { '<redacted — use -ShowToken to include>' }
+        AccessToken  = if ($ShowToken) { $response.access_token } else { '<redacted — use -ShowToken to include>' }
     }
 
     return $result
@@ -3561,7 +3541,7 @@ function Invoke-WorkIQQuery {
     $ErrorActionPreference = 'Stop'
 
     if (-not (Get-Command workiq -ErrorAction SilentlyContinue)) {
-        Write-Verbose "workiq CLI not found on PATH — installing @microsoft/workiq globally via npm."
+        Write-Verbose 'workiq CLI not found on PATH — installing @microsoft/workiq globally via npm.'
 
         if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
             throw 'workiq is not installed, and npm is not available to install it. Install Node.js 18+ first (Work IQ requires it for its fetch/async usage): https://nodejs.org'
@@ -4092,8 +4072,7 @@ function Enable-WSL {
             Set-Item -Path Env:\PODMAN_PORT -Value (& podman machine inspect podman-machine-default --format '{{.SSHConfig.Port}}')
             Set-Item -Path Env:\PODMAN_USER -Value (& podman machine inspect --format '{{.SSHConfig.RemoteUsername}}')
             Set-Item -Path Env:\PODMAN_PATH -Value (& podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}')
-        }
-        catch {
+        } catch {
             Write-Host 'podman machine is NOT running! Use 'RESET-PODMAN' to confgure it'
         }
     }    
@@ -4140,13 +4119,13 @@ fi
 '@
 
         $wslConfigPath = Join-Path $env:USERPROFILE '.wslconfig'
-        $content = @"
+        $content = @'
 [wsl2]
 networkingMode=NAT
 guiApplications=true
 [experimental]
 hostAddressLoopback=true
-"@
+'@
         Set-Content -Path $wslConfigPath -Value $content -Encoding UTF8 -Force
         Get-Content -Path $wslConfigPath
 
@@ -4173,8 +4152,7 @@ sudo apt-get install -y podman-remote
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED_DISTRIBUTION', $Distro, 'User')
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED_TIMEZONE', 'Australia/Melbourne', 'User')
         wsl --list --verbose
-    }
-    catch {
+    } catch {
         Write-Error "Enable-WSL failed with: $_"
     }
 }
@@ -4182,7 +4160,7 @@ Enable-WSL
 
 function Set-WSLConfig-Ubuntu {
     if ([Environment]::GetEnvironmentVariable('WSL_INSTALLED_DISTRIBUTION', [EnvironmentVariableTarget]::User) -ne 'Ubuntu') {
-        Write-Warning "Ubuntu not installed"
+        Write-Warning 'Ubuntu not installed'
         return
     }
 
@@ -4192,16 +4170,15 @@ function Set-WSLConfig-Ubuntu {
     #}
 
     try {
-        Write-Output "Configuring Ubuntu inside WSL..."
+        Write-Output 'Configuring Ubuntu inside WSL...'
         $wslsetuppre = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup-pre.sh' -UseBasicParsing).Content -replace "`r", ''
-        $wslsetup1   = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh' -UseBasicParsing).Content -replace "`r", ''
-        $wslsetup2   = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh' -UseBasicParsing).Content -replace "`r", ''
+        $wslsetup1 = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup1.sh' -UseBasicParsing).Content -replace "`r", ''
+        $wslsetup2 = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/webstean/setup/main/wsl/wslsetup2.sh' -UseBasicParsing).Content -replace "`r", ''
 
         ($wslsetuppre + "`n" + $wslsetup1) | wsl --user root --distribution "${env:WSL_INSTALLED_DISTRIBUTION}" -- bash
         wsl --terminate "${env:WSL_INSTALLED_DISTRIBUTION}"
         $wslsetup2 | wsl --user root --distribution "${env:WSL_INSTALLED_DISTRIBUTION}" -- bash
-    }
-    catch {
+    } catch {
         Write-Error "Set-WSLConfig-Ubuntu failed: $_"
     }
 }
@@ -4214,21 +4191,19 @@ function Reset-WSL {
     }
     try {
         $Distro = 'Ubuntu'
-        Write-Output "Shutting down WSL..."
+        Write-Output 'Shutting down WSL...'
         wsl.exe --shutdown --force *> $null
         Write-Output "Uninstalling '$Distro' from WSL..."
-        Start-Process -FilePath "wsl.exe" -ArgumentList "--unregister $Distro" -Wait -NoNewWindow
-        Write-Output "Removing flag files and environment variables..."
+        Start-Process -FilePath 'wsl.exe' -ArgumentList "--unregister $Distro" -Wait -NoNewWindow
+        Write-Output 'Removing flag files and environment variables...'
         $flagPath = Join-Path $env:ProgramData 'Enable-WSL.done'
         if (Test-Path $flagPath) { Remove-Item -Force $flagpath }
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED', $Null, 'User')
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED_DISTRIBUTION', $Null, 'User')
         [Environment]::SetEnvironmentVariable('WSL_INSTALLED_TIMEZONE', $Null, 'User')
-    }
-    catch {
+    } catch {
         Write-Error "Reset-WSL failed with: $_"
-    }
-    finally {
+    } finally {
         Enable-WSL
         Set-WSLConfig-Ubuntu
     }
@@ -4266,12 +4241,12 @@ function Enable-DirenvIntegration {
     param()
 
     if ($global:__DirenvIntegrationEnabled) {
-        Write-Verbose "direnv integration already enabled; skipping."
+        Write-Verbose 'direnv integration already enabled; skipping.'
         return
     }
 
     if (-not (Get-Command direnv -ErrorAction SilentlyContinue)) {
-        Write-Verbose "direnv not found on PATH; skipping direnv integration."
+        Write-Verbose 'direnv not found on PATH; skipping direnv integration.'
         return
     }
 
@@ -4419,18 +4394,18 @@ function Connect-AzureTenant {
             if ($env:OneDriveCommercial) {
                 Join-Path $env:OneDriveCommercial '.azcontexts'
             } else {
-                Write-Warning "OneDriveCommercial environment variable not set; falling back to local profile folder."
+                Write-Warning 'OneDriveCommercial environment variable not set; falling back to local profile folder.'
                 Join-Path $HOME '.azcontexts'
             }
         )
     )
 
     if ($ClientId -and -not $ClientSecret) {
-        throw "-ClientSecret is required when -ClientId is supplied."
+        throw '-ClientSecret is required when -ClientId is supplied.'
     }
 
     if (-not (Get-Module -ListAvailable -Name Az.Accounts)) {
-        throw "The Az PowerShell module (Az.Accounts) was not found. Install it with: Install-Module Az -Scope CurrentUser"
+        throw 'The Az PowerShell module (Az.Accounts) was not found. Install it with: Install-Module Az -Scope CurrentUser'
     }
     Import-Module Az.Accounts -ErrorAction Stop
 
@@ -4452,9 +4427,9 @@ function Connect-AzureTenant {
         Write-Verbose "Importing saved context for '$TenantName' from $contextPath"
         Import-AzContext -Path $contextPath | Out-Null
     } else {
-        Write-Verbose "No matching saved context (or -Force specified); performing a fresh login."
+        Write-Verbose 'No matching saved context (or -Force specified); performing a fresh login.'
         if ($ClientId) {
-            if (-not $TenantId) { throw "-TenantId is required for a service principal login." }
+            if (-not $TenantId) { throw '-TenantId is required for a service principal login.' }
             $cred = [Management.Automation.PSCredential]::new($ClientId, $ClientSecret)
             Connect-AzAccount -ServicePrincipal -Credential $cred -Tenant $TenantId | Out-Null
         } elseif ($TenantId) {
@@ -4464,11 +4439,11 @@ function Connect-AzureTenant {
             Connect-AzAccount | Out-Null
             $availableTenants = @(Get-AzTenant)
             if ($availableTenants.Count -gt 1) {
-                Write-Host "Multiple tenants available for this account:"
+                Write-Host 'Multiple tenants available for this account:'
                 for ($i = 0; $i -lt $availableTenants.Count; $i++) {
                     Write-Host "  [$i] $($availableTenants[$i].Name)  ($($availableTenants[$i].Id))"
                 }
-                $selection = Read-Host "Select a tenant by number"
+                $selection = Read-Host 'Select a tenant by number'
                 $chosen = $availableTenants[[int]$selection]
                 if ($chosen.Id -ne (Get-AzContext).Tenant.Id) {
                     Write-Verbose "Switching to tenant $($chosen.Name) ($($chosen.Id))"
@@ -4484,16 +4459,16 @@ function Connect-AzureTenant {
 
     $context = Get-AzContext
     if (-not $context) {
-        throw "No active Az context after connecting."
+        throw 'No active Az context after connecting.'
     }
 
     $resolvedTenantName = (Get-AzTenant -TenantId $context.Tenant.Id -ErrorAction SilentlyContinue).Name
     if (-not $resolvedTenantName) { $resolvedTenantName = $TenantName }
 
-    $global:AzTenantId       = $context.Tenant.Id
-    $global:AzTenantName     = $resolvedTenantName
+    $global:AzTenantId = $context.Tenant.Id
+    $global:AzTenantName = $resolvedTenantName
     $global:AzSubscriptionId = $context.Subscription.Id
-    $global:AzClientId       = if ($context.Account.Type -eq 'ServicePrincipal') { $context.Account.Id } else { $null }
+    $global:AzClientId = if ($context.Account.Type -eq 'ServicePrincipal') { $context.Account.Id } else { $null }
 
     # Save/refresh the context on disk, keyed by the tenant's (resolved) display name
     $saveName = if ($TenantName) { $TenantName } else { $resolvedTenantName }
@@ -4547,7 +4522,7 @@ function Get-SavedAzureTenant {
 
     if (-not (Test-Path $ContextFolder)) { return }
     Get-ChildItem -Path $ContextFolder -Filter '*.json' |
-        Select-Object @{N='TenantName';E={$_.BaseName}}, @{N='LastSaved';E={$_.LastWriteTime}}
+    Select-Object @{N = 'TenantName'; E = { $_.BaseName } }, @{N = 'LastSaved'; E = { $_.LastWriteTime } }
 }
 
 function Start-BastionTunnel {
@@ -4625,3 +4600,67 @@ function Test-InternetConnection {
     return $false
 }
 
+function Invoke-RobustDownload {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Uri,
+
+        [Parameter(Mandatory)]
+        [string]$OutFile,
+
+        [ValidateRange(1, 10)]
+        [int]$MaxRetries = 4,
+
+        [ValidateRange(1, 300)]
+        [int]$TimeoutSec = 60
+    )
+
+    for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+        try {
+            Invoke-WebRequest -Uri $Uri -OutFile $OutFile -UseBasicParsing -TimeoutSec $TimeoutSec -ErrorAction Stop
+
+            if (-not (Test-Path -LiteralPath $OutFile)) {
+                throw "Download did not produce output file: '$OutFile'"
+            }
+
+            $size = (Get-Item -LiteralPath $OutFile).Length
+            if ($size -le 0) {
+                throw "Downloaded file is empty: '$OutFile'"
+            }
+
+            return
+        } catch {
+            if ($attempt -ge $MaxRetries) {
+                throw "Failed to download '$Uri' after $MaxRetries attempts. Last error: $($_.Exception.Message)"
+            }
+
+            $delaySeconds = [Math]::Min(2 * $attempt, 10)
+            Write-Warning "Download attempt $attempt/$MaxRetries failed for '$Uri'. Retrying in $delaySeconds second(s). Error: $($_.Exception.Message)"
+            Start-Sleep -Seconds $delaySeconds
+        }
+    }
+}
+
+function Update-DeveloperApps {
+
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = 'Stop'
+
+    winget configure --enable
+    winget settings --enable ProxyCommandLineOptions
+
+    $microsoftDownload = 'https://raw.githubusercontent.com/microsoft/WindowsDeveloperConfig/refs/heads/main/windows-dev-config/dev-config.winget'
+    $andrewDownload = 'https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/developer.winget'
+
+    $downloadRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('winget-config-' + [guid]::NewGuid().ToString('N'))
+    New-Item -Path $downloadRoot -ItemType Directory -Force | Out-Null
+
+    $andrewConfig = Join-Path $downloadRoot 'developer.winget'
+    $microsoftConfig = Join-Path $downloadRoot 'dev-config.winget'
+
+    Invoke-RobustDownload -Uri $andrewDownload -OutFile $andrewConfig
+    Invoke-RobustDownload -Uri $microsoftDownload -OutFile $microsoftConfig
+
+    winget configure --file "$microsoftConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
+    winget configure --file "$andrewConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
+}
