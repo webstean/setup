@@ -611,6 +611,18 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Anthropic.ClaudeCode
+      dependsOn:
+        - Git.Git
+      directives:
+        description: Install Anthropic.ClaudeCode
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: Anthropic.ClaudeCode
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: GitHub.Copilot
       dependsOn:
         - Git.Git
