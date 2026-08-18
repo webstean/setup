@@ -110,8 +110,6 @@ function Install-WinRM {
     #Get-NetFirewallRule | Select-Object -ExpandProperty DisplayName
     Set-NetFirewallRule -Name 'WINRM-HTTP-In-TCP' -RemoteAddress Any -Action Allow
     Get-NetFirewallRule -Name 'WINRM-HTTP-In-TCP'
-    #New-NetFirewallRule -DisplayName "Allow WinRM HTTP"  -Direction Inbound -LocalPort 5985 -Protocol TCP -Action Allow -Profile Private | Out-Null
-    #New-NetFirewallRule -DisplayName "Allow WinRM HTTPS" -Direction Inbound -LocalPort 5986 -Protocol TCP -Action Allow -Profile Private | Out-Null
 
     ## For the transcript: remoting (WSMAN) configuration
     winrm quickconfig -Force
@@ -131,7 +129,7 @@ function Install-WinRM {
     if (-not (Test-Path $regPath)) {
         New-Item -Path $regPath -Force | Out-Null
     }
-    if ( Test-EntraIdJoined) {
+    if ( Test-EntraIdJoined ) {
         Write-Host "WSMAN: Entra ID Joined, disabled Kerberos"
         ## WinRM considers the Microsoft Entra-only joined machines as workgroup machines.
         ## Default SPN prefix HTTP prevents Microsoft Entra authenticatio, so it needs to be set to HOST
