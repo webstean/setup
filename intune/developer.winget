@@ -214,14 +214,14 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: RedHat.Podman
+      id: RedHat.Podman-Desktop
       dependsOn:
          - RedHat.Podman.CLI
       directives:
-        description: Install RedHat.Podman
+        description: Install RedHat.Podman-Desktop
         allowPrerelease: true
       settings:
-        id: RedHat.Podman
+        id: RedHat.Podman-Desktop
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
