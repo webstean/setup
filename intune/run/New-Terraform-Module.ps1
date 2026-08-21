@@ -2,17 +2,17 @@ function New-TerraformModuleRepo {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [string]$ModuleName,         # e.g. 'container-app
+        [string]$ModuleName,
 
         [string]$Provider = 'azurerm',
 
-        [string]$Description
+        [string]$Description,
+
+        [string]$Owner    # defaults to authenticated gh user if not specified
     )
 
-    # Terraform Registry naming convention: terraform-<provider>-<module>
     $repoName = "terraform-$Provider-$ModuleName"
 
-    # Check gh cli
     if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
         throw "GitHub CLI (gh) not found. Install via: winget install GitHub.cli"
     }
@@ -21,15 +21,17 @@ function New-TerraformModuleRepo {
         throw "Not authenticated. Run: gh auth login"
     }
 
+    # Resolve owner — org or user
+    if (-not $Owner) {
+        $Owner = (gh api user | ConvertFrom-Json).login
+    }
+
     $desc = if ($Description) { $Description } else { "Terraform module for $ModuleName on $Provider" }
 
-    Write-Host "Creating repository: $repoName"
-    gh repo create $repoName --public --description $desc --clone
+    Write-Host "Creating repository: $Owner/$repoName"
+    gh repo create "$Owner/$repoName" --public --description $desc --clone
 
     $repoPath = Join-Path (Get-Location) $repoName
-
-    # Get GitHub org/user for OIDC subject
-    $ghUser = (gh api user | ConvertFrom-Json).login
 
     Push-Location $repoPath
 
@@ -57,17 +59,9 @@ terraform {
 }
 '@ | Set-Content 'versions.tf'
 
-        @'
-# Input variables
-'@ | Set-Content 'variables.tf'
-
-        @'
-# Resources
-'@ | Set-Content 'main.tf'
-
-        @'
-# Outputs
-'@ | Set-Content 'outputs.tf'
+        '# Input variables'  | Set-Content 'variables.tf'
+        '# Resources'        | Set-Content 'main.tf'
+        '# Outputs'          | Set-Content 'outputs.tf'
 
         @'
 module "example" {
@@ -89,9 +83,7 @@ terraform {
         Copy-Item 'examples/basic/variables.tf' 'examples/complete/variables.tf'
         Copy-Item 'examples/basic/outputs.tf'   'examples/complete/outputs.tf'
 
-        @'
-# go test -v -timeout 30m
-'@ | Set-Content 'tests/main_test.go'
+        '# go test -v -timeout 30m' | Set-Content 'tests/main_test.go'
 
         @'
 formatter: "markdown table"
@@ -138,7 +130,7 @@ $desc
 
 ``````hcl
 module "$ModuleName" {
-  source  = "<namespace>/$ModuleName/$Provider"
+  source  = "$Owner/$ModuleName/$Provider"
   version = "~> 1.0"
 }
 ``````
@@ -195,7 +187,7 @@ on:
     branches: [main]
 
 permissions:
-  id-token: write   # required for OIDC token
+  id-token: write
   contents: read
 
 jobs:
@@ -245,36 +237,33 @@ jobs:
         git tag v0.1.0
         git push origin v0.1.0
 
-        # OIDC federation credential subjects for this repo
-        $oidc = [PSCustomObject]@{
-            Issuer      = 'https://token.actions.githubusercontent.com'
-            # Subjects cover push to main and any PR
-            Subjects    = @(
-                "repo:$ghUser/${repoName}:ref:refs/heads/main"
-                "repo:$ghUser/${repoName}:pull_request"
-            )
-        }
+        $issuer   = 'https://token.actions.githubusercontent.com'
+        $subjects = @(
+            "repo:$Owner/${repoName}:ref:refs/heads/main"
+            "repo:$Owner/${repoName}:pull_request"
+        )
 
         Write-Host ""
-        Write-Host "Repository : $repoName"
+        Write-Host "Repository : $Owner/$repoName"
         Write-Host "Path       : $repoPath"
         Write-Host ""
         Write-Host "--- OIDC Federated Credential ---"
-        Write-Host "Issuer  : $($oidc.Issuer)"
+        Write-Host "Issuer  : $issuer"
         Write-Host "Subjects:"
-        $oidc.Subjects | ForEach-Object { Write-Host "  $_" }
+        $subjects | ForEach-Object { Write-Host "  $_" }
         Write-Host ""
         Write-Host "Terraform (azurerm_federated_identity_credential):"
-        $oidc.Subjects | ForEach-Object {
+        $subjects | ForEach-Object {
             $label = if ($_ -match 'pull_request') { 'pr' } else { 'main' }
+            $safeName = $ModuleName -replace '[^a-z0-9]', '_'
 @"
 
-resource "azurerm_federated_identity_credential" "${ModuleName}_${label}" {
+resource "azurerm_federated_identity_credential" "${safeName}_${label}" {
   name                = "$repoName-$label"
   resource_group_name = azurerm_user_assigned_identity.this.resource_group_name
   parent_id           = azurerm_user_assigned_identity.this.id
   audience            = ["api://AzureADTokenExchange"]
-  issuer              = "$($oidc.Issuer)"
+  issuer              = "$issuer"
   subject             = "$_"
 }
 "@
