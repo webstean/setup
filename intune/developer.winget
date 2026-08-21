@@ -159,7 +159,7 @@ properties:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Microsoft.Sqlcmd
       directives:
-        description: Install Microsoft.Sqlcmd
+        description: Install Microsoft.Sqlcmd (Go version)
         allowPrerelease: false
         securityContext: elevated
       settings:

@@ -4681,7 +4681,7 @@ function Update-DeveloperApps {
     winget configure --file "$andrewConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
 }
 
-# TCP alias
+# ODBC alias
 #$reg = 'HKLM:\SOFTWARE\Microsoft\MSSQLServer\Client\ConnectTo'
 #$reg = 'HKCU:\SOFTWARE\Microsoft\MSSQLServer\Client\ConnectTo'
 #Get-Item $reg
@@ -4691,7 +4691,7 @@ function Update-DeveloperApps {
 function Invoke-LocalDB {
     [CmdletBinding()]
     param(
-        [string]$Query = 'SELECT @@VERSION ; SELECT name, state_desc, recovery_model_desc FROM sys.databases ORDER BY name',
+        [string]$Query = 'SELECT @@version ; SELECT name, state_desc, recovery_model_desc FROM sys.databases ORDER BY name',
         [string]$Database,
         [string]$InstanceName = 'MSSQLLocalDB'
     )
@@ -4715,6 +4715,7 @@ function Invoke-LocalDB {
     if ($Database) { $sqlcmdArgs += @('-d', $Database) }
     if ($Query)    { $sqlcmdArgs += @('-Q', $Query) }
 
+    ## ODBC (legacy)
     & sqlcmd @sqlcmdArgs
 }
 #Invoke-LocalDB
