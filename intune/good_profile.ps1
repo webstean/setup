@@ -4676,6 +4676,13 @@ function Update-DeveloperApps {
     winget configure --file "$andrewConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
 }
 
+# TCP alias
+#$reg = 'HKLM:\SOFTWARE\Microsoft\MSSQLServer\Client\ConnectTo'
+#$reg = 'HKCU:\SOFTWARE\Microsoft\MSSQLServer\Client\ConnectTo'
+#Get-Item $reg
+#New-Item $reg -Force | Out-Null
+#Set-ItemProperty $reg -Name 'myalias' -Value 'DBMSSOCN,myserver.domain.com,1433'
+
 function Invoke-LocalDB {
     [CmdletBinding()]
     param(
