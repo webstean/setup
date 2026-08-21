@@ -167,6 +167,16 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.msodbcsql.18
+      directives:
+        description: Install Microsoft.msodbcsql.18
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: Microsoft.msodbcsql.18
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: Anthropic.Claude
       directives:
         description: Install Anthropic.Claude
