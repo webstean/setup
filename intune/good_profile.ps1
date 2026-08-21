@@ -4675,3 +4675,6 @@ function Update-DeveloperApps {
     winget configure --file "$microsoftConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
     winget configure --file "$andrewConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
 }
+
+#sqlcmd -S "(localdb)\MSSQLLocalDB" -Q "SELECT @@VERSION"
+
