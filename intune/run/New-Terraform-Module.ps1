@@ -8,7 +8,7 @@ function New-TerraformModuleRepo {
 
         [string]$Description,
 
-        [string]$Owner    # defaults to authenticated gh user if not specified
+        [string]$Owner = 'webstean'
     )
 
     $repoName = "terraform-$Provider-$ModuleName"
@@ -21,7 +21,6 @@ function New-TerraformModuleRepo {
         throw "Not authenticated. Run: gh auth login"
     }
 
-    # Resolve owner — org or user
     if (-not $Owner) {
         $Owner = (gh api user | ConvertFrom-Json).login
     }
@@ -237,44 +236,43 @@ jobs:
         git tag v0.1.0
         git push origin v0.1.0
 
-        $issuer   = 'https://token.actions.githubusercontent.com'
-        $subjects = @(
-            "repo:$Owner/${repoName}:ref:refs/heads/main"
-            "repo:$Owner/${repoName}:pull_request"
-        )
+        Write-Host "Creating placeholder secrets..."
+        @{
+            AZURE_CLIENT_ID       = 'REPLACE_ME'
+            AZURE_TENANT_ID       = 'REPLACE_ME'
+            AZURE_SUBSCRIPTION_ID = 'REPLACE_ME'
+        }.GetEnumerator() | ForEach-Object {
+            gh secret set $_.Key --body $_.Value --repo "$Owner/$repoName"
+        }
 
         Write-Host ""
         Write-Host "Repository : $Owner/$repoName"
         Write-Host "Path       : $repoPath"
         Write-Host ""
-        Write-Host "--- OIDC Federated Credential ---"
-        Write-Host "Issuer  : $issuer"
-        Write-Host "Subjects:"
-        $subjects | ForEach-Object { Write-Host "  $_" }
+        Write-Host "GitHub Secrets created (update with real values):"
+        Write-Host "  AZURE_CLIENT_ID"
+        Write-Host "  AZURE_TENANT_ID"
+        Write-Host "  AZURE_SUBSCRIPTION_ID"
         Write-Host ""
-        Write-Host "Terraform (azurerm_federated_identity_credential):"
-        $subjects | ForEach-Object {
-            $label = if ($_ -match 'pull_request') { 'pr' } else { 'main' }
-            $safeName = $ModuleName -replace '[^a-z0-9]', '_'
-@"
-
-resource "azurerm_federated_identity_credential" "${safeName}_${label}" {
-  name                = "$repoName-$label"
-  resource_group_name = azurerm_user_assigned_identity.this.resource_group_name
-  parent_id           = azurerm_user_assigned_identity.this.id
-  audience            = ["api://AzureADTokenExchange"]
-  issuer              = "$issuer"
-  subject             = "$_"
-}
-"@
-        }
+        Write-Host "Terraform Registry Publishing:"
+        Write-Host "  1. Sign in at https://registry.terraform.io with your GitHub account"
+        Write-Host "  2. Click 'Publish' > 'Module'"
+        Write-Host "  3. Select the '$repoName' repository"
+        Write-Host "  4. Confirm — registry will detect versions from git tags (v0.1.0 already pushed)"
         Write-Host ""
-        Write-Host "GitHub Secrets required:"
-        Write-Host "  AZURE_CLIENT_ID       = <app registration or managed identity client id>"
-        Write-Host "  AZURE_TENANT_ID       = <tenant id>"
-        Write-Host "  AZURE_SUBSCRIPTION_ID = <subscription id>"
+        Write-Host "  Requirements checklist:"
+        Write-Host "    [x] Repo named terraform-<provider>-<module>"
+        Write-Host "    [x] Public repository"
+        Write-Host "    [x] main.tf / variables.tf / outputs.tf present"
+        Write-Host "    [x] v0.1.0 tag pushed"
+        Write-Host "    [ ] GitHub OAuth app must be authorized for '$Owner' org/account"
+        Write-Host "        https://github.com/settings/connections/applications/b0e1b0f5f7ca9fb13c7d"
+        Write-Host ""
+        Write-Host "  Once published, module source will be:"
+        Write-Host "    $Owner/$ModuleName/$Provider"
 
     } finally {
         Pop-Location
     }
 }
+
