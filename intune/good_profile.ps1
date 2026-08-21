@@ -1,5 +1,8 @@
 ## Note: This FILE is ASCII encoded, for compatibility with Windows Powershell, so any Unicode characters need to be eliminated
 
+## (gh api user | ConvertFrom-Json).email
+## (gh api user | ConvertFrom-Json).name
+
 #$env:AZURE_CLIENT_ID = az keyvault secret show `
 #    --vault-name mykv `
 #    --name AZURE-CLIENT-ID `
@@ -4316,6 +4319,8 @@ function Initialize-GitHubCliAuth {
     if ($LASTEXITCODE -eq 0) {
         gh auth setup-git
     }
+    (gh api user | ConvertFrom-Json).email
+    (gh api user | ConvertFrom-Json).name
 }
 #Initialize-GitHubCliAuth
 
