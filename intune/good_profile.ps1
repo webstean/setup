@@ -4676,5 +4676,33 @@ function Update-DeveloperApps {
     winget configure --file "$andrewConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
 }
 
-#sqlcmd -S "(localdb)\MSSQLLocalDB" -Q "SELECT @@VERSION"
+function Invoke-LocalDB {
+    [CmdletBinding()]
+    param(
+        [string]$Query = 'SELECT @@VERSION ; SELECT name, state_desc, recovery_model_desc FROM sys.databases ORDER BY name',
+        [string]$Database,
+        [string]$InstanceName = 'MSSQLLocalDB'
+    )
 
+    foreach ($cmd in 'sqllocaldb', 'sqlcmd') {
+        if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) {
+            throw "$cmd not found. Install SQL Server Express / LocalDB."
+        }
+    }
+
+    $instances = & sqllocaldb info
+    if ($instances -notcontains $InstanceName) {
+        throw "LocalDB instance '$InstanceName' not found."
+    }
+
+    sqllocaldb start $InstanceName | Out-Null
+
+    $pipe = (sqllocaldb info $InstanceName | Where-Object { $_ -match 'Instance pipe name' }) -replace '.*:\s*', ''
+
+    $sqlcmdArgs = @('-S', $pipe, '-E')
+    if ($Database) { $sqlcmdArgs += @('-d', $Database) }
+    if ($Query)    { $sqlcmdArgs += @('-Q', $Query) }
+
+    & sqlcmd @sqlcmdArgs
+}
+#Invoke-LocalDB
