@@ -392,6 +392,16 @@ $script:TemplateVsCodeSettings = @'
 }
 '@
 
+$script:TemplateVsCodeExtensions = @'
+{
+  "recommendations": [
+    "EditorConfig.EditorConfig",
+    "hashicorp.terraform",
+    "ms-azuretools.vscode-azureterraform"
+  ]
+}
+'@
+
 $script:TemplateWelcome = @'
 # Welcome to Your Terraform Module
 
@@ -766,6 +776,7 @@ function New-TerraformModuleRepo {
     $script:TemplateEditorConfig | Set-Content '.editorconfig'
     $script:TemplateGitAttributes | Set-Content '.gitattributes'
     $script:TemplateVsCodeSettings | Set-Content '.vscode/settings.json'
+    $script:TemplateVsCodeExtensions | Set-Content '.vscode/extensions.json'
     $script:TemplateDevContainer | Set-Content '.devcontainer/devcontainer.json'
     $script:Dependabot | Set-Content '.github/dependabot.yml'
 
