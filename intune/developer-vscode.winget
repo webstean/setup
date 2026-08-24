@@ -383,3 +383,5 @@ properties:
       settings:
         Name: eamodio.gitlens
         Exist: false
+
+## Microsoft-WinAppCLI.winapp
