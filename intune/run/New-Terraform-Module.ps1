@@ -341,6 +341,40 @@ $script:TemplateGitAttributes = @'
 *.dll  binary
 '@
 
+$script:Dependabot = @'
+---
+# Dependabot version updates
+#
+# Dependabot security updates (CVE-driven) are enabled at the repository level
+# via Terraform; this file enables proactive *version* updates for pinned
+# provider versions.
+#
+# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+
+updates:
+  # Terraform providers in the root module, examples, and any submodules.
+  - package-ecosystem: terraform
+    directories:
+      - "/"
+      - "/examples/**"
+      - "/modules/**"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    groups:
+      terraform:
+        patterns:
+          - "*"
+    labels:
+      - "Language: Terraform :globe_with_meridians:"
+    commit-message:
+      prefix: chore
+      include: scope
+'@
+
 $script:TemplateVsCodeSettings = @'
 {
     "files.autoSave": "afterDelay",
@@ -733,6 +767,7 @@ function New-TerraformModuleRepo {
     $script:TemplateGitAttributes | Set-Content '.gitattributes'
     $script:TemplateVsCodeSettings | Set-Content '.vscode/settings.json'
     $script:TemplateDevContainer | Set-Content '.devcontainer/devcontainer.json'
+    $script:Dependabot | Set-Content '.github/dependabot.yml'
 
     @"
 # terraform-$Provider-$ModuleName

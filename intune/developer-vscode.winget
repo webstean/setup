@@ -357,7 +357,7 @@ properties:
       settings:
         Name: ms-vscode.remote-server
 
-    # Extension: ms-vscode.remote-server (Remote Tools)
+    # Extension: ms-azuretools.vscode-azure-mcp-server (Azure Tools)
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       id: ms-azuretools.vscode-azure-mcp-server
       dependsOn:
@@ -370,6 +370,20 @@ properties:
         securityContext: elevated
       settings:
         Name: ms-azuretools.vscode-azure-mcp-server
+
+    # Extension: Microsoft-WinAppCLI.winapp
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      id: Microsoft-WinAppCLI.winapp
+      dependsOn:
+        - Microsoft.VisualStudioCode
+        - NodeJS
+        - Microsoft.AzureCLI
+      directives:
+        description: Install VSCode extension-> Microsoft-WinAppCLI.winapp
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        Name: Microsoft-WinAppCLI.winapp
 
     # Remove GitLens
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
@@ -384,4 +398,3 @@ properties:
         Name: eamodio.gitlens
         Exist: false
 
-## Microsoft-WinAppCLI.winapp
