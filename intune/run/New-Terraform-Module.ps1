@@ -582,6 +582,66 @@ jobs:
           git-push: "true"
 '@
 
+$script:TemplateReleaseWorkflow = @'
+name: Module Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. v1.2.3)"
+        required: true
+        type: string
+      prerelease:
+        description: "Mark as pre-release"
+        required: false
+        type: boolean
+        default: false
+      draft:
+        description: "Create as draft"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history for release notes generation
+
+      - name: Validate version format
+        run: |
+          if [[ ! "${{ inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: Version must be in format vX.Y.Z (e.g. v1.2.3)"
+            exit 1
+          fi
+
+      - name: Check tag does not already exist
+        run: |
+          if git rev-parse "${{ inputs.version }}" &>/dev/null; then
+            echo "ERROR: Tag ${{ inputs.version }} already exists"
+            exit 1
+          fi
+
+      - name: Create Module Release
+        run: |
+          gh release create "${{ inputs.version }}" \
+            --title "${{ inputs.version }}" \
+            --generate-notes \
+            --target "${{ github.ref_name }}" \
+            ${{ inputs.prerelease && '--prerelease' || '--latest' }} \
+            ${{ inputs.draft && '--draft' || '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+'@
+
 function New-TerraformModuleRepo {
   [CmdletBinding()]
   param(
@@ -612,8 +672,8 @@ function New-TerraformModuleRepo {
   }
   Write-Host "Repository owner is: '$Owner'"
 
-  Write-Host "Checking (with view)....'${owner}/$repoName'"
-  if (gh repo view ${owner}/${repoName} 2>$null) {
+  Write-Host "Checking (with view)....'${Owner}/$repoName'"
+  if (gh repo view ${Owner}/${repoName} 2>$null) {
     Write-Host "'gh repo delete $Owner/$repoName --yes'"
     Write-Host "'gh auth refresh -s delete_repo'"
     throw 'Repository directory already exists.'
@@ -732,6 +792,7 @@ SOFTWARE.
     Get-Location
     New-Item -ItemType Directory -Path '.github/workflows' -Force | Out-Null
     $script:TemplateCiWorkflow | Set-Content '.github/workflows/ci-terraform-docs.yml'
+    $script:TemplateReleaseWorkflow | Set-Content '.github/workflows/release.yml'
 
     git init
     git add -A
