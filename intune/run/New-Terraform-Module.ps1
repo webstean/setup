@@ -214,6 +214,278 @@ crash.log
 crash.*.log
 '@
 
+$script:TemplateEditorConfig = @'
+# EditorConfig: Windows dev host, Azure Container Apps (.NET Aspire), WSL/Linux targets
+root = true
+
+# ---- Global defaults ----
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = off
+
+# ---- C# / .NET Aspire / ACA projects ----
+[*.{cs,csx}]
+indent_size = 4
+end_of_line = crlf
+csharp_new_line_before_open_brace = all
+csharp_indent_case_contents = true
+csharp_prefer_braces = true
+dotnet_sort_system_directives_first = true
+dotnet_style_qualification_for_field = false
+dotnet_style_qualification_for_property = false
+dotnet_style_qualification_for_method = false
+dotnet_style_predefined_type_for_locals_parameters_members = true
+csharp_style_var_for_built_in_types = false
+csharp_style_var_when_type_is_apparent = true
+csharp_style_namespace_declarations = file_scoped
+
+[*.{csproj,props,targets}]
+indent_size = 2
+end_of_line = crlf
+
+# ---- PowerShell (WSL provisioning, Az automation) ----
+[*.{ps1,psm1,psd1}]
+indent_size = 4
+end_of_line = crlf
+charset = utf-8-bom
+
+# ---- Terraform (AzureRM / AzureAD / AzApi) ----
+[*.{tf,tfvars}]
+indent_size = 2
+end_of_line = lf
+insert_final_newline = true
+
+[*.tfstate]
+insert_final_newline = false
+
+# ---- Bash / WSL provisioning scripts ----
+[*.sh]
+indent_size = 2
+end_of_line = lf
+insert_final_newline = true
+
+# ---- Dockerfiles (ACA container builds) ----
+[{Dockerfile,Dockerfile.*,*.dockerfile}]
+indent_size = 4
+end_of_line = lf
+
+# ---- YAML (pipelines, ACA revisions, k8s-adjacent manifests) ----
+[*.{yml,yaml}]
+indent_size = 2
+end_of_line = lf
+
+# ---- JSON / Bicep-adjacent / ARM ----
+[*.{json,jsonc,bicep}]
+indent_size = 2
+end_of_line = lf
+
+# ---- Markdown docs ----
+[*.md]
+indent_size = 2
+trim_trailing_whitespace = false
+end_of_line = lf
+
+# ---- Batch files (rare, but Windows-native) ----
+[*.{cmd,bat}]
+end_of_line = crlf
+
+# ---- Makefiles require literal tabs ----
+[Makefile]
+indent_style = tab
+end_of_line = lf
+'@
+
+$script:TemplateGitAttributes = @'
+# Default: normalize all text files and prefer LF in the repo
+* text=auto eol=lf
+
+# Windows batch/cmd usually expects CRLF
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1xml text eol=lf
+
+# PowerShell  usually expects CRLF
+*.ps1  text eol=crlf
+*.psm1 text eol=crlf
+*.psd1 text eol=crlf
+
+# Shell / scripts
+*.sh   text eol=lf
+*.bash text eol=lf
+*.zsh  text eol=lf
+
+# IaC / config
+*.tf        text eol=lf
+*.tfvars    text eol=lf
+*.hcl       text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.json      text eol=lf
+*.md        text eol=lf
+*.txt       text eol=lf
+
+# Binary (never touch line endings)
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.pdf  binary
+*.zip  binary
+*.7z   binary
+*.exe  binary
+*.dll  binary
+'@
+
+$script:TemplateVsCodeSettings = @'
+{
+    "files.autoSave": "afterDelay",
+    "editor.defaultFormatter": "GitHub.copilot-chat",
+    "editor.fontFamily": "FiraCode",
+    "[powershell]": {
+        "editor.defaultFormatter": "ms-vscode.powershell"
+    },
+    "[github-actions-workflow]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[terraform]": {
+        "editor.defaultFormatter": "hashicorp.terraform"
+    }
+}
+'@
+
+$script:TemplateDevContainer = @'
+{
+  "$schema": 'https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json',
+  'name': 'Azure Terraform',
+  'image': 'mcr.microsoft.com/devcontainers/dotnet',
+  'features': {
+    'ghcr.io/devcontainers/features/github-cli:1': {
+      'version': 'latest'
+    },
+    'ghcr.io/devcontainers/features/docker-in-docker:2': {},
+    'ghcr.io/azure/azure-dev/azd:latest': {},
+    'ghcr.io/devcontainers/features/azure-cli:1': {
+      'version': 'latest'
+    },
+    'ghcr.io/devcontainers/features/terraform:1': {
+      'version': 'latest',
+      'installTFsec': 'true',
+      'installTerraformDocs': 'true'
+    },
+    'ghcr.io/devcontainers/features/node:1': {
+      'version': 'latest'
+    },
+    'ghcr.io/devcontainers/features/powershell:1': {
+      'version': 'latest'
+    },
+    'ghcr.io/devcontainers/features/dotnet:2': {
+      'version': 'latest',
+      'additionalVersions': '9.0',
+    }
+  },
+  'mounts': [
+  {
+    'type': 'volume',
+    'source': 'x509stores',
+    'target': '/home/vscode/.dotnet/corefx/cryptography/x509stores'
+  },
+  {
+    'type': 'bind',
+    'source': "${localEnv:HOME}${localEnv:USERPROFILE}/.azure",
+    'target': '/home/vscode/.azure'
+  }
+  ],
+  'containerEnv': {
+    'AZURE_CLIENT_ID': "${{ secrets.AZURE_CLIENT_ID }}",
+    'AZURE_TENANT_ID': "${{ secrets.AZURE_TENANT_ID }}",
+    'AZURE_SUBSCRIPTION_ID': "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+  },
+  'customizations': {
+    'codespaces': {
+      'openFiles': ["DEVELOPER.md"]
+    },
+    'vscode': {
+      'settings': {
+        '[terraform]': {
+          'editor.defaultFormatter': 'hashicorp.terraform',
+          'editor.formatOnSave': true
+        },
+        '[tfvars]': {
+          'editor.defaultFormatter': 'hashicorp.terraform'
+        },
+        'editor.bracketPairColorization.enabled': true,
+        'editor.codeActionsOnSave': {
+          'source.fixAll': 'explicit'
+        },
+        'editor.formatOnPaste': true,
+        'editor.formatOnSave': true,
+        'editor.formatOnType': true,
+        'editor.guides.bracketPairs': 'active',
+        'editor.inlineSuggest.enabled': true,
+        'editor.linkedEditing': true,
+        'editor.multiCursorModifier': 'alt',
+        'editor.renderControlCharacters': true,
+        'editor.renderWhitespace': 'all',
+        'editor.rulers': [
+        {
+          'color': '#A5FF90',
+          'column': 80
+        },
+        {
+          'color': '#FF628C',
+          'column': 100
+        }
+        ],
+        'editor.stickyScroll.enabled': true,
+        'editor.suggestSelection': 'first',
+        'editor.tabCompletion': 'on',
+        'editor.tabSize': 2,
+        'extensions.ignoreRecommendations': true,
+        'files.associations': {
+          '*.sh.tmpl': 'shellscript'
+        },
+        'files.eol': '\n',
+        'files.autoGuessEncoding': false,
+        'files.trimTrailingWhitespace': true,
+        'terraform.languageServer': {
+          'enabled': true
+        },
+        'json.validate.enable': true,
+        'markdown.updateLinksOnFileMove.enabled': 'always'
+      },
+      'extensions': [
+      'GitHub.copilot',
+      'GitHub.copilot-chat',
+      'HashiCorp.terraform',
+      'ms-azuretools.vscode-azureappservice',
+      'ms-azuretools.vscode-azurefunctions',
+      'ms-azuretools.vscode-azureresourcegroups',
+      'ms-azuretools.vscode-azureterraform',
+      'ms-dotnettools.csharp',
+      'ms-dotnettools.vscode-dotnet-runtime',
+      'ms-vscode.powershell',
+      'ms-vscode.azurecli',
+      'redhat.vscode-yaml',
+      'zarige.jsonlint'
+      ],
+      'unwantedRecommendations': ["eamodio.gitlens"],
+      'welcome': {
+        'title': '👋 Welcome to this Codespace!',
+        'markdown': 'WELCOME.md'
+      }
+    }
+  },
+  'onCreateCommand': 'bash .devcontainer/scripts/setup-dotnet-dev-cert.sh',
+  'postCreateCommand': 'terraform --version && terraform-docs --version && tfsec --version && azd version',
+  'postStartCommand': 'git fetch origin && git reset --hard origin/main'
+}
+'@
+
 $script:TemplateCiWorkflow = @'
 name: Terraform-Modules-Docs
 
@@ -354,6 +626,10 @@ function New-TerraformModuleRepo {
     $script:TemplateTerraformDocsYml | Set-Content '.terraform-docs.yml'
 
     $script:TemplateGitignore | Set-Content '.gitignore'
+    $script:TemplateEditorConfig | Set-Content '.editorconfig'
+    $script:TemplateGitAttributes | Set-Content '.gitattributes'
+    $script:TemplateVsCodeSettings | Set-Content '.vscode/settings.json'
+    $script:TemplateDevContainer | Set-Content '.devcontainer/devcontainer.json'
 
     @"
 # terraform-$Provider-$ModuleName
