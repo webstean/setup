@@ -794,6 +794,7 @@ SOFTWARE.
 
     # Final script output for automation/consumers
     Write-Output ([pscustomobject]@{
+        Repo       = "https://github.com/$Owner/$repoName"
         RepoOwner  = $Owner
         RepoName   = $repoName
         ModuleName = $ModuleName
