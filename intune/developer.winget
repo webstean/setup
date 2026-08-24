@@ -182,6 +182,7 @@ properties:
       id: Anthropic.Claude
       directives:
         description: Install Anthropic.Claude
+        securityContext: elevated
         allowPrerelease: true
       settings:
         id: Anthropic.Claude
@@ -192,6 +193,7 @@ properties:
       directives:
         description: Install Azure Az Copy Tool
         allowPrerelease: false
+        securityContext: elevated
       settings:
         id: Microsoft.Azure.AZCopy.10
         source: winget
@@ -201,6 +203,7 @@ properties:
       directives:
         description: Install Microsoft.etl2pcapng (WireShark)
         allowPrerelease: false
+        securityContext: elevated
       settings:
         id: Microsoft.etl2pcapng
         source: winget
@@ -210,6 +213,7 @@ properties:
       directives:
         description: Install ImageMagick.ImageMagick
         allowPrerelease: false
+        securityContext: elevated
       settings:
         id: ImageMagick.ImageMagick
         source: winget
@@ -221,6 +225,7 @@ properties:
       directives:
         description: Install RedHat.Podman.CLI
         allowPrerelease: true
+        securityContext: elevated
       settings:
         id: RedHat.Podman.CLI
         source: winget
@@ -232,6 +237,7 @@ properties:
       directives:
         description: Install RedHat.Podman-Desktop
         allowPrerelease: true
+        securityContext: elevated
       settings:
         id: RedHat.Podman-Desktop
         source: winget
@@ -241,6 +247,7 @@ properties:
       directives:
         description: Install Microsoft.Coreutils
         allowPrerelease: true
+        securityContext: elevated
       settings:
         id: Microsoft.Coreutils
         source: winget
@@ -252,6 +259,7 @@ properties:
       directives:
         description: Install RedHat.Podman-Desktop
         allowPrerelease: true
+        securityContext: elevated
       settings:
         id: RedHat.Podman-Desktop
         source: winget
