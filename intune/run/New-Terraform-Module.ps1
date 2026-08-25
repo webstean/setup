@@ -491,7 +491,7 @@ $script:TemplateDevContainer = @'
   },
   'customizations': {
     'codespaces': {
-      'openFiles': ["DEVELOPER.md"]
+      'openFiles': ["WELCOME.md"]
     },
     'vscode': {
       'settings': {
@@ -846,6 +846,7 @@ SOFTWARE.
     git branch -M main
     git remote add origin https://github.com/$Owner/${repoName}.git
     git push -u origin main
+    gh label create 'Language: Terraform :globe_with_meridians:' --color '5C4EE5' --repo "$Owner/$repoName"
 
     git tag v0.1.0
     git push origin v0.1.0
