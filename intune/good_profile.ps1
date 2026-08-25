@@ -1371,8 +1371,8 @@ foreach ($alias in 't', 'tf', 'tv', 'ti' ) {
 ## Terraform shortcuts
 function t { terraform.exe @args }
 function tf { terraform.exe fmt -recursive @args }
-function tv { terraform.exe validate @args }
-function ti { terraform.exe init -upgrade @args }
+function tv { terraform.exe validate -query @args }
+function ti { terraform.exe init -upgrade -migrate-state @args }
 function tp { terraform.exe plan @args }
 function ta { terraform.exe apply @args }
 function tc {
