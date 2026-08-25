@@ -1399,7 +1399,7 @@ function cdw {
     }
 }
 
-function free {
+function freewarning {
     (Get-Volume -DriveLetter C).SizeRemaining | ForEach-Object {
         $sizeInGB = [math]::Round($_ / 1GB, 2)
         if ($sizeInGB -lt 5) {
@@ -1417,7 +1417,7 @@ function free {
         }
     }
 }
-free
+freewarning
 
 function Restore-Terminal {
     <#
@@ -4713,7 +4713,7 @@ function Invoke-LocalDB {
 
     $sqlcmdArgs = @('-S', $pipe, '-E')
     if ($Database) { $sqlcmdArgs += @('-d', $Database) }
-    if ($Query)    { $sqlcmdArgs += @('-Q', $Query) }
+    if ($Query) { $sqlcmdArgs += @('-Q', $Query) }
 
     ## ODBC (legacy)
     & sqlcmd @sqlcmdArgs
