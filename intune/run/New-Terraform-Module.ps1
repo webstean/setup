@@ -589,7 +589,8 @@ $script:TemplateDevContainer = @'
         "terraform.languageServer": {
           "enabled": true
         },
-        "security.workspace.trust.enabled": false
+        "security.workspace.trust.enabled": false,
+        "redhat.telemetry.enabled": false
       },
       "extensions": [
         "GitHub.copilot",
@@ -615,13 +616,14 @@ $script:TemplateDevContainer = @'
   },
 
   // Verify tool versions and install Az PowerShell module
-  "postCreateCommand": "terraform --version && terraform-docs --version && azd version && pwsh -Command 'Install-Module Az -Scope CurrentUser -Force -AcceptLicense *> $null && Write-Host \"Az PowerShell module installed\"'",
+  "postCreateCommand": "terraform --version && terraform-docs --version && azd version",
 
   // Safe: fetch only, no destructive reset
   "postStartCommand": "git fetch origin"
 }
 '@
 ##   'onCreateCommand': 'bash .devcontainer/scripts/setup-dotnet-dev-cert.sh',
+##  && azd version && pwsh -Command 'Install-Module Az -Scope CurrentUser -Force -AcceptLicense *> $null && Write-Host \"Az PowerShell module installed\"'
 
 $script:TemplateCiWorkflow = @'
 name: Terraform-Modules-Docs
