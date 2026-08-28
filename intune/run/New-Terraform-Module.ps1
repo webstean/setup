@@ -486,128 +486,139 @@ Happy building.
 
 $script:TemplateDevContainer = @'
 {
-  "$schema": 'https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json',
-  'name': 'Azure Terraform',
-  'image': 'mcr.microsoft.com/devcontainers/dotnet',
-  'features': {
-    'ghcr.io/devcontainers/features/github-cli:1': {
-      'version': 'latest'
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
+  "name": "Azure Terraform",
+
+  // Use a minimal base image — dotnet is installed via the feature below
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+
+  "remoteUser": "vscode",
+
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
     },
-    'ghcr.io/devcontainers/features/docker-in-docker:2': {},
-    'ghcr.io/azure/azure-dev/azd:latest': {},
-    'ghcr.io/devcontainers/features/azure-cli:1': {
-      'version': 'latest'
+    // docker-outside-of-docker is preferred in Codespaces (shares host socket, lower overhead)
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/azure/azure-dev/azd:0": {},
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "version": "latest"
     },
-    'ghcr.io/devcontainers/features/terraform:1': {
-      'version': 'latest',
-      'installTFsec': 'true',
-      'installTerraformDocs': 'true'
+    "ghcr.io/devcontainers/features/terraform:1": {
+      "version": "latest",
+      "installTFsec": "false",
+      "installTerraformDocs": "true"
     },
-    'ghcr.io/devcontainers/features/node:1': {
-      'version': 'latest'
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
     },
-    'ghcr.io/devcontainers/features/powershell:1': {
-      'version': 'latest'
+    "ghcr.io/devcontainers/features/powershell:1": {
+      "version": "latest"
     },
-    'ghcr.io/devcontainers/features/dotnet:2': {
-      'version': 'latest',
-      'additionalVersions': '9.0',
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "latest",
+      "additionalVersions": "9.0"
     }
   },
-  'mounts': [
-  {
-    'type': 'volume',
-    'source': 'x509stores',
-    'target': '/home/vscode/.dotnet/corefx/cryptography/x509stores'
-  },
-  {
-    'type': 'bind',
-    'source': "${localEnv:HOME}${localEnv:USERPROFILE}/.azure",
-    'target': '/home/vscode/.azure'
-  }
+
+  "mounts": [
+    {
+      "type": "volume",
+      "source": "x509stores",
+      "target": "/home/vscode/.dotnet/corefx/cryptography/x509stores"
+    },
+    {
+      // Works on Linux/macOS (HOME set) and Windows (USERPROFILE set); one will be empty
+      "type": "bind",
+      "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.azure",
+      "target": "/home/vscode/.azure"
+    }
   ],
-  'containerEnv': {
-    'AZURE_CLIENT_ID': "${{ secrets.AZURE_CLIENT_ID }}",
-    'AZURE_TENANT_ID': "${{ secrets.AZURE_TENANT_ID }}",
-    'AZURE_SUBSCRIPTION_ID': "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+
+  // These must be set as Codespaces secrets or local environment variables
+  // ${{ secrets.* }} syntax is NOT interpolated in devcontainer.json
+  "containerEnv": {
+    "AZURE_CLIENT_ID":       "${localEnv:AZURE_CLIENT_ID}",
+    "AZURE_TENANT_ID":       "${localEnv:AZURE_TENANT_ID}",
+    "AZURE_SUBSCRIPTION_ID": "${localEnv:AZURE_SUBSCRIPTION_ID}"
   },
-  'customizations': {
-    'codespaces': {
-      'openFiles': ["WELCOME.md"]
+
+  "customizations": {
+    "codespaces": {
+      "openFiles": ["WELCOME.md"]
     },
-    'vscode': {
-      'settings': {
-        '[terraform]': {
-          'editor.defaultFormatter': 'hashicorp.terraform',
-          'editor.formatOnSave': true
+    "vscode": {
+      "settings": {
+        "[terraform]": {
+          "editor.defaultFormatter": "hashicorp.terraform",
+          "editor.formatOnSave": true
         },
-        '[tfvars]': {
-          'editor.defaultFormatter': 'hashicorp.terraform'
+        "[tfvars]": {
+          "editor.defaultFormatter": "hashicorp.terraform"
         },
-        'editor.bracketPairColorization.enabled': true,
-        'editor.codeActionsOnSave': {
-          'source.fixAll': 'explicit'
+        "editor.bracketPairColorization.enabled": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll": "explicit"
         },
-        'editor.formatOnPaste': true,
-        'editor.formatOnSave': true,
-        'editor.formatOnType': true,
-        'editor.guides.bracketPairs': 'active',
-        'editor.inlineSuggest.enabled': true,
-        'editor.linkedEditing': true,
-        'editor.multiCursorModifier': 'alt',
-        'editor.renderControlCharacters': true,
-        'editor.renderWhitespace': 'all',
-        'editor.rulers': [
-        {
-          'color': '#A5FF90',
-          'column': 80
-        },
-        {
-          'color': '#FF628C',
-          'column': 100
-        }
+        "editor.formatOnPaste": true,
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+        "editor.guides.bracketPairs": "active",
+        "editor.inlineSuggest.enabled": true,
+        "editor.linkedEditing": true,
+        "editor.multiCursorModifier": "alt",
+        "editor.renderControlCharacters": true,
+        "editor.renderWhitespace": "all",
+        "editor.rulers": [
+          { "color": "#A5FF90", "column": 80  },
+          { "color": "#FF628C", "column": 100 }
         ],
-        'editor.stickyScroll.enabled': true,
-        'editor.suggestSelection': 'first',
-        'editor.tabCompletion': 'on',
-        'editor.tabSize': 2,
-        'extensions.ignoreRecommendations': true,
-        'files.associations': {
-          '*.sh.tmpl': 'shellscript'
+        "editor.stickyScroll.enabled": true,
+        "editor.suggestSelection": "first",
+        "editor.tabCompletion": "on",
+        "editor.tabSize": 2,
+        "extensions.ignoreRecommendations": true,
+        "files.associations": {
+          "*.sh.tmpl": "shellscript"
         },
-        'files.eol': '\n',
-        'files.autoGuessEncoding': false,
-        'files.trimTrailingWhitespace': true,
-        'terraform.languageServer': {
-          'enabled': true
+        "files.eol": "\n",
+        "files.autoGuessEncoding": false,
+        "files.trimTrailingWhitespace": true,
+        "json.validate.enable": true,
+        "markdown.updateLinksOnFileMove.enabled": "always",
+        "terraform.languageServer": {
+          "enabled": true
         },
-        'json.validate.enable': true,
-        'markdown.updateLinksOnFileMove.enabled': 'always'
+        "security.workspace.trust.enabled": false
       },
-      'extensions': [
-      'GitHub.copilot',
-      'GitHub.copilot-chat',
-      'HashiCorp.terraform',
-      'ms-azuretools.vscode-azureappservice',
-      'ms-azuretools.vscode-azurefunctions',
-      'ms-azuretools.vscode-azureresourcegroups',
-      'ms-azuretools.vscode-azureterraform',
-      'ms-dotnettools.csharp',
-      'ms-dotnettools.vscode-dotnet-runtime',
-      'ms-vscode.powershell',
-      'ms-vscode.azurecli',
-      'redhat.vscode-yaml',
-      'zarige.jsonlint'
+      "extensions": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "GitHub.vscode-github-actions",
+        "HashiCorp.terraform",
+        "ms-azuretools.vscode-azureappservice",
+        "ms-azuretools.vscode-azurefunctions",
+        "ms-azuretools.vscode-azureresourcegroups",
+        "ms-azuretools.vscode-azureterraform",
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.vscode-dotnet-runtime",
+        "ms-vscode.azure-account",
+        "ms-vscode.azurecli",
+        "ms-vscode.powershell",
+        "redhat.vscode-yaml",
+        "timonwong.shellcheck"
       ],
-      'unwantedRecommendations': ["eamodio.gitlens"],
-      'welcome': {
-        'title': '👋 Welcome to this Codespace!',
-        'markdown': 'WELCOME.md'
-      }
+      "unwantedRecommendations": [
+        "eamodio.gitlens"
+      ]
     }
   },
-  'postCreateCommand': 'terraform --version && terraform-docs --version && tfsec --version && azd version',
-  'postStartCommand': 'git fetch origin && git reset --hard origin/main'
+
+  // Verify tool versions and install Az PowerShell module
+  "postCreateCommand": "terraform --version && terraform-docs --version && azd version && pwsh -Command 'Install-Module Az -Scope CurrentUser -Force -AcceptLicense *> $null && Write-Host \"Az PowerShell module installed\"'",
+
+  // Safe: fetch only, no destructive reset
+  "postStartCommand": "git fetch origin"
 }
 '@
 ##   'onCreateCommand': 'bash .devcontainer/scripts/setup-dotnet-dev-cert.sh',
