@@ -967,3 +967,4 @@ SOFTWARE.
     Pop-Location
   }
 }
+New-TerraformModuleRepo
