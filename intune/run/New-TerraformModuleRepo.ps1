@@ -405,7 +405,7 @@ updates:
       interval: weekly
       day: monday
       time: "06:00"
-      timezone: Etc/UTC
+      timezone: Australia/Melbourne
     groups:
       terraform:
         patterns:
@@ -737,6 +737,24 @@ jobs:
             --target "${{ github.ref_name }}" \
             ${{ inputs.prerelease && '--prerelease' || '--latest' }} \
             ${{ inputs.draft && '--draft' || '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Write release summary
+        run: |
+          release_url="$(gh release view "${{ inputs.version }}" --json url --jq '.url')"
+          {
+            echo "## Module release created"
+            echo
+            echo "| Detail | Value |"
+            echo "| --- | --- |"
+            echo "| Version | [${{ inputs.version }}](${release_url}) |"
+            echo "| Target branch | \`${{ github.ref_name }}\` |"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo "| Pre-release | \`${{ inputs.prerelease }}\` |"
+            echo "| Draft | \`${{ inputs.draft }}\` |"
+            echo "| Triggered by | @${{ github.actor }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 '@
