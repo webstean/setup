@@ -818,7 +818,7 @@ function New-TerraformModuleRepo {
     '' | Set-Content 'examples/basic/outputs.tf'
 
     '## $repoName' | Set-Content '_header.md'
-    '' | Set-Content '_footer.md'
+    '- (c) Andrew Webster <webstean@gmail.com>' | Set-Content '_footer.md'
   
 
     Copy-Item 'examples/basic/main.tf' 'examples/complete/main.tf'
