@@ -466,7 +466,7 @@ This repository was scaffolded to help you build and publish a reusable Terrafor
 ## Useful Commands
 
 ```bash
-terraform fmt -recursive
+terraform fmt -check -recursive
 terraform init
 terraform validate
 ```
