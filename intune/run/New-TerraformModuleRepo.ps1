@@ -817,6 +817,10 @@ function New-TerraformModuleRepo {
     '' | Set-Content 'examples/basic/variables.tf'
     '' | Set-Content 'examples/basic/outputs.tf'
 
+    '## $repoName' | Set-Content '_header.md'
+    '' | Set-Content '_footer.md'
+  
+
     Copy-Item 'examples/basic/main.tf' 'examples/complete/main.tf'
     Copy-Item 'examples/basic/versions.tf' 'examples/complete/versions.tf'
     Copy-Item 'examples/basic/variables.tf' 'examples/complete/variables.tf'
