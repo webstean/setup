@@ -669,11 +669,11 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      - uses: terraform-docs/gh-actions@v1
+      - uses: terraform-docs/gh-actions@v1.4.1
         with:
           working-dir: .
           output-file: README.md
@@ -833,7 +833,6 @@ function New-TerraformModuleRepo {
     $script:TemplateVsCodeSettings | Set-Content '.vscode/settings.json'
     $script:TemplateVsCodeExtensions | Set-Content '.vscode/extensions.json'
     $script:TemplateDevContainer | Set-Content '.devcontainer/devcontainer.json'
-    $script:Dependabot | Set-Content '.github/dependabot.yml'
 
     @"
 # terraform-$Provider-$ModuleName
@@ -894,6 +893,7 @@ SOFTWARE.
     New-Item -ItemType Directory -Path '.github/workflows' -Force | Out-Null
     $script:TemplateCiWorkflow | Set-Content '.github/workflows/ci-terraform-docs.yml'
     $script:TemplateReleaseWorkflow | Set-Content '.github/workflows/release.yml'
+    $script:Dependabot | Set-Content '.github/dependabot.yml'
 
     git init
     git add -A
