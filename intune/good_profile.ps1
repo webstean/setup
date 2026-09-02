@@ -4719,3 +4719,8 @@ function Invoke-LocalDB {
     & sqlcmd @sqlcmdArgs
 }
 #Invoke-LocalDB
+
+if (Test-Path 'C:\Program Files\Graphviz\bin\dot.exe' ) { 
+    ## terraform graph -type=plan | dot -Tsvg > graph.svg
+    Set-Alias dot 'C:\Program Files\Graphviz\bin\dot.exe'
+}

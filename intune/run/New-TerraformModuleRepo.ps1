@@ -888,7 +888,7 @@ MIT
 "@ | Set-Content 'README.md'
 
     @"
-MIT License
+# MIT License
 
 Copyright (c) $(Get-Date -Format yyyy)
 
