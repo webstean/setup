@@ -1,7 +1,7 @@
 # Placeholder file templates for Terraform module scaffold
 $script:TemplateVersionsTf = @'
 terraform {
-  required_version = ">= 1.9.0, < 2.0"
+  required_version = "~>1.9, < 2.0"
 
   required_providers {
     azurerm = {
@@ -15,7 +15,7 @@ terraform {
       version = "~>3.0, < 4.0"
     }
     msgraph = {
-      ## Microsoft Graph - replacement for azuread *future*
+      ## Microsoft Graph - eventual replacement for azuread
       version = "~> 0.0, < 1.0"
       source  = "microsoft/msgraph"
     }
