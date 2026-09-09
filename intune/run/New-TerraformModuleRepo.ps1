@@ -16,8 +16,8 @@ terraform {
     }
     msgraph = {
       ## Microsoft Graph - eventual replacement for azuread
-      version = "~> 0.0, < 1.0"
       source  = "microsoft/msgraph"
+      version = "~> 0.0, < 1.0"
     }
     azapi = {
       ## use for Azure resources that are not directly support by azurerm or azuread providers
