@@ -1375,6 +1375,8 @@ function tv { terraform.exe validate -query @args }
 function ti { terraform.exe init -upgrade -migrate-state @args }
 function tp { terraform.exe plan @args }
 function ta { terraform.exe apply @args }
+function tpr { terraform.exe providers @args }
+
 function tc {
     Write-StepSummary -type 'info' 'Starting Terraform Console...'
     terraform.exe console @args
