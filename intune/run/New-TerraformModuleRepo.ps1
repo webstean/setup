@@ -31,139 +31,6 @@ terraform {
     }
   }
 }
-
-provider "azurerm" {
-  ## "extended" is chosen over "automatic" to ensure all recommended and custom resource providers are registered, as required by Azure Landing Zones and advanced scenarios.
-  resource_provider_registrations = "extended"
-  ## These are recommendations from the Azure Landing Zone, plus some others :-)
-  resource_providers_to_register = [
-    "Microsoft.Advisor",
-    "Microsoft.AlertsManagement",
-    "Microsoft.App",
-    "Microsoft.ApiCenter",
-    "Microsoft.ApiManagement",
-    "Microsoft.Automation",
-    "Microsoft.AzureTerraform",
-    "Microsoft.Cache",
-    "Microsoft.Capacity",
-    "Microsoft.CodeSigning",
-    "Microsoft.Communication",
-    "Microsoft.Compute",
-    "Microsoft.Compute/EncryptionAtHost",
-    "Microsoft.ContainerRegistry",
-    "Microsoft.ContainerService",
-    "Microsoft.DataBoxEdge",
-    "Microsoft.Dashboard",
-    "Microsoft.DevCenter",
-    "Microsoft.DeviceUpdate",
-    "Microsoft.DevOpsInfrastructure",
-    "Microsoft.DevTestLab",
-    "Microsoft.EdgeZones",
-    "Microsoft.EventGrid",
-    "Microsoft.ExtendedLocation",
-    "Microsoft.GuestConfiguration",
-    "Microsoft.HorizonDB",
-    "Microsoft.Insights",
-    "Microsoft.IoTSecurity",
-    "Microsoft.IoTOperations",
-    "Microsoft.KeyVault",
-    "Microsoft.Monitor",
-    "Microsoft.ManagedIdentity",
-    "Microsoft.ManagedOps",
-    "Microsoft.ManagedServices",
-    "Microsoft.Management",
-    "Microsoft.Network",
-    "Microsoft.OperationalInsights",
-    "Microsoft.OperationsManagement",
-    "Microsoft.PolicyInsights",
-    "Microsoft.Purview",
-    "Microsoft.RecoveryServices",
-    "Microsoft.ResourceHealth",
-    "Microsoft.Security",
-    "Microsoft.SecurityInsights",
-    "Microsoft.ServiceLinker",
-    "Microsoft.StandbyPool",
-    "Microsoft.Storage",
-    "Microsoft.Sql",
-    "Microsoft.VerifiedId",
-    "NGINX.NGINXPLUS",
-  ]
-  features {
-    enhanced_validation {
-      preflight_enabled = true
-    }
-    app_configuration {
-      purge_soft_delete_on_destroy = false
-      recover_soft_deleted         = true
-    }
-    api_management {
-      purge_soft_delete_on_destroy = false # Keep soft-deleted API Management resources for recovery.
-      recover_soft_deleted         = true  # Automatically recover soft-deleted API Management resources.
-    }
-    cognitive_account {
-      purge_soft_delete_on_destroy = true
-    }
-    resource_group {
-      prevent_deletion_if_contains_resources = false # Allow deletion of resource groups even if they contain resources.
-    }
-    key_vault {
-      purge_soft_delete_on_destroy    = false # Retain soft-deleted Key Vaults for potential recovery.
-      recover_soft_deleted_key_vaults = true  # Automatically recover soft-deleted Key Vaults.
-    }
-    log_analytics_workspace {
-      permanently_delete_on_destroy = true # Ensure Log Analytics Workspaces are permanently deleted on destroy.
-    }
-    machine_learning {
-      purge_soft_deleted_workspace_on_destroy = true # Permanently delete soft-deleted ML workspaces on destroy.
-    }
-    virtual_machine {
-      delete_os_disk_on_deletion = true # Automatically delete OS disks when deleting VMs.
-    }
-    template_deployment {
-      delete_nested_items_during_deletion = false # Do not delete nested items during template deployment deletion.
-    }
-  }
-  storage_use_azuread = true
-  ## Authentication strategy: Prefer OIDC and Azure CLI for authentication;
-  ## Managed Identity and AKS Workload Identity are disabled for explicit control and compatibility.
-  use_oidc                  = true
-  use_aks_workload_identity = false
-  use_msi                   = false
-  use_cli                   = true
-}
-
-provider "msgraph" {
-  ## Authentication strategy: Prefer OIDC and Azure CLI for authentication;
-  ## Managed Identity and AKS Workload Identity are disabled for explicit control and compatibility.
-  use_oidc                  = true
-  use_aks_workload_identity = false
-  use_msi                   = false
-  use_cli                   = true
-}
-
-provider "azuread" {
-  ## Authentication strategy: Prefer OIDC and Azure CLI for authentication;
-  ## Managed Identity and AKS Workload Identity are disabled for explicit control and compatibility.
-  use_oidc                  = true
-  use_aks_workload_identity = false
-  use_msi                   = false
-  use_cli                   = true
-}
-
-provider "azapi" {
-  ## Authentication strategy: Prefer OIDC and Azure CLI for authentication;
-  ## Managed Identity and AKS Workload Identity are disabled for explicit control and compatibility.
-  use_oidc                  = true
-  use_aks_workload_identity = false
-  use_msi                   = false
-  use_cli                   = true
-  enable_preflight          = true
-}
-
-resource "azurerm_resource_provider_feature_registration" "encryption_at_host" {
-  provider_name = "Microsoft.Compute"
-  name          = "EncryptionAtHost"
-}
 '@
 
 $script:TemplateExampleVersionsTf = @'
@@ -416,6 +283,39 @@ updates:
       prefix: chore
       include: scope
 '@
+
+$script:TemplatePullRequest = @'
+<!-- Pull Request Template -->
+## Description
+
+Please include a summary of the changes and the related issue. Please also include relevant motivation and context.
+
+## Type of Change
+
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation update
+
+## Checklist
+
+- [ ] My code follows the style guidelines of this project
+- [ ] I have performed a self-review of my own code
+- [ ] I have commented my code, particularly in hard-to-understand areas
+- [ ] I have made corresponding changes to the documentation
+- [ ] My changes generate no new warnings
+- [ ] I have added tests that prove my fix is effective or that my feature works
+- [ ] New and existing unit tests pass locally with my changes
+- [ ] Any dependent changes have been merged and published in downstream modules
+
+## AI Assistance Disclosure
+- [ ] AI Assisted - This contribution was made by, or with the assistance of, AI/LLMs
+
+> [!NOTE]
+> If this PR changes meaningfully during the course of review please update the title and description as required.
+
+'@
+
 
 $script:TemplateVsCodeSettings = @'
 {
@@ -916,6 +816,7 @@ SOFTWARE.
     $script:TemplateCiWorkflow | Set-Content '.github/workflows/ci-terraform-docs.yml'
     $script:TemplateReleaseWorkflow | Set-Content '.github/workflows/release.yml'
     $script:Dependabot | Set-Content '.github/dependabot.yml'
+    $script:TemplatePullRequest | Set-Content '.github/pull_request_template.md'
 
     git init
     git add -A
