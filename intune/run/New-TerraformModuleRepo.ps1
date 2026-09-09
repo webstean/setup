@@ -587,10 +587,6 @@ name: Module Release
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: "Release version (e.g. v1.2.3)"
-        required: true
-        type: string
       prerelease:
         description: "Mark as pre-release"
         required: false
@@ -611,44 +607,54 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0 # full history for release notes generation
 
-      - name: Validate version format
+      - name: Compute next minor version
         run: |
-          if [[ ! "${{ inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "ERROR: Version must be in format vX.Y.Z (e.g. v1.2.3)"
+          latest_tag="$(git tag --list 'v*' --sort=-version:refname | head -n 1)"
+
+          if [[ -z "$latest_tag" ]]; then
+            version="v0.1.0"
+          elif [[ "$latest_tag" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            version="v${BASH_REMATCH[1]}.$((BASH_REMATCH[2] + 1)).0"
+          else
+            echo "ERROR: Latest tag '$latest_tag' is not a valid vX.Y.Z version"
             exit 1
           fi
+
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "Computed release version: $version"
 
       - name: Check tag does not already exist
         run: |
-          if git rev-parse "${{ inputs.version }}" &>/dev/null; then
-            echo "ERROR: Tag ${{ inputs.version }} already exists"
+          if git rev-parse "$VERSION" &>/dev/null; then
+            echo "ERROR: Tag $VERSION already exists"
             exit 1
           fi
 
-      - name: Create Module Release
+      - name: Create release
         run: |
-          gh release create "${{ inputs.version }}" \
-            --title "${{ inputs.version }}" \
+          gh release create "$VERSION" \
+            --title "$VERSION" \
             --generate-notes \
             --target "${{ github.ref_name }}" \
             ${{ inputs.prerelease && '--prerelease' || '--latest' }} \
             ${{ inputs.draft && '--draft' || '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Write release summary
         run: |
-          release_url="$(gh release view "${{ inputs.version }}" --json url --jq '.url')"
+          release_url="$(gh release view "$VERSION" --json url --jq '.url')"
+
           {
             echo "## Module release created"
             echo
             echo "| Detail | Value |"
             echo "| --- | --- |"
-            echo "| Version | [${{ inputs.version }}](${release_url}) |"
+            echo "| Version | [$VERSION](${release_url}) |"
             echo "| Target branch | \`${{ github.ref_name }}\` |"
             echo "| Commit | \`${{ github.sha }}\` |"
             echo "| Pre-release | \`${{ inputs.prerelease }}\` |"
