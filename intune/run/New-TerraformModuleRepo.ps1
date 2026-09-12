@@ -392,7 +392,6 @@ terraform validate
 Happy building.
 '@
 
-
 $script:TemplateDevContainer = @'
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
@@ -591,7 +590,7 @@ jobs:
 '@
 
 $script:TemplatePerimterWorkflow = @'
-name: Use Security Perimeter Outputs
+name: Setup Azure Network Security Perimeter (NSP)
 
 on:
   workflow_dispatch:
