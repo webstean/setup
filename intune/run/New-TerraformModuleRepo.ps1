@@ -24,6 +24,11 @@ terraform {
       source  = "azure/azapi"
       version = "~>2.0, < 3.0"
     }
+    #powerplatform = {
+    ## Power Platform
+    #  source  = "microsoft/power-platform"
+    #  version = "~>4.0, < 5.0"
+    #}
     random = {
       ## Random
       source  = "hashicorp/random"
