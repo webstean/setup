@@ -321,7 +321,6 @@ Please include a summary of the changes and the related issue. Please also inclu
 
 '@
 
-
 $script:TemplateVsCodeSettings = @'
 {
     "files.autoSave": "afterDelay",
@@ -584,6 +583,78 @@ jobs:
           output-file: README.md
           output-method: inject
           git-push: "true"
+'@
+
+$script:TemplatePerimterWorkflow = @'
+name: Use Security Perimeter Outputs
+
+on:
+  workflow_dispatch:
+
+  workflow_run:
+    workflows: ["Terraform - Plan/Apply Initial"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  consume-outputs:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+
+    steps:
+      - name: Exit 
+        shell: bash
+        run: |
+          exit 0
+
+      - name: Checkout
+        if: ${{ false }}
+        uses: actions/checkout@v7
+
+      - name: Download artifact from triggering run
+        if: ${{ true }}
+        uses: dawidd6/action-download-artifact@v11
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          run_id: ${{ github.event.workflow_run.id }}
+          name: tfplan-outputs-${{ matrix.runs-on }}.json
+          path: ./downloaded-artifact
+
+      - name: Read JSON output
+        if: ${{ true }}
+        shell: bash
+        run: |
+          cat ./downloaded-artifact/tfplan-output-values-ubuntu-latest.json
+          ACR_ID=$(jq -r '.acr_id' ./downloaded-artifact/tfplan-output-values-ubuntu-latest.json)
+          SECURITY_PERIMETER_ID=$(jq -r '.security_perimeter_id' ./downloaded-artifact/tfplan-output-values-ubuntu-latest.json)
+          SECURITY_PERIMETER_RESOURCES=$(jq -r '.security_perimeter_resources' ./downloaded-artifact/tfplan-output-values-ubuntu-latest.json)
+          NETWORK_SECURITY_PERIMETER_PROFILE_ID=$(jq -r '.network_security_perimeter_profile_id' ./downloaded-artifact/tfplan-output-values-ubuntu-latest.json)
+          echo "ACR ID from env file                               : $ACR_ID"
+          echo "SECURITY_PERIMETER_ID from env file                : $SECURITY_PERIMETER_ID"
+          echo "SECURITY_PERIMETER_RESOURCES from env file         : $SECURITY_PERIMETER_RESOURCES"
+          echo "NETWORK_SECURITY_PERIMETER_PROFILE_ID from env file: $NETWORK_SECURITY_PERIMETER_PROFILE_ID"
+          #echo "Resources from env file: $SECURITY_PERIMETER_RESOURCES"
+          #echo "NETWORK_SECURITY_PERIMETER_PROFILE_ID from env file: $NETWORK_SECURITY_PERIMETER_PROFILE_ID"
+          #echo "SECURITY_PERIMETER_ID=$SECURITY_PERIMETER_ID" >> $GITHUB_ENV
+          #echo "SECURITY_PERIMETER_RESOURCES=$SECURITY_PERIMETER_RESOURCES" >> $GITHUB_ENV
+          #echo "NETWORK_SECURITY_PERIMETER_PROFILE_ID=$NETWORK_SECURITY_PERIMETER_PROFILE_ID"
+          exit 0
+
+      - name: Read ENV output
+        if: ${{ false }}
+        shell: bash
+        run: |
+          source ./downloaded-artifact/tfplan-outputs-ubuntu-latest.env
+          echo "ID from env file: $security_perimeter_id"
+          echo "ACR ID from env file: $acr_id"
+          echo "Resources from env file: $security_perimeter_resources"
+
+      - name: Security Perimeter Association
+        #-var.security_perimeter_resources
+        #-var.network_security_perimeter_profile_id
 '@
 
 $script:TemplateReleaseWorkflow = @'
