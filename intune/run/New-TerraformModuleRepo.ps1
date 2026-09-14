@@ -821,6 +821,8 @@ function New-TerraformModuleRepo {
     '' | Set-Content 'examples/basic/variables.tf'
     '' | Set-Content 'examples/basic/outputs.tf'
 
+README.md
+
     '## $repoName' | Set-Content '_header.md'
     '- (c) Andrew Webster <webstean@gmail.com>' | Set-Content '_footer.md'
   
