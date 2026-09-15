@@ -820,8 +820,7 @@ function New-TerraformModuleRepo {
 
     '' | Set-Content 'examples/basic/variables.tf'
     '' | Set-Content 'examples/basic/outputs.tf'
-
-README.md
+    '' | Set-Content 'examples/basic/README.md'
 
     '## $repoName' | Set-Content '_header.md'
     '- (c) Andrew Webster <webstean@gmail.com>' | Set-Content '_footer.md'
@@ -831,7 +830,8 @@ README.md
     Copy-Item 'examples/basic/versions.tf' 'examples/complete/versions.tf'
     Copy-Item 'examples/basic/variables.tf' 'examples/complete/variables.tf'
     Copy-Item 'examples/basic/outputs.tf' 'examples/complete/outputs.tf'
-
+    Copy-Item 'examples/basic/README.md' 'examples/complete/README.md'
+    
     '# go test -v -timeout 30m' | Set-Content 'tests/main_test.go'
 
     $script:TemplateTerraformDocsYml | Set-Content '.terraform-docs.yml'
