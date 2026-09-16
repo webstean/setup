@@ -392,6 +392,21 @@ terraform validate
 Happy building.
 '@
 
+$script:TemplateClaude = @'
+# Project
+
+This is a Terraform module scaffolded repository.
+
+# Commands
+- Terrafrom Formating: `terrafrom fmt -check -recursive`
+
+# Code Style
+- Use 2-space indentation
+- Enusre appropriate terrafrom output variables are defined.
+- Use Terraform Azure Verified Modules in preference to the azurerm, msgraph and azapi providers.
+- Avoid use of the Azure azuread if possible.
+'@
+
 $script:TemplateDevContainer = @'
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
@@ -814,6 +829,7 @@ function New-TerraformModuleRepo {
     '# Input variables' | Set-Content 'variables.tf'
     '# Resources' | Set-Content 'main.tf'
     '# Outputs' | Set-Content 'outputs.tf'
+    $script:TemplateClaude | Set-Content 'CLAUDE.md'
 
     $script:TemplateExampleMainTf | Set-Content 'examples/basic/main.tf'
     $script:TemplateExampleVersionsTf | Set-Content 'examples/basic/versions.tf'
