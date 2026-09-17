@@ -4727,34 +4727,35 @@ if (Test-Path 'C:\Program Files\Graphviz\bin\dot.exe' ) {
     Set-Alias dot 'C:\Program Files\Graphviz\bin\dot.exe'
 }
 
-function Ensure-PsPingAvailable {
+function Test-PsPingAvailable {
     [CmdletBinding()]
     param()
 
-    if (-not (Get-Command psping.exe -ErrorAction SilentlyContinue) -and
-        -not (Get-Command psping -ErrorAction SilentlyContinue)) {
-        throw "psping.exe not found on PATH. Download PsTools from " +
-              "https://learn.microsoft.com/sysinternals/downloads/psping " +
-              "and copy psping.exe onto your PATH, then retry."
+    try {
+        return $null -ne (Get-Command psping.exe -ErrorAction SilentlyContinue) -or
+        $null -ne (Get-Command psping -ErrorAction SilentlyContinue)
+    } catch {
+        return $false
     }
 }
 
 function Get-LocalIPAddress {
     [CmdletBinding()]
     param(
-        [string[]]$InterfaceAlias = @("Ethernet*", "Wi-Fi*")
+        [string[]]$InterfaceAlias = @('Ethernet*', 'Wi-Fi*')
     )
 
     $ip = Get-NetIPAddress -AddressFamily IPv4 |
-        Where-Object {
-            $_.InterfaceAlias -like $InterfaceAlias[0] -or
-            ($InterfaceAlias.Count -gt 1 -and $_.InterfaceAlias -like $InterfaceAlias[1])
-        } |
-        Where-Object { $_.IPAddress -notlike "169.254.*" -and $_.IPAddress -ne "127.0.0.1" } |
-        Select-Object -First 1 -ExpandProperty IPAddress
+    Where-Object {
+        $_.InterfaceAlias -like $InterfaceAlias[0] -or
+        ($InterfaceAlias.Count -gt 1 -and $_.InterfaceAlias -like $InterfaceAlias[1])
+    } |
+    Where-Object { $_.IPAddress -notlike '169.254.*' -and $_.IPAddress -ne '127.0.0.1' } |
+    Select-Object -First 1 -ExpandProperty IPAddress
 
     if (-not $ip) {
-        throw "Could not auto-detect a local IPv4 address. Pass -IPAddress explicitly."
+        ## 'Could not auto-detect a local IPv4 address. Pass -IPAddress explicitly.'
+        return $null
     }
     return $ip
 }
@@ -4770,9 +4771,6 @@ function Start-PsPingServer {
     .PARAMETER Port
         Port to listen on. Defaults to 8443.
 
-    .PARAMETER OpenFirewall
-        Passes -f to psping so it opens the local firewall for the run's duration.
-
     .EXAMPLE
         Start-PsPingServer -Port 8443 -OpenFirewall
     #>
@@ -4780,18 +4778,22 @@ function Start-PsPingServer {
     param(
         [string]$IPAddress,
         [int]$Port = 8443,
-        [switch]$OpenFirewall
     )
 
-    Ensure-PsPingAvailable
+    if (-not (Test-PsPingAvailable)) {
+        return 
+    }
 
     if (-not $IPAddress) {
         $IPAddress = Get-LocalIPAddress
+        if ($null -eq $IPAddress) {
+            return
+        }
     }
 
     $psArgs = @()
-    if ($OpenFirewall) { $psArgs += "-f" }
-    $psArgs += "-s"
+    $psArgs += '-f'
+    $psArgs += '-s'
     $psArgs += "${IPAddress}:${Port}"
 
     Write-Host "Starting psping server on ${IPAddress}:${Port} (Ctrl+C to stop)..."
@@ -4815,6 +4817,10 @@ function Wait-PsPingServerReady {
         [int]$TimeoutSeconds = 120,
         [int]$PollIntervalSeconds = 2
     )
+
+    if (-not (Test-PsPingAvailable)) {
+        return 
+    }
 
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     do {
@@ -4846,23 +4852,33 @@ function Invoke-PsPingTest {
     param(
         [Parameter(Mandatory)][string]$ServerIp,
         [Parameter(Mandatory)][int]$Port,
-        [string]$RequestSize = "8k",
+        [string]$RequestSize = '8k',
         [int]$Count = 10000,
         [int]$HistogramBuckets = 20,
         [switch]$Bandwidth,
         [int]$WaitTimeoutSeconds = 120
     )
 
-    Ensure-PsPingAvailable
-    Wait-PsPingServerReady -ServerIp $ServerIp -Port $Port -TimeoutSeconds $WaitTimeoutSeconds | Out-Null
+    if (-not (Test-PsPingAvailable)) {
+        return 
+    }
+    
+    if (Test-PsPingAvailable) {
+        Wait-PsPingServerReady -ServerIp $ServerIp -Port $Port -TimeoutSeconds $WaitTimeoutSeconds | Out-Null
+    }
 
     $psArgs = @()
-    if ($Bandwidth) { $psArgs += "-b" }
-    $psArgs += "-l"; $psArgs += $RequestSize
-    $psArgs += "-n"; $psArgs += $Count
-    $psArgs += "-h"; $psArgs += $HistogramBuckets
+    if ($Bandwidth) { $psArgs += '-b' }
+    $psArgs += '-l'; $psArgs += $RequestSize
+    $psArgs += '-n'; $psArgs += $Count
+    $psArgs += '-h'; $psArgs += $HistogramBuckets
     $psArgs += "${ServerIp}:${Port}"
 
     Write-Host "Running psping $(if ($Bandwidth) {'bandwidth'} else {'latency'}) test against ${ServerIp}:${Port}..."
     & psping @psArgs
 }
+
+#if (Test-PsPingAvailable) {
+#    Write-Host 'PsPing is available.' -ForegroundColor Green
+#    Start-PsPingServer
+#}
