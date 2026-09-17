@@ -4777,7 +4777,7 @@ function Start-PsPingServer {
     [CmdletBinding()]
     param(
         [string]$IPAddress,
-        [int]$Port = 8443,
+        [int]$Port = 8443
     )
 
     if (-not (Test-PsPingAvailable)) {
