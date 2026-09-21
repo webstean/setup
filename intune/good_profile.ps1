@@ -3393,6 +3393,11 @@ function Install-OrUpdate-Module {
         [int]$RetryDelaySeconds = 5
     )
 
+    # Install-PSResource/PSResourceGet targeting is unreliable on Windows PowerShell 5.1; require PS7+ (Core)
+    if ($PSVersionTable.PSEdition -ne 'Core') {
+        throw 'Install-OrUpdate-Module requires PowerShell 7+ (Core). It will not run under Windows PowerShell 5.1.'
+    }
+
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
 
@@ -4732,7 +4737,7 @@ function Test-PsPingAvailable {
     param()
 
     try {
-        return $null -ne (Get-Command psping.exe -ErrorAction SilentlyContinue) -or
+        return $null -ne (Get-Command c:\bin\psping.exe -ErrorAction SilentlyContinue) -or
         $null -ne (Get-Command psping -ErrorAction SilentlyContinue)
     } catch {
         return $false
@@ -4797,7 +4802,7 @@ function Start-PsPingServer {
     $psArgs += "${IPAddress}:${Port}"
 
     Write-Host "Starting psping server on ${IPAddress}:${Port} (Ctrl+C to stop)..."
-    & psping @psArgs
+    & c:\bin\psping @psArgs
 }
 
 function Wait-PsPingServerReady {

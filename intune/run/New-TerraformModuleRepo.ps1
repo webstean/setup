@@ -805,11 +805,13 @@ function New-TerraformModuleRepo {
     [Parameter(Mandatory = $true, HelpMessage = 'Name of the Terraform module')]
     [string]$ModuleName,
 
+    [Parameter(Mandatory = $false, HelpMessage = 'Provider of the Terraform module')]
     [string]$Provider = 'azurerm',
 
     [Parameter(Mandatory = $true, HelpMessage = 'Description of the module for the GitHub repository')]
     [string]$Description,
 
+    [Parameter(Mandatory = $false, HelpMessage = 'Owner of the GitHub repository')]
     [string]$Owner = 'webstean'
   )
 
@@ -880,7 +882,6 @@ function New-TerraformModuleRepo {
     '## $repoName' | Set-Content '_header.md'
     '- (c) Andrew Webster <webstean@gmail.com>' | Set-Content '_footer.md'
   
-
     Copy-Item 'examples/basic/main.tf' 'examples/complete/main.tf'
     Copy-Item 'examples/basic/versions.tf' 'examples/complete/versions.tf'
     Copy-Item 'examples/basic/variables.tf' 'examples/complete/variables.tf'
