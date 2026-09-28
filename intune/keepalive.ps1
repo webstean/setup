@@ -24,7 +24,7 @@ try {
     [Pow]::SetThreadExecutionState($flags) | Out-Null
     Write-Host "System sleep/display sleep prevented. Press Ctrl+C to stop."
     while ($true) {
-        Start-Sleep -Seconds 60
+        Start-Sleep -Seconds 41
     }
 }
 finally {
