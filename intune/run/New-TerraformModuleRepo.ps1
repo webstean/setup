@@ -552,7 +552,6 @@ on:
     branches: [main]
 
 permissions:
-  id-token: write
   contents: write
 
 jobs:
@@ -560,7 +559,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-
       - uses: hashicorp/setup-terraform@v4
 
       - name: terraform fmt
