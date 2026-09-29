@@ -615,12 +615,12 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        continue-on-error: true
 
       - uses: hashicorp/setup-terraform@v4
 
       - name: terraform fmt
         run: terraform fmt -check -recursive
+        #continue-on-error: true
 
       - name: terraform init
         run: terraform init -backend=false
@@ -629,13 +629,14 @@ jobs:
         run: terraform validate
 
   docs:
+    needs: validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      - uses: terraform-docs/gh-actions@v1.4.1
+      - uses: terraform-docs/gh-actions@v1
         with:
           working-dir: .
           output-file: README.md
