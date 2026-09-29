@@ -667,6 +667,16 @@ properties:
         source: winget
 
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.DefenderForCloud.CLI
+      directives:
+        description: Install Microsoft.DefenderForCloud.CLI
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: Microsoft.DefenderForCloud.CLI
+        source: winget
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: GitHub.CopilotApp
       dependsOn:
         - Git.Git
