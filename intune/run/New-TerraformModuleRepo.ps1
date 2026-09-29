@@ -449,9 +449,9 @@ This is a Terraform module scaffolded repository.
 $script:TemplateDevContainer = @'
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
-  "name": "Azure Terraform",
+  "name": "Azure Terraform Module",
 
-  // Use a minimal base image — dotnet is installed via the feature below
+  // Keep the base image small; module tooling is supplied by features below.
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
 
   "remoteUser": "vscode",
@@ -460,8 +460,6 @@ $script:TemplateDevContainer = @'
     "ghcr.io/devcontainers/features/github-cli:1": {
       "version": "latest"
     },
-    // docker-outside-of-docker is preferred in Codespaces (shares host socket, lower overhead)
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
     "ghcr.io/azure/azure-dev/azd:0": {},
     "ghcr.io/devcontainers/features/azure-cli:1": {
       "version": "latest"
@@ -471,34 +469,12 @@ $script:TemplateDevContainer = @'
       "installTFsec": "false",
       "installTerraformDocs": "true"
     },
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "lts"
-    },
     "ghcr.io/devcontainers/features/powershell:1": {
       "version": "latest"
-    },
-    "ghcr.io/devcontainers/features/dotnet:2": {
-      "version": "latest",
-      "additionalVersions": "9.0"
     }
   },
 
-  "mounts": [
-    {
-      "type": "volume",
-      "source": "x509stores",
-      "target": "/home/vscode/.dotnet/corefx/cryptography/x509stores"
-    },
-    {
-      // Works on Linux/macOS (HOME set) and Windows (USERPROFILE set); one will be empty
-      "type": "bind",
-      "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.azure",
-      "target": "/home/vscode/.azure"
-    }
-  ],
-
-  // These must be set as Codespaces secrets or local environment variables
-  // ${{ secrets.* }} syntax is NOT interpolated in devcontainer.json
+  // Set these as Codespaces secrets or local environment variables when using workload identity.
   "containerEnv": {
     "AZURE_CLIENT_ID":       "${localEnv:AZURE_CLIENT_ID}",
     "AZURE_TENANT_ID":       "${localEnv:AZURE_TENANT_ID}",
@@ -516,30 +492,15 @@ $script:TemplateDevContainer = @'
           "editor.formatOnSave": true
         },
         "[tfvars]": {
-          "editor.defaultFormatter": "hashicorp.terraform"
+          "editor.defaultFormatter": "hashicorp.terraform",
+          "editor.formatOnSave": true
         },
         "editor.bracketPairColorization.enabled": true,
-        "editor.codeActionsOnSave": {
-          "source.fixAll": "explicit"
-        },
         "editor.formatOnPaste": true,
-        "editor.formatOnSave": true,
         "editor.formatOnType": true,
-        "editor.guides.bracketPairs": "active",
-        "editor.inlineSuggest.enabled": true,
-        "editor.linkedEditing": true,
-        "editor.multiCursorModifier": "alt",
-        "editor.renderControlCharacters": true,
-        "editor.renderWhitespace": "all",
-        "editor.rulers": [
-          { "color": "#A5FF90", "column": 80  },
-          { "color": "#FF628C", "column": 100 }
-        ],
         "editor.stickyScroll.enabled": true,
-        "editor.suggestSelection": "first",
         "editor.tabCompletion": "on",
         "editor.tabSize": 2,
-        "extensions.ignoreRecommendations": true,
         "files.associations": {
           "*.sh.tmpl": "shellscript"
         },
@@ -559,13 +520,7 @@ $script:TemplateDevContainer = @'
         "GitHub.copilot-chat",
         "GitHub.vscode-github-actions",
         "HashiCorp.terraform",
-        "ms-azuretools.vscode-azureappservice",
-        "ms-azuretools.vscode-azurefunctions",
-        "ms-azuretools.vscode-azureresourcegroups",
         "ms-azuretools.vscode-azureterraform",
-        "ms-dotnettools.csharp",
-        "ms-dotnettools.vscode-dotnet-runtime",
-        "ms-vscode.azure-account",
         "ms-vscode.azurecli",
         "ms-vscode.powershell",
         "redhat.vscode-yaml",
@@ -577,11 +532,7 @@ $script:TemplateDevContainer = @'
     }
   },
 
-  // Verify tool versions and install Az PowerShell module
-  "postCreateCommand": "terraform --version && terraform-docs --version && azd version",
-
-  // Safe: fetch only, no destructive reset
-  "postStartCommand": "git fetch origin"
+  "postCreateCommand": "terraform --version && terraform-docs --version && az --version && azd version && pwsh --version && gh --version"
 }
 '@
 ##   'onCreateCommand': 'bash .devcontainer/scripts/setup-dotnet-dev-cert.sh',
