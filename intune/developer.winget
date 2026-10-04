@@ -262,6 +262,17 @@ properties:
         id: Microsoft.Coreutils
         source: winget
 
+ - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: Microsoft.DevPacj
+      directives:
+        description: Install Microsoft.FoundryDevPack
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        id: Microsoft.FoundryDevPack
+
+
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: RedHat.Podman-Desktop
       dependsOn:
