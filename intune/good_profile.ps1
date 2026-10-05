@@ -929,7 +929,6 @@ function List-Files {
 Set-Alias -Name docker -Value podman
 
 function Reset-Podman {
-
     ## Ensure running as Administrator
     $principal = [Security.Principal.WindowsPrincipal]::new(
         [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -1240,12 +1239,69 @@ function Initialize-PSReadLineSmart {
 Initialize-PSReadLineSmart | Out-Null
 
 function which {
+    <#
+    .SYNOPSIS
+        Shows where a command resolves from — similar to Unix 'which'.
+
+    .DESCRIPTION
+        Wraps Get-Command to show the resolution path/source for executables,
+        cmdlets, functions, and aliases (following alias chains to their target).
+
+    .PARAMETER Name
+        One or more command names. Accepts pipeline input and wildcards.
+
+    .PARAMETER All
+        Show every match in $env:PATH / loaded modules, not just the first
+        one PowerShell would actually run.
+
+    .EXAMPLE
+        which git
+
+    .EXAMPLE
+        which ls, gci, Get-ChildItem
+
+    .EXAMPLE
+        'notepad', 'code' | which -All
+    #>
+    [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true, Position = 0)]
-        [string]$Command
+        [Parameter(Mandatory = $true, Position = 0, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+        [Alias('Command')]
+        [string[]]$Name,
+
+        [switch]$All
     )
 
-    Get-Command $Command -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+    process {
+        foreach ($n in $Name) {
+            $commands = Get-Command -Name $n -All:$All -ErrorAction SilentlyContinue
+            if (-not $commands) {
+                Write-Warning "which: no command found for '$n'"
+                continue
+            }
+
+            foreach ($cmd in $commands) {
+                # Follow alias chains to their underlying command.
+                $resolved = $cmd
+                while ($resolved.CommandType -eq 'Alias') {
+                    $resolved = $resolved.ResolvedCommand
+                }
+
+                $location = switch ($resolved.CommandType) {
+                    'Application' { $resolved.Source }      # full path to the .exe
+                    default { $resolved.Source }             # module name (or blank if none)
+                }
+
+                [pscustomobject]@{
+                    Name        = $cmd.Name
+                    CommandType = $cmd.CommandType
+                    Resolved    = $resolved.Name
+                    Source      = $location
+                    Version     = $resolved.Version
+                }
+            }
+        }
+    }
 }
 if (Get-Command 'cat.exe' -ErrorAction SilentlyContinue) { Remove-Alias cat -ErrorAction SilentlyContinue }
 
@@ -1278,11 +1334,48 @@ style = "blue bold"
     }
 }
 
-## Test Nerd Fonts
+function Test-NerdFontInstalled {
+    <#
+    .SYNOPSIS
+        Checks whether a Nerd Font appears to be installed.
+
+    .DESCRIPTION
+        Enumerates installed font families (Windows only, via
+        System.Drawing.Text.InstalledFontCollection) and matches against
+        common Nerd Font family name patterns. This tells you a Nerd Font
+        is installed on the system — it cannot tell you whether your
+        current terminal is actually configured to use one.
+
+    .OUTPUTS
+        [bool]
+    #>
+    [CmdletBinding()]
+    param()
+
+    if (-not $IsWindows -and $PSVersionTable.PSVersion.Major -ge 6) {
+        # Write-Verbose 'Test-NerdFontInstalled: font enumeration only implemented for Windows; skipping.'
+        return $null
+    }
+
+    try {
+        Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+        $fonts = [System.Drawing.Text.InstalledFontCollection]::new().Families.Name
+    } catch {
+        Write-Verbose "Test-NerdFontInstalled: could not enumerate fonts: $($_.Exception.Message)"
+        return $null
+    }
+
+    # Nerd Font family names consistently contain 'Nerd Font' (patched fonts)
+    # or end in 'NF' (some packaging variants).
+    return [bool]($fonts | Where-Object { $_ -match 'Nerd Font|NF$' } | Select-Object -First 1)
+}
+
 if ($IsLanguagePermissive) {
-    $char = [System.Text.Encoding]::UTF8.GetString([byte[]](0xF0, 0x9F, 0x90, 0x8D))
-    if ([string]::IsNullOrEmpty($char)) {
-        Write-Host -ForegroundColor 'Yellow' 'Warning: Nerd Fonts are NOT installed!' 
+    $nerdFontInstalled = Test-NerdFontInstalled
+    if ($nerdFontInstalled -eq $false) {
+        Write-Host -ForegroundColor 'Yellow' 'Warning: Nerd Fonts are NOT installed!'
+    } elseif ($null -eq $nerdFontInstalled) {
+        Write-Verbose 'Nerd Font check skipped (unsupported platform or enumeration failed).'
     }
 }
 
