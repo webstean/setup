@@ -915,10 +915,20 @@ function Search {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true, Position = 0)]
-        [string]$Filter
+        [string]$Filter = "*"
     )
     Write-Output "Searching for '$Filter' in $(Get-Location) and subfolders..."
     Get-ChildItem -Path . -Recurse -Filter $Filter -Force -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+}
+
+function List-Files {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $false, Position = 0)]
+        [string]$Filter = "*"
+    )
+    Write-Output "Display all the files for '$Filter' in $(Get-Location) and subfolders..."
+    Get-ChildItem -Path . -Recurse -Filter $Filter -File -Force -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
 }
 
 function Reset-Podman {
