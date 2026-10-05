@@ -4672,19 +4672,19 @@ function Update-DeveloperApps {
     winget configure --enable
     winget settings --enable ProxyCommandLineOptions
 
-    $microsoftDownload = 'https://raw.githubusercontent.com/microsoft/WindowsDeveloperConfig/refs/heads/main/windows-dev-config/dev-config.winget'
+    #$microsoftDownload = 'https://raw.githubusercontent.com/microsoft/WindowsDeveloperConfig/refs/heads/main/windows-dev-config/dev-config.winget'
     $andrewDownload = 'https://raw.githubusercontent.com/webstean/setup/refs/heads/main/intune/developer.winget'
 
     $downloadRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('winget-config-' + [guid]::NewGuid().ToString('N'))
     New-Item -Path $downloadRoot -ItemType Directory -Force | Out-Null
 
     $andrewConfig = Join-Path $downloadRoot 'developer.winget'
-    $microsoftConfig = Join-Path $downloadRoot 'dev-config.winget'
+    #$microsoftConfig = Join-Path $downloadRoot 'dev-config.winget'
 
     Invoke-RobustDownload -Uri $andrewDownload -OutFile $andrewConfig
-    Invoke-RobustDownload -Uri $microsoftDownload -OutFile $microsoftConfig
+    #Invoke-RobustDownload -Uri $microsoftDownload -OutFile $microsoftConfig
 
-    winget configure --file "$microsoftConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
+    #winget configure --file "$microsoftConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
     winget configure --file "$andrewConfig" --accept-configuration-agreements --disable-interactivity --verbose-logs --no-proxy
 }
 
