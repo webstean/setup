@@ -865,51 +865,46 @@ $VirtualMachine = $true
 $type = $null
 
 function Get-HostPlatform {
+    [CmdletBinding()]
+    param()
 
     $cs = Get-CimInstance Win32_ComputerSystem
     $model = "$($cs.Manufacturer) $($cs.Model)"
-    
+
     switch -Regex ($model) {
         'VMware' {
-            $VirtualMachine = $true
+            $isVM = $true
             $type = 'VMware virtual machine'
         }
         'VirtualBox' {
-            $VirtualMachine = $true
+            $isVM = $true
             $type = 'Oracle VirtualBox VM'
         }
         'Microsoft.*Virtual' {
-            $VirtualMachine = $true
+            $isVM = $true
             $type = 'Hyper-V / Azure virtual machine'
         }
         'QEMU|KVM' {
-            $VirtualMachine = $true
+            $isVM = $true
             $type = 'KVM/QEMU virtual machine'
         }
-        
         default {
-            $VirtualMachine = $false
+            $isVM = $false
             $type = 'Likely bare-metal physical machine'
         }
     }
-    if ($env:IsDevBox -eq 'True' ) {
-        $VirtualMachine = $true
+
+    if ($env:IsDevBox -eq 'True') {
+        $isVM = $true
         $type = 'Azure DevBox'
     }
-    
-    #    if ($IsLanguagePermissive) {
-    #        [pscustomobject]@{
-    #            VirtualMachine = $virtualMachine
-    #            Type           = $type
-    #            Model          = $model
-    #        }
-    #    } else {
-    #        Write-Host "VirtualMachine : $virtualMachine"
-    #        Write-Host "Type           : $type"
-    #        Write-Host "Model          : $model"
-    #    }        
+
+    [pscustomobject]@{
+        VirtualMachine = $isVM
+        Type           = $type
+        Model          = $model
+    }
 }
-Get-HostPlatform
 
 function Search {
     [CmdletBinding()]
@@ -930,6 +925,8 @@ function List-Files {
     Write-Output "Display all the files for '$Filter' in $(Get-Location) and subfolders..."
     Get-ChildItem -Path . -Recurse -Filter $Filter -File -Force -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
 }
+
+Set-Alias -Name docker -Value podman
 
 function Reset-Podman {
 
@@ -969,7 +966,6 @@ function Reset-Podman {
         #podman machine info
         ## Download and Run Container
         ## podman run --rm quay.io/podman/hello
-        Set-Alias -Name docker -Value podman
         ## Set-Item -Path Env:\ASPIRE_CONTAINER_RUNTIME -Value 'podman'
         [System.Environment]::SetEnvironmentVariable('ASPIRE_CONTAINER_RUNTIME', 'podman', 'User')
         if (Get-Command azd -ErrorAction SilentlyContinue) {
@@ -1110,16 +1106,18 @@ function Initialize-PSReadLineSmart {
         sets PredictionSource = HistoryAndPlugin.
 
     .OUTPUTS
-        Object summarizing what was applied. In Constrained Language Mode this is a hashtable.
+        PSCustomObject summarizing what was applied.
     #>
     [CmdletBinding()]
     param(
         [ValidateSet('Auto', 'Inline', 'List')]
         [string]$ViewStyle = 'Auto',
+
         [bool]$UsePluginIfAvailable = $true
     )
 
-    $result = New-ProfileObject @{
+    $notes = [System.Collections.Generic.List[string]]::new()
+    $result = [pscustomobject]@{
         PSVersion           = $PSVersionTable.PSVersion.ToString()
         PSEdition           = $PSVersionTable.PSEdition
         PSReadLineVersion   = $null
@@ -1127,59 +1125,50 @@ function Initialize-PSReadLineSmart {
         PredictionSource    = $null
         PredictionViewStyle = $null
         KeybindingsApplied  = @()
-        Notes               = @()
+        Notes               = $notes
     }
 
-    if (-not $IsLanguagePermissive) {
-        $result.Notes += 'Skipped: language mode is not permissive.'
+    if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
+        $notes.Add('Skipped: language mode is not permissive.')
         return $result
     }
 
     try {
         $window = $Host.UI.RawUI.WindowSize
         if (-not ($window.Width -ge 54 -and $window.Height -ge 15)) {
-            $result.Notes += 'Skipped: console window too small for prediction UI.'
+            $notes.Add('Skipped: console window too small for prediction UI.')
             return $result
         }
     } catch {
-        $result.Notes += 'Skipped: host does not expose RawUI window size.'
+        $notes.Add('Skipped: host does not expose RawUI window size.')
         return $result
     }
 
     # 1) Load newest PSReadLine available (quietly)
     $rl = Get-Module PSReadLine -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1
     if (-not $rl) {
-        $result.Notes += 'PSReadLine not installed; skipping configuration.'
+        $notes.Add('PSReadLine not installed; skipping configuration.')
         return $result
     }
     try {
         Import-Module $rl -ErrorAction Stop
         $result.PSReadLineVersion = (Get-Module PSReadLine).Version.ToString()
     } catch {
-        $result.Notes += "Failed to import PSReadLine: $($_.Exception.Message)"
+        $notes.Add("Failed to import PSReadLine: $($_.Exception.Message)")
         return $result
     }
 
-    # Helpers to probe capability rather than assume version thresholds
+    # Probe capability rather than assume version thresholds
     $setOpt = Get-Command Set-PSReadLineOption -ErrorAction SilentlyContinue
-    $hasPredictionSource = $false
-    $hasPredictionView = $false
-    if ($setOpt) {
-        $params = ($setOpt.Parameters.Keys)
-        $hasPredictionSource = $params -contains 'PredictionSource'
-        $hasPredictionView = $params -contains 'PredictionViewStyle'
-    }
+    $hasPredictionSource = $setOpt -and ($setOpt.Parameters.Keys -contains 'PredictionSource')
+    $hasPredictionView = $setOpt -and ($setOpt.Parameters.Keys -contains 'PredictionViewStyle')
 
     # 2) Decide PredictionSource
-    $source = $null
     if ($hasPredictionSource) {
-        # Default to History everywhere that supports it
         $source = 'History'
 
-        # Optionally upgrade to HistoryAndPlugin when truly supported:
-        # Requires PowerShell 7.2+ and Az.Tools.Predictor module available
         $isPS72Plus = ($PSVersionTable.PSVersion.Major -gt 7) -or
-        (($PSVersionTable.PSVersion.Major -eq 7) -and ($PSVersionTable.PSVersion.Minor -ge 2))
+            ($PSVersionTable.PSVersion.Major -eq 7 -and $PSVersionTable.PSVersion.Minor -ge 2)
         $azPred = Get-Module Az.Tools.Predictor -ListAvailable | Select-Object -First 1
 
         if ($UsePluginIfAvailable -and $isPS72Plus -and $azPred) {
@@ -1187,7 +1176,7 @@ function Initialize-PSReadLineSmart {
                 Import-Module Az.Tools.Predictor -ErrorAction Stop
                 $source = 'HistoryAndPlugin'
             } catch {
-                $result.Notes += "Az.Tools.Predictor present but failed to import: $($_.Exception.Message)"
+                $notes.Add("Az.Tools.Predictor present but failed to import: $($_.Exception.Message)")
             }
         }
 
@@ -1196,46 +1185,40 @@ function Initialize-PSReadLineSmart {
             $result.PredictionEnabled = $true
             $result.PredictionSource = $source
         } catch {
-            $result.Notes += "Set-PSReadLineOption -PredictionSource failed: $($_.Exception.Message)"
+            $notes.Add("Set-PSReadLineOption -PredictionSource failed: $($_.Exception.Message)")
         }
     } else {
-        $result.Notes += 'This PSReadLine does not expose -PredictionSource; skipping predictions.'
+        $notes.Add('This PSReadLine does not expose -PredictionSource; skipping predictions.')
     }
 
     # 3) Decide PredictionViewStyle
     if ($hasPredictionView) {
-        $candidates = @()
-        switch ($ViewStyle) {
-            'Inline' { $candidates = @('InlineView') }
-            'List' { $candidates = @('ListView') }
-            'Auto' {
-                # Prefer Inline when available; fallback to List
-                $candidates = @('InlineView', 'ListView')
-            }
+        $candidates = switch ($ViewStyle) {
+            'Inline' { @('InlineView') }
+            'List'   { @('ListView') }
+            'Auto'   { @('InlineView', 'ListView') }
         }
 
-        if ($candidates.Count -gt 0) {
-            $applied = $false
-            foreach ($candidate in $candidates) {
-                if ($applied) { break }
-                try {
-                    Set-PSReadLineOption -PredictionViewStyle $candidate
-                    $result.PredictionViewStyle = $candidate
-                    $applied = $true
-                } catch {
-                    # Try next candidate (Auto mode) if available.
-                }
+        foreach ($candidate in $candidates) {
+            try {
+                Set-PSReadLineOption -PredictionViewStyle $candidate
+                $result.PredictionViewStyle = $candidate
+                break
+            } catch {
+                # Try next candidate (Auto mode).
             }
-            if (-not $applied) { $result.Notes += 'Could not set any PredictionViewStyle on this build.' }
+        }
+        if (-not $result.PredictionViewStyle) {
+            $notes.Add('Could not set any PredictionViewStyle on this build.')
         }
     } else {
-        $result.Notes += 'This PSReadLine does not expose -PredictionViewStyle; view not set.'
+        $notes.Add('This PSReadLine does not expose -PredictionViewStyle; view not set.')
     }
 
     # 4) Edit mode (safe everywhere)
     try {
         Set-PSReadLineOption -EditMode Windows
-    } catch { }
+    } catch {}
 
     # 5) Helpful keybindings — only if functions exist
     $keyFn = @{
@@ -1248,13 +1231,13 @@ function Initialize-PSReadLineSmart {
             Set-PSReadLineKeyHandler -Key $kvp.Key -Function $kvp.Value
             $result.KeybindingsApplied += "$($kvp.Key)→$($kvp.Value)"
         } catch {
-            # Older PSReadLine may not have those functions; ignore
+            # Older PSReadLine may not have those functions; ignore.
         }
     }
 
     return $result
 }
-Initialize-PSReadLineSmart
+Initialize-PSReadLineSmart | Out-Null
 
 function which {
     param(
