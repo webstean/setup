@@ -1487,46 +1487,43 @@ function cdw {
     }
 }
 
-function freewarning {
-    (Get-Volume -DriveLetter C).SizeRemaining | ForEach-Object {
-        $sizeInGB = [math]::Round($_ / 1GB, 2)
-        if ($sizeInGB -lt 5) {
-            Write-Host "Warning: Free space on Drive C: is less than 5GB (${sizeInGB}GB)!" -ForegroundColor Red
+function Test-FreeSpace {
+    <#
+    .SYNOPSIS
+        Warns about low free disk space and non-persistent ("Temporary Storage") volumes.
+
+    .PARAMETER DriveLetter
+        Drive letters to check. Defaults to C and D.
+
+    .PARAMETER ThresholdGB
+        Free-space threshold (in GB) below which a warning is shown. Default: 5.
+    #>
+    [CmdletBinding()]
+    param(
+        [string[]]$DriveLetter = @('C', 'D'),
+        [double]$ThresholdGB = 5
+    )
+
+    foreach ($letter in $DriveLetter) {
+        $volume = Get-Volume -DriveLetter $letter -ErrorAction SilentlyContinue
+        if (-not $volume) {
+            Write-Verbose "Drive ${letter}: not found; skipping."
+            continue
         }
-    }
 
-    $volumeD = Get-Volume -DriveLetter D -ErrorAction SilentlyContinue
-    if ($volumeD) {
-        $sizeInGB = [math]::Round($volumeD.SizeRemaining / 1GB, 2)
-        Write-Host "Free space on Drive D: is ${sizeInGB}GB"
+        $freeGB = [math]::Round($volume.SizeRemaining / 1GB, 2)
+        Write-Host "Free space on Drive ${letter}: is ${freeGB}GB"
 
-        if ($volumeD.FileSystemLabel -eq 'Temporary Storage') {
-            Write-Host "Warning: Drive D: is labeled 'Temporary Storage' — data here is not persistent (lost on deallocation/redeploy)." -ForegroundColor Red
+        if ($freeGB -lt $ThresholdGB) {
+            Write-Host "Warning: Free space on Drive ${letter}: is less than ${ThresholdGB}GB (${freeGB}GB)!" -ForegroundColor Red
+        }
+
+        if ($volume.FileSystemLabel -eq 'Temporary Storage') {
+            Write-Host "Warning: Drive ${letter}: is labeled 'Temporary Storage' — data here is not persistent (lost on deallocation/redeploy)." -ForegroundColor Red
         }
     }
 }
 freewarning
-
-function Restore-Terminal {
-    <#
-    .SYNOPSIS
-        Restores normal console input/echo if Windows Terminal or PowerShell
-        gets stuck in "secure input mode" (dots instead of pasted text).
-    #>
-    if ( -not ($IsLanguagePermissive)) { return } 
-
-    try {
-        # Reset Ctrl+C handling
-        [System.Console]::TreatControlCAsInput = $false
-
-        # Ensure echo is on
-        [System.Console]::Echo = $true
-
-        Write-Host 'Console input reset. You should now be able to paste normally.'
-    } catch {
-        Write-Warning 'Could not reset console state. Try closing and reopening the terminal.'
-    }
-}
 
 function Import-Nice-Modules {
     if (-not [bool](Get-Module -ListAvailable -Name Terminal-Icons -ErrorAction SilentlyContinue)) {
@@ -1724,10 +1721,11 @@ function Get-EntraID {
     $PSDefaultParameterValues['*:Verbose'] = $false
 
     if ( -not $env:AZURE_TENANT_ID ) {
-        throw 'Environment variable AZURE_TENANT_ID is not set'
+        throw "Environment variable 'AZURE_TENANT_ID' is not set"
     }
     $response = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration" -ErrorAction Stop
     if ($response ) {
+        Write-Host "Subscription ID: $env:AZURE_TENANT_ID 
         $PSDefaultParameterValues['*:Verbose'] = $preserve
         $response | Format-List issuer, token_endpoint, authorization_endpoint, device_authorization_endpoint, end_session_endpoint, kerberos_endpoint, jwks_uri
         return $true | Out-Null
