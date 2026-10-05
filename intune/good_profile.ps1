@@ -638,7 +638,7 @@ function Set-RegistryValue {
         .EXAMPLE
             Set-RegistryValue -Hive HKCU -SubKey 'Software\Foo' -Name 'Bar' -Value 1 -Type DWORD -WhatIf
     #>
-    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Low')]
+    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
     [OutputType([pscustomobject])]
     param(
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
@@ -671,20 +671,38 @@ function Set-RegistryValue {
         $ErrorActionPreference = 'Stop'
 
         $hiveMap = @{
-            'HKLM' = 'HKLM'; 'HKEY_LOCAL_MACHINE' = 'HKLM'
-            'HKCU' = 'HKCU'; 'HKEY_CURRENT_USER' = 'HKCU'
-            'HKCR' = 'HKCR'; 'HKEY_CLASSES_ROOT' = 'HKCR'
-            'HKU' = 'HKU'; 'HKEY_USERS' = 'HKU'
+            'HKLM' = 'HKLM'; 'HKEY_LOCAL_MACHINE'  = 'HKLM'
+            'HKCU' = 'HKCU'; 'HKEY_CURRENT_USER'   = 'HKCU'
+            'HKCR' = 'HKCR'; 'HKEY_CLASSES_ROOT'   = 'HKCR'
+            'HKU'  = 'HKU';  'HKEY_USERS'          = 'HKU'
             'HKCC' = 'HKCC'; 'HKEY_CURRENT_CONFIG' = 'HKCC'
         }
 
         $typeMap = @{
-            'STRING' = 'String'; 'REG_SZ' = 'String'
-            'DWORD' = 'DWord'; 'REG_DWORD' = 'DWord'
-            'QWORD' = 'QWord'; 'REG_QWORD' = 'QWord'
-            'BINARY' = 'Binary'; 'REG_BINARY' = 'Binary'
-            'MULTISTRING' = 'MultiString'; 'REG_MULTI_SZ' = 'MultiString'
+            'STRING'       = 'String'; 'REG_SZ'        = 'String'
+            'DWORD'        = 'DWord';  'REG_DWORD'     = 'DWord'
+            'QWORD'        = 'QWord';  'REG_QWORD'     = 'QWord'
+            'BINARY'       = 'Binary'; 'REG_BINARY'    = 'Binary'
+            'MULTISTRING'  = 'MultiString'; 'REG_MULTI_SZ'  = 'MultiString'
             'EXPANDSTRING' = 'ExpandString'; 'REG_EXPAND_SZ' = 'ExpandString'
+        }
+
+        # One prefix-stripping pattern covering both the short (HKLM:\...) and
+        # long (HKEY_LOCAL_MACHINE\...) forms a caller might pass in -SubKey.
+        $hivePrefixPattern = '^(?:(?:HKLM|HKCU|HKCR|HKU|HKCC):\\?' +
+            '|(?:HKEY_LOCAL_MACHINE|HKEY_CURRENT_USER|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\)'
+
+        function New-Result {
+            param($Path, $Name, $Status, $Type, $Value, $Err)
+            $obj = [ordered]@{
+                Path   = $Path
+                Name   = $Name
+                Status = $Status
+                Type   = $Type
+            }
+            if ($PSBoundParameters.ContainsKey('Value')) { $obj['Value'] = $Value }
+            if ($Err) { $obj['Error'] = $Err }
+            [pscustomobject]$obj
         }
     }
 
@@ -692,42 +710,26 @@ function Set-RegistryValue {
         # ---- Normalize hive ----
         $hiveKey = $Hive.Trim().TrimEnd(':').ToUpperInvariant()
         if (-not $hiveMap.ContainsKey($hiveKey)) {
-            return [pscustomobject]@{
-                Path   = "$Hive\$SubKey"
-                Name   = $Name
-                Type   = $Type
-                Status = 'Failed'
-                Error  = "Unsupported hive '$Hive'. Use HKLM, HKCU, HKCR, HKU or HKCC."
-            }
+            return New-Result -Path "$Hive\$SubKey" -Name $Name -Type $Type -Status 'Failed' `
+                -Err "Unsupported hive '$Hive'. Use HKLM, HKCU, HKCR, HKU or HKCC."
         }
         $resolvedHive = $hiveMap[$hiveKey]
 
-        # ---- Normalize subkey (strip drive prefixes, leading slashes, swap /) ----
-        $cleanSub = $SubKey.Trim().Replace('/', '\')
-        $cleanSub = $cleanSub -replace '^(HKLM|HKCU|HKCR|HKU|HKCC):\\?', ''
-        $cleanSub = $cleanSub -replace '^(HKEY_LOCAL_MACHINE|HKEY_CURRENT_USER|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\', ''
-        $cleanSub = $cleanSub.TrimStart('\')
+        # ---- Normalize subkey (strip drive/hive prefixes, swap /, trim leading \) ----
+        $cleanSub = ($SubKey.Trim().Replace('/', '\') -replace $hivePrefixPattern, '').TrimStart('\')
 
         # ---- Normalize type ----
         $typeKey = $Type.Trim().ToUpperInvariant()
-        if ($typeMap.ContainsKey($typeKey)) {
-            $resolvedType = $typeMap[$typeKey]
-        } else {
-            return [pscustomobject]@{
-                Path   = "${resolvedHive}:\$cleanSub"
-                Name   = $Name
-                Type   = $Type
-                Status = 'Failed'
-                Error  = "Unsupported registry type '$Type'."
-            }
+        if (-not $typeMap.ContainsKey($typeKey)) {
+            return New-Result -Path "${resolvedHive}:\$cleanSub" -Name $Name -Type $Type -Status 'Failed' `
+                -Err "Unsupported registry type '$Type'."
         }
-
+        $resolvedType = $typeMap[$typeKey]
         $path = "${resolvedHive}:\$cleanSub"
 
         # ---- Coerce $Value into the requested registry kind ----
         try {
-            $coerced =
-            switch ($resolvedType) {
+            $coerced = switch ($resolvedType) {
                 'DWord' { [int]$Value }
                 'QWord' { [long]$Value }
                 'Binary' {
@@ -753,13 +755,8 @@ function Set-RegistryValue {
                 default { [string]$Value }   # String / ExpandString
             }
         } catch {
-            return [pscustomobject]@{
-                Path   = $path
-                Name   = $Name
-                Type   = $resolvedType
-                Status = 'Failed'
-                Error  = "Value coercion failed: $($_.Exception.Message)"
-            }
+            return New-Result -Path $path -Name $Name -Type $resolvedType -Status 'Failed' `
+                -Err "Value coercion failed: $($_.Exception.Message)"
         }
 
         try {
@@ -798,24 +795,17 @@ function Set-RegistryValue {
                     # Same kind — short-circuit if equal (idempotency)
                     $isEqual = $false
                     try {
-                        $isEqual =
-                        switch ($resolvedType) {
-                            'Binary' { -not (Compare-Object $existing $coerced -SyncWindow 0) }
-                            'MultiString' { -not (Compare-Object $existing $coerced -SyncWindow 0) }
-                            default { $existing -eq $coerced }
+                        $isEqual = if ($resolvedType -in 'Binary', 'MultiString') {
+                            -not (Compare-Object -ReferenceObject @($existing) -DifferenceObject @($coerced) -SyncWindow 0)
+                        } else {
+                            $existing -eq $coerced
                         }
                     } catch {
                         $isEqual = $false
                     }
 
                     if ($isEqual) {
-                        return [pscustomobject]@{
-                            Path   = $path
-                            Name   = $Name
-                            Value  = $coerced
-                            Type   = $resolvedType
-                            Status = 'Unchanged'
-                        }
+                        return New-Result -Path $path -Name $Name -Type $resolvedType -Status 'Unchanged' -Value $coerced
                     }
                 }
             }
@@ -824,26 +814,13 @@ function Set-RegistryValue {
                 New-ItemProperty -LiteralPath $path -Name $Name -Value $coerced -PropertyType $resolvedType -Force -ErrorAction Stop | Out-Null
             }
 
-            return [pscustomobject]@{
-                Path   = $path
-                Name   = $Name
-                Value  = $coerced
-                Type   = $resolvedType
-                Status = $status
-            }
+            return New-Result -Path $path -Name $Name -Type $resolvedType -Status $status -Value $coerced
         } catch {
-            return [pscustomobject]@{
-                Path   = $path
-                Name   = $Name
-                Type   = $resolvedType
-                Status = 'Failed'
-                Error  = $_.Exception.Message
-            }
+            return New-Result -Path $path -Name $Name -Type $resolvedType -Status 'Failed' -Err $_.Exception.Message
         }
     }
 }
-#Set-RegistryValue -Hive HKLM -SubKey 'SOFTWARE\Contoso\MyApp' -Name 'ServerUrl' -Value 'https://example.local' -Type 'String'
-
+# Set-RegistryValue -Hive HKLM -SubKey 'SOFTWARE\Contoso\MyApp' -Name 'ServerUrl' -Value 'https://example.local' -Type 'String'
 
 ## FullLanguage: No restrictions (default in most PowerShell sessions)
 ## ConstrainedLanguage: Limited .NET access (used in AppLocker/WDAC scenarios)
