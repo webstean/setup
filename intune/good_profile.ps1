@@ -671,26 +671,26 @@ function Set-RegistryValue {
         $ErrorActionPreference = 'Stop'
 
         $hiveMap = @{
-            'HKLM' = 'HKLM'; 'HKEY_LOCAL_MACHINE'  = 'HKLM'
-            'HKCU' = 'HKCU'; 'HKEY_CURRENT_USER'   = 'HKCU'
-            'HKCR' = 'HKCR'; 'HKEY_CLASSES_ROOT'   = 'HKCR'
-            'HKU'  = 'HKU';  'HKEY_USERS'          = 'HKU'
+            'HKLM' = 'HKLM'; 'HKEY_LOCAL_MACHINE' = 'HKLM'
+            'HKCU' = 'HKCU'; 'HKEY_CURRENT_USER' = 'HKCU'
+            'HKCR' = 'HKCR'; 'HKEY_CLASSES_ROOT' = 'HKCR'
+            'HKU' = 'HKU'; 'HKEY_USERS' = 'HKU'
             'HKCC' = 'HKCC'; 'HKEY_CURRENT_CONFIG' = 'HKCC'
         }
 
         $typeMap = @{
-            'STRING'       = 'String'; 'REG_SZ'        = 'String'
-            'DWORD'        = 'DWord';  'REG_DWORD'     = 'DWord'
-            'QWORD'        = 'QWord';  'REG_QWORD'     = 'QWord'
-            'BINARY'       = 'Binary'; 'REG_BINARY'    = 'Binary'
-            'MULTISTRING'  = 'MultiString'; 'REG_MULTI_SZ'  = 'MultiString'
+            'STRING' = 'String'; 'REG_SZ' = 'String'
+            'DWORD' = 'DWord'; 'REG_DWORD' = 'DWord'
+            'QWORD' = 'QWord'; 'REG_QWORD' = 'QWord'
+            'BINARY' = 'Binary'; 'REG_BINARY' = 'Binary'
+            'MULTISTRING' = 'MultiString'; 'REG_MULTI_SZ' = 'MultiString'
             'EXPANDSTRING' = 'ExpandString'; 'REG_EXPAND_SZ' = 'ExpandString'
         }
 
         # One prefix-stripping pattern covering both the short (HKLM:\...) and
         # long (HKEY_LOCAL_MACHINE\...) forms a caller might pass in -SubKey.
         $hivePrefixPattern = '^(?:(?:HKLM|HKCU|HKCR|HKU|HKCC):\\?' +
-            '|(?:HKEY_LOCAL_MACHINE|HKEY_CURRENT_USER|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\)'
+        '|(?:HKEY_LOCAL_MACHINE|HKEY_CURRENT_USER|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\)'
 
         function New-Result {
             param($Path, $Name, $Status, $Type, $Value, $Err)
@@ -910,7 +910,7 @@ function Search {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true, Position = 0)]
-        [string]$Filter = "*"
+        [string]$Filter = '*'
     )
     Write-Output "Searching for '$Filter' in $(Get-Location) and subfolders..."
     Get-ChildItem -Path . -Recurse -Filter $Filter -Force -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
@@ -920,7 +920,7 @@ function List-Files {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false, Position = 0)]
-        [string]$Filter = "*"
+        [string]$Filter = '*'
     )
     Write-Output "Display all the files for '$Filter' in $(Get-Location) and subfolders..."
     Get-ChildItem -Path . -Recurse -Filter $Filter -File -Force -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
@@ -1167,7 +1167,7 @@ function Initialize-PSReadLineSmart {
         $source = 'History'
 
         $isPS72Plus = ($PSVersionTable.PSVersion.Major -gt 7) -or
-            ($PSVersionTable.PSVersion.Major -eq 7 -and $PSVersionTable.PSVersion.Minor -ge 2)
+        ($PSVersionTable.PSVersion.Major -eq 7 -and $PSVersionTable.PSVersion.Minor -ge 2)
         $azPred = Get-Module Az.Tools.Predictor -ListAvailable | Select-Object -First 1
 
         if ($UsePluginIfAvailable -and $isPS72Plus -and $azPred) {
@@ -1194,8 +1194,8 @@ function Initialize-PSReadLineSmart {
     if ($hasPredictionView) {
         $candidates = switch ($ViewStyle) {
             'Inline' { @('InlineView') }
-            'List'   { @('ListView') }
-            'Auto'   { @('InlineView', 'ListView') }
+            'List' { @('ListView') }
+            'Auto' { @('InlineView', 'ListView') }
         }
 
         foreach ($candidate in $candidates) {
@@ -1523,19 +1523,62 @@ function Test-FreeSpace {
         }
     }
 }
-freewarning
+Test-FreeSpace -ThresholdGB 6
 
-function Import-Nice-Modules {
-    if (-not [bool](Get-Module -ListAvailable -Name Terminal-Icons -ErrorAction SilentlyContinue)) {
-        Install-PSResource -Name Terminal-Icons -ErrorAction SilentlyContinue
+function Import-NiceModule {
+    <#
+    .SYNOPSIS
+        Ensures a curated set of "nice to have" modules are installed and imported.
+
+    .DESCRIPTION
+        Tries to import each module first; only installs on failure, to avoid
+        an availability scan on every shell startup. Installs are scoped to
+        CurrentUser and pre-trust the repository so this never blocks on a
+        confirmation prompt during profile load.
+    #>
+    [CmdletBinding()]
+    param()
+
+    $modules = @(
+        @{ Name = 'Terminal-Icons'; MinPSVersion = [version]'5.1' }
+        @{ Name = 'Az.Tools.Predictor'; MinPSVersion = [version]'7.2' }
+        @{ Name = 'CompletionPredictor'; MinPSVersion = [version]'7.2' }
+    )
+
+    $installer = Get-Command Install-PSResource -ErrorAction SilentlyContinue
+    $progressWas = $ProgressPreference
+    $ProgressPreference = 'SilentlyContinue'
+
+    try {
+        foreach ($m in $modules) {
+            if ($PSVersionTable.PSVersion -lt $m.MinPSVersion) {
+                Write-Verbose "Skipping $($m.Name): requires PS $($m.MinPSVersion)+."
+                continue
+            }
+
+            try {
+                Import-Module -Name $m.Name -ErrorAction Stop
+                continue
+            } catch {
+                Write-Verbose "$($m.Name) not available; attempting install."
+            }
+
+            try {
+                if ($installer) {
+                    Install-PSResource -Name $m.Name -Scope CurrentUser -TrustRepository -ErrorAction Stop
+                } else {
+                    Install-Module -Name $m.Name -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
+                }
+                Import-Module -Name $m.Name -ErrorAction Stop
+            } catch {
+                Write-Warning "Could not install/import $($m.Name): $($_.Exception.Message)"
+            }
+        }
+    } finally {
+        $ProgressPreference = $progressWas
     }
-    if (-not [bool](Get-Module -ListAvailable -Name Az.Tools.Predictor -ErrorAction SilentlyContinue)) {
-        Install-PSResource -Name Az.Tools.Predictor -ErrorAction SilentlyContinue
-    }    
-    Import-Module -Name Terminal-Icons -ErrorAction SilentlyContinue
-    Import-Module -Name Az.Tools.Predictor -ErrorAction SilentlyContinue
 }
-Import-Nice-Modules
+Import-NiceModule
 
 function Set-Azure-Environment {
     
@@ -1781,8 +1824,8 @@ function Get-AzureInstanceMetadata {
             return $null
         }
 
-        Write-Verbose "azEnvironment: $($response.compute.azEnvironment)"
-        Write-Verbose "location:      $($response.compute.location)"
+        Write-Verbose "azEnvironment: $($response.compute.azEnvironment)'
+        Write-Verbose 'location: $($response.compute.location)"
         Write-Host 'Running inside Azure...' -ForegroundColor Green
 
         return $response
