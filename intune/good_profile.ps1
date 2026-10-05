@@ -3141,7 +3141,25 @@ function Get-TLSInfo {
 # Export the certificate to a file as well
 # Get-TLSInfo -Fqdn "example.com" -ExportCerPath "C:\Temp\example.cer"
 
-function Show-Toast-Message {
+function Show-ToastMessage {
+    <#
+    .SYNOPSIS
+        Shows a Windows balloon-tip notification from the system tray.
+
+    .DESCRIPTION
+        Blocks for the requested duration while the balloon is visible — this
+        is required because disposing the NotifyIcon immediately hides it,
+        and there's no running message loop (Application.Run) to keep it
+        alive otherwise. Falls back to plain console output when toasts
+        aren't supported (non-interactive session, constrained language
+        mode, non-Windows, or WinForms unavailable).
+
+    .PARAMETER Icon
+        Balloon icon glyph: Info, Warning, Error, or None.
+
+    .EXAMPLE
+        Show-ToastMessage -Title 'Build' -Message 'Deployment finished' -Icon Info
+    #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, Position = 0)]
@@ -3152,49 +3170,56 @@ function Show-Toast-Message {
         [ValidateNotNullOrEmpty()]
         [string]$Message,
 
-        [int]$DurationMs = 5000   # how long to show the balloon
+        [ValidateRange(500, 60000)]
+        [int]$DurationMs = 5000,
+
+        [ValidateSet('Info', 'Warning', 'Error', 'None')]
+        [string]$Icon = 'Info'
     )
 
-    # Only show toasts in interactive user sessions
+    # Only show toasts in interactive user sessions, on Windows, in full language mode.
     if (-not [Environment]::UserInteractive) { return }
 
-    if ( -not $IsLanguagePermissive) {
-        Write-Host ("Toast messages aren't supported when PowerShell is not in FullLanguage mode")
-        Write-Host $Title
-        Write-Host $Message
-        return        
-    } 
+    if ($PSVersionTable.PSVersion.Major -ge 6 -and -not $IsWindows) {
+        Write-Verbose 'Show-ToastMessage: Windows Forms toasts are Windows-only.'
+        Write-Host "$Title`: $Message"
+        return
+    }
 
-    # Ensure required assemblies are available
-    #try {
-    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
-    Add-Type -AssemblyName System.Drawing -ErrorAction Stop
-    #}
-    #catch {
-    #    Write-Warning "Windows Forms / Drawing not available in this session: $($_.Exception.Message)"
-    #    return
-    #}
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+        Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+    } catch {
+        Write-Warning "Windows Forms / Drawing not available in this session: $($_.Exception.Message)"
+        Write-Host "$Title`: $Message"
+        return
+    }
 
     $notifyIcon = $null
     try {
         $notifyIcon = New-Object System.Windows.Forms.NotifyIcon
 
-        # Try to use the current process icon; fall back to an information icon
-        $procPath = (Get-Process -Id $PID).Path
-        $icon = $null
-        #try { $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($procPath) } catch {}
-        #if (-not $icon) { $icon = [System.Drawing.SystemIcons]::Information }
-        $icon = [System.Drawing.SystemIcons]::Information
- 
-        $notifyIcon.Icon = $icon
+        # Try the current process's own icon; fall back to a stock system icon.
+        $trayIcon = $null
+        try {
+            $procPath = (Get-Process -Id $PID).Path
+            if ($procPath) {
+                $trayIcon = [System.Drawing.Icon]::ExtractAssociatedIcon($procPath)
+            }
+        } catch {
+            Write-Verbose "Could not extract process icon: $($_.Exception.Message)"
+        }
+        if (-not $trayIcon) { $trayIcon = [System.Drawing.SystemIcons]::Information }
+
+        $notifyIcon.Icon = $trayIcon
         $notifyIcon.Visible = $true
         $notifyIcon.BalloonTipTitle = $Title
         $notifyIcon.BalloonTipText = $Message
+        $notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::$Icon
 
-        # Show the notification
         $notifyIcon.ShowBalloonTip($DurationMs)
 
-        # Give Windows time to display before disposing
+        # Required: keep the icon alive while the balloon displays.
         Start-Sleep -Milliseconds $DurationMs
     } finally {
         if ($notifyIcon) {
@@ -3203,7 +3228,7 @@ function Show-Toast-Message {
         }
     }
 }
-#Show-Toast-Message -Title "Title" -Message "Message"
+# Usage: Show-ToastMessage -Title 'Title' -Message 'Message' -Icon Warning
 
 function Get-DefaultRouteAdapter {
     <#
@@ -4811,12 +4836,12 @@ function Update-DeveloperApps {
     Write-StepSummary -type 'info' 'Updating developer apps via winget configuration...'
     if (-not $IsAdmin) {
         Write-Host 'You have to run as administrator - to perform this action.'
-        return
+        exit 1
     }
 
     if (-not (Get-Command 'winget' -ErrorAction SilentlyContinue)) {
         Write-Host 'You need to have winget installed to perform this action.'
-        return
+        exit 1
     }
 
     winget configure --enable
