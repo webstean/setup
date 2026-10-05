@@ -24,54 +24,78 @@ $VerbosePreference = 'SilentlyContinue'
 $PSDefaultParameterValues['*:Verbose'] = $false
 
 function Update-ProfileForce {
+    <#
+    .SYNOPSIS
+        Downloads and installs a PowerShell profile, replacing the current one if it differs.
+
+    .DESCRIPTION
+        Fetches profile content from a URL and overwrites $ProfilePath if the new content
+        differs from what's there. Supports backup-before-overwrite.
+
+    .PARAMETER Uri
+        Source URL for the profile script.
+
+    .PARAMETER ProfilePath
+        Local path to write to. Defaults to $PROFILE.
+
+    .PARAMETER Encoding
+        Text encoding to write with: utf8 (with BOM), utf8BOM (alias of utf8), utf8NoBOM, or ascii.
+
+    .PARAMETER Backup
+        If set, copies the existing profile to a timestamped .bak file before overwriting.
+    #>
+    [CmdletBinding()]
     param(
         [string] $Uri = 'https://raw.githubusercontent.com/webstean/setup/main/intune/good_profile.ps1',
         [string] $ProfilePath = $PROFILE,
         [ValidateSet('utf8', 'utf8NoBOM', 'utf8BOM', 'ascii')]
-        [string] $Encoding = 'utf8', ## 'utf8NoBOM',
+        [string] $Encoding = 'utf8',
         [switch] $Backup
     )
+
     Set-StrictMode -Version Latest
     $ErrorActionPreference = 'Stop'
     $ProgressPreference = 'SilentlyContinue'
+
     if ([string]::IsNullOrWhiteSpace($ProfilePath)) {
         throw 'PROFILE path is empty.'
     }
+
     $profileDir = Split-Path -Path $ProfilePath -Parent
-    if (-not (Test-Path -Path $profileDir -PathType Container)) {
+    if ($profileDir -and -not (Test-Path -Path $profileDir -PathType Container)) {
         New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
     }
+
     try {
-        $response = Invoke-WebRequest `
-            -Uri $Uri `
-            -UseBasicParsing `
-            -Headers @{ 'Cache-Control' = 'no-cache' } `
-            -ErrorAction Stop
+        $response = Invoke-WebRequest -Uri $Uri -UseBasicParsing -TimeoutSec 30 `
+            -Headers @{ 'Cache-Control' = 'no-cache' } -ErrorAction Stop
     } catch {
         throw "Failed to download profile from '$Uri'. $($_.Exception.Message)"
     }
+
+    # Invoke-WebRequest -ErrorAction Stop already throws on non-2xx, but check explicitly
+    # in case a proxy/handler returns a 2xx wrapper around an error body.
     if ($response.StatusCode -lt 200 -or $response.StatusCode -gt 299) {
         throw "Download failed. HTTP status: $($response.StatusCode) $($response.StatusDescription)"
     }
+
     $newContent = [string] $response.Content
     if ([string]::IsNullOrWhiteSpace($newContent)) {
         throw 'Downloaded profile content is empty.'
     }
-    $oldContent = $null
+
     $exists = Test-Path -Path $ProfilePath -PathType Leaf
-    if ($exists) {
-        $oldContent = Get-Content -Path $ProfilePath -Raw -ErrorAction Stop
-    }
-    $oldNormalized = if ($null -ne $oldContent) {
-        $oldContent.Trim() -replace "`r`n", "`n"
-    } else {
-        $null
-    }
-    $newNormalized = $newContent.Trim() -replace "`r`n", "`n"
+    $oldContent = if ($exists) { Get-Content -Path $ProfilePath -Raw -ErrorAction Stop } else { $null }
+
+    $normalize = { param($text) $text.Trim() -replace "`r`n", "`n" }
+    $oldNormalized = if ($null -ne $oldContent) { & $normalize $oldContent } else { $null }
+    $newNormalized = & $normalize $newContent
+
     if ($exists -and $oldNormalized -ceq $newNormalized) {
         Write-Host "Profile already current: $ProfilePath" -ForegroundColor Yellow
         return
     }
+
     if ($Backup -and $exists) {
         $backupPath = "$ProfilePath.$(Get-Date -Format 'yyyyMMdd-HHmmss').bak"
         Copy-Item -Path $ProfilePath -Destination $backupPath -Force
@@ -82,8 +106,7 @@ function Update-ProfileForce {
     # (those are PS7+-only encoding names) — write via .NET directly so behavior is identical
     # on both PowerShell versions.
     $encodingObject = switch ($Encoding) {
-        'utf8' { [System.Text.UTF8Encoding]::new($true) }   # with BOM
-        'utf8BOM' { [System.Text.UTF8Encoding]::new($true) }   # with BOM
+        { $_ -in 'utf8', 'utf8BOM' } { [System.Text.UTF8Encoding]::new($true) }   # with BOM
         'utf8NoBOM' { [System.Text.UTF8Encoding]::new($false) }  # without BOM
         'ascii' { [System.Text.Encoding]::ASCII }
     }
@@ -91,7 +114,7 @@ function Update-ProfileForce {
 
     Write-Host "Profile updated: $ProfilePath" -ForegroundColor Green
 }
-#Update-ProfileForce
+# Usage: Update-ProfileForce -Backup
 
 $script:HostInfoCache = @{}
 function Get-HostInfo {
