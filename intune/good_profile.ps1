@@ -4963,6 +4963,10 @@ function Start-PsPingServer {
     if (-not (Test-PsPingAvailable)) {
         return 
     }
+    if (-not $IsAdmin) {
+        Write-Host 'You have to run as administrator - to perform this action.'
+        exit 1
+    }
 
     if (-not $IPAddress) {
         $IPAddress = Get-LocalIPAddress

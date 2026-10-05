@@ -272,18 +272,6 @@ properties:
         id: Microsoft.FoundryDevPack
         source: winget
 
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: RedHat.Podman-Desktop
-      dependsOn:
-        - RedHat.Podman
-      directives:
-        description: Install RedHat.Podman-Desktop
-        allowPrerelease: true
-        securityContext: elevated
-      settings:
-        id: RedHat.Podman-Desktop
-        source: winget
-
     - resource: PSDscResources/Script
       id: RedHat.Podman-Desktop-variable
       dependsOn:
