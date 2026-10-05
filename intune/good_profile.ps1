@@ -1748,32 +1748,55 @@ function Format-JsonPretty {
 }
 ## Get-Content .\data.json | Format-JsonPretty
 
-function Get-Azure-Meta {
-    ##IMDS
-    ## Turn off verbose
+function Get-AzureInstanceMetadata {
+    <#
+    .SYNOPSIS
+        Queries Azure IMDS to determine whether this machine is running in Azure.
+
+    .DESCRIPTION
+        Calls the Azure Instance Metadata Service (169.254.169.254). Returns the
+        parsed metadata object on success, or $null if this isn't an Azure VM
+        (or IMDS is unreachable).
+
+    .OUTPUTS
+        PSCustomObject (the parsed IMDS response) or $null.
+    #>
+    [CmdletBinding()]
+    param(
+        [int]$TimeoutSec = 2
+    )
+
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose'] = $false
 
-    $headers = @{ 'Metadata' = 'true' }
-    $uri = 'http://169.254.169.254/metadata/instance?api-version=2021-02-01'
-    $uri = 'http://169.254.169.254/metadata/instance?api-version=2025-04-07'
-    
-    $response = Invoke-RestMethod -Uri $uri -Headers $headers -Method GET -NoProxy -ErrorAction Stop | ConvertTo-Json -Depth 64
-    if ($response ) {
-        ## $response | jq .
-        $response | jq -r '.compute.azEnvironment'
-        $response | jq -r '.compute.location'
-     
-    } else {
-        throw 'This machine is not running inside Azure'
-        $PSDefaultParameterValues['*:Verbose'] = $preserve
-        return $false | Out-Null
-    }
-    $PSDefaultParameterValues['*:Verbose'] = $preserve
-    Write-Host 'Running inside Azure...'
-    return $true | Out-Null
-}
+    try {
+        $headers = @{ 'Metadata' = 'true' }
+        $uri = 'http://169.254.169.254/metadata/instance?api-version=2025-04-07'
 
+        $response = Invoke-RestMethod -Uri $uri -Headers $headers -Method Get `
+            -NoProxy -TimeoutSec $TimeoutSec -ErrorAction Stop
+
+        if (-not $response) {
+            Write-Verbose 'IMDS returned an empty response.'
+            return $null
+        }
+
+        Write-Verbose "azEnvironment: $($response.compute.azEnvironment)"
+        Write-Verbose "location:      $($response.compute.location)"
+        Write-Host 'Running inside Azure...' -ForegroundColor Green
+
+        return $response
+    } catch {
+        Write-Verbose "Not running inside Azure (or IMDS unreachable): $($_.Exception.Message)"
+        return $null
+    } finally {
+        $PSDefaultParameterValues['*:Verbose'] = $preserve
+    }
+}
+# Get-AzureInstanceMetadata
+
+# Usage:
+#   if ($meta = Get-AzureInstanceMetadata) { $meta.compute.azEnvironment }
 function Test-ManagedIdentity {
     <#
     .SYNOPSIS
