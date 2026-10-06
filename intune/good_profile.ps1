@@ -4963,7 +4963,7 @@ function Start-PsPingServer {
     if (-not (Test-PsPingAvailable)) {
         return 
     }
-    if (-not $IsAdmin) {
+    if (-not $IsAdmin || $null -eq $IsAdmin) {
         Write-Host 'You have to run as administrator - to perform this action.'
         exit 1
     }
