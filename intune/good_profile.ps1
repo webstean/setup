@@ -1462,6 +1462,10 @@ function ti { terraform.exe init -upgrade -migrate-state @args }
 function tp { terraform.exe plan @args }
 function ta { terraform.exe apply @args }
 function tpr { terraform.exe providers @args }
+if (Test-Path 'C:\Program Files\Graphviz\bin\dot.exe' ) { 
+    ## terraform graph -type=plan | dot -Tsvg > graph.svg
+    function dot { 'C:\Program Files\Graphviz\bin\dot.exe @args'
+}
 
 function tc {
     Write-StepSummary -type 'info' 'Starting Terraform Console...'
@@ -1473,7 +1477,9 @@ function ar {
 }
 
 ## Sysinternal shortcuts
-## function handle { handle.exe init -nobanner @args }
+if (Test-Path "$env:SystemDrive\BIN\handle.exe" ) { 
+    function handle { handle.exe init -nobanner @args }
+}
  
 function cdw {
     [CmdletBinding()]
@@ -1581,34 +1587,38 @@ function Import-NiceModule {
 Import-NiceModule
 
 function Set-Azure-Environment {
-    
     if ( -not ( $env:DEVELOPER -eq 'Yes' )) { return }
 
-    $subscription_id = Get-AzSubscription -ErrorAction SilentlyContinue |
-    Select-Object -First 1 -ExpandProperty Id
-    if (-not [string]::IsNullOrEmpty($subscription_id)) {
-        Set-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Value $subscription_id
-    } else {
-        Remove-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Force -ErrorAction SilentlyContinue
+    try {
+        $tenant = Get-AzTenant -ErrorAction SilentlyContinue | Select-Object -First 1
+        $tenant_id = $tenant.Id
+        if (-not [string]::IsNullOrEmpty($tenant_id)) {
+            Set-Item -Path Env:\AZURE_TENANT_ID -Value $tenant_id
+        } else {
+            Remove-Item -Path Env:\AZURE_TENANT_ID -Force -ErrorAction SilentlyContinue
+        }
+        $tenant_name = $tenant.Name
+        Write-StepSummary -type 'info' "Attempting to logon to Azure Tenant: '$tenant_name' ($tenant.Id)"
+        if (-not [string]::IsNullOrEmpty($tenant_name)) {
+            Set-Item -Path Env:\AZURE_TENANT_NAME -Value $tenant_name
+        } else {
+            Remove-Item -Path Env:\AZURE_TENANT_NAME -Force -ErrorAction SilentlyContinue
+        }
+        $subscription_id = Get-AzSubscription -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Id
+        if (-not [string]::IsNullOrEmpty($subscription_id)) {
+            Set-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Value $subscription_id
+        } else {
+            Remove-Item -Path Env:\AZURE_SUBSCRIPTION_ID -Force -ErrorAction SilentlyContinue
+        }
+        $userUpn = if (-not [string]::IsNullOrEmpty($env:UPN)) { $env:UPN } else { $UPN }
+        if (-not [string]::IsNullOrEmpty($userUpn)) {
+            Set-Item -Path Env:\AZURE_USERNAME -Value $userUpn
+        } else {
+            Remove-Item -Path Env:\AZURE_USERNAME -Force -ErrorAction SilentlyContinue
+        }
     }
-    $tenant = Get-AzTenant -ErrorAction SilentlyContinue | Select-Object -First 1
-    $tenant_id = $tenant.Id
-    if (-not [string]::IsNullOrEmpty($tenant_id)) {
-        Set-Item -Path Env:\AZURE_TENANT_ID -Value $tenant_id
-    } else {
-        Remove-Item -Path Env:\AZURE_TENANT_ID -Force -ErrorAction SilentlyContinue
-    }
-    $tenant_name = $tenant.Name
-    if (-not [string]::IsNullOrEmpty($tenant_name)) {
-        Set-Item -Path Env:\AZURE_TENANT_NAME -Value $tenant_name
-    } else {
-        Remove-Item -Path Env:\AZURE_TENANT_NAME -Force -ErrorAction SilentlyContinue
-    }
-    $userUpn = if (-not [string]::IsNullOrEmpty($env:UPN)) { $env:UPN } else { $UPN }
-    if (-not [string]::IsNullOrEmpty($userUpn)) {
-        Set-Item -Path Env:\AZURE_USERNAME -Value $userUpn
-    } else {
-        Remove-Item -Path Env:\AZURE_USERNAME -Force -ErrorAction SilentlyContinue
+    catch {
+        Write-StepSummary -type 'error' "Failed to retrieved Azure environment. Logon first, with 'Connect-AzAccount'"
     }
 }
 #Set-Azure-Developer-Environment
@@ -1626,25 +1636,29 @@ function Test-AzureEnvironment {
     }
 
     if ($missing.Count -eq 0) {
-        Write-Host 'Azure environment variables defined.'
+        Write-StepSummary -type 'info' "Azure environment variables are defined."
         return $true
     }
 
-    Write-Host "Missing required Azure environment variables: $($missing -join ', ')"
+    Write-StepSummary -type 'info' "Missing required Azure environment variables: $($missing -join ', ')"
     return $false
 }
+
 function Test-GraphToken {
     ## If we have ACCESS_TOKEN variable we are good
     if ( -not [string]::IsNullOrEmpty($env:ACCESS_TOKEN) ) {
         return $true
     }
+    Write-StepSummary -type 'warning' "Environment variable ACCESS_TOKEN does not exist"
     return $false
 }
+
 function Test-SharePointToken {
     ## If we have ACCESS_TOKEN_SHAREPOINT variable we are good
     if ( -not [string]::IsNullOrEmpty($env:ACCESS_TOKEN_SHAREPOINT) ) {
         return $true
     }
+    Write-StepSummary -type 'warning' "Environment variable ACCESS_TOKEN_SHAREPOINT does not exist"
     return $false
 }
 
@@ -1759,23 +1773,26 @@ function Get-Default-Env-File {
 Get-Default-Env-File
 
 function Get-EntraID {
-    ## Turn off verbose
     $preserve = $PSDefaultParameterValues['*:Verbose']
     $PSDefaultParameterValues['*:Verbose'] = $false
 
-    if ( -not $env:AZURE_TENANT_ID ) {
-        throw "Environment variable 'AZURE_TENANT_ID' is not set"
+    try {
+        if (-not $env:AZURE_TENANT_ID) {
+            throw "Environment variable 'AZURE_TENANT_ID' is not set"
+        }
+
+        $response = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration" -ErrorAction Stop
+
+        if ($response) {
+            Write-Host "Tenant ID: $env:AZURE_TENANT_ID"
+            $response | Format-List issuer, token_endpoint, authorization_endpoint, device_authorization_endpoint, end_session_endpoint, kerberos_endpoint, jwks_uri | Out-Host
+            return $true
+        } else {
+            throw "Tenant $env:AZURE_TENANT_ID was not found!"
+        }
     }
-    $response = Invoke-RestMethod "https://login.microsoftonline.com/$env:AZURE_TENANT_ID/v2.0/.well-known/openid-configuration" -ErrorAction Stop
-    if ($response ) {
-        Write-Host "Subscription ID: $env:AZURE_TENANT_ID 
+    finally {
         $PSDefaultParameterValues['*:Verbose'] = $preserve
-        $response | Format-List issuer, token_endpoint, authorization_endpoint, device_authorization_endpoint, end_session_endpoint, kerberos_endpoint, jwks_uri
-        return $true | Out-Null
-    } else {
-        $PSDefaultParameterValues['*:Verbose'] = $preserve
-        throw "Tenant $env:AZURE_TENANT_ID was not found!"
-        return $false | Out-Null
     }
 }
 
@@ -1814,7 +1831,7 @@ function Get-AzureInstanceMetadata {
 
     try {
         $headers = @{ 'Metadata' = 'true' }
-        $uri = 'http://169.254.169.254/metadata/instance?api-version=2025-04-07'
+        $uri     = 'http://169.254.169.254/metadata/instance?api-version=2025-04-07'
 
         $response = Invoke-RestMethod -Uri $uri -Headers $headers -Method Get `
             -NoProxy -TimeoutSec $TimeoutSec -ErrorAction Stop
@@ -1824,15 +1841,16 @@ function Get-AzureInstanceMetadata {
             return $null
         }
 
-        Write-Verbose "azEnvironment: $($response.compute.azEnvironment)'
-        Write-Verbose 'location: $($response.compute.location)"
-        Write-Host 'Running inside Azure...' -ForegroundColor Green
-
+        Write-StepSummary -type 'info' "azEnvironment : $($response.compute.azEnvironment)"
+        Write-StepSummary -type 'info' "location      : $($response.compute.location)"
+        Write-StepSummary -type 'info' 'Note, Running inside Azure.'
         return $response
-    } catch {
-        Write-Verbose "Not running inside Azure (or IMDS unreachable): $($_.Exception.Message)"
+    }
+    catch {
+        Write-StepSummary -type 'info' "Not running inside Azure (or IMDS unreachable): $($_.Exception.Message)"
         return $null
-    } finally {
+    }
+    finally {
         $PSDefaultParameterValues['*:Verbose'] = $preserve
     }
 }
@@ -4727,11 +4745,11 @@ function Start-BastionTunnel {
         [Parameter(Mandatory)]
         [string]$VmResourceGroup,
 
-        [Parameter(Mandatory)]
-        [int]$ResourcePort,
+        [Parameter(Mandatory= false)]
+        [int]$ResourcePort = ,
 
-        [Parameter(Mandatory)]
-        [int]$LocalPort
+        [Parameter(Mandatory = false)]
+        [int]$LocalPort = 8443
     )
 
     # --- Resolve VM resource ID inline ---
@@ -4783,7 +4801,6 @@ function Test-InternetConnection {
             $response.Close()
         }
     }
-
     return $false
 }
 
@@ -4901,11 +4918,6 @@ function Invoke-LocalDB {
     & sqlcmd @sqlcmdArgs
 }
 #Invoke-LocalDB
-
-if (Test-Path 'C:\Program Files\Graphviz\bin\dot.exe' ) { 
-    ## terraform graph -type=plan | dot -Tsvg > graph.svg
-    Set-Alias dot 'C:\Program Files\Graphviz\bin\dot.exe'
-}
 
 function Test-PsPingAvailable {
     [CmdletBinding()]
