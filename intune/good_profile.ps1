@@ -4746,7 +4746,7 @@ function Start-BastionTunnel {
         [string]$VmResourceGroup,
 
         [Parameter(Mandatory= false)]
-        [int]$ResourcePort = ,
+        [int]$ResourcePort = 6516,
 
         [Parameter(Mandatory = false)]
         [int]$LocalPort = 8443
