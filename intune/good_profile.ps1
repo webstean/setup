@@ -315,14 +315,14 @@ function Get-HostInfo {
             }
         }
         try {
-            $outboundIP = if ($ComputerName -eq $env:COMPUTERNAME) {
+            $LocalIP = if ($ComputerName -eq $env:COMPUTERNAME) {
                 & $outboundIPScript
             } else {
                 Invoke-Command -ComputerName $ComputerName -ScriptBlock $outboundIPScript -ErrorAction Stop
             }
         } catch {
             Write-Warning "Failed to determine outbound IP on $ComputerName (likely no route/connectivity): $_"
-            $outboundIP = $null
+            $localIP = $null
         }
         # External (public) IP — only meaningful for the local machine; a remote target's
         # egress IP can't be queried from here without running code on that box.
@@ -366,7 +366,7 @@ function Get-HostInfo {
             IsNVMeBoot         = $isNVMeBoot
             IsWithinAzure      = $isWithinAzure
             HasManagedIdentity = $hasManagedIdentity
-            OutboundIPAddress  = $outboundIP
+            LocalIPAddress     = $localIP
             ExternalIPAddress  = $externalIP
             LastBootUpTime     = $lastBootFormatted
             UptimeMinutes      = $null   # filled in fresh below, every call, cached or not
