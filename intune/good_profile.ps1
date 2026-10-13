@@ -12,6 +12,9 @@
 #Set-ExecutionPolicy Unrestricted -Scogpe CurrentUser
 #Set-ExecutionPolicy -ExecutionPolicy Unrestricted
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser -Force
+if ($PSVersionTable.PSVersion.Major -le 5) {
+    return
+}
 
 ## Ignore	        Completely discard output
 ## SilentlyContinue	Ignore verbose output (default)
