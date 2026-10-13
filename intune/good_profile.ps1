@@ -11,7 +11,7 @@
 #Set-ExecutionPolicy Unrestricted -Scope Process
 #Set-ExecutionPolicy Unrestricted -Scogpe CurrentUser
 #Set-ExecutionPolicy -ExecutionPolicy Unrestricted
-Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser
+Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser -Force
 
 ## Ignore	        Completely discard output
 ## SilentlyContinue	Ignore verbose output (default)
