@@ -12,9 +12,6 @@
 #Set-ExecutionPolicy Unrestricted -Scogpe CurrentUser
 #Set-ExecutionPolicy -ExecutionPolicy Unrestricted
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope CurrentUser -Force
-if ($PSVersionTable.PSVersion.Major -le 5) {
-    return
-}
 
 ## Ignore	        Completely discard output
 ## SilentlyContinue	Ignore verbose output (default)
@@ -118,7 +115,12 @@ function Update-ProfileForce {
 
     Write-Host "Profile updated: $ProfilePath" -ForegroundColor Green
 }
-# Usage: Update-ProfileForce -Backup
+# Update-ProfileForce -Backup
+# Update-ProfileForce
+
+if ($PSVersionTable.PSVersion.Major -le 5) {
+    return
+}
 
 $script:HostInfoCache = @{}
 function Get-HostInfo {
