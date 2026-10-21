@@ -330,9 +330,127 @@ function Install-WinRM {
 #
 #Install-WinRM
 
-irm https://aka.ms/dotnetup/get-dotnetup.ps1 | iex
+function Install-DotNetUp {
+    [CmdletBinding()]
+    param(
+        [string]$Url = 'https://aka.ms/dotnetup/get-dotnetup.ps1',
+        [string[]]$ScriptArguments = @(),     # passed through to the installer script
+        [string]$ExpectedSha256,              # optional integrity pin
+        [switch]$RequireSignature,            # fail unless Authenticode signature is Valid
+        [switch]$Force,                       # reinstall even if 'dotnetup' is found
+        [int]$RetryCount = 3,
+        [int]$TimeoutSec = 60
+    )
 
+    $ErrorActionPreference = 'Stop'
 
+    function Update-SessionPath {
+        # Merge session + machine + user PATH, de-duplicated, session order first
+        $all = @($env:PATH, 
+                 [Environment]::GetEnvironmentVariable('PATH', 'Machine'),
+                 [Environment]::GetEnvironmentVariable('PATH', 'User')) -join ';'
+        $seen = @{}
+        $env:PATH = ($all -split ';' | Where-Object { $_ -and -not $seen.ContainsKey($_.TrimEnd('\').ToLower()) -and ($seen[$_.TrimEnd('\').ToLower()] = $true) }) -join ';'
+    }
+
+    function Find-DotNetUpExe {
+        $roots = @(
+            "$env:LOCALAPPDATA\Microsoft\dotnet",
+            "$env:LOCALAPPDATA\dotnetup",
+            "$env:LOCALAPPDATA\Programs\dotnetup",
+            "$env:LOCALAPPDATA\Microsoft\dotnetup",
+            "$env:USERPROFILE\.dotnet",
+            "$env:USERPROFILE\.dotnetup",
+            "$env:ProgramFiles\dotnet",
+            "$env:ProgramFiles\dotnetup"
+        ) | Where-Object { Test-Path -LiteralPath $_ }
+
+        foreach ($r in $roots) {
+            $hit = Get-ChildItem -LiteralPath $r -Filter 'dotnetup.exe' -Recurse -Depth 3 -File -ErrorAction SilentlyContinue |
+                Select-Object -First 1
+            if ($hit) { return $hit }
+        }
+    }
+
+    $workDir = Join-Path ([IO.Path]::GetTempPath()) "dotnetup-$([guid]::NewGuid().ToString('N'))"
+    $script  = Join-Path $workDir 'get-dotnetup.ps1'
+
+    try {
+        if (-not $Force -and (Get-Command dotnetup -ErrorAction SilentlyContinue)) {
+            Write-Verbose 'dotnetup already installed.'
+            return (Get-Command dotnetup)
+        }
+
+        [Net.ServicePointManager]::SecurityProtocol =
+            [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+
+        New-Item -ItemType Directory -Path $workDir -Force | Out-Null
+
+        # ---- Download with retry/backoff ----
+        for ($i = 1; $i -le $RetryCount; $i++) {
+            try {
+                Write-Verbose "Download attempt $i of $RetryCount : $Url"
+                Invoke-WebRequest -Uri $Url -OutFile $script -TimeoutSec $TimeoutSec -UseBasicParsing
+                break
+            } catch {
+                if ($i -eq $RetryCount) { throw "Download failed after $RetryCount attempts: $($_.Exception.Message)" }
+                Start-Sleep -Seconds ([math]::Pow(2, $i))
+            }
+        }
+
+        # ---- Sanity checks ----
+        $info = Get-Item -LiteralPath $script
+        if ($info.Length -lt 100) { throw "Downloaded file is suspiciously small ($($info.Length) bytes)." }
+
+        $head = (Get-Content -LiteralPath $script -TotalCount 5) -join "`n"
+        if ($head -match '<!DOCTYPE|<html') { throw 'Downloaded content is HTML, not a PowerShell script (proxy/captive portal?).' }
+
+        $hash = (Get-FileHash -LiteralPath $script -Algorithm SHA256).Hash
+        Write-Verbose "SHA256: $hash"
+        if ($ExpectedSha256 -and $hash -ne $ExpectedSha256) {
+            throw "Hash mismatch. Expected $ExpectedSha256, got $hash."
+        }
+
+        if ($RequireSignature) {
+            $sig = Get-AuthenticodeSignature -LiteralPath $script
+            if ($sig.Status -ne 'Valid') { throw "Script signature is '$($sig.Status)'." }
+        }
+
+        # ---- Execute in-process so PATH/env changes made by the installer persist ----
+        # (same behavior as 'irm | iex'; 'exit' inside a .ps1 only ends that script)
+        Unblock-File -LiteralPath $script -ErrorAction SilentlyContinue
+        try { Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction Stop } catch { Write-Verbose "Execution policy not changed: $($_.Exception.Message)" }
+
+        $global:LASTEXITCODE = 0
+        & $script @ScriptArguments
+        if ($LASTEXITCODE -ne 0) { throw "Installer exited with code $LASTEXITCODE." }
+
+        # ---- Verify ----
+        Update-SessionPath
+        $cmd = Get-Command dotnetup -ErrorAction SilentlyContinue
+
+        if (-not $cmd) {
+            Write-Verbose 'dotnetup not on PATH; searching common install locations.'
+            $exe = Find-DotNetUpExe
+            if ($exe) {
+                Write-Warning "dotnetup found at '$($exe.FullName)' but its folder is not on PATH. Adding it to this session."
+                $env:PATH = "$($exe.DirectoryName);$env:PATH"
+                $cmd = Get-Command dotnetup -ErrorAction SilentlyContinue
+            }
+        }
+
+        if (-not $cmd) {
+            throw "Install finished but 'dotnetup' was not found on PATH or in common install folders. Run with -Verbose and check the installer output above."
+        }
+
+        Write-Verbose "dotnetup available at $($cmd.Source)"
+        $cmd
+    }
+    finally {
+        Remove-Item -LiteralPath $workDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+# Install-DotNetUp
 
 ## The tools functionality is only installed via DOTNET SDKs, not Runtimes
 $dotnetTools = @(
