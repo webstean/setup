@@ -2197,8 +2197,28 @@ function Enable-PIMRole {
     }
 }
 ## Enable-PIMRole
-## Connect-MgGraph -NoWelcome
-## $user = Get-MgUserMe
+$ErrorActionPreference = 'Stop'
+
+try {
+    # Required modules (lightweight sub-modules, not the full Microsoft.Graph meta-module)
+    $required = 'Microsoft.Graph.Authentication', 'Microsoft.Graph.Users'
+
+    $missing = $required | Where-Object { -not (Get-Module -ListAvailable -Name $_) }
+    if ($missing) {
+        Write-Host "Installing missing modules: $($missing -join ', ')"
+        if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+            throw 'PSGallery repository is not registered.'
+        }
+        Install-Module -Name $missing -Scope CurrentUser -Repository PSGallery -Force -AllowClobber
+    }
+    Import-Module $required
+    Connect-MgGraph -Scopes 'User.Read' -NoWelcome
+    $user = Get-MgUser -UserId (Get-MgContext).Account -Property DisplayName, Id, Mail, UserPrincipalName
+    $user.UserPrincipalName
+}
+catch {
+    Write-Error "Failed to get signed-in user: $($_.Exception.Message) via Microsoft Graph PowerShell"
+}
 
 # Verify if the logged-in user is the expected user
 ## if ($user.UserPrincipalName -eq $targetUserPrincipalName) {
