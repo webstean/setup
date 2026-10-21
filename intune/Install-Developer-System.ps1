@@ -268,15 +268,27 @@ function Install-OrUpdate-DotNetTools {
 }
 Install-OrUpdate-DotNetTools
 
-## Add NuGet source to dotnet if missing (best-effort)
+## Ensure nuget.org source exists in dotnet (best-effort)
 try {
-    $sources = & dotnet nuget list source 2>$null
-    if (-not ($sources -match 'searchnuget\.org')) {
-        & dotnet nuget add source 'https://api.nuget.org/v3/index.json' -n 'searchnuget.org' | Out-Null
+    $nugetUrl  = 'https://api.nuget.org/v3/index.json'
+    $nugetName = 'nuget.org'
+
+    if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+        Write-Warning 'dotnet CLI not found; skipping NuGet source check.'
+        return
     }
-} catch {
-    ## Do not fail the whole function for a source add problem
-    Write-Warning "Could not add/list NuGet source 'searchnuget.org': $($_.Exception.Message)"
+
+    $sources = & dotnet nuget list source 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "dotnet nuget list source failed: $sources" }
+
+    if (-not ($sources | Select-String -SimpleMatch $nugetUrl -Quiet)) {
+        $out = & dotnet nuget add source $nugetUrl --name $nugetName 2>&1
+        if ($LASTEXITCODE -ne 0) { throw "dotnet nuget add source failed: $out" }
+    }
+}
+catch {
+    ## Don't fail the caller over a source problem
+    Write-Warning "NuGet source check failed: $($_.Exception.Message)"
 }
 
 function Remove-DotNetTools {
