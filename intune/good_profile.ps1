@@ -128,242 +128,166 @@ if ($PSVersionTable.PSVersion.Major -le 5) {
     return
 }
 
-$script:HostInfoCache = @{}
+$script:HostInfoCache = $null
+
 function Get-HostInfo {
     [CmdletBinding()]
     param(
-        [string]$ComputerName = $env:COMPUTERNAME,
         [switch]$NoCache,
         [timespan]$CacheDuration = (New-TimeSpan -Hours 1)
     )
-    $cacheEntry = $script:HostInfoCache[$ComputerName]
-    $cacheIsFresh = $cacheEntry -and (((Get-Date) - $cacheEntry.CachedAt) -lt $CacheDuration)
-    if (-not $NoCache -and $cacheIsFresh) {
-        Write-Verbose "Using cached static info for $ComputerName (cached $($cacheEntry.CachedAt))."
-        $static = $cacheEntry.Static
-        $lastBoot = $cacheEntry.LastBoot
-    } else {
-        Write-Verbose "Querying $ComputerName fresh (no valid cache, -NoCache, or cache expired)."
+
+    # ---------- helpers ----------
+    function Invoke-Imds {
+        # Proxy-bypassing probe of Azure IMDS. Works on 5.1 and 7+.
+        # Any HTTP response (even 400) proves IMDS is reachable; no response = not Azure.
+        param([string]$Uri)
+        $req = [Net.HttpWebRequest]::Create($Uri)
+        $req.Proxy   = $null
+        $req.Timeout = 2000
+        $req.Headers.Add('Metadata', 'true')
         try {
-            $cim = Get-CimInstance -ClassName Win32_OperatingSystem -ComputerName $ComputerName -ErrorAction Stop
+            $resp = $req.GetResponse(); $resp.Close()
+            [pscustomobject]@{ Reachable = $true; Ok = $true; Body = $null }
+        } catch [Net.WebException] {
+            $body = $null
+            if ($_.Exception.Response) {
+                try {
+                    $sr = [IO.StreamReader]::new($_.Exception.Response.GetResponseStream())
+                    $body = $sr.ReadToEnd(); $sr.Dispose()
+                } catch {}
+            }
+            [pscustomobject]@{ Reachable = [bool]$_.Exception.Response; Ok = $false; Body = $body }
         } catch {
-            Write-Error "Failed to query Win32_OperatingSystem on $ComputerName : $_"
+            [pscustomobject]@{ Reachable = $false; Ok = $false; Body = $null }
+        }
+    }
+
+    function Get-DsregFlag([string[]]$Lines, [string]$Name) {
+        $m = $Lines | Select-String "^\s*$Name\s*:\s*(\w+)"
+        if ($m) { $m.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
+    }
+
+    # ---------- cache ----------
+    $entry = $script:HostInfoCache
+    $fresh = $entry -and (((Get-Date) - $entry.CachedAt) -lt $CacheDuration)
+    $needExternal = $IncludeExternalIP -and $entry -and -not $entry.Static.ExternalIPAddress
+
+    if (-not $NoCache -and $fresh -and -not $needExternal) {
+        Write-Verbose "Using cached info (cached $($entry.CachedAt))."
+        $static   = $entry.Static
+        $lastBoot = $entry.LastBoot
+    }
+    else {
+        Write-Verbose 'Querying local host fresh.'
+
+        try {
+            $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
+        } catch {
+            Write-Error "Failed to query Win32_OperatingSystem: $_"
             return
         }
-        # Domain / workgroup membership
+
+        # Domain / workgroup
+        $domainName = $partOfDomain = $null
         try {
-            $csInfo = Get-CimInstance -ClassName Win32_ComputerSystem -ComputerName $ComputerName -ErrorAction Stop
-            $domainName = $csInfo.Domain
-            $partOfDomain = $csInfo.PartOfDomain
-        } catch {
-            Write-Warning "Failed to query Win32_ComputerSystem on $ComputerName : $_"
-            $domainName = $null
-            $partOfDomain = $null
-        }
-        # Entra ID (Azure AD) join status — dsregcmd has no native remoting, so shell out locally
-        # or via Invoke-Command for a remote target
+            $cs = Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction Stop
+            $domainName   = $cs.Domain
+            $partOfDomain = $cs.PartOfDomain
+        } catch { Write-Warning "Win32_ComputerSystem query failed: $_" }
+
+        # Entra ID join (dsregcmd)
+        $entraJoined = $entraHybrid = $null
         try {
-            $dsregOutput = if ($ComputerName -eq $env:COMPUTERNAME) {
-                dsregcmd /status
-            } else {
-                Invoke-Command -ComputerName $ComputerName -ScriptBlock { dsregcmd /status } -ErrorAction Stop
-            }
-            $azureAdJoinedLine = $dsregOutput | Select-String '^\s*AzureAdJoined\s*:\s*(\w+)'
-            $domainJoinedLine = $dsregOutput | Select-String '^\s*DomainJoined\s*:\s*(\w+)'
-            $entraIdJoined = if ($azureAdJoinedLine) { $azureAdJoinedLine.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
-            $dsregDomainJoined = if ($domainJoinedLine) { $domainJoinedLine.Matches[0].Groups[1].Value -eq 'YES' } else { $null }
-            $entraHybridJoined = if ($null -ne $entraIdJoined -and $null -ne $dsregDomainJoined) { $entraIdJoined -and $dsregDomainJoined } else { $null }
-        } catch {
-            Write-Warning "Failed to query Entra ID join status on $ComputerName : $_"
-            $entraIdJoined = $null
-            $entraHybridJoined = $null
-        }
-        # Registry path — works locally; for remote, use Invoke-Command or remote registry provider
-        $regPath = if ($ComputerName -eq $env:COMPUTERNAME) {
-            'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
-        } else {
-            $null
-        }
-        if ($regPath) {
-            $reg = Get-ItemProperty -Path $regPath -ErrorAction SilentlyContinue
-        } else {
-            # Remote fallback via CIM/WMI registry provider
-            $reg = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
-                Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
-            } -ErrorAction SilentlyContinue
-        }
-        $productName = $reg.ProductName
-        $editionId = $reg.EditionID
-        $releaseId = $reg.ReleaseId
-        $displayVer = $reg.DisplayVersion
-        $currentBuild = $reg.CurrentBuild
-        $ubr = $reg.UBR
-        $installType = $reg.InstallationType   # e.g. "Client", "Server", "Client Core"
-        $compositionEd = $reg.CompositionEditionID  # sometimes populated on IoT/LTSC images
-        # Detect LTSC — EditionID and ProductName both carry "LTSC" on 10/11,
-        # older 2015/2016 LTSB builds carry "LTSB" instead
-        $isLTSC = ($editionId -match 'LTSC') -or ($productName -match 'LTSC')
+            $dsreg = & dsregcmd.exe /status 2>$null
+            if ($LASTEXITCODE -ne 0 -or -not $dsreg) { throw "dsregcmd exit code $LASTEXITCODE" }
+            $aad = Get-DsregFlag $dsreg 'AzureAdJoined'
+            $dom = Get-DsregFlag $dsreg 'DomainJoined'
+            $entraJoined = $aad
+            if ($null -ne $aad -and $null -ne $dom) { $entraHybrid = $aad -and $dom }
+        } catch { Write-Warning "Entra ID join query failed: $_" }
+
+        # Windows version info
+        $reg = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -ErrorAction SilentlyContinue
+        $productName  = $reg.ProductName
+        $editionId    = $reg.EditionID
+        $installType  = $reg.InstallationType
+        $currentBuild = [string]$reg.CurrentBuild
+        $ubr          = $reg.UBR
+
+        # LTSC/LTSB use EditionID 'EnterpriseS' / 'IoTEnterpriseS'
+        $isLTSC = ($editionId -match 'LTSC|EnterpriseS$') -or ($productName -match 'LTSC')
         $isLTSB = ($editionId -match 'LTSB') -or ($productName -match 'LTSB')
-        # Detect IoT
-        $isIoT = ($editionId -match 'IoT') -or ($productName -match 'IoT')
-        # Servicing channel classification
-        $servicingChannel = if ($isLTSC -or $isLTSB) {
-            'LTSC'
-        } elseif ($installType -eq 'Server') {
-            'Server'
-        } else {
-            'GAC'   # General Availability Channel (was "SAC" pre-2021 naming)
-        }
-        # Build-to-release mapping for major Win10/11 releases (extend as needed)
+        $isIoT  = ($editionId -match 'IoT')  -or ($productName -match 'IoT')
+
+        $servicingChannel =
+            if ($isLTSC -or $isLTSB)           { 'LTSC' }
+            elseif ($installType -eq 'Server') { 'Server' }
+            else                               { 'GAC' }
+
         $buildMap = @{
-            '19044' = '21H2 (Win10)'
-            '19045' = '22H2 (Win10)'
-            '22621' = '22H2 (Win11)'
-            '22631' = '23H2 (Win11)'
-            '26100' = '24H2 (Win11)'
+            '19044' = '21H2 (Win10)'; '19045' = '22H2 (Win10)'
+            '22000' = '21H2 (Win11)'; '22621' = '22H2 (Win11)'
+            '22631' = '23H2 (Win11)'; '26100' = '24H2 (Win11)'
+            '26200' = '25H2 (Win11)'
         }
-        $friendlyRelease = $buildMap[$currentBuild]
-        # Activation status — LicenseStatus 1 = Licensed/Activated
+        $friendlyRelease = if ($buildMap.ContainsKey($currentBuild)) { $buildMap[$currentBuild] } else { $reg.DisplayVersion }
+
+        # Activation
+        $activated = $null
         try {
-            $licensingProduct = Get-CimInstance -ClassName SoftwareLicensingProduct -ComputerName $ComputerName `
+            $lic = Get-CimInstance -ClassName SoftwareLicensingProduct `
                 -Filter "PartialProductKey is not null and Name like 'Windows%'" -ErrorAction Stop
-            $activated = [bool]($licensingProduct | Where-Object { $_.LicenseStatus -eq 1 })
-        } catch {
-            Write-Warning "Failed to query activation status on $ComputerName : $_"
-            $activated = $null
-        }
-        # Boot disk controller type (NVMe vs SATA/SAS/etc.) — Get-Partition/Get-Disk/Get-PhysicalDisk
-        # are CDXML cmdlets: no -ComputerName, so use a CimSession for remote targets
+            $activated = [bool]($lic | Where-Object LicenseStatus -eq 1)
+        } catch { Write-Warning "Activation query failed: $_" }
+
+        # Boot disk bus type
+        $busType = $isNVMe = $null
         try {
-            if ($ComputerName -eq $env:COMPUTERNAME) {
-                $bootPartition = Get-Partition | Where-Object IsBoot -EQ $true
-                $bootDisk = Get-Disk -Number $bootPartition.DiskNumber
-                $physicalDisk = Get-PhysicalDisk | Where-Object DeviceId -EQ $bootDisk.Number
-            } else {
-                $cimSession = New-CimSession -ComputerName $ComputerName -ErrorAction Stop
-                try {
-                    $bootPartition = Get-Partition -CimSession $cimSession | Where-Object IsBoot -EQ $true
-                    $bootDisk = Get-Disk -CimSession $cimSession -Number $bootPartition.DiskNumber
-                    $physicalDisk = Get-PhysicalDisk -CimSession $cimSession | Where-Object DeviceId -EQ $bootDisk.Number
-                } finally {
-                    Remove-CimSession $cimSession
-                }
-            }
-            $bootDiskBusType = $physicalDisk.BusType
-            $isNVMeBoot = $bootDiskBusType -eq 'NVMe'
-        } catch {
-            Write-Warning "Failed to query boot disk controller type on $ComputerName : $_"
-            $bootDiskBusType = $null
-            $isNVMeBoot = $null
+            $bootPart = Get-Partition -ErrorAction Stop | Where-Object IsBoot | Select-Object -First 1
+            $busType  = [string](Get-Disk -Number $bootPart.DiskNumber -ErrorAction Stop).BusType
+            $isNVMe   = $busType -eq 'NVMe'
+        } catch { Write-Warning "Boot disk query failed: $_" }
+
+        # Azure + managed identity via IMDS
+        $inAzure = $false
+        $hasMI   = $false
+        $imds = Invoke-Imds 'http://169.254.169.254/metadata/instance?api-version=2021-02-01'
+        if ($imds.Reachable) {
+            $inAzure = $true
+            $tok = Invoke-Imds 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fmanagement.azure.com%2F'
+            # 'multiple identities' error still means at least one exists
+            $hasMI = $tok.Ok -or ($tok.Body -match 'multiple')
         }
-        # Running inside Azure — Azure Instance Metadata Service is only reachable from
-        # within an Azure VM (link-local address 169.254.169.254, never routed). Short
-        # timeout so this resolves fast (and $false) on non-Azure hosts.
-        $azureCheckScript = {
-            try {
-                $null = Invoke-RestMethod -Uri 'http://169.254.169.254/metadata/instance?api-version=2021-02-01' `
-                    -Headers @{Metadata = 'true' } -TimeoutSec 2 -ErrorAction Stop
-                $true
-            } catch {
-                $false
-            }
-        }
+
+        # Outbound adapter IP (routing-table lookup; no packet sent)
+        $localIP = $null
+        $sock = $null
         try {
-            $isWithinAzure = if ($ComputerName -eq $env:COMPUTERNAME) {
-                & $azureCheckScript
-            } else {
-                Invoke-Command -ComputerName $ComputerName -ScriptBlock $azureCheckScript -ErrorAction Stop
-            }
+            $sock = [Net.Sockets.Socket]::new('InterNetwork', 'Dgram', 'Udp')
+            $sock.Connect('8.8.8.8', 65530)
+            $localIP = $sock.LocalEndPoint.Address.IPAddressToString
         } catch {
-            Write-Warning "Failed to determine Azure IMDS reachability on $ComputerName : $_"
-            $isWithinAzure = $false
-        }
-        # Managed identity — only worth probing if we're actually in Azure. IMDS's token
-        # endpoint doubles as a presence check: requesting a token with no client_id/
-        # object_id/mi_res_id resolves the "default" identity, which succeeds if a
-        # system-assigned identity or any user-assigned identity(-ies) is present. A
-        # "multiple identities" error still means at least one exists (just ambiguous
-        # which is default); "identity not found" means none at all.
-        $identityCheckScript = {
-            try {
-                $null = Invoke-RestMethod -Uri 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fmanagement.azure.com%2F' `
-                    -Headers @{Metadata = 'true' } -TimeoutSec 2 -ErrorAction Stop
-                $true
-            } catch {
-                $errBody = $null
-                try { $errBody = $_.ErrorDetails.Message | ConvertFrom-Json } catch {}
-                [bool]($errBody.error_description -match 'multiple')
-            }
-        }
-        $hasManagedIdentity = if ($isWithinAzure) {
-            try {
-                if ($ComputerName -eq $env:COMPUTERNAME) {
-                    & $identityCheckScript
-                } else {
-                    Invoke-Command -ComputerName $ComputerName -ScriptBlock $identityCheckScript -ErrorAction Stop
-                }
-            } catch {
-                Write-Warning "Failed to determine managed identity status on $ComputerName : $_"
-                $false
-            }
-        } else {
-            $false
-        }
-        # Outbound adapter IP — the source address the OS would use to reach the internet.
-        # A UDP "connect" just consults the routing table (no packet sent), so it still
-        # resolves correctly even with no internet access, UNLESS there's no default route
-        # at all (no gateway/NIC up), in which case it throws — caught and left as $null.
-        $outboundIPScript = {
-            $socket = $null
-            try {
-                $socket = [System.Net.Sockets.Socket]::new(
-                    [System.Net.Sockets.AddressFamily]::InterNetwork,
-                    [System.Net.Sockets.SocketType]::Dgram,
-                    [System.Net.Sockets.ProtocolType]::Udp)
-                $socket.Connect('8.8.8.8', 65530)
-                $socket.LocalEndPoint.Address.IPAddressToString
-            } finally {
-                if ($socket) { $socket.Close() }
-            }
-        }
-        try {
-            $LocalIP = if ($ComputerName -eq $env:COMPUTERNAME) {
-                & $outboundIPScript
-            } else {
-                Invoke-Command -ComputerName $ComputerName -ScriptBlock $outboundIPScript -ErrorAction Stop
-            }
-        } catch {
-            Write-Warning "Failed to determine outbound IP on $ComputerName (likely no route/connectivity): $_"
-            $localIP = $null
-        }
-        # External (public) IP — only meaningful for the local machine; a remote target's
-        # egress IP can't be queried from here without running code on that box.
-        # Requires actual internet access; $null if offline.
-        try {
-            if ($ComputerName -eq $env:COMPUTERNAME) {
-                $externalIP = (Invoke-RestMethod -Uri 'https://api.ipify.org?format=json' -TimeoutSec 5).ip
-            } else {
-                $externalIP = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
-                    (Invoke-RestMethod -Uri 'https://api.ipify.org?format=json' -TimeoutSec 5).ip
-                } -ErrorAction Stop
-            }
-        } catch {
-            Write-Warning "Failed to query external IP address for $ComputerName (likely no internet access): $_"
-            $externalIP = $null
-        }
-        $lastBoot = $cim.LastBootUpTime
-        $lastBootFormatted = if ($lastBoot) { $lastBoot.ToString('yyyy-MMM-dd HH:mm:ss') } else { $null }
-        $static = [PSCustomObject]@{
-            ComputerName       = $ComputerName
+            Write-Warning "Outbound IP lookup failed (no default route?): $_"
+        } finally { if ($sock) { $sock.Dispose() } }
+
+        # External IP (opt-in)
+        $externalIP = $null
+        $externalIP = (Invoke-RestMethod -Uri 'https://api.ipify.org?format=json' -TimeoutSec 5 -ErrorAction Stop).ip
+
+        $lastBoot = $os.LastBootUpTime
+
+        $static = [pscustomobject]@{
+            ComputerName       = $env:COMPUTERNAME
             DomainName         = $domainName
             PartOfDomain       = $partOfDomain
-            EntraIDJoined      = $entraIdJoined
-            EntraHybridJoined  = $entraHybridJoined
+            EntraIDJoined      = $entraJoined
+            EntraHybridJoined  = $entraHybrid
             ProductName        = $productName
             EditionID          = $editionId
-            CompositionEdID    = $compositionEd
-            DisplayVersion     = $displayVer
-            ReleaseId          = $releaseId
+            CompositionEdID    = $reg.CompositionEditionID
+            DisplayVersion     = $reg.DisplayVersion
+            ReleaseId          = $reg.ReleaseId
             FriendlyRelease    = $friendlyRelease
             CurrentBuild       = $currentBuild
             UBR                = $ubr
@@ -374,28 +298,32 @@ function Get-HostInfo {
             IsLTSB             = $isLTSB
             IsIoT              = $isIoT
             Activated          = $activated
-            BootDiskBusType    = $bootDiskBusType
-            IsNVMeBoot         = $isNVMeBoot
-            IsWithinAzure      = $isWithinAzure
-            HasManagedIdentity = $hasManagedIdentity
+            BootDiskBusType    = $busType
+            IsNVMeBoot         = $isNVMe
+            IsWithinAzure      = $inAzure
+            HasManagedIdentity = $hasMI
             LocalIPAddress     = $localIP
             ExternalIPAddress  = $externalIP
-            LastBootUpTime     = $lastBootFormatted
-            UptimeMinutes      = $null   # filled in fresh below, every call, cached or not
-            OSArchitecture     = $cim.OSArchitecture
-            Caption            = $cim.Caption
-            Version            = $cim.Version
+            LastBootUpTime     = if ($lastBoot) { $lastBoot.ToString('yyyy-MMM-dd HH:mm:ss') } else { $null }
+            UptimeMinutes      = $null
+            OSArchitecture     = $os.OSArchitecture
+            Caption            = $os.Caption
+            Version            = $os.Version
         }
-        $script:HostInfoCache[$ComputerName] = @{
+
+        $script:HostInfoCache = @{
             CachedAt = Get-Date
             Static   = $static
             LastBoot = $lastBoot
         }
     }
-    # Recomputed every call, cache hit or not — this is the one value that's never stale
-    $static.UptimeMinutes = if ($lastBoot) { [int][math]::Round(((Get-Date) - $lastBoot).TotalMinutes) } else { $null }
-    $static
+
+    # Return a copy so the cached object isn't mutated; uptime is always live
+    $result = $static.PSObject.Copy()
+    $result.UptimeMinutes = if ($lastBoot) { [int][math]::Round(((Get-Date) - $lastBoot).TotalMinutes) } else { $null }
+    $result
 }
+# Get-HostInfo
 
 function Test-NFS {
     [CmdletBinding()]
