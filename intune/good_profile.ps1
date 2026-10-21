@@ -809,6 +809,7 @@ function List-Files {
 }
 
 Set-Alias -Name docker -Value podman
+Set-Alias -Name nvm -Value fnm
 
 function Reset-Podman {
     ## Ensure running as Administrator
