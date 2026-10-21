@@ -128,6 +128,48 @@ if ($PSVersionTable.PSVersion.Major -le 5) {
     return
 }
 
+function Get-HostUniqueId {
+    [CmdletBinding()]
+    param()
+
+    $machineGuid = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Cryptography' -Name MachineGuid -ErrorAction SilentlyContinue).MachineGuid
+
+    $smbiosUuid = (Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue).UUID
+    if ($smbiosUuid -match '^(0{8}-0{4}-0{4}-0{4}-0{12}|F{8}-F{4}-F{4}-F{4}-F{12})$') { $smbiosUuid = $null }  # placeholder values
+
+    $biosSerial = (Get-CimInstance Win32_BIOS -ErrorAction SilentlyContinue).SerialNumber
+    if ($biosSerial -match '^(To Be Filled|Default string|System Serial|0+)') { $biosSerial = $null }
+
+    # Entra ID device ID (from the join certificate subject)
+    $entraDeviceId = Get-ChildItem Cert:\LocalMachine\My -ErrorAction SilentlyContinue |
+        Where-Object { $_.Issuer -match 'MS-Organization-Access|MS-Organization-P2P-Access' } |
+        ForEach-Object { $_.Subject -replace '^CN=', '' } |
+        Where-Object { $_ -match '^[0-9a-fA-F-]{36}$' } |
+        Select-Object -First 1
+
+    # Intune enrollment ID (if enrolled)
+    $intuneId = (Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Enrollments' -ErrorAction SilentlyContinue |
+        Get-ItemProperty -ErrorAction SilentlyContinue |
+        Where-Object { $_.ProviderID -eq 'MS DM Server' } |
+        Select-Object -First 1).PSChildName
+
+    # Local computer SID (the machine's account SID, base of local accounts)
+    $localSid = try {
+        $a = Get-LocalUser -ErrorAction Stop | Select-Object -First 1
+        $a.SID.AccountDomainSid.Value
+    } catch { $null }
+
+    [pscustomobject]@{
+        ComputerName  = $env:COMPUTERNAME
+        MachineGuid   = $machineGuid
+        SmbiosUuid    = $smbiosUuid
+        BiosSerial    = $biosSerial
+        EntraDeviceId = $entraDeviceId
+        IntuneId      = $intuneId
+        LocalSid      = $localSid
+    }
+}
+
 function Get-IpOwner {
     [CmdletBinding()]
     param(
@@ -407,7 +449,7 @@ function Get-HostInfo {
     $result
 }
 # Get-HostInfo
-# try { (Get-IpOwner asdsaasqw0.0.0).Owner } catch {}
+# try { (Get-IpOwner (Get-HostInfo).ExternalIPAddress).Owner } catch {}
 
 function Test-NFS {
     [CmdletBinding()]
