@@ -164,7 +164,7 @@ $dotnetTools = @(
     'dotnet-reportgenerator-globaltool',      ## report generator
     'Microsoft.OpenApi.Kiota',                ## code generator (openapi)
     'paket',                                  ## Paket dependency manager
-    'upgrade-assistant'                       ## upgrade assistant
+    ## 'upgrade-assistant'                       ## upgrade assistant (depreciated)
 )
 
 function Install-OrUpdate-DotNetTools {
