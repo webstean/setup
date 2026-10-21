@@ -1165,41 +1165,60 @@ function Install-AspireCli {
     [CmdletBinding()]
     param(
         [string]$Url = 'https://aspire.dev/install.ps1',
-        [string]$ExpectedSha256,   # optional integrity pin
-        [switch]$Force             # reinstall even if present
+        [string]$ExpectedSha256,                                  # optional integrity pin
+        [switch]$Force,                                           # reinstall even if present
+        [switch]$SkipAgentInit,                                   # don't run 'aspire agent init'
+        [string]$WorkspaceRoot = (Get-Location).Path,
+        [string]$SkillLocations = 'standard,claudecode,github',   # or 'all' / 'none'
+        [string]$Skills = 'playwright-cli,dotnet-inspect',        # or 'all' / 'none'
+        [bool]$Mcp = $true                                        # configure Aspire MCP server
     )
 
     $ErrorActionPreference = 'Stop'
     $script = Join-Path ([IO.Path]::GetTempPath()) "aspire-install-$([guid]::NewGuid().ToString('N')).ps1"
 
     try {
-        if (-not $Force -and (Get-Command aspire -ErrorAction SilentlyContinue)) {
-            Write-Verbose "Aspire CLI already installed."
-            return (& aspire --version)
-        }
+        if ($Force -or -not (Get-Command aspire -ErrorAction SilentlyContinue)) {
+            Write-Verbose "Downloading $Url"
+            Invoke-WebRequest -Uri $Url -OutFile $script -UseBasicParsing
 
-        Write-Verbose "Downloading $Url"
-        Invoke-WebRequest -Uri $Url -OutFile $script -UseBasicParsing
-
-        if ($ExpectedSha256) {
-            $hash = (Get-FileHash $script -Algorithm SHA256).Hash
-            if ($hash -ne $ExpectedSha256) {
-                throw "Hash mismatch. Expected $ExpectedSha256, got $hash."
+            if ($ExpectedSha256) {
+                $hash = (Get-FileHash $script -Algorithm SHA256).Hash
+                if ($hash -ne $ExpectedSha256) {
+                    throw "Hash mismatch. Expected $ExpectedSha256, got $hash."
+                }
             }
+
+            $pwsh = (Get-Process -Id $PID).Path   # same host (powershell/pwsh)
+            & $pwsh -NoProfile -ExecutionPolicy Bypass -File $script
+            if ($LASTEXITCODE -ne 0) { throw "Installer exited with code $LASTEXITCODE" }
+
+            # Refresh PATH for the current session
+            $env:PATH = ([Environment]::GetEnvironmentVariable('PATH','Machine'),
+                         [Environment]::GetEnvironmentVariable('PATH','User')) -join ';'
         }
-
-        $pwsh = (Get-Process -Id $PID).Path   # same host (powershell/pwsh)
-        & $pwsh -NoProfile -ExecutionPolicy Bypass -File $script
-        if ($LASTEXITCODE -ne 0) { throw "Installer exited with code $LASTEXITCODE" }
-
-        # Refresh PATH for the current session
-        $env:PATH = ([Environment]::GetEnvironmentVariable('PATH','Machine'),
-                     [Environment]::GetEnvironmentVariable('PATH','User')) -join ';'
+        else {
+            Write-Verbose "Aspire CLI already installed."
+        }
 
         if (-not (Get-Command aspire -ErrorAction SilentlyContinue)) {
-            throw "Install finished but 'aspire' is not on PATH."
+            throw "'aspire' is not on PATH."
         }
         & aspire --version
+
+        if (-not $SkipAgentInit) {
+            $initArgs = @(
+                'agent', 'init',
+                '--non-interactive', '--nologo',
+                '--workspace-root',  $WorkspaceRoot,
+                '--skill-locations', $SkillLocations,
+                '--skills',          $Skills,
+                "--mcp=$($Mcp.ToString().ToLower())"
+            )
+            Write-Verbose "aspire $($initArgs -join ' ')"
+            & aspire @initArgs
+            if ($LASTEXITCODE -ne 0) { throw "aspire agent init exited with code $LASTEXITCODE" }
+        }
     }
     finally {
         Remove-Item $script -Force -ErrorAction SilentlyContinue
