@@ -316,6 +316,18 @@ properties:
         id: OpenJS.NodeJS.LTS
         source: winget
 
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: NodeJS.nvm
+      dependsOn:
+        - NodeJS
+      directives:
+        description: Install CoreyButler.NVMforWindows
+        allowPrerelease: false
+        securityContext: elevated
+      settings:
+        id: CoreyButler.NVMforWindows
+        source: winget
+
     - resource: PSDscResources/Script
       id: npm.microsoft.workiq
       dependsOn:
