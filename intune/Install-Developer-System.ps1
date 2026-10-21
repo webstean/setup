@@ -448,6 +448,7 @@ function Install-DotNetUp {
     }
     finally {
         Remove-Item -LiteralPath $workDir -Recurse -Force -ErrorAction SilentlyContinue
+        ## [Environment]::SetEnvironmentVariable('PATH', "C:\Users\WebsterA\.dotnetup;$([Environment]::GetEnvironmentVariable('PATH', 'User'))", 'User')
     }
 }
 # Install-DotNetUp
