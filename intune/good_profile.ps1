@@ -2215,6 +2215,8 @@ try {
     Connect-MgGraph -Scopes 'User.Read' -NoWelcome
     $user = Get-MgUser -UserId (Get-MgContext).Account -Property DisplayName, Id, Mail, UserPrincipalName
     $user.UserPrincipalName
+    Write-Host "via"
+    (Get-MgContext).ClientId
 }
 catch {
     Write-Error "Failed to get signed-in user: $($_.Exception.Message) via Microsoft Graph PowerShell"
