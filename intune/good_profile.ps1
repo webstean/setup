@@ -874,7 +874,7 @@ function Set-Developer-Variables {
     Set-Item -Path Env:\FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT -Value $true
     Set-Item -Path Env:\POWERSHELL_TELEMETRY_OPTOUT -Value $true
     Set-Item -Path Env:\DOTNET_UPGRADEASSISTANT_TELEMETRY_OPTOUT -Value $true
-    Set-Item -Path Env:\DOTNET_CLI_TELEMETRY_OPTOUT -Value $true
+    Set-Item -Path Env:\DOTNET_CLI_TELEMETRY_OPTOUT -Value 1
 
     ## AZD get rid of annoying update prompt and opt out of telemetry
     Set-Item -Path Env:\AZD_SKIP_UPDATE_CHECK -Value $true
