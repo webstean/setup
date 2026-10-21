@@ -407,7 +407,7 @@ function Get-HostInfo {
     $result
 }
 # Get-HostInfo
-# (Get-IpOwner (Get-HostInfo).ExternalIPAddress).Owner 
+# try { (Get-IpOwner asdsaasqw0.0.0).Owner } catch {}
 
 function Test-NFS {
     [CmdletBinding()]
