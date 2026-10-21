@@ -163,8 +163,9 @@ $dotnetTools = @(
     'microsoft.powerapps.cli.tool',           ## powerapp tools
     'dotnet-reportgenerator-globaltool',      ## report generator
     'Microsoft.OpenApi.Kiota',                ## code generator (openapi)
+    ## 'aspire.cli',                          ## dotnet aspire (use directory download - later in this script)
     'paket',                                  ## Paket dependency manager
-    ## 'upgrade-assistant'                       ## upgrade assistant (depreciated)
+    ## 'upgrade-assistant'                    ## upgrade assistant (depreciated)
 )
 
 function Install-OrUpdate-DotNetTools {
