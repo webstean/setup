@@ -170,7 +170,7 @@ function Install-WindowsNfsClient {
     }
 }
 
-#if ( (Test-NFS).Installed ) {
+#if ( (Test-NFS).Installed != "Enabled" ) {
 #    Install-WindowsNfsClient
 #}
 
