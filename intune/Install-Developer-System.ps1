@@ -156,6 +156,10 @@ function Install-WinRM {
 #
 #Install-WinRM
 
+irm https://aka.ms/dotnetup/get-dotnetup.ps1 | iex
+
+
+
 ## The tools functionality is only installed via DOTNET SDKs, not Runtimes
 $dotnetTools = @(
     'Microsoft.DataApiBuilder',               ## dab
