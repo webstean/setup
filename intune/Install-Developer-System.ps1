@@ -170,6 +170,78 @@ function Install-WindowsNfsClient {
     }
 }
 
+## Enable/Install Features
+#if ($PSVersionTable.PSVersion.Major -eq 5) {
+#    Write-Output "Running in Windows PowerShell."
+#    Import-Module DISM 
+#}
+#else {
+#    Write-Output "Not running in Windows PowerShell."
+#    Import-Module DISM -UseWindowsPowerShell
+#}
+$features_to_enable = @(
+    'TFTP',
+    #    "MSMQ-Multicast",
+    'Printing-PrintToPDFServices-Features',
+    'TelnetClient',
+    'ServicesForNFS-ClientOnly',
+    'ClientForNFS'
+    ## "SMB1Protocol-Deprecation",
+    ## "SMB1Protocol-Client",
+) | Sort-Object
+
+$features_to_enable | ForEach-Object {
+    try {
+        Write-Output "Enabling Windows Feature: $_" 
+        $feature = Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
+Get-WindowsOptionalFeature `
+   -FeatureName "$_" `
+   -Online `
+'@
+      
+        if ($feature -and ($feature.State -eq 'Disabled')) {
+            Write-Output ("Enabling $_...") 
+            
+            Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
+Enable-WindowsOptionalFeature `
+    -FeatureName "$_" `
+    -Online `
+    -All `
+    -LimitAccess `
+    -NoRestart `
+'@
+        }
+    } catch {
+        Write-Output "Exception $_ when removing Windows compoents"
+    }
+}
+
+$features_to_disable = @(
+    'WorkFolders-Client'
+) | Sort-Object
+
+$features_to_disable | ForEach-Object {
+    try {
+        Write-Output "Disabling Windows Feature: $_" 
+        $feature = Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
+Get-WindowsOptionalFeature `
+   -FeatureName "$_" `
+   -Online `
+'@
+        if ($feature -and ($feature.State -eq 'Enabled')) {
+            Write-Output ("Disabling $_...") 
+            Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
+Disable-WindowsOptionalFeature `
+    -FeatureName "$_" `
+    -Online `
+    -NoRestart `
+'@
+        }
+    } catch {
+        Write-Output "Exception $_ when install Windows compoents"
+    }
+}
+
 #if ( (Test-NFS).Installed != "Enabled" ) {
 #    Install-WindowsNfsClient
 #}
@@ -746,79 +818,6 @@ if (Get-Command sudo ) {
 }
 Write-Output 'Install Windows components that Developers need...' 
         
-## Enable/Install Features
-#if ($PSVersionTable.PSVersion.Major -eq 5) {
-#    Write-Output "Running in Windows PowerShell."
-#    Import-Module DISM 
-#}
-#else {
-#    Write-Output "Not running in Windows PowerShell."
-#    Import-Module DISM -UseWindowsPowerShell
-#}
-$features_to_enable = @(
-    'TFTP',
-    #    "MSMQ-Multicast",
-    'Printing-PrintToPDFServices-Features',
-    'TelnetClient',
-    'ServicesForNFS-ClientOnly',
-    'ClientForNFS'
-    ## "SMB1Protocol-Deprecation",
-    ## "SMB1Protocol-Client",
-) | Sort-Object
-
-
-$features_to_enable | ForEach-Object {
-    try {
-        Write-Output "Enabling Windows Feature: $_" 
-        $feature = Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
-Get-WindowsOptionalFeature `
-   -FeatureName "$_" `
-   -Online `
-'@
-      
-        if ($feature -and ($feature.State -eq 'Disabled')) {
-            Write-Output ("Enabling $_...") 
-            
-            Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
-Enable-WindowsOptionalFeature `
-    -FeatureName "$_" `
-    -Online `
-    -All `
-    -LimitAccess `
-    -NoRestart `
-'@
-        }
-    } catch {
-        Write-Output "Exception $_ when removing Windows compoents"
-    }
-}
-
-$features_to_disable = @(
-    'WorkFolders-Client'
-) | Sort-Object
-
-$features_to_disable | ForEach-Object {
-    try {
-        Write-Output "Disabling Windows Feature: $_" 
-        $feature = Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
-Get-WindowsOptionalFeature `
-   -FeatureName "$_" `
-   -Online `
-'@
-        if ($feature -and ($feature.State -eq 'Enabled')) {
-            Write-Output ("Disabling $_...") 
-            Invoke-WindowsPowerShell -AsAdmin -ScriptBlock @'
-Disable-WindowsOptionalFeature `
-    -FeatureName "$_" `
-    -Online `
-    -NoRestart `
-'@
-        }
-    } catch {
-        Write-Output "Exception $_ when install Windows compoents"
-    }
-}
-
 function Install-SqlLocalDBLatest {
     [CmdletBinding()]
     param(
