@@ -404,6 +404,7 @@ function Get-HostInfo {
 
         $static = [pscustomobject]@{
             ComputerName       = $env:COMPUTERNAME
+            UniqueName         = (Get-HostUniqueId).MachineGuid
             DomainName         = $domainName
             PartOfDomain       = $partOfDomain
             EntraIDJoined      = $entraJoined
