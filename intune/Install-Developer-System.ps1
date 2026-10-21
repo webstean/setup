@@ -1135,127 +1135,125 @@ function Set-FolderAclUsersModify {
       Grant Modify to local Users (not Full Control) on a folder tree.
 
     .DESCRIPTION
-      - Ensures elevation
-      - (Optional) Takes ownership and sets owner to Administrators
-      - (Optional) Breaks inheritance on the target folder (copies ACEs)
-      - Removes explicit DENY ACEs for Users/Everyone (so ALLOW can apply)
-      - Grants:
-            SYSTEM         : FullControl
-            Administrators : FullControl
-            Users          : Modify
-      - Uses well-known SIDs (locale-independent)
-      - Applies recursively by default
+      - Requires elevation
+      - Optionally takes ownership (owner = Administrators)
+      - Optionally breaks inheritance on the target (copies inherited ACEs)
+      - Optionally removes explicit DENY ACEs for Users/Everyone
+      - Sets:  SYSTEM = FullControl, Administrators = FullControl, Users = Modify
+      - Users' existing explicit ACEs are REPLACED (/grant:r), so no leftover Full Control
+      - Uses well-known SIDs (locale independent)
+      - Supports -WhatIf / -Confirm for every change
+      - Refuses drive roots and core system folders
 
     .PARAMETER Path
-      Target folder path. Default: C:\workspaces
+      Target folder. Default: C:\workspaces
 
     .PARAMETER TakeOwnership
-      Take ownership before ACL changes. Default: $true
+      Set owner to Administrators first. Default: $true
 
     .PARAMETER BreakInheritance
-      Break inheritance (copy existing ACEs). Default: $true
+      $true = disable inheritance on the target (copy ACEs), $false = enable it. Default: $true
 
     .PARAMETER RemoveDeny
       Remove explicit DENY entries for Users/Everyone. Default: $true
 
     .PARAMETER Recurse
-      Recurse into all children. Default: $true
-
-    .PARAMETER WhatIf
-      Shows what would happen if the command runs. No changes made.
+      Apply to all children. Default: $true
 
     .EXAMPLE
       Set-FolderAclUsersModify -Path 'C:\workspaces' -Verbose
 
     .EXAMPLE
-      Set-FolderAclUsersModify -Path 'D:\Data' -BreakInheritance:$false
+      Set-FolderAclUsersModify -Path 'D:\Data' -BreakInheritance:$false -WhatIf
     #>
-    [CmdletBinding(SupportsShouldProcess)]
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
     param(
-        [Parameter(Position = 0)]
+        [Parameter(Position = 0, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
         [string]$Path = 'C:\workspaces',
 
-        [bool]$TakeOwnership = $true,
+        [bool]$TakeOwnership    = $true,
         [bool]$BreakInheritance = $true,
-        [bool]$RemoveDeny = $true,
-        [bool]$Recurse = $true
+        [bool]$RemoveDeny       = $true,
+        [bool]$Recurse          = $true
     )
 
     begin {
-        # Well-known SIDs (locale independent)
-        $SidSystem = '*S-1-5-18'        # SYSTEM
-        $SidAdmins = '*S-1-5-32-544'    # BUILTIN\Administrators
-        $SidUsers = '*S-1-5-32-545'    # BUILTIN\Users
+        $ErrorActionPreference = 'Stop'
 
-        # Inheritance flags for files & folders
-        $inheritFlags = '(OI)(CI)'
-
-        function Invoke-Icacls {
-            param([string[]]$IcaclsArgs)
-            Write-Verbose ('icacls {0}' -f ($IcaclsArgs -join ' '))
-            if ($PSCmdlet.ShouldProcess("icacls $($IcaclsArgs -join ' ')")) {
-                & icacls @IcaclsArgs
-            }
-        }
+        $SidSystem   = '*S-1-5-18'       # SYSTEM
+        $SidAdmins   = '*S-1-5-32-544'   # BUILTIN\Administrators
+        $SidUsers    = '*S-1-5-32-545'   # BUILTIN\Users
+        $SidEveryone = '*S-1-1-0'        # Everyone
+        $inherit     = '(OI)(CI)'
 
         function Assert-Elevated {
-            $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-            $p = New-Object System.Security.Principal.WindowsPrincipal($id)
-            if (-not $p.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) {
-                throw 'This function must be run in an elevated PowerShell (Run as Administrator).'
+            $p = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+            if (-not $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+                throw 'Run this in an elevated PowerShell (Run as Administrator).'
             }
         }
+
+        function Invoke-Native {
+            param([string]$File, [string[]]$Arguments, [string]$Target)
+            $Arguments = @($Arguments | Where-Object { $_ })     # drop empty/null entries
+            $display   = "$File $($Arguments -join ' ')"
+            Write-Verbose $display
+            if ($PSCmdlet.ShouldProcess($Target, $display)) {
+                $out = & $File @Arguments 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    throw "$File failed (exit $LASTEXITCODE): $(($out | Select-Object -Last 5) -join ' | ')"
+                }
+                $out | ForEach-Object { Write-Verbose "$_" }
+            }
+        }
+
+        $protected = @(
+            "$env:SystemDrive\Users", $env:windir, $env:ProgramFiles,
+            ${env:ProgramFiles(x86)}, $env:ProgramData
+        ) | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('\') }
     }
 
     process {
-        try {
-            # Sanity checks
-            Assert-Elevated
-            if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
-                throw "Path not found or not a folder: $Path"
-            }
+        Assert-Elevated
 
-            # Normalize path & optional long-path prefix for deep trees
-            $target = (Resolve-Path -LiteralPath $Path).Path
+        if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
+            throw "Path not found or not a folder: $Path"
+        }
+        $target = (Resolve-Path -LiteralPath $Path).ProviderPath.TrimEnd('\')
 
-            # 1) Take ownership (optional)
-            if ($TakeOwnership) {
-                & takeown /f "$target" /r /d y | Out-Null
-                Invoke-Icacls -Args @("$target", '/setowner', 'Users', '/t', '/c') | Out-Null
-            }
+        if ($target -match '^[A-Za-z]:$' -or $target -in $protected) {
+            throw "Refusing to modify protected path: $target"
+        }
 
-            # 2) Inheritance control
-            if ($BreakInheritance) {
-                ## Disable
-                Invoke-Icacls -Args @("$target", '/inheritance:d', '/c') | Out-Null
-            } else {
-                ## Enable
-                Invoke-Icacls -Args @("$target", '/inheritance:e', '/c') | Out-Null
-            }
+        $t = if ($Recurse) { '/t' } else { $null }
 
-            # 3) Remove explicit DENY entries that would override our grant
-            if ($RemoveDeny) {
-                # These may no-op if none exist; that's fine.
-                Invoke-Icacls -Args @("$target", '/remove:d', 'Users', '/c') | Out-Null
-                Invoke-Icacls -Args @("$target", '/remove:d', 'Everyone', '/c') | Out-Null
-            }
+        # 1) Ownership -> Administrators
+        #    NOTE: takeown's '/d y' expects the localized "yes" letter; on non-English
+        #    Windows, change 'y' accordingly.
+        if ($TakeOwnership) {
+            Invoke-Native takeown @('/f', $target, '/a', $(if ($Recurse) { '/r' }), '/d', 'y') -Target $target
+        }
 
-            # 4) Grant the desired rights
-            $recurseFlag = if ($Recurse) { '/t' } else { $null }
+        # 2) Inheritance
+        $inh = if ($BreakInheritance) { '/inheritance:d' } else { '/inheritance:e' }
+        Invoke-Native icacls @($target, $inh, '/c') -Target $target
 
-            # Keep SYSTEM/Admins Full Control
-            Invoke-Icacls -Args @("$target", '/grant', "${SidSystem}:$inheritFlags(F)", $recurseFlag, '/c') | Out-Null
-            Invoke-Icacls -Args @("$target", '/grant', "${SidAdmins}:$inheritFlags(F)", $recurseFlag, '/c') | Out-Null
+        # 3) Remove explicit DENY entries that would override the grant
+        if ($RemoveDeny) {
+            Invoke-Native icacls @($target, '/remove:d', $SidUsers,    $t, '/c') -Target $target
+            Invoke-Native icacls @($target, '/remove:d', $SidEveryone, $t, '/c') -Target $target
+        }
 
-            # Give Users Modify (NOT Full Control)
-            Invoke-Icacls -Args @("$target", '/grant', "${SidUsers}:$inheritFlags(M)", $recurseFlag, '/c') | Out-Null
+        # 4) Grants (Users uses /grant:r to replace any existing explicit Users ACE)
+        Invoke-Native icacls @($target, '/grant',   "${SidSystem}:${inherit}(F)", $t, '/c') -Target $target
+        Invoke-Native icacls @($target, '/grant',   "${SidAdmins}:${inherit}(F)", $t, '/c') -Target $target
+        Invoke-Native icacls @($target, '/grant:r', "${SidUsers}:${inherit}(M)",  $t, '/c') -Target $target
 
-            # 5) Display resulting ACEs on the root for verification
-            Write-Verbose 'Final ACL (root):'
-            & icacls "$target"
-        } catch {
-            throw "Set-FolderAclUsersModify failed: $($_.Exception.Message)"
+        # 5) Return resulting root ACL for verification (skipped under -WhatIf)
+        if (-not $WhatIfPreference) {
+            (Get-Acl -LiteralPath $target).Access |
+                Select-Object IdentityReference, FileSystemRights, AccessControlType, IsInherited, InheritanceFlags
         }
     }
 }
