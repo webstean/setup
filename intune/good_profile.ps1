@@ -629,50 +629,44 @@ function Set-RegistryValue {
             Idempotently create or update a registry value.
 
         .DESCRIPTION
-            Robust replacement for the original Set-RegistryValue.
-            - Accepts hive aliases (HKLM, HKCU, HKCR, HKU, HKCC, plus the long
-              HKEY_* names and trailing ':' forms).
+            - Accepts hive aliases (HKLM, HKCU, HKCR, HKU, HKCC, HKEY_* names, trailing ':').
             - Accepts type aliases in any case (String, DWORD, REG_SZ, ...).
-            - Coerces $Value to the requested registry type.
+            - Coerces -Value to the requested registry type.
             - Creates parent keys as needed, including deep paths.
-            - Detects existing values: returns 'Unchanged' when value+type
-              already match, 'Updated' when overwriting, 'Created' for new
-              values, 'Failed' on error.
-            - Re-creates the value when the existing kind doesn't match the
-              requested kind (PowerShell can't change kind in place).
-            - Honours -WhatIf / -Confirm.
-            - Never throws (returns a status object); callers can opt into
-              throwing via -ErrorAction Stop on Write-Error if needed.
+            - Returns a status object: Created, Updated, Unchanged or Failed.
+            - Changes the value type in place (no delete/recreate window).
+            - Never throws; check the Status property.
 
         .EXAMPLE
             Set-RegistryValue -Hive HKLM -SubKey 'SOFTWARE\Contoso' -Name 'Url' -Value 'https://x' -Type String
 
         .EXAMPLE
-            Set-RegistryValue -Hive HKCU -SubKey 'Software\Foo' -Name 'Bar' -Value 1 -Type DWORD -WhatIf
+            Set-RegistryValue -Hive HKCU -SubKey 'Software\Foo' -Name 'Bar' -Value 1 -Type DWORD
     #>
-    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
+    [CmdletBinding()]
     [OutputType([pscustomobject])]
     param(
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [string]$Hive,
 
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [Alias('Key')]
         [string]$SubKey,
 
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [Alias('PropertyName')]
         [string]$Name,
 
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
+        [AllowNull()]
         [AllowEmptyString()]
         [AllowEmptyCollection()]
         [object]$Value,
 
-        [Parameter(ValueFromPipelineByPropertyName = $true)]
+        [Parameter(ValueFromPipelineByPropertyName)]
         [ValidateNotNullOrEmpty()]
         [Alias('PropertyType', 'Kind')]
         [string]$Type = 'String'
@@ -682,39 +676,49 @@ function Set-RegistryValue {
         Set-StrictMode -Version Latest
         $ErrorActionPreference = 'Stop'
 
+        $RH = [Microsoft.Win32.RegistryHive]
         $hiveMap = @{
-            'HKLM' = 'HKLM'; 'HKEY_LOCAL_MACHINE' = 'HKLM'
-            'HKCU' = 'HKCU'; 'HKEY_CURRENT_USER' = 'HKCU'
-            'HKCR' = 'HKCR'; 'HKEY_CLASSES_ROOT' = 'HKCR'
-            'HKU' = 'HKU'; 'HKEY_USERS' = 'HKU'
-            'HKCC' = 'HKCC'; 'HKEY_CURRENT_CONFIG' = 'HKCC'
+            'HKLM' = @('HKLM', $RH::LocalMachine);  'HKEY_LOCAL_MACHINE'  = @('HKLM', $RH::LocalMachine)
+            'HKCU' = @('HKCU', $RH::CurrentUser);   'HKEY_CURRENT_USER'   = @('HKCU', $RH::CurrentUser)
+            'HKCR' = @('HKCR', $RH::ClassesRoot);   'HKEY_CLASSES_ROOT'   = @('HKCR', $RH::ClassesRoot)
+            'HKU'  = @('HKU',  $RH::Users);         'HKEY_USERS'          = @('HKU',  $RH::Users)
+            'HKCC' = @('HKCC', $RH::CurrentConfig); 'HKEY_CURRENT_CONFIG' = @('HKCC', $RH::CurrentConfig)
         }
 
         $typeMap = @{
-            'STRING' = 'String'; 'REG_SZ' = 'String'
-            'DWORD' = 'DWord'; 'REG_DWORD' = 'DWord'
-            'QWORD' = 'QWord'; 'REG_QWORD' = 'QWord'
-            'BINARY' = 'Binary'; 'REG_BINARY' = 'Binary'
-            'MULTISTRING' = 'MultiString'; 'REG_MULTI_SZ' = 'MultiString'
+            'STRING'       = 'String';       'REG_SZ'        = 'String'
+            'DWORD'        = 'DWord';        'REG_DWORD'     = 'DWord'
+            'QWORD'        = 'QWord';        'REG_QWORD'     = 'QWord'
+            'BINARY'       = 'Binary';       'REG_BINARY'    = 'Binary'
+            'MULTISTRING'  = 'MultiString';  'REG_MULTI_SZ'  = 'MultiString'
             'EXPANDSTRING' = 'ExpandString'; 'REG_EXPAND_SZ' = 'ExpandString'
         }
 
-        # One prefix-stripping pattern covering both the short (HKLM:\...) and
-        # long (HKEY_LOCAL_MACHINE\...) forms a caller might pass in -SubKey.
-        $hivePrefixPattern = '^(?:(?:HKLM|HKCU|HKCR|HKU|HKCC):\\?' +
-        '|(?:HKEY_LOCAL_MACHINE|HKEY_CURRENT_USER|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\)'
+        $hivePrefix = '^(?:HKLM|HKCU|HKCR|HKU|HKCC|HKEY_LOCAL_MACHINE|HKEY_CURRENT_USER|' +
+                      'HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)(?::\\?|\\|$)'
 
         function New-Result {
             param($Path, $Name, $Status, $Type, $Value, $Err)
-            $obj = [ordered]@{
-                Path   = $Path
-                Name   = $Name
-                Status = $Status
-                Type   = $Type
-            }
+            $obj = [ordered]@{ Path = $Path; Name = $Name; Status = $Status; Type = $Type }
             if ($PSBoundParameters.ContainsKey('Value')) { $obj['Value'] = $Value }
             if ($Err) { $obj['Error'] = $Err }
             [pscustomobject]$obj
+        }
+
+        function Test-ValueEqual {
+            param($A, $B, [string]$Kind)
+            switch ($Kind) {
+                { $_ -in 'Binary', 'MultiString' } {
+                    $x = @($A); $y = @($B)
+                    if ($x.Count -ne $y.Count) { return $false }
+                    for ($i = 0; $i -lt $x.Count; $i++) {
+                        if ($x[$i] -cne $y[$i]) { return $false }
+                    }
+                    return $true
+                }
+                { $_ -in 'String', 'ExpandString' } { return ([string]$A -ceq [string]$B) }
+                default { return ($A -eq $B) }
+            }
         }
     }
 
@@ -725,110 +729,103 @@ function Set-RegistryValue {
             return New-Result -Path "$Hive\$SubKey" -Name $Name -Type $Type -Status 'Failed' `
                 -Err "Unsupported hive '$Hive'. Use HKLM, HKCU, HKCR, HKU or HKCC."
         }
-        $resolvedHive = $hiveMap[$hiveKey]
+        $shortHive = $hiveMap[$hiveKey][0]
+        $hiveEnum  = $hiveMap[$hiveKey][1]
 
-        # ---- Normalize subkey (strip drive/hive prefixes, swap /, trim leading \) ----
-        $cleanSub = ($SubKey.Trim().Replace('/', '\') -replace $hivePrefixPattern, '').TrimStart('\')
+        # ---- Normalize subkey ----
+        $cleanSub = $SubKey.Trim().Replace('/', '\')
+        $cleanSub = ($cleanSub -replace $hivePrefix, '') -replace '\\{2,}', '\'
+        $cleanSub = $cleanSub.Trim('\')
+        $path = "${shortHive}:\$cleanSub"
+
+        if (-not $cleanSub) {
+            return New-Result -Path $path -Name $Name -Type $Type -Status 'Failed' -Err 'SubKey is empty.'
+        }
 
         # ---- Normalize type ----
         $typeKey = $Type.Trim().ToUpperInvariant()
         if (-not $typeMap.ContainsKey($typeKey)) {
-            return New-Result -Path "${resolvedHive}:\$cleanSub" -Name $Name -Type $Type -Status 'Failed' `
+            return New-Result -Path $path -Name $Name -Type $Type -Status 'Failed' `
                 -Err "Unsupported registry type '$Type'."
         }
         $resolvedType = $typeMap[$typeKey]
-        $path = "${resolvedHive}:\$cleanSub"
 
-        # ---- Coerce $Value into the requested registry kind ----
+        # ---- Coerce value ----
         try {
-            $coerced = switch ($resolvedType) {
-                'DWord' { [int]$Value }
-                'QWord' { [long]$Value }
-                'Binary' {
-                    if ($null -eq $Value) { [byte[]]@() }
-                    elseif ($Value -is [byte[]]) { , $Value }
-                    elseif ($Value -is [string]) { [System.Text.Encoding]::UTF8.GetBytes([string]$Value) }
-                    elseif ($Value -is [System.Collections.IEnumerable]) {
-                        , ([byte[]]@($Value | ForEach-Object { [byte]$_ }))
+            switch ($resolvedType) {
+                'DWord' {
+                    $n = [long]$Value
+                    if ($n -lt [int]::MinValue -or $n -gt [uint32]::MaxValue) { throw "Value $n out of DWORD range." }
+                    if ($n -gt [int]::MaxValue) { $n -= 4294967296 }   # wrap to signed
+                    $coerced = [int]$n
+                }
+                'QWord' {
+                    if ($Value -is [uint64] -and $Value -gt [long]::MaxValue) {
+                        $coerced = [BitConverter]::ToInt64([BitConverter]::GetBytes([uint64]$Value), 0)
                     } else {
-                        throw 'Binary values must be a byte[] (or convertible).'
+                        $coerced = [long]$Value
                     }
+                }
+                'Binary' {
+                    if ($null -eq $Value)                { $coerced = [byte[]]@() }
+                    elseif ($Value -is [byte[]])         { $coerced = $Value }
+                    elseif ($Value -is [string])         { $coerced = [Text.Encoding]::UTF8.GetBytes($Value) }
+                    elseif ($Value -is [System.Collections.IEnumerable]) {
+                        $coerced = [byte[]]@($Value | ForEach-Object { [byte]$_ })
+                    } else { throw 'Binary values must be a byte[] (or convertible).' }
                 }
                 'MultiString' {
-                    if ($null -eq $Value) { , [string[]]@() }
-                    elseif ($Value -is [string[]]) { , $Value }
-                    elseif ($Value -is [string]) { , @([string]$Value) }
+                    if ($null -eq $Value)                { $coerced = [string[]]@() }
+                    elseif ($Value -is [string[]])       { $coerced = $Value }
+                    elseif ($Value -is [string])         { $coerced = [string[]]@($Value) }
                     elseif ($Value -is [System.Collections.IEnumerable]) {
-                        , ([string[]]@($Value | ForEach-Object { [string]$_ }))
-                    } else {
-                        , @([string]$Value)
-                    }
+                        $coerced = [string[]]@($Value | ForEach-Object { [string]$_ })
+                    } else { $coerced = [string[]]@([string]$Value) }
                 }
-                default { [string]$Value }   # String / ExpandString
+                default { $coerced = if ($null -eq $Value) { '' } else { [string]$Value } }
             }
         } catch {
             return New-Result -Path $path -Name $Name -Type $resolvedType -Status 'Failed' `
                 -Err "Value coercion failed: $($_.Exception.Message)"
         }
 
+        $base = $null; $key = $null
         try {
-            # ---- Ensure parent key exists ----
-            if (-not (Test-Path -LiteralPath $path)) {
-                if ($PSCmdlet.ShouldProcess($path, 'Create registry key')) {
-                    New-Item -Path $path -Force -ErrorAction Stop | Out-Null
+            $base = [Microsoft.Win32.RegistryKey]::OpenBaseKey($hiveEnum, [Microsoft.Win32.RegistryView]::Default)
+
+            # ---- Read existing value (if any) ----
+            $existingKind = $null; $existing = $null
+            $key = $base.OpenSubKey($cleanSub, $false)
+            if ($key) {
+                if ($Name -in $key.GetValueNames()) {
+                    $existingKind = [string]$key.GetValueKind($Name)
+                    $existing = $key.GetValue($Name, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
                 }
+                $key.Dispose(); $key = $null
             }
 
-            # ---- Discover existing value (if any) ----
-            $existing = $null
-            $existingKind = $null
-            try {
-                $regKey = Get-Item -LiteralPath $path -ErrorAction Stop
-                $existingKind = $regKey.GetValueKind($Name)        # throws if missing
-                $existing = $regKey.GetValue($Name, $null, 'DoNotExpandEnvironmentNames')
-            } catch {
-                $existingKind = $null
-                $existing = $null
+            # ---- Idempotency ----
+            if ($existingKind -eq $resolvedType -and (Test-ValueEqual $existing $coerced $resolvedType)) {
+                return New-Result -Path $path -Name $Name -Type $resolvedType -Status 'Unchanged' -Value $coerced
             }
 
-            $status = 'Created'
-
-            if ($null -ne $existingKind) {
-                $status = 'Updated'
-                $existingKindString = [string]$existingKind
-
-                if ($existingKindString -ne $resolvedType) {
-                    # Different kind — must remove and recreate
-                    Write-Verbose "Replacing $existingKindString value '$Name' at '$path' with $resolvedType."
-                    if ($PSCmdlet.ShouldProcess("$path!$Name", "Remove existing $existingKindString value")) {
-                        Remove-ItemProperty -LiteralPath $path -Name $Name -Force -ErrorAction Stop
-                    }
-                } else {
-                    # Same kind — short-circuit if equal (idempotency)
-                    $isEqual = $false
-                    try {
-                        $isEqual = if ($resolvedType -in 'Binary', 'MultiString') {
-                            -not (Compare-Object -ReferenceObject @($existing) -DifferenceObject @($coerced) -SyncWindow 0)
-                        } else {
-                            $existing -eq $coerced
-                        }
-                    } catch {
-                        $isEqual = $false
-                    }
-
-                    if ($isEqual) {
-                        return New-Result -Path $path -Name $Name -Type $resolvedType -Status 'Unchanged' -Value $coerced
-                    }
-                }
+            if ($existingKind -and $existingKind -ne $resolvedType) {
+                Write-Verbose "Changing '$Name' at '$path' from $existingKind to $resolvedType."
             }
 
-            if ($PSCmdlet.ShouldProcess("$path!$Name", "Set $resolvedType value")) {
-                New-ItemProperty -LiteralPath $path -Name $Name -Value $coerced -PropertyType $resolvedType -Force -ErrorAction Stop | Out-Null
-            }
+            # ---- Write (creates key path if missing; overwrites value and kind) ----
+            $key = $base.CreateSubKey($cleanSub)
+            $key.SetValue($Name, $coerced, [Microsoft.Win32.RegistryValueKind]$resolvedType)
 
+            $status = if ($null -ne $existingKind) { 'Updated' } else { 'Created' }
             return New-Result -Path $path -Name $Name -Type $resolvedType -Status $status -Value $coerced
-        } catch {
+        }
+        catch {
             return New-Result -Path $path -Name $Name -Type $resolvedType -Status 'Failed' -Err $_.Exception.Message
+        }
+        finally {
+            if ($key)  { $key.Dispose() }
+            if ($base) { $base.Dispose() }
         }
     }
 }
