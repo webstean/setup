@@ -129,7 +129,6 @@ if ($PSVersionTable.PSVersion.Major -le 5) {
 }
 
 $script:HostInfoCache = $null
-
 function Get-HostInfo {
     [CmdletBinding()]
     param(
@@ -305,7 +304,7 @@ function Get-HostInfo {
             LocalIPAddress     = $localIP
             ExternalIPAddress  = $externalIP
             LastBootUpTime     = if ($lastBoot) { $lastBoot.ToString('yyyy-MMM-dd HH:mm:ss') } else { $null }
-            UptimeMinutes      = $null
+            UptimeInMinutes    = $null
             OSArchitecture     = $os.OSArchitecture
             Caption            = $os.Caption
             Version            = $os.Version
@@ -320,7 +319,7 @@ function Get-HostInfo {
 
     # Return a copy so the cached object isn't mutated; uptime is always live
     $result = $static.PSObject.Copy()
-    $result.UptimeMinutes = if ($lastBoot) { [int][math]::Round(((Get-Date) - $lastBoot).TotalMinutes) } else { $null }
+    $result.UptimeInMinutes = if ($lastBoot) { [int][math]::Round(((Get-Date) - $lastBoot).TotalMinutes) } else { $null }
     $result
 }
 # Get-HostInfo
