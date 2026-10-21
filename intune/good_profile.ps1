@@ -128,6 +128,90 @@ if ($PSVersionTable.PSVersion.Major -le 5) {
     return
 }
 
+function Get-IpOwner {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position = 0, ValueFromPipeline)]
+        [string[]]$IPAddress
+    )
+
+    begin {
+        $ErrorActionPreference = 'Stop'
+        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+
+        function Test-PrivateIP([Net.IPAddress]$Ip) {
+            if ($Ip.AddressFamily -eq 'InterNetworkV6') {
+                return $Ip.IsIPv6LinkLocal -or $Ip.IsIPv6SiteLocal -or [Net.IPAddress]::IsLoopback($Ip) -or ($Ip.GetAddressBytes()[0] -band 0xFE) -eq 0xFC
+            }
+            $b = $Ip.GetAddressBytes()
+            ($b[0] -in 0, 10, 127) -or
+            ($b[0] -eq 169 -and $b[1] -eq 254) -or
+            ($b[0] -eq 172 -and $b[1] -in 16..31) -or
+            ($b[0] -eq 192 -and $b[1] -eq 168) -or
+            ($b[0] -eq 100 -and $b[1] -in 64..127) -or   # CGNAT
+            ($b[0] -ge 224)                              # multicast/reserved
+        }
+
+        function Get-VcardValue($Entity, $Field) {
+            if (-not $Entity.vcardArray) { return $null }
+            ($Entity.vcardArray[1] | Where-Object { $_[0] -eq $Field } | Select-Object -First 1)[3]
+        }
+
+        function Expand-Entities($Entities) {
+            foreach ($e in @($Entities)) {
+                if (-not $e) { continue }
+                $e
+                if ($e.entities) { Expand-Entities $e.entities }
+            }
+        }
+    }
+
+    process {
+        foreach ($addr in $IPAddress) {
+            $ip = $null
+            if (-not [Net.IPAddress]::TryParse($addr, [ref]$ip)) {
+                Write-Error "Invalid IP address: $addr"; continue
+            }
+            if (Test-PrivateIP $ip) {
+                Write-Warning "$addr is not publicly routable."; continue
+            }
+
+            try {
+                # rdap.org redirects to the correct RIR (ARIN, RIPE, APNIC, LACNIC, AFRINIC)
+                $r = Invoke-RestMethod -Uri "https://rdap.org/ip/$addr" -Headers @{ Accept = 'application/rdap+json' } -TimeoutSec 15
+            } catch {
+                Write-Error "RDAP lookup failed for ${addr}: $_"; continue
+            }
+
+            $entities  = @(Expand-Entities $r.entities)
+            $registrant = $entities | Where-Object { $_.roles -contains 'registrant' } | Select-Object -First 1
+            if (-not $registrant) { $registrant = $entities | Select-Object -First 1 }
+            $abuse = $entities | Where-Object { $_.roles -contains 'abuse' } | Select-Object -First 1
+
+            $cidr = if ($r.cidr0_cidrs) {
+                ($r.cidr0_cidrs | ForEach-Object {
+                    $p = if ($_.v4prefix) { $_.v4prefix } else { $_.v6prefix }
+                    "$p/$($_.length)"
+                }) -join ', '
+            }
+
+            [pscustomobject]@{
+                IPAddress    = $addr
+                Owner        = Get-VcardValue $registrant 'fn'
+                NetworkName  = $r.name
+                Handle       = $r.handle
+                Range        = "$($r.startAddress) - $($r.endAddress)"
+                CIDR         = $cidr
+                Country      = $r.country
+                Type         = $r.type
+                AbuseContact = Get-VcardValue $abuse 'email'
+                Registry     = ($r.links | Where-Object rel -eq 'self' | Select-Object -First 1).href
+            }
+        }
+    }
+}
+# Get-IpOwner <Ip Address>
+
 $script:HostInfoCache = $null
 function Get-HostInfo {
     [CmdletBinding()]
@@ -323,6 +407,7 @@ function Get-HostInfo {
     $result
 }
 # Get-HostInfo
+# (Get-IpOwner (Get-HostInfo).ExternalIPAddress).Owner 
 
 function Test-NFS {
     [CmdletBinding()]
