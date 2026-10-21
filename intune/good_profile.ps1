@@ -118,6 +118,12 @@ function Update-ProfileForce {
 # Update-ProfileForce -Backup
 # Update-ProfileForce
 
+## Update PATH - without restarting session
+function Update-SessionPath {
+    $env:PATH = ([Environment]::GetEnvironmentVariable('PATH','Machine'),
+                [Environment]::GetEnvironmentVariable('PATH','User')) -join ';'
+}
+
 if ($PSVersionTable.PSVersion.Major -le 5) {
     return
 }
@@ -5084,3 +5090,5 @@ function Invoke-PsPingTest {
 #    Write-Host 'PsPing is available.' -ForegroundColor Green
 #    Start-PsPingServer
 #}
+
+Update-SessionPath
