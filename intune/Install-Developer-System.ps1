@@ -1161,6 +1161,44 @@ Add-WSLShortcutToDesktop
 #)
 ##     "srv*C:\Symbols*https://msdl.microsoft.com/download/symbols",
 
+function Install-NodeJs {
+    [CmdletBinding()]
+    param()
+
+    $ErrorActionPreference = 'Stop'
+
+    function Update-SessionPath {
+        $env:PATH = ([Environment]::GetEnvironmentVariable('PATH','Machine'),
+                     [Environment]::GetEnvironmentVariable('PATH','User')) -join ';'
+    }
+
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+        Write-Verbose "npm $(& npm --version) already available."
+        return
+    }
+
+    # Installed but session PATH is stale
+    Update-SessionPath
+    if (Get-Command npm -ErrorAction SilentlyContinue) { return }
+
+    Write-Verbose "Installing Node.js LTS"
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        & winget install --id OpenJS.NodeJS.LTS --exact --silent `
+            --accept-package-agreements --accept-source-agreements
+        # 0 = ok, -1978335189 = already installed / no upgrade available
+        if ($LASTEXITCODE -notin 0, -1978335189) { throw "winget exited with code $LASTEXITCODE" }
+    } else {
+        throw "winget install for Node.js LTS failed! Install it manually from https://nodejs.org"
+    }
+
+    Update-SessionPath
+    if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+        throw "Node.js installed but npm is not on PATH. Open a new terminal and retry."
+    }
+    Write-Verbose "npm $(& npm --version) ready."
+}
+Install-NodeJs ## just in case it wasn't installed via winget configuration
+
 function Install-AspireCli {
     [CmdletBinding()]
     param(
