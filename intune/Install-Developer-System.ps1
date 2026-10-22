@@ -1571,6 +1571,9 @@ openfiles /local on
 ## SUCCESS: The system global flag 'maintain objects list' is enabled.
 ##         This will take effect after the system is restarted.
 
+dotnet nuget add source https://api.nuget.org/v3/index.json --name nuget.org
+dotnet nuget enable source nuget.org       
+
 
 
 
