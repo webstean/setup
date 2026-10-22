@@ -1571,8 +1571,27 @@ openfiles /local on
 ## SUCCESS: The system global flag 'maintain objects list' is enabled.
 ##         This will take effect after the system is restarted.
 
+## Get DotNet working properly
 dotnet nuget add source https://api.nuget.org/v3/index.json --name nuget.org
-dotnet nuget enable source nuget.org       
+dotnet nuget enable source nuget.org 
+$cfg = "$env:APPDATA\NuGet\NuGet.Config"
+Copy-Item $cfg "$cfg.bak"            # backup
+
+[xml]$xml = Get-Content $cfg
+$map = $xml.configuration.packageSourceMapping
+
+# nuget.org: everything
+$src = $xml.CreateElement('packageSource'); $src.SetAttribute('key', 'nuget.org')
+$pkg = $xml.CreateElement('package');       $pkg.SetAttribute('pattern', '*')
+$src.AppendChild($pkg) | Out-Null
+$map.PrependChild($src) | Out-Null
+
+# Fix the offline source's pattern (missing '*')
+foreach ($p in $map.packageSource | Where-Object key -like 'Microsoft Visual Studio Offline*') {
+    foreach ($e in $p.package | Where-Object pattern -eq 'Microsoft.Azure.') { $e.pattern = 'Microsoft.Azure.*' }
+}
+$xml.Save($cfg)
+# Get-Content $cfg
 
 
 
