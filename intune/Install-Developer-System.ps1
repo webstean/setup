@@ -1565,8 +1565,30 @@ dotnet new install Aspire.ProjectTemplates
 aspire config set features.singlefileAppHostEnabled true
 # Disable the minimum SDK version check
 #aspire config set features.minimumSdkCheckEnabled false
+aspire certs trust --non-interactive
 
 Add-Type -AssemblyName System.Windows.Forms
+
+/*
+## Example 1
+Add-Type -AssemblyName System.Windows.Forms
+$dialog = [System.Windows.Forms.FolderBrowserDialog]::new()
+$dialog.Description = 'Select the migration source folder'
+$dialog.ShowNewFolderButton = $false
+if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+  $dialog.SelectedPath
+}
+
+## Example 2
+Add-Type -AssemblyName System.Windows.Forms
+$dialog = [System.Windows.Forms.OpenFileDialog]::new()
+$dialog.Filter = 'CSV files (*.csv)|*.csv|All files (*.*)|*.*'
+$dialog.Multiselect = $true
+if ($dialog.ShowDialog() -eq 'OK') {
+  $dialog.FileNames
+}
+*/
+
 
 openfiles /local on
 ## SUCCESS: The system global flag 'maintain objects list' is enabled.
