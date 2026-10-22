@@ -1570,7 +1570,7 @@ aspire certs trust --non-interactive
 Add-Type -AssemblyName System.Windows.Forms
 
 /*
-## Example 1
+## Example 1: Classic
 Add-Type -AssemblyName System.Windows.Forms
 $dialog = [System.Windows.Forms.FolderBrowserDialog]::new()
 $dialog.Description = 'Select the migration source folder'
@@ -1579,7 +1579,7 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
   $dialog.SelectedPath
 }
 
-## Example 2
+## Example 2: Select CSV from specificed directory (modern)
 Add-Type -AssemblyName System.Windows.Forms
 $dialog = [System.Windows.Forms.OpenFileDialog]::new()
 $dialog.Filter = 'CSV files (*.csv)|*.csv|All files (*.*)|*.*'
@@ -1587,8 +1587,18 @@ $dialog.Multiselect = $true
 if ($dialog.ShowDialog() -eq 'OK') {
   $dialog.FileNames
 }
-*/
 
+## Example 3: Confirmation
+Add-Type -AssemblyName System.Windows.Forms
+$result = [System.Windows.Forms.MessageBox]::Show(
+  'Apply changes to production?', 'Confirm', 'YesNo', 'Warning')
+if ($result -eq 'Yes') { 'Proceeding' }
+
+## Example 4: Clipboard
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.Clipboard]::SetText('copied from script')
+[System.Windows.Forms.Clipboard]::GetText()
+*/
 
 openfiles /local on
 ## SUCCESS: The system global flag 'maintain objects list' is enabled.
