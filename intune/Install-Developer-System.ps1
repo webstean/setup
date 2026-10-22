@@ -529,6 +529,7 @@ function Install-DotNetUp {
 $dotnetTools = @(
     'Microsoft.DataApiBuilder',               ## dab
     'IntuneCLI',                              ## intuneCLI (3rd party)
+    'dotnet-outdated-tool',                   ## fix outdated dotnet tool
     'microsoft.powerapps.cli.tool',           ## powerapp tools
     'dotnet-reportgenerator-globaltool',      ## report generator
     'Microsoft.OpenApi.Kiota',                ## code generator (openapi)
