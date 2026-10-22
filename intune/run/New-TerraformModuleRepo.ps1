@@ -1,4 +1,16 @@
 # Placeholder file templates for Terraform module scaffold
+
+$script:TemplateDirectorBuild = @'
+<!-- C:\src\repo\Directory.Build.props -->
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"
+          Condition="Exists($([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../')))" />
+  <PropertyGroup>
+    <!-- repo-specific overrides -->
+  </PropertyGroup>
+</Project>
+'@
+
 $script:TemplateVersionsTf = @'
 terraform {
   required_version = "~>1.9, < 2.0"
@@ -1258,6 +1270,7 @@ function New-TerraformModuleRepo {
     '# Resources' | Set-Content 'main.tf'
     '# Outputs' | Set-Content 'outputs.tf'
     $script:TemplateClaude | Set-Content 'CLAUDE.md'
+    $script:TemplateDirectorBuild | Set-Content 'Directory.Build.props'
 
     $script:TemplateExampleMainTf | Set-Content 'examples/basic/main.tf'
     $script:TemplateExampleVersionsTf | Set-Content 'examples/basic/versions.tf'
