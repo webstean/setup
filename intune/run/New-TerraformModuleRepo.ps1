@@ -653,45 +653,94 @@ end_of_line = lf
 '@
 
 $script:TemplateGitAttributes = @'
-# Default: normalize all text files and prefer LF in the repo
-* text=auto eol=lf
+# Normalize text files; repo stores LF. Working-tree EOL is set per type below to match .editorconfig.
+# No eol= on the catch-all, so unlisted text files use the platform default (CRLF on Windows, LF on Linux/WSL).
+* text=auto
 
-# Windows batch/cmd usually expects CRLF
-*.bat  text eol=crlf
-*.cmd  text eol=crlf
-*.ps1xml text eol=lf
+# ---- CRLF: Windows-native / .NET (matches .editorconfig) ----
+*.cs        text eol=crlf
+*.csx       text eol=crlf
+*.vb        text eol=crlf
+*.csproj    text eol=crlf
+*.vbproj    text eol=crlf
+*.props     text eol=crlf
+*.targets   text eol=crlf
+*.sln       text eol=crlf
+*.slnx      text eol=crlf
+*.resx      text eol=crlf
+*.config    text eol=crlf
+*.nuspec    text eol=crlf
+*.xml       text eol=crlf
+*.razor     text eol=crlf
+*.cshtml    text eol=crlf
 
-# PowerShell  usually expects CRLF
-*.ps1  text eol=crlf
-*.psm1 text eol=crlf
-*.psd1 text eol=crlf
+# ---- CRLF: Windows scripts ----
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+*.psm1      text eol=crlf
+*.psd1      text eol=crlf
+*.ps1xml    text eol=crlf
 
-# Shell / scripts
-*.sh   text eol=lf
-*.bash text eol=lf
-*.zsh  text eol=lf
+# ---- LF: shell / Linux / WSL (CRLF here breaks the shebang) ----
+*.sh        text eol=lf
+*.bash      text eol=lf
+*.zsh       text eol=lf
+Dockerfile  text eol=lf
+Dockerfile.* text eol=lf
+*.dockerfile text eol=lf
+Makefile    text eol=lf
 
-# IaC / config
+# ---- LF: IaC / config / docs / web ----
 *.tf        text eol=lf
 *.tfvars    text eol=lf
 *.hcl       text eol=lf
+*.tftpl     text eol=lf
+*.bicep     text eol=lf
+*.bicepparam text eol=lf
 *.yml       text eol=lf
 *.yaml      text eol=lf
 *.json      text eol=lf
+*.jsonc     text eol=lf
 *.md        text eol=lf
 *.txt       text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.scss      text eol=lf
+*.js        text eol=lf
+*.jsx       text eol=lf
+*.ts        text eol=lf
+*.tsx       text eol=lf
+.gitattributes text eol=lf
+.gitignore  text eol=lf
+.editorconfig text eol=lf
 
-# Binary (never touch line endings)
-*.png  binary
-*.jpg  binary
-*.jpeg binary
-*.gif  binary
-*.pdf  binary
-*.zip  binary
-*.7z   binary
-*.exe  binary
-*.dll  binary
-'@
+# ---- Binary (never touch) ----
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.webp      binary
+*.pdf       binary
+*.zip       binary
+*.7z        binary
+*.gz        binary
+*.tgz       binary
+*.exe       binary
+*.dll       binary
+*.pdb       binary
+*.nupkg     binary
+*.dacpac    binary
+*.bacpac    binary
+*.pfx       binary
+*.snk       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.mp3       binary
+*.mp4       binary'
+@
 
 $script:Dependabot = @'
 ---
