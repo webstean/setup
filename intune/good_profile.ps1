@@ -882,6 +882,8 @@ function Set-Developer-Variables {
     ## Your corporate proxy is doing TLS inspection, and Node doesn’t trust its root CA.
     Set-Item -Path Env:\NODE_TLS_REJECT_UNAUTHORIZED  -Value 0
     Set-Item -Path Env:\NODE_NO_WARNINGS -Value 1
+    ## or trust corporate CA
+    # Set-Item -Path Env:\NODE_OPTIONS -Value "--use-system-ca"
     
     ## AZD get rid of annoying update prompt and opt out of telemetry
     Set-Item -Path Env:\AZD_SKIP_UPDATE_CHECK -Value $true
