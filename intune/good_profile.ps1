@@ -871,12 +871,18 @@ function Set-Developer-Variables {
     ## Edit as required
     if ( -not ( $env:DEVELOPER -eq 'Yes' )) { return }
     Write-Host 'Setting Developer environment variables...'
+    
     ## Dont send telemetry to Microsoft
     Set-Item -Path Env:\FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT -Value $true
     Set-Item -Path Env:\POWERSHELL_TELEMETRY_OPTOUT -Value $true
     Set-Item -Path Env:\DOTNET_UPGRADEASSISTANT_TELEMETRY_OPTOUT -Value $true
     Set-Item -Path Env:\DOTNET_CLI_TELEMETRY_OPTOUT -Value 1
-
+    
+    ## disabling certificate verification
+    ## Your corporate proxy is doing TLS inspection, and Node doesn’t trust its root CA.
+    Set-Item -Path Env:\NODE_TLS_REJECT_UNAUTHORIZED  -Value 0
+    Set-Item -Path Env:\NODE_NO_WARNINGS -Value 1
+    
     ## AZD get rid of annoying update prompt and opt out of telemetry
     Set-Item -Path Env:\AZD_SKIP_UPDATE_CHECK -Value $true
     Set-Item -Path Env:\AZURE_DEV_COLLECT_TELEMETRY -Value 'no'
