@@ -1,12 +1,17 @@
-function New-CodeSigningCertificate {
+function New-LocalSelfSignedCertificate {
     <#
     .SYNOPSIS
-        Creates (or reuses) a self-signed code signing certificate, ensures the PFX/CER files exist
+        Creates (or reuses) a self-signed certificate of a chosen type, ensures the PFX/CER files exist
         and, by default, that the certificate is trusted. Safe to run repeatedly.
+    .DESCRIPTION
+        -Type CodeSigningCert          Code Signing EKU. Trusted in Root + TrustedPublisher.
+        -Type SSLServerAuthentication  Server Authentication EKU with SAN (-DnsName). Trusted in Root.
     .EXAMPLE
-        $cert = New-CodeSigningCertificate -CertName 'MyCodeSigningCert'
+        $cert = New-LocalSelfSignedCertificate -Type CodeSigningCert
         Set-AuthenticodeSignature -FilePath .\script.ps1 -Certificate $cert `
             -HashAlgorithm SHA256 -TimestampServer 'http://timestamp.digicert.com'
+    .EXAMPLE
+        New-LocalSelfSignedCertificate -Type SSLServerAuthentication -CertName 'aca-dev' -DnsName 'aca-dev.local', 'localhost'
     .NOTES
         Self-signed: only trusted on machines where the CER is installed (-Trust does this locally).
         The PFX contains the private key. Do not leave it in a synced folder such as OneDrive
@@ -15,8 +20,19 @@ function New-CodeSigningCertificate {
     [CmdletBinding()]
     [OutputType([System.Security.Cryptography.X509Certificates.X509Certificate2])]
     param (
+        # No default on purpose: the caller must choose.
+        [Parameter(Mandatory, Position = 0)]
+        [ValidateSet('CodeSigningCert', 'SSLServerAuthentication')]
+        [string]$Type,
+
+        # Default when omitted: MyCodeSigningCert or MyServerCert, depending on -Type.
         [ValidateNotNullOrEmpty()]
-        [string]$CertName = 'MyCodeSigningCert',
+        [string]$CertName,
+
+        # SSLServerAuthentication only: Subject Alternative Names (DNS names and/or IP addresses).
+        # Default: localhost, *.dev.localhost, *.dev.internal, host.docker.internal,
+        # host.containers.internal, 127.0.0.1, ::1 and this computer's hostname.
+        [string[]]$DnsName,
 
         # Falls back to $env:STRONGPASSWORD, then to an interactive prompt. Only needed when a PFX is written.
         [System.Security.SecureString]$PfxPassword,
@@ -30,12 +46,13 @@ function New-CodeSigningCertificate {
         [ValidateRange(1, 10)]
         [int]$CertYears = 2,
 
-        # LocalMachine requires an elevated session.
+        # Default when omitted: LocalMachine if the session is elevated, otherwise CurrentUser.
+        # An explicit -Scope always wins. LocalMachine requires an elevated session.
         [ValidateSet('CurrentUser', 'LocalMachine')]
-        [string]$Scope = 'CurrentUser',
+        [string]$Scope,
 
-        # Ensure the certificate is trusted (Root + TrustedPublisher) in the chosen scope.
-        # Only missing entries are imported. Default $true; use -Trust $false to skip.
+        # Ensure the certificate is trusted in the chosen scope. Only missing entries are imported.
+        # Default $true; use -Trust $false to skip.
         [bool]$Trust = $true,
 
         # Create a new certificate even if a valid one already exists.
@@ -44,10 +61,65 @@ function New-CodeSigningCertificate {
 
     $ErrorActionPreference = 'Stop'
 
-    if ($Scope -eq 'LocalMachine') {
-        $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).
-            IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-        if (-not $isAdmin) { throw "Scope 'LocalMachine' requires an elevated session." }
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).
+        IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+    if (-not $PSBoundParameters.ContainsKey('Scope')) {
+        $Scope = if ($isAdmin) { 'LocalMachine' } else { 'CurrentUser' }
+        Write-Verbose "Scope not specified; using $Scope (elevated: $isAdmin)."
+    }
+
+    if ($Scope -eq 'LocalMachine' -and -not $isAdmin) {
+        throw "Scope 'LocalMachine' requires an elevated session."
+    }
+
+    # Per-type settings.
+    switch ($Type) {
+        'CodeSigningCert' {
+            if (-not $CertName) { $CertName = 'MyCodeSigningCert' }
+            if ($DnsName) { Write-Warning '-DnsName is ignored for CodeSigningCert.' }
+            $ekuOid      = '1.3.6.1.5.5.7.3.3'
+            $keyUsage    = @('DigitalSignature')
+            $keySpec     = 'Signature'
+            $trustStores = @('Root', 'TrustedPublisher')
+        }
+        'SSLServerAuthentication' {
+            if (-not $CertName) { $CertName = 'MyServerCert' }
+            if (-not $DnsName) {
+                $DnsName = @(
+                    'localhost'
+                    '*.dev.localhost'
+                    '*.dev.internal'
+                    'host.docker.internal'
+                    'host.containers.internal'
+                    '127.0.0.1'
+                    '0000:0000:0000:0000:0000:0000:0000:0001'
+                    [System.Net.Dns]::GetHostName()
+                )
+            }
+
+            # IP addresses need a real iPAddress SAN entry. Passing them via -DnsName stores them as
+            # DNS names, which TLS clients do not match against an IP. De-duplicate, and normalise IPv6
+            # (0000:...:0001 becomes ::1).
+            $sanDns = [System.Collections.Generic.List[string]]::new()
+            $sanIp  = [System.Collections.Generic.List[string]]::new()
+            foreach ($entry in $DnsName) {
+                $ip = $null
+                if ([System.Net.IPAddress]::TryParse($entry, [ref]$ip)) {
+                    if (-not $sanIp.Contains($ip.ToString())) { $sanIp.Add($ip.ToString()) }
+                }
+                elseif (-not ($sanDns | Where-Object { $_ -ieq $entry })) {
+                    $sanDns.Add($entry)
+                }
+            }
+            $sanParts = @($sanDns | ForEach-Object { "DNS=$_" }) + @($sanIp | ForEach-Object { "IPAddress=$_" })
+            $sanText  = '2.5.29.17={text}' + ($sanParts -join '&')
+
+            $ekuOid      = '1.3.6.1.5.5.7.3.1'
+            $keyUsage    = @('DigitalSignature', 'KeyEncipherment')
+            $keySpec     = 'KeyExchange'
+            $trustStores = @('Root')
+        }
     }
 
     $subject = "CN=$CertName"
@@ -55,9 +127,13 @@ function New-CodeSigningCertificate {
     $pfxPath = Join-Path $OutputPath "$CertName.pfx"
     $cerPath = Join-Path $OutputPath "$CertName.cer"
 
-    # Exact subject match (the old -like "*CN=Name*" also matched CN=Name2), valid, code signing only.
-    $existing = Get-ChildItem -Path $myStore -CodeSigningCert |
-        Where-Object { $_.Subject -eq $subject -and $_.NotAfter -gt (Get-Date) } |
+    # Exact subject match (-like "*CN=Name*" would also match CN=Name2), still valid, correct EKU.
+    $existing = Get-ChildItem -Path $myStore |
+        Where-Object {
+            $_.Subject -eq $subject -and
+            $_.NotAfter -gt (Get-Date) -and
+            ($_.EnhancedKeyUsageList.ObjectId -contains $ekuOid)
+        } |
         Sort-Object NotAfter -Descending |
         Select-Object -First 1
 
@@ -81,26 +157,27 @@ function New-CodeSigningCertificate {
 
     if ($reuse) {
         $cert = $existing
-        Write-Verbose "Certificate '$subject' already exists ($($cert.Thumbprint)); reusing."
+        Write-Verbose "Certificate '$subject' ($Type) already exists ($($cert.Thumbprint)); reusing."
     }
     else {
         # Splatting avoids the line-continuation traps (a trailing space or comment after a backtick
         # silently ends the continuation).
         $certParams = @{
             Subject           = $subject
-            Type              = 'CodeSigningCert'
+            Type              = $Type
             KeyAlgorithm      = 'RSA'
             KeyLength         = 3072
-            KeySpec           = 'Signature'
-            KeyUsage          = 'DigitalSignature'
+            KeySpec           = $keySpec
+            KeyUsage          = $keyUsage
             HashAlgorithm     = 'SHA256'
             KeyExportPolicy   = 'Exportable'
             CertStoreLocation = $myStore
             NotBefore         = (Get-Date).AddHours(-1)
             NotAfter          = (Get-Date).AddYears($CertYears)
         }
+        if ($Type -eq 'SSLServerAuthentication') { $certParams['TextExtension'] = @($sanText) }
 
-        Write-Verbose 'Creating self-signed code signing certificate...'
+        Write-Verbose "Creating self-signed $Type certificate..."
         $cert = New-SelfSignedCertificate @certParams
         Write-Verbose "Created certificate, thumbprint $($cert.Thumbprint)"
     }
@@ -121,10 +198,10 @@ function New-CodeSigningCertificate {
     Export-Certificate -Cert $cert -FilePath $cerPath | Out-Null
     Write-Verbose "CER: $cerPath"
 
-    # Trust: import only what is missing. Root makes the chain valid; TrustedPublisher is what
-    # AllSigned/RemoteSigned policies check. CurrentUser\Root shows a Windows confirmation prompt.
+    # Trust: import only what is missing. Root makes the chain valid; TrustedPublisher (code signing
+    # only) is what AllSigned/RemoteSigned policies check. CurrentUser\Root shows a Windows prompt.
     if ($Trust) {
-        foreach ($storeName in 'Root', 'TrustedPublisher') {
+        foreach ($storeName in $trustStores) {
             $storePath = "Cert:\$Scope\$storeName"
             if (Test-Path -Path "$storePath\$($cert.Thumbprint)") {
                 Write-Verbose "Already trusted in $storePath"
@@ -137,17 +214,22 @@ function New-CodeSigningCertificate {
 
     # Actual trust state, not just the requested one.
     $trusted = $true
-    foreach ($storeName in 'Root', 'TrustedPublisher') {
+    foreach ($storeName in $trustStores) {
         if (-not (Test-Path -Path "Cert:\$Scope\$storeName\$($cert.Thumbprint)")) { $trusted = $false }
     }
     $status = if ($reuse) { 'Reused existing' } else { 'Created new' }
 
     # Display details straight to the host (Out-Host bypasses the pipeline), then still return the
-    # certificate object so callers can use it: $cert = New-CodeSigningCertificate
+    # certificate object so callers can use it: $cert = New-LocalSelfSignedCertificate -Type ...
     $cert |
         Format-List -Property @(
             @{ Name = 'Status'; Expression = { $status } }
+            @{ Name = 'Type'; Expression = { $Type } }
             'Subject'
+            @{ Name = 'SAN'; Expression = {
+                    $san = $_.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.17' }
+                    if ($san) { $san.Format($false) } else { '(none)' }
+                } }
             'Issuer'
             'Thumbprint'
             'SerialNumber'
@@ -169,96 +251,11 @@ function New-CodeSigningCertificate {
 
     $cert
 }
+#New-LocalSelfSignedCertificate -Type CodeSigningCert
+#New-LocalSelfSignedCertificate -Type SSLServerAuthentication
 
-# Signing (use a timestamp so the signature stays valid after the certificate expires):
-# $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Where-Object Subject -eq 'CN=MyCodeSigningCert'
+# Signing with a CodeSigningCert (use a timestamp so the signature outlives the certificate):
+# $cert = Get-ChildItem Cert:\LocalMachine\My -CodeSigningCert | Where-Object Subject -eq 'CN=MyCodeSigningCert'
 # Set-AuthenticodeSignature -FilePath .\script.ps1 -Certificate $cert -HashAlgorithm SHA256 -TimestampServer 'http://timestamp.digicert.com'
 # (Get-AuthenticodeSignature .\script.ps1).Status
-
-# Signing (use a timestamp so the signature stays valid after the certificate expires):
-# $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Where-Object Subject -eq 'CN=MyCodeSigningCert'
-# Set-AuthenticodeSignature -FilePath .\script.ps1 -Certificate $cert -HashAlgorithm SHA256 -TimestampServer 'http://timestamp.digicert.com'
-# (Get-AuthenticodeSignature .\script.ps1).Status# New-CodeSigningCertificate
-
-# Signing (use a timestamp so the signature stays valid after the certificate expires):
-# $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Where-Object Subject -eq 'CN=MyCodeSigningCert'
-# Set-AuthenticodeSignature -FilePath .\script.ps1 -Certificate $cert -HashAlgorithm SHA256 -TimestampServer 'http://timestamp.digicert.com'
-# (Get-AuthenticodeSignature .\script.ps1).Status
-
-function Set-CodeSigningCertificate {
-    ## List of Code Signing Certificates
-    $NumberCodeSigningCertificates = (Get-ChildItem -Path Cert:\* -Recurse -CodeSigningCert | Measure-Object).Count
-    Write-Output "Looking for code signing certificates..." 
-
-    if ($NumberCodeSigningCertificates -eq 0) {
-        Write-Output "Did not find any!"
-        Write-Output "Number of Code Signing Certificates: $NumberCodeSigningCertificates"
-    }
-    else {
-        ## Set Code Signing Certificate - only the first one found
-        ## Note: Code Signing certificates must have a private key, otherwise the certificates cannot be used for signing.
-        Write-Output "Number of Code Signing Certificates: $NumberCodeSigningCertificates"
-
-        $cert = (Get-ChildItem -Path Cert:\* -Recurse -CodeSigningCert)[0]
-        [Environment]::SetEnvironmentVariable('CodeSigningCertificate', "$cert", 'User')
-        $env:CodeSigningCertificate = [System.Environment]::GetEnvironmentVariable("CodeSigningCertificate", "User")
-
-        Write-Output "env:CodeSigningCertificate = $env:CodeSigningCertificate"
-    }
-}
-# Set-CodeSigningCertificate
-
-# Types: CodeSigningCert, DocumentEncryptionCert, SSLServerAuthentication
-#        -FriendlyName = "$certName" `
-
-## Create Certifciate
-$certName = 'Developer Code Signing'
-$certLocation = 'Cert:\CurrentUser\My' ## 'Cert:\CurrentUser\Root'
-$cscert = New-SelfSignedCertificate `
-        -FriendlyName 'DeveloperCodeSigning' `
-        -Subject "CN=$certName" `
-        -Type CodeSigningCert `
-        -CertStoreLocation "$CertLocation" `
-        -KeyExportPolicy Exportable `
-        -KeySpec Signature `
-        -KeyLength 2048 `
-        -KeyAlgorithm RSA `
-        -HashAlgorithm SHA256 `
-        -NotAfter (Get-Date).AddYears($CertYears) `
-        -Verbose
-$cscert | Select-Object Subject, Thumbprint, NotAfter, @{
-        Name = 'EKU'
-        Expression = {
-            $_.EnhancedKeyUsageList.FriendlyName -join ', '
-        }
-    }
-Export-Certificate -Cert $cscert -FilePath "$env:TEMP\codesign.cer"
-Import-Certificate -FilePath "$env:TEMP\codesign.cer" -CertStoreLocation 'Cert:\CurrentUser\TrustedPublisher'
-Import-Certificate -FilePath "$env:TEMP\codesign.cer" -CertStoreLocation 'Cert:\CurrentUser\Root'
-#$result = Set-AuthenticodeSignature -FilePath $file -Certificate $cscert -HashAlgorithm SHA256
-
-$certName = 'Developer TLS'
-$certLocation = 'Cert:\CurrentUser\My' ## 'Cert:\CurrentUser\Root'
-$tlscert = New-SelfSignedCertificate `
-        -FriendlyName 'DeveloperTLS' `
-        -Subject "CN=$certName" `
-        -Type SSLServerAuthentication `
-        -DnsName 'localhost, *.dev.localhost, *.dev.internal, host.docker.internal, host.containers.internal, 127.0.0.1, 0000:0000:0000:0000:0000:0000:0000:0001' `
-        -CertStoreLocation "$CertLocation" `
-        -KeyExportPolicy Exportable `
-        -KeySpec Signature `
-        -KeyLength 2048 `
-        -KeyAlgorithm RSA `
-        -HashAlgorithm SHA256 `
-        -NotAfter (Get-Date).AddYears($CertYears) `
-        -Verbose
-$tlscert | Select-Object Subject, Thumbprint, NotAfter, @{
-        Name = 'EKU'
-        Expression = {
-            $_.EnhancedKeyUsageList.FriendlyName -join ', '
-        }
-    }
-
-##$cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($pfxPath, $passCert, [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable)
-
 
