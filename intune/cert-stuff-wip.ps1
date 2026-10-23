@@ -1,76 +1,197 @@
 function New-CodeSigningCertificate {
+    <#
+    .SYNOPSIS
+        Creates (or reuses) a self-signed code signing certificate, ensures the PFX/CER files exist
+        and, by default, that the certificate is trusted. Safe to run repeatedly.
+    .EXAMPLE
+        $cert = New-CodeSigningCertificate -CertName 'MyCodeSigningCert'
+        Set-AuthenticodeSignature -FilePath .\script.ps1 -Certificate $cert `
+            -HashAlgorithm SHA256 -TimestampServer 'http://timestamp.digicert.com'
+    .NOTES
+        Self-signed: only trusted on machines where the CER is installed (-Trust does this locally).
+        The PFX contains the private key. Do not leave it in a synced folder such as OneDrive
+        unless that is a deliberate choice.
+    #>
+    [CmdletBinding()]
+    [OutputType([System.Security.Cryptography.X509Certificates.X509Certificate2])]
     param (
-        [string]$CertName = "MyCodeSigningCert",
-        [Parameter()]
-        [System.Security.SecureString]$PfxPassword = (ConvertTo-SecureString -String (Get-Item Env:STRONGPASSWORD).Value -AsPlainText -Force),
-        [string]$OutputPath = "$env:OneDriveCommercial"
+        [ValidateNotNullOrEmpty()]
+        [string]$CertName = 'MyCodeSigningCert',
+
+        # Falls back to $env:STRONGPASSWORD, then to an interactive prompt. Only needed when a PFX is written.
+        [System.Security.SecureString]$PfxPassword,
+
+        # $env:OneDriveCommercial can be unset, which breaks Join-Path, so fall back to Documents.
+        [string]$OutputPath = $(
+            if ($env:OneDriveCommercial) { $env:OneDriveCommercial }
+            else { [Environment]::GetFolderPath('MyDocuments') }
+        ),
+
+        [ValidateRange(1, 10)]
+        [int]$CertYears = 2,
+
+        # LocalMachine requires an elevated session.
+        [ValidateSet('CurrentUser', 'LocalMachine')]
+        [string]$Scope = 'CurrentUser',
+
+        # Ensure the certificate is trusted (Root + TrustedPublisher) in the chosen scope.
+        # Only missing entries are imported. Default $true; use -Trust $false to skip.
+        [bool]$Trust = $true,
+
+        # Create a new certificate even if a valid one already exists.
+        [switch]$Force
     )
 
-    try { 
+    $ErrorActionPreference = 'Stop'
 
-        $subject = "CN=$CertName"
+    if ($Scope -eq 'LocalMachine') {
+        $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).
+            IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        if (-not $isAdmin) { throw "Scope 'LocalMachine' requires an elevated session." }
+    }
 
-        if ( Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Subject -like "*$subject*" } ) { return } ## already exists
-        
-        ## Delete
-        # $cert = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Subject -like "*$subject*" }
-        # Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)"
-        
-        # Ensure output path exists
-        if (-not (Test-Path $OutputPath)) {
-            New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
+    $subject = "CN=$CertName"
+    $myStore = "Cert:\$Scope\My"
+    $pfxPath = Join-Path $OutputPath "$CertName.pfx"
+    $cerPath = Join-Path $OutputPath "$CertName.cer"
+
+    # Exact subject match (the old -like "*CN=Name*" also matched CN=Name2), valid, code signing only.
+    $existing = Get-ChildItem -Path $myStore -CodeSigningCert |
+        Where-Object { $_.Subject -eq $subject -and $_.NotAfter -gt (Get-Date) } |
+        Sort-Object NotAfter -Descending |
+        Select-Object -First 1
+
+    $reuse = ($null -ne $existing) -and -not $Force
+
+    if (-not (Test-Path -Path $OutputPath)) {
+        New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
+    }
+
+    # A PFX is written for a new certificate, or when reusing one whose PFX is missing.
+    # Resolve the password up front so a failed prompt can't leave a certificate without a backup.
+    $needPfx = (-not $reuse) -or -not (Test-Path -Path $pfxPath)
+    if ($needPfx -and -not $PfxPassword) {
+        if ($env:STRONGPASSWORD) {
+            $PfxPassword = ConvertTo-SecureString -String $env:STRONGPASSWORD -AsPlainText -Force
+        }
+        else {
+            $PfxPassword = Read-Host -Prompt 'PFX password' -AsSecureString
+        }
+    }
+
+    if ($reuse) {
+        $cert = $existing
+        Write-Verbose "Certificate '$subject' already exists ($($cert.Thumbprint)); reusing."
+    }
+    else {
+        # Splatting avoids the line-continuation traps (a trailing space or comment after a backtick
+        # silently ends the continuation).
+        $certParams = @{
+            Subject           = $subject
+            Type              = 'CodeSigningCert'
+            KeyAlgorithm      = 'RSA'
+            KeyLength         = 3072
+            KeySpec           = 'Signature'
+            KeyUsage          = 'DigitalSignature'
+            HashAlgorithm     = 'SHA256'
+            KeyExportPolicy   = 'Exportable'
+            CertStoreLocation = $myStore
+            NotBefore         = (Get-Date).AddHours(-1)
+            NotAfter          = (Get-Date).AddYears($CertYears)
         }
 
-        $pfxPath = Join-Path $OutputPath "$CertName.pfx"
-        $cerPath = Join-Path $OutputPath "$CertName.cer"
-        $securePass = ConvertTo-SecureString -String $PfxPassword -Force -AsPlainText
-
-        Write-Host "==> Creating self-signed code signing certificate..."
-        $cert = New-SelfSignedCertificate `
-            -Subject "$subject" `
-            -KeyExportPolicy Exportable `
-            -CertStoreLocation "Cert:\CurrentUser\My" `
-            -NotAfter (Get-Date).AddYears(2) `
-            -Type CodeSigningCert `
-            -KeySpec Signature `
-            -KeyLength 2048 `
-            -HashAlgorithm SHA256
-
-        Write-Host "Created code signing certificate with Thumbprint:" $cert.Thumbprint
-
-        Write-Host "==> Exporting certificate..."
-        Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $securePass | Out-Null
-        Export-Certificate    -Cert $cert -FilePath $cerPath | Out-Null
-        Write-Host "PFX exported to $pfxPath"
-        Write-Host "CER exported to $cerPath"
-
-        ## Add to Trusted Root store
-        Write-Host "==> Importing certificate into Trusted Root..."
-        ## Import-Certificate -FilePath $cerPath -CertStoreLocation Cert:\CurrentUser\Root | Out-Null ## This User
-        Import-Certificate -FilePath $cerPath -CertStoreLocation Cert:\Localmachine\Root | Out-Null ## All Users
-
-        ## How to sign something
-        #$cert = (Get-ChildItem -Path Cert:\* -Recurse -CodeSigningCert)[0]
-        #Set-AuthenticodeSignature -Certificate $cert -FilePath .\aw.ps1  ## -TimestampServer "https://timestamp.fabrikam.com/scripts/timstamper.dll"
-        #Set-AuthenticodeSignature -Certificate $cert -FilePath .\aw.ps1 -HashAlgorithm "SHA256" -TimestampServer 'http://timestamp.verisign.com/scripts/timstamp.dll'
-
-        #(Get-AuthenticodeSignature .\aw.ps1).StatusMessage
-
+        Write-Verbose 'Creating self-signed code signing certificate...'
+        $cert = New-SelfSignedCertificate @certParams
+        Write-Verbose "Created certificate, thumbprint $($cert.Thumbprint)"
     }
 
-    catch {
-        Write-Output "An exception occurred: $_" 
-        Write-Output "Exception Type: $($_.Exception.GetType().FullName)" 
-        Write-Output "Exception Message: $($_.Exception.Message)" 
-        Write-Output "Stack Trace: $($_.Exception.StackTrace)" 
+    # PFX (private key): only when new or missing. A reused certificate may have a non-exportable key.
+    if ($needPfx) {
+        try {
+            Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $PfxPassword -ChainOption EndEntityCertOnly | Out-Null
+            Write-Verbose "PFX: $pfxPath"
+        }
+        catch {
+            if (-not $reuse) { throw }
+            Write-Warning "Could not export a PFX for the existing certificate (private key may be non-exportable): $($_.Exception.Message)"
+        }
     }
+
+    # CER (public key only): always refreshed so it matches the certificate in use.
+    Export-Certificate -Cert $cert -FilePath $cerPath | Out-Null
+    Write-Verbose "CER: $cerPath"
+
+    # Trust: import only what is missing. Root makes the chain valid; TrustedPublisher is what
+    # AllSigned/RemoteSigned policies check. CurrentUser\Root shows a Windows confirmation prompt.
+    if ($Trust) {
+        foreach ($storeName in 'Root', 'TrustedPublisher') {
+            $storePath = "Cert:\$Scope\$storeName"
+            if (Test-Path -Path "$storePath\$($cert.Thumbprint)") {
+                Write-Verbose "Already trusted in $storePath"
+                continue
+            }
+            Import-Certificate -FilePath $cerPath -CertStoreLocation $storePath | Out-Null
+            Write-Verbose "Imported into $storePath"
+        }
+    }
+
+    # Actual trust state, not just the requested one.
+    $trusted = $true
+    foreach ($storeName in 'Root', 'TrustedPublisher') {
+        if (-not (Test-Path -Path "Cert:\$Scope\$storeName\$($cert.Thumbprint)")) { $trusted = $false }
+    }
+    $status = if ($reuse) { 'Reused existing' } else { 'Created new' }
+
+    # Display details straight to the host (Out-Host bypasses the pipeline), then still return the
+    # certificate object so callers can use it: $cert = New-CodeSigningCertificate
+    $cert |
+        Format-List -Property @(
+            @{ Name = 'Status'; Expression = { $status } }
+            'Subject'
+            'Issuer'
+            'Thumbprint'
+            'SerialNumber'
+            'NotBefore'
+            'NotAfter'
+            @{ Name = 'ValidDays'; Expression = { [int]($_.NotAfter - (Get-Date)).TotalDays } }
+            @{ Name = 'Key'; Expression = {
+                    $rsa = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($_)
+                    "RSA $($rsa.KeySize), $($_.SignatureAlgorithm.FriendlyName)"
+                } }
+            @{ Name = 'Usage'; Expression = { ($_.EnhancedKeyUsageList.FriendlyName) -join ', ' } }
+            'HasPrivateKey'
+            @{ Name = 'Store'; Expression = { $myStore } }
+            @{ Name = 'Trusted'; Expression = { $trusted } }
+            @{ Name = 'PfxPath'; Expression = { if (Test-Path -Path $pfxPath) { $pfxPath } else { '(not written)' } } }
+            @{ Name = 'CerPath'; Expression = { $cerPath } }
+        ) |
+        Out-Host
+
+    $cert
 }
+
+# Signing (use a timestamp so the signature stays valid after the certificate expires):
+# $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Where-Object Subject -eq 'CN=MyCodeSigningCert'
+# Set-AuthenticodeSignature -FilePath .\script.ps1 -Certificate $cert -HashAlgorithm SHA256 -TimestampServer 'http://timestamp.digicert.com'
+# (Get-AuthenticodeSignature .\script.ps1).Status
+
+# Signing (use a timestamp so the signature stays valid after the certificate expires):
+# $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Where-Object Subject -eq 'CN=MyCodeSigningCert'
+# Set-AuthenticodeSignature -FilePath .\script.ps1 -Certificate $cert -HashAlgorithm SHA256 -TimestampServer 'http://timestamp.digicert.com'
+# (Get-AuthenticodeSignature .\script.ps1).Status# New-CodeSigningCertificate
+
+# Signing (use a timestamp so the signature stays valid after the certificate expires):
+# $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Where-Object Subject -eq 'CN=MyCodeSigningCert'
+# Set-AuthenticodeSignature -FilePath .\script.ps1 -Certificate $cert -HashAlgorithm SHA256 -TimestampServer 'http://timestamp.digicert.com'
+# (Get-AuthenticodeSignature .\script.ps1).Status
+
 function Set-CodeSigningCertificate {
     ## List of Code Signing Certificates
     $NumberCodeSigningCertificates = (Get-ChildItem -Path Cert:\* -Recurse -CodeSigningCert | Measure-Object).Count
     Write-Output "Looking for code signing certificates..." 
 
     if ($NumberCodeSigningCertificates -eq 0) {
+        Write-Output "Did not find any!"
         Write-Output "Number of Code Signing Certificates: $NumberCodeSigningCertificates"
     }
     else {
