@@ -348,18 +348,18 @@ function Test-EntraIdJoined {
 }
 
 function Install-WinRM {
-    
     ## Network profiles MUST be private for WinRM to work (see above)
     Set-NetworkProfilesToPrivate
 
     ## Open firewall rules for WinRM (HTTP:5985, HTTPS:5986)
     #Get-NetFirewallRule | Select-Object -ExpandProperty DisplayName
+    New-NetFirewallRule -Name WinRM-HTTPS -DisplayName 'WinRM HTTPS' -Protocol TCP -LocalPort 5986 -RemoteAddress Any -Action Allow
     Set-NetFirewallRule -Name 'WINRM-HTTP-In-TCP' -RemoteAddress Any -Action Allow
     Get-NetFirewallRule -Name 'WINRM-HTTP-In-TCP'
 
     ## For the transcript: remoting (WSMAN) configuration
     winrm quickconfig -Force
-    Enable-PSRemoting -Force
+    Enable-PSRemoting -Force -SkipNetworkProfileCheck
     winrm enumerate winrm/config/listener
     ## using a certificate for WinRm?
     #Winrm get http://schemas.microsoft.com/wbem/wsman/1/config
@@ -376,12 +376,15 @@ function Install-WinRM {
         New-Item -Path $regPath -Force | Out-Null
     }
     if ( Test-EntraIdJoined ) {
-        Write-Host "WSMAN: Entra ID Joined, disabled Kerberos"
+        Write-Host "WSMAN: Entra ID Joined, disabled Kerberos, enabling HTTPS"
         ## WinRM considers the Microsoft Entra-only joined machines as workgroup machines.
         ## Default SPN prefix HTTP prevents Microsoft Entra authenticatio, so it needs to be set to HOST
         Set-Item -Path WSMan:\localhost\Service\Auth\Kerberos -Value $false
         Set-Item -Path WSMan:\localhost\Client\Auth\Kerberos -Value $false
         New-ItemProperty -Path $regPath -Name 'spn_prefix' -PropertyType String -Value 'HOST' -Force | Out-Null
+        $cert = New-SelfSignedCertificate -DnsName $env:COMPUTERNAME -CertStoreLocation Cert:\LocalMachine\My   # use an internal CA cert in production
+        New-Item WSMan:\localhost\Listener -Transport HTTPS -Address * -CertificateThumbPrint $cert.Thumbprint -Force
+        Set-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System -Name LocalAccountTokenFilterPolicy -Value 1 -Type DWord
     } else {
         Write-Host "WSMAN: NON-Entra ID Joined, enabling Kerberos"
         Set-Item -Path WSMan:\localhost\Service\Auth\Kerberos -Value $true
@@ -401,6 +404,11 @@ function Install-WinRM {
 }
 #
 #Install-WinRM
+
+## Connect
+#$cred = Get-Credential 'TARGETHOST\localadmin'   # machine-qualified, not AzureAD\user
+#$so   = New-PSSessionOption -SkipCACheck -SkipCNCheck   # lab only, drop with a trusted cert
+#Enter-PSSession -ComputerName target.example.com -UseSSL -Credential $cred -SessionOption $so
 
 function Install-DotNetUp {
     [CmdletBinding()]
