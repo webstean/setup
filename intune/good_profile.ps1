@@ -4648,19 +4648,19 @@ function Get-SavedAzureTenant {
 function Start-BastionTunnel {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = true)] 
         [string]$BastionName,
 
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = true)]
         [string]$BastionResourceGroup,
 
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = true)]
         [string]$VmName,
 
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = true)]
         [string]$VmResourceGroup,
 
-        [Parameter(Mandatory= false)]
+        [Parameter(Mandatory = false)]
         [int]$ResourcePort = 6516,
 
         [Parameter(Mandatory = false)]
@@ -4721,15 +4721,17 @@ function Test-InternetConnection {
 
 function Invoke-RobustDownload {
     param(
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = true)]
         [string]$Uri,
 
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = true)]
         [string]$OutFile,
 
+        [Parameter(Mandatory = false)]
         [ValidateRange(1, 10)]
         [int]$MaxRetries = 4,
 
+        [Parameter(Mandatory = false)]
         [ValidateRange(1, 300)]
         [int]$TimeoutSec = 60
     )
