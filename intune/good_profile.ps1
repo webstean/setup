@@ -1355,9 +1355,9 @@ function tim { terraform.exe init -upgrade -migrate-state @args }
 function tp { terraform.exe plan @args }
 function ta { terraform.exe apply @args }
 function tpr { terraform.exe providers @args }
-if (Test-Path 'C:\Program Files\Graphviz\bin\dot.exe' ) { 
+if (Test-Path 'C:\Program Files\Graphviz\bin\dot.exe') {
     ## terraform graph -type=plan | dot -Tsvg > graph.svg
-    function dot { 'C:\Program Files\Graphviz\bin\dot.exe @args'
+    function dot { & 'C:\Program Files\Graphviz\bin\dot.exe' @args }
 }
 
 function tc {
