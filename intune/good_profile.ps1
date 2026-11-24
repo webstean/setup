@@ -4648,45 +4648,49 @@ function Get-SavedAzureTenant {
 function Start-BastionTunnel {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = true)] 
+        [Parameter(Mandatory = $true)]
         [string]$BastionName,
 
-        [Parameter(Mandatory = true)]
+        [Parameter(Mandatory = $true)]
         [string]$BastionResourceGroup,
 
-        [Parameter(Mandatory = true)]
+        [Parameter(Mandatory = $true)]
         [string]$VmName,
 
-        [Parameter(Mandatory = true)]
+        [Parameter(Mandatory = $true)]
         [string]$VmResourceGroup,
 
-        [Parameter(Mandatory = false)]
+        [ValidateRange(1, 65535)]
         [int]$ResourcePort = 6516,
 
-        [Parameter(Mandatory = false)]
+        [ValidateRange(1, 65535)]
         [int]$LocalPort = 8443
     )
 
-    # --- Resolve VM resource ID inline ---
+    # --- Resolve VM resource ID ---
     $targetResourceId = az vm show `
         --resource-group $VmResourceGroup `
         --name $VmName `
         --query id -o tsv
 
-    if (-not $targetResourceId) {
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($targetResourceId)) {
         Write-Error "Could not resolve resource ID for VM '$VmName' in resource group '$VmResourceGroup'."
         return
     }
 
     Write-Verbose "Resolved target resource ID: $targetResourceId"
 
-    # --- Start the tunnel ---
+    # --- Start the tunnel (blocks until Ctrl+C) ---
     az network bastion tunnel `
         --name $BastionName `
         --resource-group $BastionResourceGroup `
         --target-resource-id $targetResourceId `
         --resource-port $ResourcePort `
         --port $LocalPort
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Bastion tunnel exited with code $LASTEXITCODE."
+    }
 }
 # Example usage:
 # Start-BastionTunnel -BastionName "ba-aif-australiaeast" `
@@ -4721,17 +4725,17 @@ function Test-InternetConnection {
 
 function Invoke-RobustDownload {
     param(
-        [Parameter(Mandatory = true)]
+        [Parameter(Mandatory = $true)]
         [string]$Uri,
 
-        [Parameter(Mandatory = true)]
+        [Parameter(Mandatory = $true)]
         [string]$OutFile,
 
-        [Parameter(Mandatory = false)]
+        [Parameter(Mandatory = $false)]
         [ValidateRange(1, 10)]
         [int]$MaxRetries = 4,
 
-        [Parameter(Mandatory = false)]
+        [Parameter(Mandatory = $false)]
         [ValidateRange(1, 300)]
         [int]$TimeoutSec = 60
     )
