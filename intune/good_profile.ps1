@@ -1358,12 +1358,16 @@ function tpr { terraform.exe providers @args }
 if (Test-Path 'C:\Program Files\Graphviz\bin\dot.exe') {
     ## terraform graph -type=plan | dot -Tsvg > graph.svg
     function dot { & 'C:\Program Files\Graphviz\bin\dot.exe' @args }
+    function tg { 
+        Write-StepSummary -type 'info' Generating 'graph.svg' from terraform plan"
+        terraform graph -type=plan | dot -Tsvg > graph.svg }
+    }
 }
 
 function tc {
     Write-StepSummary -type 'info' 'Starting Terraform Console...'
     terraform.exe console @args
-}
+}terra
 function ar {
     Write-StepSummary -type 'info' 'Running Aspire app in current directory...'
     aspire run @args
